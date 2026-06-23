@@ -64,6 +64,21 @@ class GroupPlanSimulationResult:
         store = JsonGroupRunHistoryStore(path=history_path)
         return store.update_allowed_runs(plans=self.plans, ran_at=ran_at)
 
+    def update_history_after_approval(
+        self,
+        *,
+        approval: GroupPlanApproval | None,
+        history_path: Path,
+        ran_at: datetime,
+    ) -> GroupPlanApprovalResult:
+        approval_result = self.evaluate_approval(approval)
+        if not approval_result.approved:
+            return approval_result
+
+        store = JsonGroupRunHistoryStore(path=history_path)
+        store.update_allowed_runs(plans=approval_result.plans, ran_at=ran_at)
+        return approval_result
+
 
 class GroupPlanSimulation:
     def __init__(
