@@ -15,6 +15,7 @@ from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.http import ProviderHttpError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
+from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import get_settings
 
 
@@ -77,6 +78,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_payload_error(marketplace=Marketplace.AMAZON, error=error)
     except ProviderHttpError as error:
         return _print_provider_http_error(marketplace=marketplace, error=error)
+    except HttpTransportError as error:
+        return _print_transport_error(marketplace=marketplace, error=error)
 
     scored_offers = scorer.score(offers)
 
@@ -133,6 +136,17 @@ def _print_provider_http_error(marketplace: Marketplace, error: Exception) -> in
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Verifique status, rate limit e disponibilidade antes de nova tentativa.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_transport_error(marketplace: Marketplace, error: Exception) -> int:
+    marketplace_name = marketplace.value.capitalize()
+    print(f"ERRO | Falha de transporte HTTP da {marketplace_name}", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Verifique conexão, timeout e configuração antes de nova tentativa.",
         file=sys.stderr,
     )
     return 3
