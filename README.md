@@ -103,7 +103,21 @@ Para exportar somente as mensagens aprovadas:
 .\.venv\Scripts\python.exe -m ofertas_bot.review_queue_export_cli --queue-json .data\review_queue.json --save-approved-messages-json .data\approved_messages.json --save-approved-messages-text .data\approved_messages.txt
 ```
 
-A exportação final também aplica o gate automaticamente: ela bloqueia se ainda houver item pendente ou se não existir nenhuma mensagem aprovada. Esses comandos apenas alteram, consultam ou exportam arquivos locais. Nenhum envio é executado.
+A exportação final também aplica o gate automaticamente: ela bloqueia se ainda houver item pendente ou se não existir nenhuma mensagem aprovada.
+
+Para gerar um manifesto local de publicação futura a partir das mensagens aprovadas:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.publication_manifest_cli --approved-messages-json .data\approved_messages.json --target grupo-maquiagem --save-publication-manifest-json .data\publication_manifest.json
+```
+
+Para validar o manifesto local antes de qualquer etapa futura de publicação:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.publication_manifest_validate_cli --publication-manifest-json .data\publication_manifest.json
+```
+
+O manifesto apenas registra itens `ready`, alvo planejado e data de criação. Esses comandos apenas alteram, consultam ou exportam arquivos locais. Nenhum envio é executado.
 
 Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem chamada externa real:
 
