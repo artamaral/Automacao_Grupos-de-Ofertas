@@ -24,6 +24,21 @@ tests/fixtures/shopee-real-anonymized.example.json
 
 Ela não veio de resposta real. Serve apenas como referência segura para a futura fixture real anonimizada.
 
+## Validação automática
+
+Toda fixture JSON com `anonymized` no nome, dentro de `tests/fixtures`, é validada automaticamente pelo teste:
+
+```text
+tests/test_anonymized_fixture_safety.py
+```
+
+Esse teste falha se encontrar:
+
+- URL que não seja `https://example.com/redacted` em campos de link/imagem;
+- campo sensível sem `<redacted>`;
+- identidade de loja/vendedor/usuário sem máscara;
+- título ou nome de produto real em campos de título/nome.
+
 ## Ordem segura
 
 1. Executar chamada real controlada com `--limit 1`.
@@ -31,7 +46,8 @@ Ela não veio de resposta real. Serve apenas como referência segura para a futu
 3. Rodar o comando de anonimização.
 4. Revisar manualmente o JSON anonimizado.
 5. Confirmar que não existe dado sensível.
-6. Só então usar o JSON como fixture em testes.
+6. Rodar `pytest` para acionar a validação automática.
+7. Só então usar o JSON como fixture em testes.
 
 ## Campos tratados automaticamente
 
