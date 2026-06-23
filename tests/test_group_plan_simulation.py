@@ -47,7 +47,8 @@ def test_group_plan_simulation_builds_summary_with_mock_offers() -> None:
     assert result.summary["metadata"] == {
         "niche": "maquiagem",
         "generated_at": "2026-06-23T18:00:00+00:00",
-        "file_prefix": "20260623T180000Z-maquiagem",
+        "json_name": "20260623T180000Z-maquiagem.json",
+        "text_name": "20260623T180000Z-maquiagem.txt",
         "offer_limit": 2,
         "collected_offer_count": 2,
         "source_marketplace": "mock",
@@ -64,7 +65,8 @@ def test_group_plan_simulation_normalizes_metadata_niche() -> None:
     result = simulation.build(niche=" Maquiagem ", now=now, limit=1)
 
     assert result.summary["metadata"]["niche"] == "maquiagem"
-    assert result.summary["metadata"]["file_prefix"] == "20260623T180000Z-maquiagem"
+    assert result.summary["metadata"]["json_name"] == "20260623T180000Z-maquiagem.json"
+    assert result.summary["metadata"]["text_name"] == "20260623T180000Z-maquiagem.txt"
     assert result.summary["metadata"]["offer_limit"] == 1
 
 
