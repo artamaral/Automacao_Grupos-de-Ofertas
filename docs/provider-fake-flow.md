@@ -97,6 +97,19 @@ Com isso, os testes conseguem validar:
 - payload de resposta;
 - tratamento de erro.
 
+## Transport HTTP real
+
+Existe um transport HTTP real isolado chamado `UrllibHttpTransport`.
+
+Ele foi criado apenas como peça técnica preparada para o futuro. No estado atual:
+
+- não é conectado automaticamente a nenhum provider;
+- não é usado pelo harness;
+- não é usado por padrão em Shopee ou Amazon;
+- deve continuar desativado até existir checklist de produção.
+
+A configuração `enable_real_http` existe no `Settings` e nasce como `False` por padrão. A presença dessa configuração não habilita chamada real sozinha; ela é apenas a trava explícita que será usada quando a integração real for implementada.
+
 ## Erros esperados
 
 ### Configuração ausente
@@ -155,8 +168,7 @@ Durante a fase atual, qualquer chamada real deve continuar desabilitada por padr
 
 ## Próximos passos
 
-- Criar um transport HTTP real separado, com timeout e sem logs sensíveis.
-- Adicionar configuração explícita para habilitar chamada real.
+- Conectar `enable_real_http` aos providers somente depois do checklist de produção.
 - Implementar assinatura real da Amazon PA API em módulo isolado.
 - Evoluir mappers com payloads reais anonimizados.
 - Criar testes de contrato usando fixtures sem dados sensíveis.
