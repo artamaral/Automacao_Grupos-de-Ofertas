@@ -44,7 +44,11 @@ def _find_safety_failures(value: Any, path: str = "$"):
                 yield f"{item_path} must be redacted"
                 continue
 
-            if _is_url_key(normalized_key) and isinstance(item, str) and item != ALLOWED_REDACTED_URL:
+            if (
+                _is_url_key(normalized_key)
+                and isinstance(item, str)
+                and item != ALLOWED_REDACTED_URL
+            ):
                 yield f"{item_path} must use redacted URL"
                 continue
 
