@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Protocol, Any
+from typing import Any, Protocol
 
-from ofertas_bot.providers.amazon_request import AmazonSearchRequestBuilder
 from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
 from ofertas_bot.providers.transport import HttpTransport
 
