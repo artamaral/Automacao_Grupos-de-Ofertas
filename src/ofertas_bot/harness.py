@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from collections.abc import Sequence
 
 from ofertas_bot.agents.collector import CollectorAgent
@@ -9,6 +10,7 @@ from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.models import Marketplace
+from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.settings import get_settings
 
 
@@ -59,11 +61,21 @@ def run(argv: Sequence[str] | None = None) -> int:
     compliance = ComplianceAgent(settings=settings)
     publisher = DryRunPublisher()
 
-    offers = collector.collect(marketplace=marketplace, niche=args.niche, limit=limit)
+    try:
+        offers = collector.collect(marketplace=marketplace, niche=args.niche, limit=limit)
+    except ShopeeConfigurationError as error:
+        print("ERRO | Configuração da Shopee incompleta", file=sys.stderr)
+        print(f"DETALHE | {error}", file=sys.stderr)
+        print(
+            "AÇÃO | Configure o arquivo .env local ou rode com --marketplace mock.",
+            file=sys.stderr,
+        )
+        return 2
+
     scored_offers = scorer.score(offers)
 
     print(
-        f"Encontradas {len(scored_offers)} ofertas "
+        f"INFO | Encontradas {len(scored_offers)} ofertas "
         f"para nicho={args.niche} marketplace={marketplace}"
     )
 
@@ -72,15 +84,15 @@ def run(argv: Sequence[str] | None = None) -> int:
         result = compliance.validate(draft=draft, dry_run=dry_run)
 
         print("-" * 80)
-        print(f"#{index} score={scored.score} aprovado={result.approved}")
+        print(f"INFO | Oferta #{index} score={scored.score} aprovado={result.approved}")
         if result.reasons:
-            print("Bloqueios:", "; ".join(result.reasons))
+            print("WARN | Bloqueios:", "; ".join(result.reasons))
             continue
 
         publish_result = publisher.publish(draft=draft, target=args.target)
         print(publish_result.message)
         print(
-            f"dry_run={publish_result.dry_run} "
+            f"INFO | dry_run={publish_result.dry_run} "
             f"sent={publish_result.sent} target={publish_result.target}"
         )
 
