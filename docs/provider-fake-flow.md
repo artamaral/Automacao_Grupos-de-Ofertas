@@ -75,6 +75,20 @@ Características:
 - normaliza o resultado para `Offer`;
 - não usa internet.
 
+## Validação de payload e campos obrigatórios
+
+A normalização de payload externo passa pelos mappers antes de gerar `Offer`.
+
+Campos mínimos esperados:
+
+- `title`;
+- `url`;
+- `price`.
+
+Se algum desses campos estiver ausente, vazio ou inválido, o mapper deve rejeitar o payload com `OfferMappingError` antes de qualquer etapa de score, copy ou publicação.
+
+Essa validação já é coberta por testes fake para Shopee e Amazon e deve ser mantida quando payloads reais anonimizados forem adicionados.
+
 ## Retry e rate limit
 
 A estrutura de retry já existe, mas é opcional e desligada por padrão.
@@ -185,7 +199,11 @@ Amazon:
 
 - `AmazonPayloadError`
 
-O harness transforma esses erros em mensagem amigável com exit code `3`.
+Mapper base:
+
+- `OfferMappingError`
+
+O harness transforma os erros de payload de gateway em mensagem amigável com exit code `3`. Erros de mapper ainda devem ser tratados antes de fluxo real com payload externo.
 
 ## Segurança
 
