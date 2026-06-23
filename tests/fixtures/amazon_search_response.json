@@ -1,0 +1,62 @@
+{
+  "SearchResult": {
+    "Items": [
+      {
+        "ASIN": "TESTASIN001",
+        "DetailPageURL": "https://example.com/amazon/oferta-001",
+        "ItemInfo": {
+          "Title": {
+            "DisplayValue": "Kit Maquiagem Amazon Anonimizado"
+          }
+        },
+        "Images": {
+          "Primary": {
+            "Medium": {
+              "URL": "https://example.com/images/amazon-001.jpg"
+            }
+          }
+        },
+        "Offers": {
+          "Listings": [
+            {
+              "Price": {
+                "Amount": 79.9
+              },
+              "SavingBasis": {
+                "Amount": 119.9
+              }
+            }
+          ]
+        }
+      },
+      {
+        "ASIN": "TESTASIN002",
+        "DetailPageURL": "https://example.com/amazon/oferta-002",
+        "ItemInfo": {
+          "Title": {
+            "DisplayValue": "Organizador Amazon Anonimizado"
+          }
+        },
+        "Images": {
+          "Primary": {
+            "Medium": {
+              "URL": "https://example.com/images/amazon-002.jpg"
+            }
+          }
+        },
+        "Offers": {
+          "Listings": [
+            {
+              "Price": {
+                "Amount": 45.5
+              },
+              "SavingBasis": {
+                "Amount": 69.9
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
