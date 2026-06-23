@@ -19,7 +19,8 @@ Componentes:
 - `JsonOfferStore`;
 - `offer_to_json()`;
 - `offer_from_json()`;
-- `OfferStoreError`.
+- `OfferStoreError`;
+- `OfferStoreWriteError`.
 
 ## Uso no CLI
 
@@ -68,10 +69,23 @@ Não salvar:
 ## Comportamento técnico
 
 - `save()` cria o diretório de destino se necessário;
+- `save()` transforma falhas de escrita em `OfferStoreWriteError`;
 - `load()` retorna lista vazia se o arquivo não existir;
 - JSON inválido gera `OfferStoreError`;
 - formato inválido gera `OfferStoreError`;
 - itens inválidos geram `OfferStoreError`.
+
+## Erro de escrita
+
+Se o caminho do `--save-json` não puder ser escrito, o harness deve retornar mensagem amigável e exit code `3`.
+
+Exemplo:
+
+```text
+ERRO | Não foi possível salvar o JSON de ofertas
+DETALHE | Could not write offers JSON to ./tmp
+AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.
+```
 
 ## Cuidados antes de uso real
 
