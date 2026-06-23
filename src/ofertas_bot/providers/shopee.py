@@ -6,7 +6,7 @@ from typing import Any
 
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.http import HttpRequest
-from ofertas_bot.providers.provider_settings import get_provider_base_urls
+from ofertas_bot.providers.provider_settings import get_provider_base_urls, get_provider_paths
 from ofertas_bot.providers.real_http_guard import (
     RealHttpPrerequisites,
     validate_real_http_prerequisites,
@@ -99,6 +99,7 @@ class ShopeeProvider:
             partner_id=self.settings.shopee_partner_id or "",
             api_credential=self.settings.shopee_secret_key or "",
             base_url=get_provider_base_urls().shopee,
+            search_path=get_provider_paths().shopee_search,
         )
         transport = UrllibHttpTransport() if self.settings.enable_real_http else None
         return ShopeeGateway(request_builder=builder, mapper=self.mapper, transport=transport)
