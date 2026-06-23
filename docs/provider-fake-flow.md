@@ -75,6 +75,33 @@ Características:
 - normaliza o resultado para `Offer`;
 - não usa internet.
 
+## Retry e rate limit
+
+A estrutura de retry já existe, mas é opcional e desligada por padrão.
+
+Componentes:
+
+- `RetryPolicy`: define tentativas, códigos que permitem retry e backoff;
+- `Sleeper`: interface injetável para espera entre tentativas;
+- `NoOpSleeper`: espera fake usada quando não se quer dormir de verdade;
+- `SystemSleeper`: espera real preparada para uso futuro controlado.
+
+O helper `execute_provider_request` aceita `retry_policy` e `sleeper`. Quando `retry_policy=None`, não há retry e o comportamento continua igual ao fluxo anterior.
+
+Exemplo conceitual em teste:
+
+```python
+retry_policy = RetryPolicy(max_attempts=2, base_delay_seconds=0.25)
+gateway = ShopeeGateway(
+    request_builder=builder,
+    transport=fake_transport,
+    retry_policy=retry_policy,
+    sleeper=fake_sleeper,
+)
+```
+
+Esse fluxo permite simular status como `429` sem fazer chamada real e sem esperar tempo real no teste.
+
 ## Transport fake
 
 O transport fake atual é `StaticHttpTransport`.
@@ -124,11 +151,27 @@ Amazon:
 
 O harness transforma esses erros em mensagem amigável com exit code `2`.
 
+### Limite inválido
+
+Erro comum:
+
+- `ProviderLimitError`
+
+O harness transforma esse erro em mensagem amigável com exit code `3`. O próprio harness também bloqueia `--limit <= 0` antes de chamar os providers.
+
 ### HTTP inválido
 
 Erro comum:
 
 - `ProviderHttpError`
+
+O harness transforma esse erro em mensagem amigável com exit code `3`.
+
+### Transporte inválido
+
+Erro comum:
+
+- `HttpTransportError`
 
 O harness transforma esse erro em mensagem amigável com exit code `3`.
 
@@ -171,5 +214,5 @@ Durante a fase atual, qualquer chamada real deve continuar desabilitada por padr
 - Conectar `enable_real_http` aos providers somente depois do checklist de produção.
 - Implementar assinatura real da Amazon PA API em módulo isolado.
 - Evoluir mappers com payloads reais anonimizados.
-- Criar testes de contrato usando fixtures sem dados sensíveis.
+- Criar testes de paginação quando os contratos reais forem definidos.
 - Definir checklist antes de liberar qualquer publicação fora de dry-run.
