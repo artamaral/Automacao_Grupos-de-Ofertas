@@ -1,7 +1,7 @@
 import pytest
 
 from ofertas_bot.providers.http import HttpRequest, HttpResponse
-from ofertas_bot.providers.shopee_gateway import ShopeeGateway
+from ofertas_bot.providers.shopee_gateway import ShopeeGateway, ShopeePayloadError
 from ofertas_bot.providers.transport import StaticHttpTransport
 
 
@@ -23,7 +23,7 @@ def test_shopee_gateway_rejects_invalid_payload_shape_after_success_response() -
     transport = StaticHttpTransport(response=response)
     gateway = ShopeeGateway(request_builder=DummyRequestBuilder(), transport=transport)
 
-    with pytest.raises(ValueError, match="items"):
+    with pytest.raises(ShopeePayloadError, match="items"):
         gateway.execute_search(
             keyword="maquiagem",
             niche="maquiagem",
