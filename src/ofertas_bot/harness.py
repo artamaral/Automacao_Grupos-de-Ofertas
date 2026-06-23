@@ -11,6 +11,7 @@ from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.models import Marketplace
 from ofertas_bot.providers.amazon import AmazonConfigurationError
+from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.http import ProviderHttpError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
@@ -72,6 +73,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_configuration_error(marketplace=Marketplace.AMAZON, error=error)
     except ShopeePayloadError as error:
         return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
+    except AmazonPayloadError as error:
+        return _print_payload_error(marketplace=Marketplace.AMAZON, error=error)
     except ProviderHttpError as error:
         return _print_provider_http_error(marketplace=marketplace, error=error)
 
