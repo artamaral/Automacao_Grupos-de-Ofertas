@@ -14,16 +14,34 @@ from ofertas_bot.settings import get_settings
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harness dry-run do bot de ofertas")
-    parser.add_argument("--niche", required=True, help="Nicho do grupo, ex: maquiagem, pesca, casa")
+    parser.add_argument(
+        "--niche",
+        required=True,
+        help="Nicho do grupo, ex: maquiagem, pesca, casa",
+    )
     parser.add_argument(
         "--marketplace",
         choices=[item.value for item in Marketplace],
         default=Marketplace.MOCK.value,
         help="Marketplace para simular/buscar",
     )
-    parser.add_argument("--limit", type=int, default=None, help="Quantidade máxima de ofertas")
-    parser.add_argument("--target", default="grupo-vip-dry-run", help="Destino lógico da publicação")
-    parser.add_argument("--dry-run", action="store_true", default=True, help="Simula publicação")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Quantidade máxima de ofertas",
+    )
+    parser.add_argument(
+        "--target",
+        default="grupo-vip-dry-run",
+        help="Destino lógico da publicação",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=True,
+        help="Simula publicação",
+    )
     return parser
 
 
@@ -44,7 +62,10 @@ def run(argv: Sequence[str] | None = None) -> int:
     offers = collector.collect(marketplace=marketplace, niche=args.niche, limit=limit)
     scored_offers = scorer.score(offers)
 
-    print(f"Encontradas {len(scored_offers)} ofertas para nicho={args.niche} marketplace={marketplace}")
+    print(
+        f"Encontradas {len(scored_offers)} ofertas "
+        f"para nicho={args.niche} marketplace={marketplace}"
+    )
 
     for index, scored in enumerate(scored_offers, start=1):
         draft = copywriter.create_message(scored)
@@ -58,7 +79,10 @@ def run(argv: Sequence[str] | None = None) -> int:
 
         publish_result = publisher.publish(draft=draft, target=args.target)
         print(publish_result.message)
-        print(f"dry_run={publish_result.dry_run} sent={publish_result.sent} target={publish_result.target}")
+        print(
+            f"dry_run={publish_result.dry_run} "
+            f"sent={publish_result.sent} target={publish_result.target}"
+        )
 
     return 0
 
