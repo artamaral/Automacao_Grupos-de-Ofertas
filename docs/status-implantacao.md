@@ -43,6 +43,7 @@ Implementado até agora:
 - erro amigável quando variáveis locais não existem;
 - assinatura HMAC base;
 - mapper de payload bruto para `Offer`;
+- validação de campos obrigatórios no mapper;
 - endpoints públicos centralizados;
 - builder assinado com nomes neutros;
 - base URL configurável com default fake;
@@ -79,6 +80,7 @@ Implementado até agora:
 - builder de request de busca;
 - base URL configurável com default fake;
 - mapper de payload para `Offer`;
+- validação de campos obrigatórios no mapper;
 - gateway de busca;
 - validação interna de `limit > 0` no gateway;
 - retry opcional injetável no gateway;
@@ -111,6 +113,17 @@ Implementado até agora:
 - testes cobrindo defaults e override por ambiente.
 
 Observação: a base URL foi isolada em módulo próprio porque a edição direta do `Settings` foi bloqueada ao envolver campos sensíveis. A solução atual mantém o mesmo objetivo técnico sem expor credenciais e sem ativar HTTP real.
+
+### Validação de payload
+
+Implementado até agora:
+
+- `OfferMapper` centraliza validação mínima antes de gerar `Offer`;
+- campos mínimos `title`, `url` e `price` são obrigatórios;
+- Shopee e Amazon têm testes cobrindo payload sem título, sem URL e sem preço;
+- payload inválido falha antes de score, copy ou publicação.
+
+Critério atual: payload real só deve entrar como fixture anonimizada e precisa respeitar essas validações mínimas.
 
 ### Transporte HTTP
 
@@ -217,14 +230,14 @@ Soluções adotadas:
 ### Shopee
 
 - Mapear payload real da Shopee quando houver exemplo anonimizado seguro.
-- Adicionar validação de campos obrigatórios vindos da API.
+- Adicionar validação de campos obrigatórios vindos da API além do mínimo comum.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
 ### Amazon
 
 - Implementar assinatura/autenticação real da PA API em módulo isolado.
 - Mapear payload real da Amazon quando houver exemplo anonimizado seguro.
-- Adicionar validação de campos obrigatórios vindos da API.
+- Adicionar validação de campos obrigatórios vindos da API além do mínimo comum.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
 ### Configuração e operação
@@ -240,4 +253,4 @@ Soluções adotadas:
 
 ## Próximo passo imediato
 
-Adicionar testes de campos obrigatórios nos mappers com os payloads fake atuais, antes de evoluir para payloads reais anonimizados.
+Criar paginação fake nos gateways usando payloads controlados, sem chamada real e sem mudar o comportamento padrão dos providers.
