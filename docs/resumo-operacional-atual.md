@@ -34,6 +34,19 @@ python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --s
 
 O JSON serve para inspeção e debug local. Ele não deve conter credenciais, tokens, cookies, sessões, QR codes, headers de autenticação ou payload bruto sensível.
 
+### Guarda de HTTP real
+
+A guarda de HTTP real já existe e está integrada aos providers da Shopee e Amazon.
+
+Ela é acionada somente quando `enable_real_http=True` e bloqueia a execução se:
+
+- a base URL ainda for placeholder;
+- a base URL não for HTTPS;
+- alguma configuração obrigatória estiver ausente;
+- a flag de HTTP real não estiver explicitamente habilitada.
+
+Quando bloqueia, o harness retorna erro amigável e não exibe traceback.
+
 ### Testes automatizados
 
 O projeto já possui testes para:
@@ -43,6 +56,7 @@ O projeto já possui testes para:
 - providers fake/injetáveis;
 - mappers;
 - validação de payload;
+- guarda de HTTP real;
 - retry opcional;
 - paginação fake;
 - persistência JSON local;
@@ -61,7 +75,8 @@ O comportamento atual usa:
 - gateways isolados;
 - transport injetável;
 - fixtures fake/anonimizadas;
-- validações de payload.
+- validações de payload;
+- guarda de HTTP real.
 
 Sem transport real conectado, não existe chamada externa automática.
 
@@ -111,7 +126,8 @@ Antes de qualquer chamada real, concluir:
 7. validar mappers com essas fixtures;
 8. validar paginação real;
 9. definir timeout e retry respeitando rate limit real;
-10. manter `enable_real_http=False` até aprovação manual.
+10. conectar transport real somente atrás da guarda;
+11. manter `enable_real_http=False` até aprovação manual.
 
 ## O que falta antes de publicação real
 
@@ -137,4 +153,4 @@ Antes de qualquer envio real, concluir:
 
 ## Próximo foco sugerido
 
-O próximo foco técnico recomendado é preparar uma camada de validação para habilitação futura de HTTP real, mantendo `enable_real_http=False` por padrão.
+O próximo foco técnico recomendado é documentar a guarda de HTTP real em um status próprio e depois preparar a conexão futura do transport real atrás dessa guarda.
