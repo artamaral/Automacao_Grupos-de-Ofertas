@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
+import time
 
 from ofertas_bot.providers.http import HttpRequest
 from ofertas_bot.providers.shopee_auth import ShopeeAuthParams, ShopeeSigner
