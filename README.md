@@ -73,6 +73,20 @@ Também é possível salvar as mensagens aprovadas pelo compliance para revisão
 
 Use o JSON de mensagens para auditoria técnica, o TXT para leitura/revisão manual e a fila `review_queue.json` para controlar quais mensagens continuam pendentes, aprovadas ou rejeitadas antes de qualquer etapa de publicação.
 
+Para marcar uma decisão humana na fila local:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.review_queue_cli --queue-json .data\review_queue.json --item 1 --status approved --reviewer Arthur --notes "ok para teste"
+```
+
+Para exportar somente as mensagens aprovadas:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.review_queue_export_cli --queue-json .data\review_queue.json --save-approved-messages-json .data\approved_messages.json --save-approved-messages-text .data\approved_messages.txt
+```
+
+Esses comandos apenas alteram ou exportam arquivos locais. Nenhum envio é executado.
+
 Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem chamada externa real:
 
 ```powershell
