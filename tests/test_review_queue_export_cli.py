@@ -31,11 +31,11 @@ def test_review_queue_export_cli_exports_only_approved_items(tmp_path, capsys) -
     output_json_path = tmp_path / "approved_messages.json"
     output_text_path = tmp_path / "approved_messages.txt"
     approved_draft = make_draft("Produto aprovado")
-    pending_draft = make_draft("Produto pendente")
+    rejected_draft = make_draft("Produto rejeitado")
     JsonMessageReviewQueueStore(path=queue_path).save(
         (
             MessageReviewQueueItem(draft=approved_draft, status="approved"),
-            MessageReviewQueueItem(draft=pending_draft, status="pending"),
+            MessageReviewQueueItem(draft=rejected_draft, status="rejected"),
         )
     )
 
@@ -52,10 +52,11 @@ def test_review_queue_export_cli_exports_only_approved_items(tmp_path, capsys) -
 
     exported_drafts = JsonMessageDraftStore(path=output_json_path).load()
     output = capsys.readouterr().out
+    text_output = output_text_path.read_text(encoding="utf-8-sig")
     assert exit_code == 0
     assert exported_drafts == (approved_draft,)
-    assert "Produto aprovado" in output_text_path.read_text(encoding="utf-8-sig")
-    assert "Produto pendente" not in output_text_path.read_text(encoding="utf-8-sig")
+    assert "Produto aprovado" in text_output
+    assert "Produto rejeitado" not in text_output
     assert "Nenhum envio" in output
 
 
@@ -66,3 +67,26 @@ def test_review_queue_export_cli_requires_output_path(tmp_path) -> None:
     exit_code = run(["--queue-json", str(queue_path)])
 
     assert exit_code == 3
+
+
+def test_review_queue_export_cli_blocks_with_pending_item(tmp_path) -> None:
+    queue_path = tmp_path / "review_queue.json"
+    output_json_path = tmp_path / "approved_messages.json"
+    JsonMessageReviewQueueStore(path=queue_path).save(
+        (
+            MessageReviewQueueItem(draft=make_draft("Produto aprovado"), status="approved"),
+            MessageReviewQueueItem(draft=make_draft("Produto pendente"), status="pending"),
+        )
+    )
+
+    exit_code = run(
+        [
+            "--queue-json",
+            str(queue_path),
+            "--save-approved-messages-json",
+            str(output_json_path),
+        ]
+    )
+
+    assert exit_code == 3
+    assert not output_json_path.exists()
