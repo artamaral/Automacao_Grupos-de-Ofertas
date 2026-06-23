@@ -68,3 +68,22 @@ class GroupPlanBuilder:
             selected_offers=tuple(selected_offers),
             reasons=(),
         )
+
+    def build_plans(
+        self,
+        *,
+        group_profiles: tuple[GroupProfile, ...],
+        offers: list[Offer],
+        now: datetime,
+        last_runs_by_group: dict[str, datetime | None] | None = None,
+    ) -> tuple[GroupPlan, ...]:
+        last_runs = last_runs_by_group or {}
+        return tuple(
+            self.build_plan(
+                group_profile=group_profile,
+                offers=offers,
+                now=now,
+                last_run_at=last_runs.get(group_profile.slug),
+            )
+            for group_profile in group_profiles
+        )
