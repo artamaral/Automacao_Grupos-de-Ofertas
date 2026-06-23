@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from ofertas_bot.models import MessageDraft
 from ofertas_bot.storage.json_message_draft_store import (
@@ -95,13 +95,14 @@ def message_review_queue_item_from_json(data: object) -> MessageReviewQueueItem:
         raise MessageReviewQueueStoreError(msg)
 
     try:
-        status = str(data["status"])
-        if status not in VALID_REVIEW_STATUSES:
+        raw_status = str(data["status"])
+        if raw_status not in VALID_REVIEW_STATUSES:
             msg = "Saved message review queue status is invalid"
             raise MessageReviewQueueStoreError(msg)
+        status = cast(ReviewStatus, raw_status)
         return MessageReviewQueueItem(
             draft=message_draft_from_json(data["draft"]),
-            status=status,  # type: ignore[arg-type]
+            status=status,
             reviewer=_optional_str(data.get("reviewer")),
             notes=str(data.get("notes", "")),
         )
