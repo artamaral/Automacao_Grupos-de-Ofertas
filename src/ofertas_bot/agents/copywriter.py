@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from ofertas_bot.models import MessageDraft, ScoredOffer
+from ofertas_bot.models import Marketplace, MessageDraft, Offer, ScoredOffer
+
+MARKETPLACE_LABELS = {
+    Marketplace.AMAZON: "Amazon",
+    Marketplace.SHOPEE: "Shopee",
+    Marketplace.MOCK: "Oferta monitorada",
+}
 
 
 class CopywriterAgent:
@@ -12,11 +18,18 @@ class CopywriterAgent:
             discount_percent=offer.discount_percent,
         )
         reasons = ", ".join(scored_offer.reasons[:3]) or "boa oportunidade"
+        marketplace_line = self._format_marketplace_line(offer.marketplace)
+        trust_line = self._format_trust_line(offer)
+        shipping_line = self._format_shipping_line(offer)
 
         text = (
             f"🔥 {offer.title}\n"
+            f"{marketplace_line}\n"
             f"{price_line}\n"
+            f"{trust_line}\n"
+            f"{shipping_line}\n"
             f"Destaques: {reasons}.\n"
+            "Confira enquanto estiver disponível.\n"
             f"Link: {offer.url}\n\n"
             "Aviso: este é um link de afiliado; podemos receber comissão pela compra. "
             "Preço e disponibilidade podem mudar."
@@ -35,3 +48,22 @@ class CopywriterAgent:
             return f"Preço: de R$ {old_price:.2f} por R$ {price:.2f}{discount}"
 
         return f"Preço: R$ {price:.2f}{discount}"
+
+    def _format_marketplace_line(self, marketplace: Marketplace) -> str:
+        label = MARKETPLACE_LABELS.get(marketplace, marketplace.value.title())
+        return f"Loja: {label}"
+
+    def _format_trust_line(self, offer: Offer) -> str:
+        parts: list[str] = []
+        if offer.rating is not None:
+            parts.append(f"avaliação {offer.rating:.1f}/5")
+        if offer.sales_count > 0:
+            parts.append(f"{offer.sales_count} vendas")
+        if not parts:
+            return "Sinal de confiança: oferta em análise."
+        return f"Sinal de confiança: {'; '.join(parts)}."
+
+    def _format_shipping_line(self, offer: Offer) -> str:
+        if offer.is_prime_or_free_shipping:
+            return "Entrega: benefício de frete destacado."
+        return "Entrega: confira prazo e frete antes de comprar."
