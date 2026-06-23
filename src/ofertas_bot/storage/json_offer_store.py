@@ -11,6 +11,10 @@ class OfferStoreError(ValueError):
     """Raised when local offer storage cannot parse saved data."""
 
 
+class OfferStoreWriteError(OSError):
+    """Raised when local offer storage cannot write data."""
+
+
 class JsonOfferStore:
     """Optional local JSON storage for normalized offers."""
 
@@ -18,12 +22,16 @@ class JsonOfferStore:
         self.path = path
 
     def save(self, offers: list[Offer]) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        payload = [offer_to_json(offer) for offer in offers]
-        self.path.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        try:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            payload = [offer_to_json(offer) for offer in offers]
+            self.path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError as error:
+            msg = f"Could not write offers JSON to {self.path}"
+            raise OfferStoreWriteError(msg) from error
 
     def load(self) -> list[Offer]:
         if not self.path.exists():
