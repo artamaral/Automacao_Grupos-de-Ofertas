@@ -6,7 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from ofertas_bot.agents.collector import CollectorAgent
-from ofertas_bot.group_plan import GroupPlan, GroupPlanBuilder, summarize_group_plans
+from ofertas_bot.group_plan import (
+    GroupPlan,
+    GroupPlanBuilder,
+    format_group_plan_summary,
+    summarize_group_plans,
+)
 from ofertas_bot.group_plan_validation import normalize_plan_niche, validate_plan_limit
 from ofertas_bot.group_profiles import GroupProfileCatalog
 from ofertas_bot.models import Marketplace
@@ -18,6 +23,9 @@ from ofertas_bot.storage.json_group_plan_store import JsonGroupPlanStore
 class GroupPlanSimulationResult:
     plans: tuple[GroupPlan, ...]
     summary: dict[str, Any]
+
+    def to_text(self) -> str:
+        return format_group_plan_summary(self.summary)
 
 
 class GroupPlanSimulation:
