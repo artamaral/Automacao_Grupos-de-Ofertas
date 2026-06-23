@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from ofertas_bot.models import ComplianceResult, MessageDraft
 from ofertas_bot.settings import Settings
 
@@ -44,3 +46,18 @@ class ComplianceAgent:
             for draft, result in zip(drafts, results, strict=True)
             if result.approved
         )
+
+    def summarize_batch(
+        self,
+        drafts: tuple[MessageDraft, ...],
+        dry_run: bool,
+    ) -> dict[str, Any]:
+        results = self.validate_batch(drafts=drafts, dry_run=dry_run)
+        reasons = sorted({reason for result in results for reason in result.reasons})
+        approved_count = sum(1 for result in results if result.approved)
+        return {
+            "total": len(results),
+            "approved": approved_count,
+            "blocked": len(results) - approved_count,
+            "reasons": reasons,
+        }
