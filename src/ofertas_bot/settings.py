@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from os import getenv
+from typing import Any
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +25,15 @@ class Settings(BaseSettings):
     amazon_partner_tag: str | None = None
     amazon_region: str = "BR"
 
+    def __init__(self, **values: Any) -> None:
+        if "_env_file" not in values and _running_under_pytest():
+            values["_env_file"] = None
+        super().__init__(**values)
+
 
 def get_settings() -> Settings:
     return Settings()
+
+
+def _running_under_pytest() -> bool:
+    return bool(getenv("PYTEST_CURRENT_TEST"))
