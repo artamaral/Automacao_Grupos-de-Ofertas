@@ -41,6 +41,7 @@ Erros esperados devem ser tratados sem traceback, por exemplo:
 - payload de provider em formato inesperado;
 - falha HTTP de provider;
 - falha de transporte HTTP;
+- falha ao salvar JSON local;
 - oferta bloqueada por compliance;
 - publicação real desabilitada.
 
@@ -96,6 +97,14 @@ DETALHE | HTTP transport request failed
 AÇÃO | Verifique conexão, timeout e configuração antes de nova tentativa.
 ```
 
+### Falha ao salvar JSON
+
+```text
+ERRO | Não foi possível salvar o JSON de ofertas
+DETALHE | Could not write offers JSON to ./tmp
+AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.
+```
+
 ## Opção `--save-json`
 
 A opção `--save-json` salva as ofertas normalizadas em um arquivo JSON local somente quando informada explicitamente.
@@ -117,7 +126,8 @@ Regras:
 - o fluxo padrão não grava arquivo;
 - o arquivo deve conter apenas campos normalizados de `Offer`;
 - não salvar credenciais, tokens, cookies, sessões, headers, QR codes ou payload bruto;
-- usar caminhos locais fora do repositório quando estiver testando dados reais anonimizados.
+- usar caminhos locais fora do repositório quando estiver testando dados reais anonimizados;
+- erro de escrita deve retornar mensagem amigável e exit code `3`.
 
 ## Regras para mensagens de sucesso
 
