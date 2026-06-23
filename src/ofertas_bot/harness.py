@@ -15,6 +15,7 @@ from ofertas_bot.providers.amazon import AmazonConfigurationError
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.gateway import ProviderLimitError
 from ofertas_bot.providers.http import ProviderHttpError
+from ofertas_bot.providers.real_http_guard import RealHttpValidationError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.transport import HttpTransportError
@@ -83,6 +84,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonConfigurationError as error:
         return _print_configuration_error(marketplace=Marketplace.AMAZON, error=error)
+    except RealHttpValidationError as error:
+        return _print_real_http_guard_error(error=error)
     except ProviderLimitError as error:
         return _print_provider_limit_error(error=error)
     except ShopeePayloadError as error:
@@ -197,6 +200,16 @@ def _print_transport_error(marketplace: Marketplace, error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Verifique conexão, timeout e configuração antes de nova tentativa.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_real_http_guard_error(error: Exception) -> int:
+    print("ERRO | HTTP real bloqueado por configuração insegura", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Revise o checklist de produção antes de habilitar chamadas reais.",
         file=sys.stderr,
     )
     return 3
