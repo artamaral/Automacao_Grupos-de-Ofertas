@@ -24,6 +24,7 @@ Componentes em funcionamento:
 - validação de compliance;
 - publicação dry-run;
 - harness CLI com mensagens amigáveis;
+- validação de `--limit > 0` no harness;
 - testes unitários e lint rodando localmente;
 - documentação do fluxo fake/injetável;
 - checklist antes de qualquer chamada real.
@@ -45,6 +46,7 @@ Implementado até agora:
 - endpoints públicos centralizados;
 - builder assinado com nomes neutros;
 - gateway de busca;
+- validação interna de `limit > 0` no gateway;
 - transport HTTP injetável/fake;
 - execução fake controlada no gateway, sem internet;
 - `ShopeeProvider.fetch()` integrado ao gateway injetável;
@@ -52,7 +54,8 @@ Implementado até agora:
 - tratamento de payload inválido com `ShopeePayloadError`;
 - tratamento amigável de payload inválido no harness;
 - fixture anônima de contrato;
-- teste de resposta vazia.
+- teste de resposta vazia;
+- teste de limite com fixture de contrato.
 
 Ainda não implementado:
 
@@ -74,13 +77,15 @@ Implementado até agora:
 - builder de request de busca;
 - mapper de payload para `Offer`;
 - gateway de busca;
+- validação interna de `limit > 0` no gateway;
 - transport HTTP injetável/fake;
 - `AmazonProvider.fetch()` integrado ao gateway injetável;
 - tratamento de erro HTTP no gateway;
 - tratamento de payload inválido com `AmazonPayloadError`;
 - tratamento amigável de payload inválido no harness;
 - fixture anônima de contrato;
-- teste de resposta vazia.
+- teste de resposta vazia;
+- teste de limite com fixture de contrato.
 
 Ainda não implementado:
 
@@ -101,7 +106,8 @@ Implementado até agora:
 - tratamento de JSON inválido;
 - tratamento de erro de rede;
 - normalização para `HttpResponse`;
-- testes do transport real usando opener fake, sem internet.
+- testes do transport real usando opener fake, sem internet;
+- tratamento amigável de `HttpTransportError` no harness.
 
 Importante: o transport real não está conectado automaticamente aos providers e não é usado pelo harness.
 
@@ -110,9 +116,12 @@ Importante: o transport real não está conectado automaticamente aos providers 
 Implementado até agora:
 
 - helper compartilhado `execute_provider_request`;
+- helper compartilhado `validate_positive_limit`;
+- erro comum `ProviderLimitError`;
 - envio e validação HTTP centralizados;
 - erro padronizado quando o transport não está configurado;
-- testes diretos para sucesso, transport ausente e erro HTTP.
+- testes diretos para sucesso, transport ausente e erro HTTP;
+- testes diretos para limite inválido nos gateways.
 
 Esse helper reduziu duplicação entre `ShopeeGateway` e `AmazonGateway` sem mudar o comportamento esperado.
 
@@ -194,10 +203,10 @@ Soluções adotadas:
 
 ### Qualidade
 
-- Revisar mensagens de exceção para manter padrão `ERRO | DETALHE | AÇÃO` no CLI.
-- Criar testes para limites e paginação quando os contratos reais forem definidos.
+- Criar testes para paginação quando os contratos reais forem definidos.
 - Avaliar extração de validações comuns de payload quando os contratos reais estabilizarem.
+- Revisar documentação quando o primeiro payload real anonimizado for adicionado.
 
 ## Próximo passo imediato
 
-Tratar `HttpTransportError` no harness com mensagem amigável, preparando o CLI para falhas de rede futuras sem expor dados sensíveis.
+Preparar a estrutura inicial para retries/rate limit sem conectar chamadas reais, mantendo o fluxo testável com transport fake.
