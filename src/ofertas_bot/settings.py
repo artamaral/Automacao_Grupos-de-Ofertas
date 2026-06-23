@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     default_dry_run: bool = True
     max_offers_per_run: int = 5
     enable_real_publish: bool = False
+    enable_real_http: bool = False
 
     shopee_partner_id: str | None = None
     shopee_secret_key: str | None = None
