@@ -35,6 +35,7 @@ AÇÃO | Configure o arquivo .env local ou rode com --marketplace mock.
 Erros esperados devem ser tratados sem traceback, por exemplo:
 
 - credenciais ausentes;
+- limit inválido;
 - provider ainda não implementado;
 - marketplace sem suporte;
 - payload de provider em formato inesperado;
@@ -53,6 +54,22 @@ Traceback completo deve ficar reservado para bugs inesperados durante desenvolvi
 ERRO | Configuração da Amazon incompleta
 DETALHE | Missing Amazon configuration: AMAZON_ACCESS_KEY, AMAZON_SECRET_KEY.
 AÇÃO | Configure o arquivo .env local ou rode com --marketplace mock.
+```
+
+### Limit inválido no CLI
+
+```text
+ERRO | Limite de ofertas inválido
+DETALHE | --limit deve ser maior que zero. Valor recebido: 0
+AÇÃO | Informe um valor positivo, por exemplo --limit 5.
+```
+
+### Limit inválido no provider
+
+```text
+ERRO | Limite interno de provider inválido
+DETALHE | Provider limit must be greater than zero. Received: 0
+AÇÃO | Revise a origem do limite antes de executar novamente.
 ```
 
 ### Payload inválido
@@ -130,7 +147,7 @@ Sempre que possível:
 - `0`: execução concluída com sucesso;
 - `1`: erro inesperado;
 - `2`: erro esperado de configuração;
-- `3`: erro esperado de validação, compliance, HTTP ou transporte.
+- `3`: erro esperado de validação, compliance, HTTP, transporte ou entrada inválida.
 
 ## Diretriz final
 
