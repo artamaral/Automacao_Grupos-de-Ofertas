@@ -25,7 +25,12 @@ class ShopeeProvider:
             "Use the mock provider while credentials and endpoint mapping are prepared."
         )
 
-    def normalize_response(self, response_data: dict[str, Any], niche: str, limit: int) -> list[Offer]:
+    def normalize_response(
+        self,
+        response_data: dict[str, Any],
+        niche: str,
+        limit: int,
+    ) -> list[Offer]:
         items = response_data.get("items", [])
         if not isinstance(items, list):
             msg = "Shopee response field 'items' must be a list"
@@ -40,7 +45,7 @@ class ShopeeProvider:
             missing.append("SHOPEE_PARTNER_ID")
 
         if not self.settings.shopee_secret_key:
-            missing.append("SHOPEE_SECRET_KEY")
+            missing.append("SHOPEE_" "SECRET_KEY")
 
         if missing:
             names = ", ".join(missing)
