@@ -30,6 +30,21 @@ def test_safe_status_allows_confirmed_shopee_environment(monkeypatch, capsys) ->
     assert "INFO | search_path_confirmed=true" in captured.out
 
 
+def test_safe_status_does_not_print_sensitive_configuration(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(safe_status, "get_settings", make_shopee_settings)
+    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
+    monkeypatch.setenv("SHOPEE_SEARCH_PATH_CONFIRMED", "true")
+
+    exit_code = safe_status.run(["--marketplace", "shopee"])
+
+    captured = capsys.readouterr()
+    combined_output = captured.out + captured.err
+    assert exit_code == 0
+    assert "partner" not in combined_output
+    assert "tracking" not in combined_output
+    assert "credential" not in combined_output
+
+
 def test_safe_status_blocks_unconfirmed_shopee_path(monkeypatch, capsys) -> None:
     monkeypatch.setattr(safe_status, "get_settings", make_shopee_settings)
     monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
