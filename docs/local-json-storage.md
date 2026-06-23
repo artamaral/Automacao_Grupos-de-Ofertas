@@ -24,11 +24,13 @@ Componentes:
 
 ## Uso no CLI
 
-Exemplo:
+Exemplo recomendado:
 
 ```text
-python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --save-json ./tmp/ofertas.json
+python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --save-json ./.data/ofertas.json
 ```
+
+Também é possível usar `./tmp/ofertas.json` para testes rápidos. A pasta `tmp/` possui `.gitignore` próprio para evitar versionamento acidental dos arquivos gerados.
 
 Comportamento:
 
@@ -36,6 +38,16 @@ Comportamento:
 - com `--save-json`, o arquivo recebe uma lista de ofertas normalizadas;
 - o diretório de destino é criado se não existir;
 - a mensagem de sucesso informa o caminho usado.
+
+## Caminhos recomendados
+
+Use caminhos locais ignorados pelo Git:
+
+- `./.data/ofertas.json`;
+- `./tmp/ofertas.json`;
+- `./exports/ofertas.json`.
+
+Evite salvar arquivos de saída diretamente na raiz do repositório.
 
 ## O que é salvo
 
