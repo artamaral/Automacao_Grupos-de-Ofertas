@@ -19,7 +19,7 @@ from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import get_settings
-from ofertas_bot.storage.json_offer_store import JsonOfferStore
+from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -96,7 +96,10 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     if args.save_json:
         save_path = Path(args.save_json)
-        JsonOfferStore(path=save_path).save(offers)
+        try:
+            JsonOfferStore(path=save_path).save(offers)
+        except OfferStoreWriteError as error:
+            return _print_save_json_error(error=error)
         print(f"INFO | Ofertas normalizadas salvas em {save_path}")
 
     scored_offers = scorer.score(offers)
@@ -188,6 +191,16 @@ def _print_transport_error(marketplace: Marketplace, error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Verifique conexão, timeout e configuração antes de nova tentativa.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_save_json_error(error: Exception) -> int:
+    print("ERRO | Não foi possível salvar o JSON de ofertas", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
         file=sys.stderr,
     )
     return 3
