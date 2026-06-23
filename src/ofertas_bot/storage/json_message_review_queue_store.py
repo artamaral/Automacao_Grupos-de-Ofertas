@@ -23,6 +23,10 @@ class MessageReviewQueueStoreWriteError(OSError):
     """Raised when local message review queue storage cannot write data."""
 
 
+class MessageReviewQueueUpdateError(ValueError):
+    """Raised when a review queue item cannot be updated."""
+
+
 @dataclass(frozen=True)
 class MessageReviewQueueItem:
     draft: MessageDraft
@@ -78,6 +82,58 @@ def approved_review_drafts(
     return tuple(item.draft for item in items if item.status == "approved")
 
 
+def approve_review_queue_item(
+    items: tuple[MessageReviewQueueItem, ...],
+    item_number: int,
+    reviewer: str,
+    notes: str = "",
+) -> tuple[MessageReviewQueueItem, ...]:
+    return mark_review_queue_item(
+        items=items,
+        item_number=item_number,
+        status="approved",
+        reviewer=reviewer,
+        notes=notes,
+    )
+
+
+def reject_review_queue_item(
+    items: tuple[MessageReviewQueueItem, ...],
+    item_number: int,
+    reviewer: str,
+    notes: str = "",
+) -> tuple[MessageReviewQueueItem, ...]:
+    return mark_review_queue_item(
+        items=items,
+        item_number=item_number,
+        status="rejected",
+        reviewer=reviewer,
+        notes=notes,
+    )
+
+
+def mark_review_queue_item(
+    items: tuple[MessageReviewQueueItem, ...],
+    item_number: int,
+    status: ReviewStatus,
+    reviewer: str,
+    notes: str = "",
+) -> tuple[MessageReviewQueueItem, ...]:
+    if item_number < 1 or item_number > len(items):
+        msg = "Review queue item number is out of range"
+        raise MessageReviewQueueUpdateError(msg)
+
+    updated_items = list(items)
+    original = updated_items[item_number - 1]
+    updated_items[item_number - 1] = MessageReviewQueueItem(
+        draft=original.draft,
+        status=status,
+        reviewer=_clean_reviewer(reviewer),
+        notes=notes.strip(),
+    )
+    return tuple(updated_items)
+
+
 def message_review_queue_item_to_json(
     item: MessageReviewQueueItem,
 ) -> dict[str, Any]:
@@ -109,6 +165,13 @@ def message_review_queue_item_from_json(data: object) -> MessageReviewQueueItem:
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved message review queue item is invalid"
         raise MessageReviewQueueStoreError(msg) from error
+
+
+def _clean_reviewer(value: str) -> str | None:
+    clean_value = value.strip()
+    if not clean_value:
+        return None
+    return clean_value
 
 
 def _optional_str(value: object) -> str | None:
