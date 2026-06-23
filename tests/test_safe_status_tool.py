@@ -10,7 +10,7 @@ def make_shopee_settings(
     values = {
         "enable_real_http": enable_real_http,
         "enable_real_publish": enable_real_publish,
-        "shopee_partner_id": "partner",
+        "shopee_partner_id": "123456789",
         "shopee_tracking_id": "tracking",
     }
     values["shopee_" + "secret_key"] = "credential"
@@ -40,7 +40,7 @@ def test_safe_status_does_not_print_sensitive_configuration(monkeypatch, capsys)
     captured = capsys.readouterr()
     combined_output = captured.out + captured.err
     assert exit_code == 0
-    assert "partner" not in combined_output
+    assert "123456789" not in combined_output
     assert "tracking" not in combined_output
     assert "credential" not in combined_output
 
