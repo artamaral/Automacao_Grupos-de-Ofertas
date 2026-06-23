@@ -3,6 +3,7 @@ from typing import Any, Protocol
 
 from ofertas_bot.models import Offer
 from ofertas_bot.providers.amazon_mapper import AmazonOfferMapper
+from ofertas_bot.providers.gateway import execute_provider_request
 from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
 from ofertas_bot.providers.transport import HttpTransport
 
@@ -27,13 +28,13 @@ class AmazonGateway:
         return self.request_builder.build(keyword=keyword, limit=limit)
 
     def execute_search(self, keyword: str, niche: str, limit: int) -> list[Offer]:
-        if self.transport is None:
-            msg = "Amazon gateway transport is not configured"
-            raise RuntimeError(msg)
-
         request = self.build_search_request(keyword=keyword, limit=limit)
-        response = self.transport.send(request)
-        response_data = self.http_client.validate_response(response, provider_name="Amazon")
+        response_data = execute_provider_request(
+            request=request,
+            transport=self.transport,
+            http_client=self.http_client,
+            provider_name="Amazon",
+        )
         return self.normalize_search_response(
             response_data=response_data,
             niche=niche,
