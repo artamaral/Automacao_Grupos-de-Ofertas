@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from ofertas_bot.models import Offer
 from ofertas_bot.providers.gateway import execute_provider_request, validate_positive_limit
@@ -40,6 +40,26 @@ class ShopeeGateway:
             timestamp=timestamp,
         )
 
+    def execute_raw_search(
+        self,
+        keyword: str,
+        limit: int,
+        timestamp: int,
+    ) -> dict[str, Any]:
+        request = self.build_search_request(
+            keyword=keyword,
+            limit=limit,
+            timestamp=timestamp,
+        )
+        return execute_provider_request(
+            request=request,
+            transport=self.transport,
+            http_client=self.http_client,
+            provider_name="Shopee",
+            retry_policy=self.retry_policy,
+            sleeper=self.sleeper,
+        )
+
     def execute_search(
         self,
         keyword: str,
@@ -47,18 +67,10 @@ class ShopeeGateway:
         limit: int,
         timestamp: int,
     ) -> list[Offer]:
-        request = self.build_search_request(
+        response_data = self.execute_raw_search(
             keyword=keyword,
             limit=limit,
             timestamp=timestamp,
-        )
-        response_data = execute_provider_request(
-            request=request,
-            transport=self.transport,
-            http_client=self.http_client,
-            provider_name="Shopee",
-            retry_policy=self.retry_policy,
-            sleeper=self.sleeper,
         )
         return self.normalize_search_response(
             response_data=response_data,
