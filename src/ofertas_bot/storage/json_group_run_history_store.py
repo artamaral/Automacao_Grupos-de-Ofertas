@@ -4,6 +4,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from ofertas_bot.group_plan import GroupPlan
+
 
 class GroupRunHistoryStoreError(ValueError):
     """Raised when local group run history cannot be parsed."""
@@ -54,6 +56,19 @@ class JsonGroupRunHistoryStore:
             for slug, value in payload.items()
             if _normalize_slug(slug)
         }
+
+    def update_allowed_runs(
+        self,
+        *,
+        plans: tuple[GroupPlan, ...],
+        ran_at: datetime,
+    ) -> dict[str, datetime | None]:
+        history = self.load()
+        for plan in plans:
+            if plan.allowed:
+                history[plan.group_slug] = ran_at
+        self.save(history)
+        return history
 
 
 def _normalize_slug(value: object) -> str:
