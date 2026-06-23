@@ -1,15 +1,18 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ofertas_bot.models import Offer
-from ofertas_bot.providers.http import HttpRequest
+from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuilder
+from ofertas_bot.providers.transport import HttpTransport
 
 
 @dataclass(frozen=True)
 class ShopeeGateway:
     request_builder: ShopeeSignedRequestBuilder
-    mapper: ShopeeOfferMapper = ShopeeOfferMapper()
+    mapper: ShopeeOfferMapper = field(default_factory=ShopeeOfferMapper)
+    http_client: ProviderHttpClient = field(default_factory=ProviderHttpClient)
+    transport: HttpTransport | None = None
 
     def build_search_request(
         self,
@@ -21,6 +24,30 @@ class ShopeeGateway:
             keyword=keyword,
             limit=limit,
             timestamp=timestamp,
+        )
+
+    def execute_search(
+        self,
+        keyword: str,
+        niche: str,
+        limit: int,
+        timestamp: int,
+    ) -> list[Offer]:
+        if self.transport is None:
+            msg = "Shopee gateway transport is not configured"
+            raise RuntimeError(msg)
+
+        request = self.build_search_request(
+            keyword=keyword,
+            limit=limit,
+            timestamp=timestamp,
+        )
+        response = self.transport.send(request)
+        response_data = self.http_client.validate_response(response, provider_name="Shopee")
+        return self.normalize_search_response(
+            response_data=response_data,
+            niche=niche,
+            limit=limit,
         )
 
     def normalize_search_response(
