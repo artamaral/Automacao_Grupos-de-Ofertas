@@ -16,7 +16,6 @@ from ofertas_bot.providers.real_http_guard import RealHttpValidationError
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.settings import Settings, get_settings
 
-
 REAL_MARKETPLACES = (Marketplace.SHOPEE.value, Marketplace.AMAZON.value)
 
 
