@@ -31,6 +31,7 @@ from ofertas_bot.storage.json_message_draft_store import (
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
 
 SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
+REVIEW_TEXT_ENCODING = "utf-8-sig"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -216,7 +217,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             save_path.parent.mkdir(parents=True, exist_ok=True)
             save_path.write_text(
                 format_message_drafts_for_review(tuple(approved_drafts)),
-                encoding="utf-8",
+                encoding=REVIEW_TEXT_ENCODING,
             )
         except OSError as error:
             return _print_save_messages_text_error(error=error)
