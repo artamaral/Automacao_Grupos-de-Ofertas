@@ -25,3 +25,10 @@ class ComplianceAgent:
             reasons.append("publicação real desabilitada por configuração")
 
         return ComplianceResult(approved=not reasons, reasons=reasons)
+
+    def validate_batch(
+        self,
+        drafts: tuple[MessageDraft, ...],
+        dry_run: bool,
+    ) -> tuple[ComplianceResult, ...]:
+        return tuple(self.validate(draft=draft, dry_run=dry_run) for draft in drafts)
