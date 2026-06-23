@@ -96,6 +96,29 @@ DETALHE | HTTP transport request failed
 AÇÃO | Verifique conexão, timeout e configuração antes de nova tentativa.
 ```
 
+## Opção `--save-json`
+
+A opção `--save-json` salva as ofertas normalizadas em um arquivo JSON local somente quando informada explicitamente.
+
+Exemplo:
+
+```text
+python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --save-json ./tmp/ofertas.json
+```
+
+Mensagem esperada:
+
+```text
+INFO | Ofertas normalizadas salvas em tmp/ofertas.json
+```
+
+Regras:
+
+- o fluxo padrão não grava arquivo;
+- o arquivo deve conter apenas campos normalizados de `Offer`;
+- não salvar credenciais, tokens, cookies, sessões, headers, QR codes ou payload bruto;
+- usar caminhos locais fora do repositório quando estiver testando dados reais anonimizados.
+
 ## Regras para mensagens de sucesso
 
 Mensagens de sucesso devem responder:
