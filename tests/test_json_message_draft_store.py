@@ -4,6 +4,7 @@ from ofertas_bot.models import Marketplace, MessageDraft, Offer
 from ofertas_bot.storage.json_message_draft_store import (
     JsonMessageDraftStore,
     MessageDraftStoreError,
+    format_message_drafts_for_review,
 )
 
 
@@ -58,3 +59,19 @@ def test_json_message_draft_store_rejects_non_list_payload(tmp_path) -> None:
 
     with pytest.raises(MessageDraftStoreError):
         store.load()
+
+
+def test_format_message_drafts_for_review() -> None:
+    text = format_message_drafts_for_review((make_draft(),))
+
+    assert "# Mensagem 1" in text
+    assert "Marketplace: amazon" in text
+    assert "Nicho: teste" in text
+    assert "Oferta: Produto teste" in text
+    assert "Link de afiliado com comissão" in text
+
+
+def test_format_message_drafts_for_review_handles_empty_tuple() -> None:
+    text = format_message_drafts_for_review(())
+
+    assert text == "Nenhuma mensagem aprovada para revisão.\n"
