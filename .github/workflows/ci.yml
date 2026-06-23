@@ -5,10 +5,14 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    name: pytest and ruff
+    name: ruff e pytest
     runs-on: ubuntu-latest
 
     steps:
