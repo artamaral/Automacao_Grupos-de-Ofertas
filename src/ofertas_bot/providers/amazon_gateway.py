@@ -3,7 +3,7 @@ from typing import Any, Protocol
 
 from ofertas_bot.models import Offer
 from ofertas_bot.providers.amazon_mapper import AmazonOfferMapper
-from ofertas_bot.providers.gateway import execute_provider_request
+from ofertas_bot.providers.gateway import execute_provider_request, validate_positive_limit
 from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
 from ofertas_bot.providers.transport import HttpTransport
 
@@ -25,6 +25,7 @@ class AmazonGateway:
     transport: HttpTransport | None = None
 
     def build_search_request(self, keyword: str, limit: int) -> HttpRequest:
+        validate_positive_limit(limit)
         return self.request_builder.build(keyword=keyword, limit=limit)
 
     def execute_search(self, keyword: str, niche: str, limit: int) -> list[Offer]:
@@ -47,6 +48,7 @@ class AmazonGateway:
         niche: str,
         limit: int,
     ) -> list[Offer]:
+        validate_positive_limit(limit)
         items = self._get_items(response_data)
         return [self.mapper.map_item(item=item, niche=niche) for item in items[:limit]]
 
