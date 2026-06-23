@@ -7,6 +7,7 @@ from typing import Any
 
 from ofertas_bot.agents.collector import CollectorAgent
 from ofertas_bot.group_plan import GroupPlan, GroupPlanBuilder, summarize_group_plans
+from ofertas_bot.group_plan_validation import normalize_plan_niche, validate_plan_limit
 from ofertas_bot.group_profiles import GroupProfileCatalog
 from ofertas_bot.models import Marketplace
 from ofertas_bot.settings import Settings
@@ -41,10 +42,13 @@ class GroupPlanSimulation:
         limit: int | None = None,
         last_runs_by_group: dict[str, datetime | None] | None = None,
     ) -> GroupPlanSimulationResult:
-        offer_limit = limit if limit is not None else self.settings.max_offers_per_run
+        normalized_niche = normalize_plan_niche(niche)
+        offer_limit = validate_plan_limit(
+            limit if limit is not None else self.settings.max_offers_per_run
+        )
         offers = self.collector.collect(
             marketplace=Marketplace.MOCK,
-            niche=niche,
+            niche=normalized_niche,
             limit=offer_limit,
         )
         plans = self.plan_builder.build_plans(
