@@ -1,9 +1,14 @@
+import pytest
+
 from ofertas_bot.models import Marketplace, MessageDraft, Offer
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     MessageReviewQueueItem,
+    MessageReviewQueueUpdateError,
     approved_review_drafts,
+    approve_review_queue_item,
     create_pending_review_queue,
+    reject_review_queue_item,
 )
 
 
@@ -66,3 +71,45 @@ def test_approved_review_drafts_returns_only_approved_items() -> None:
     drafts = approved_review_drafts(items)
 
     assert drafts == (approved_draft,)
+
+
+def test_approve_review_queue_item_marks_item_as_approved() -> None:
+    items = create_pending_review_queue((make_draft("Produto 1"), make_draft("Produto 2")))
+
+    updated_items = approve_review_queue_item(
+        items=items,
+        item_number=2,
+        reviewer=" Arthur ",
+        notes=" aprovado ",
+    )
+
+    assert updated_items[0].status == "pending"
+    assert updated_items[1].status == "approved"
+    assert updated_items[1].reviewer == "Arthur"
+    assert updated_items[1].notes == "aprovado"
+
+
+def test_reject_review_queue_item_marks_item_as_rejected() -> None:
+    items = create_pending_review_queue((make_draft(),))
+
+    updated_items = reject_review_queue_item(
+        items=items,
+        item_number=1,
+        reviewer="Arthur",
+        notes="fora do grupo",
+    )
+
+    assert updated_items[0].status == "rejected"
+    assert updated_items[0].reviewer == "Arthur"
+    assert updated_items[0].notes == "fora do grupo"
+
+
+def test_review_queue_item_update_rejects_out_of_range_item_number() -> None:
+    items = create_pending_review_queue((make_draft(),))
+
+    with pytest.raises(MessageReviewQueueUpdateError):
+        approve_review_queue_item(
+            items=items,
+            item_number=2,
+            reviewer="Arthur",
+        )
