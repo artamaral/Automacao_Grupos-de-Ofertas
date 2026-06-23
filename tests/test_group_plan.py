@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from ofertas_bot.group_plan import GroupPlanBuilder
+from ofertas_bot.group_plan import GroupPlanBuilder, summarize_group_plans
 from ofertas_bot.group_profiles import GroupProfile
 from ofertas_bot.models import Marketplace, Offer
 
@@ -104,3 +104,27 @@ def test_group_plan_builder_builds_batch_with_individual_last_runs() -> None:
     assert plans[1].group_slug == "beleza-vip"
     assert plans[1].allowed is False
     assert plans[1].reasons == ("intervalo mínimo entre rodadas não atingido",)
+
+
+def test_summarize_group_plans_returns_serializable_counts() -> None:
+    now = datetime(2026, 6, 23, 18, 0, tzinfo=UTC)
+    plans = GroupPlanBuilder().build_plans(
+        group_profiles=(
+            make_profile(slug="maquiagem-vip", minutes=120),
+            make_profile(slug="beleza-vip", minutes=120),
+        ),
+        offers=[make_offer(), make_offer()],
+        now=now,
+        last_runs_by_group={"beleza-vip": now - timedelta(minutes=30)},
+    )
+
+    summary = summarize_group_plans(plans)
+
+    assert summary["total_groups"] == 2
+    assert summary["allowed_groups"] == 1
+    assert summary["blocked_groups"] == 1
+    assert summary["total_selected_offers"] == 2
+    assert summary["groups"][0]["group_slug"] == "maquiagem-vip"
+    assert summary["groups"][0]["selected_offer_count"] == 2
+    assert summary["groups"][1]["allowed"] is False
+    assert summary["groups"][1]["next_available_at"] == "2026-06-23T19:30:00+00:00"
