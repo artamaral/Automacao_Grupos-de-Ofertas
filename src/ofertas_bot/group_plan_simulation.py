@@ -18,6 +18,7 @@ from ofertas_bot.group_profiles import GroupProfileCatalog
 from ofertas_bot.models import Marketplace
 from ofertas_bot.settings import Settings
 from ofertas_bot.storage.json_group_plan_store import JsonGroupPlanStore
+from ofertas_bot.storage.json_group_run_history_store import JsonGroupRunHistoryStore
 
 
 class GroupPlanTextWriteError(OSError):
@@ -98,6 +99,22 @@ class GroupPlanSimulation:
         return GroupPlanSimulationResult(
             plans=plans,
             summary=summary,
+        )
+
+    def build_with_history(
+        self,
+        *,
+        niche: str,
+        now: datetime,
+        history_path: Path,
+        limit: int | None = None,
+    ) -> GroupPlanSimulationResult:
+        history = JsonGroupRunHistoryStore(path=history_path).load()
+        return self.build(
+            niche=niche,
+            now=now,
+            limit=limit,
+            last_runs_by_group=history,
         )
 
     def save_summary(
