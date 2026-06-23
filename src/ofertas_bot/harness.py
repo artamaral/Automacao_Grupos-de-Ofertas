@@ -24,7 +24,6 @@ from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
 
-
 SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
 
 
