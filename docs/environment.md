@@ -55,7 +55,7 @@ Use `true` em `SHOPEE_SEARCH_PATH_CONFIRMED` somente depois de confirmar o endpo
 
 | Variável | Obrigatória para provider Shopee | Descrição |
 | --- | --- | --- |
-| `SHOPEE_PARTNER_ID` | Sim | Identificador do parceiro. |
+| `SHOPEE_PARTNER_ID` | Sim | Identificador numérico do parceiro. Deve conter apenas dígitos e estar no intervalo aceito pela API. |
 | `SHOPEE_SECRET_KEY` | Sim | Chave usada para assinatura. Não imprimir em logs. |
 | `SHOPEE_TRACKING_ID` | Não | Identificador de rastreio de afiliado, quando aplicável. |
 | `SHOPEE_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
@@ -65,6 +65,7 @@ Use `true` em `SHOPEE_SEARCH_PATH_CONFIRMED` somente depois de confirmar o endpo
 Estado atual:
 
 - provider valida configuração;
+- partner id da Shopee é validado como numérico antes da chamada real;
 - gateway fake/injetável funciona em teste;
 - base URL é configurável sem ativar HTTP real;
 - path de busca é configurável fora do Git;
