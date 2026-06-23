@@ -17,6 +17,7 @@ Antes de rodar qualquer chamada real:
 - [ ] Publicação real continua desligada.
 - [ ] Base URL real da Shopee configurada fora do Git.
 - [ ] Configuração obrigatória da Shopee preenchida fora do Git.
+- [ ] Preview seguro do request revisado antes da chamada.
 - [ ] `--limit 1` usado na primeira execução.
 - [ ] Nenhum `--save-json` usado na primeira execução.
 - [ ] Nenhum destino real de grupo usado na primeira execução.
@@ -47,9 +48,43 @@ INFO | Nenhuma publicação foi executada.
 INFO | Nenhum JSON foi salvo automaticamente.
 ```
 
-Se esse diagnóstico falhar, não rode a chamada real.
+Se esse diagnóstico falhar, não rode o preview e não rode a chamada real.
 
-### 3. Rodar a primeira chamada controlada
+### 3. Gerar preview seguro do request
+
+```text
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
+```
+
+Saída esperada:
+
+```text
+INFO | Preview seguro do request da Shopee
+INFO | method=GET
+INFO | url=https://api.shopee.test/api/v2/product/search_item
+INFO | param.keyword=maquiagem
+INFO | param.page_size=1
+INFO | param.partner_id=<masked:9 chars>
+INFO | param.sign=<masked:64 chars>
+INFO | param.timestamp=1234567890
+INFO | Nenhuma chamada HTTP foi executada.
+INFO | Nenhuma publicação foi executada.
+INFO | Nenhum JSON foi salvo automaticamente.
+```
+
+Antes da chamada real, conferir:
+
+- se o método é o esperado;
+- se a URL base está correta;
+- se o caminho do endpoint parece correto;
+- se `page_size` está em `1`;
+- se `partner_id` aparece mascarado;
+- se `sign` aparece mascarado;
+- se nenhum valor sensível aparece no terminal.
+
+Se o preview estiver errado, não rode a chamada real.
+
+### 4. Rodar a primeira chamada controlada
 
 ```text
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --execute-real-http-once
@@ -86,6 +121,15 @@ Ação:
 - revisar base URL;
 - revisar se HTTP real foi habilitado apenas localmente;
 - rodar diagnóstico novamente.
+
+### Falha no preview
+
+Ação:
+
+- revisar base URL configurada fora do Git;
+- revisar endpoint esperado;
+- revisar parâmetros não sensíveis;
+- não executar chamada real até entender a diferença.
 
 ### Falha HTTP
 
