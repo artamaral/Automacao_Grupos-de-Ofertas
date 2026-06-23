@@ -34,11 +34,13 @@ O arquivo `.env` não deve ser versionado.
 | `SHOPEE_PARTNER_ID` | Sim | Identificador do parceiro. |
 | `SHOPEE_SECRET_KEY` | Sim | Chave usada para assinatura. Não imprimir em logs. |
 | `SHOPEE_TRACKING_ID` | Não | Identificador de rastreio de afiliado, quando aplicável. |
+| `SHOPEE_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
 
 Estado atual:
 
 - provider valida configuração;
 - gateway fake/injetável funciona em teste;
+- base URL é configurável sem ativar HTTP real;
 - chamada real continua desativada por padrão;
 - payload real ainda não deve ser usado sem anonimização.
 
@@ -50,11 +52,13 @@ Estado atual:
 | `AMAZON_SECRET_KEY` | Sim | Chave usada para autenticação. Não imprimir em logs. |
 | `AMAZON_PARTNER_TAG` | Sim | Tag de associado. |
 | `AMAZON_REGION` | Não | Região lógica. Padrão atual: `BR`. |
+| `AMAZON_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
 
 Estado atual:
 
 - provider valida configuração;
 - gateway fake/injetável funciona em teste;
+- base URL é configurável sem ativar HTTP real;
 - chamada real continua desativada por padrão;
 - assinatura real da PA API ainda não foi implementada.
 
