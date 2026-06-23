@@ -21,6 +21,8 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Publicação real exige configuração explícita separada da chamada HTTP.
 - [ ] CLI continua aceitando `--marketplace mock` como caminho seguro.
 - [ ] Execuções sem transport real continuam sem chamada externa.
+- [ ] Guarda de HTTP real integrada aos providers.
+- [ ] Bloqueio da guarda de HTTP real tratado como erro amigável no harness.
 
 ## 3. Logs e mensagens
 
@@ -31,6 +33,7 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Mensagens do CLI orientam fallback para `--marketplace mock` quando aplicável.
 - [ ] Erro de escrita do `--save-json` retorna mensagem amigável e exit code `3`.
 - [ ] Aviso de `--save-json` na raiz recomenda `.data/`, `tmp/` ou `exports/`.
+- [ ] Bloqueio de HTTP real inseguro retorna mensagem amigável e exit code `3`.
 
 ## 4. HTTP real
 
@@ -41,6 +44,9 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Retry e rate limit avaliados antes de produção.
 - [ ] Teste fake continua cobrindo o contrato do transport.
 - [ ] Transport real só conectado quando `enable_real_http=True`.
+- [ ] Base URL real precisa ser HTTPS.
+- [ ] Base URL real não pode ser placeholder.
+- [ ] Configurações obrigatórias do provider precisam estar presentes.
 
 ## 5. Retry e rate limit
 
@@ -88,6 +94,7 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Erros de payload cobertos por `ShopeePayloadError`.
 - [ ] Teste com transport fake cobre request e normalização.
 - [ ] Nenhum dado sensível da Shopee aparece em logs.
+- [ ] Guarda de HTTP real validada para base URL e configuração da Shopee.
 
 ## 10. Amazon
 
@@ -97,6 +104,7 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Erros de payload cobertos por `AmazonPayloadError`.
 - [ ] Teste com transport fake cobre request e normalização.
 - [ ] Nenhum dado sensível da Amazon aparece em logs.
+- [ ] Guarda de HTTP real validada para base URL e configuração da Amazon.
 
 ## 11. Publicação
 
@@ -113,6 +121,7 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] `pytest` sem erros.
 - [ ] Testes de providers usando transport fake sem internet.
 - [ ] Testes do harness cobrindo erros amigáveis.
+- [ ] Testes da guarda de HTTP real cobrindo bloqueios e cenário permitido.
 - [ ] Documentação atualizada antes de ativação real.
 
 ## Critério de liberação
