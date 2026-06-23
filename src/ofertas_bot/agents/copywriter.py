@@ -6,7 +6,11 @@ from ofertas_bot.models import MessageDraft, ScoredOffer
 class CopywriterAgent:
     def create_message(self, scored_offer: ScoredOffer) -> MessageDraft:
         offer = scored_offer.offer
-        price_line = self._format_price_line(price=offer.price, old_price=offer.old_price, discount_percent=offer.discount_percent)
+        price_line = self._format_price_line(
+            price=offer.price,
+            old_price=offer.old_price,
+            discount_percent=offer.discount_percent,
+        )
         reasons = ", ".join(scored_offer.reasons[:3]) or "boa oportunidade"
 
         text = (
