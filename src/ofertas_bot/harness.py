@@ -26,6 +26,7 @@ from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_message_draft_store import (
     JsonMessageDraftStore,
     MessageDraftStoreWriteError,
+    format_message_drafts_for_review,
 )
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
 
@@ -71,6 +72,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--save-messages-json",
         default=None,
         help="Caminho local para salvar mensagens aprovadas em JSON",
+    )
+    parser.add_argument(
+        "--save-messages-text",
+        default=None,
+        help="Caminho local para salvar mensagens aprovadas em texto",
     )
     parser.add_argument(
         "--diagnose-real-http",
@@ -201,6 +207,20 @@ def run(argv: Sequence[str] | None = None) -> int:
         except MessageDraftStoreWriteError as error:
             return _print_save_messages_json_error(error=error)
         print(f"INFO | Mensagens aprovadas salvas em {save_path}")
+
+    if args.save_messages_text:
+        save_path = Path(args.save_messages_text)
+        if _is_root_output_path(save_path):
+            _print_save_json_root_warning(save_path)
+        try:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.write_text(
+                format_message_drafts_for_review(tuple(approved_drafts)),
+                encoding="utf-8",
+            )
+        except OSError as error:
+            return _print_save_messages_text_error(error=error)
+        print(f"INFO | Revisão de mensagens salva em {save_path}")
 
     return 0
 
@@ -457,6 +477,16 @@ def _print_save_json_error(error: Exception) -> int:
 
 def _print_save_messages_json_error(error: Exception) -> int:
     print("ERRO | Não foi possível salvar o JSON de mensagens", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_save_messages_text_error(error: Exception) -> int:
+    print("ERRO | Não foi possível salvar o texto de revisão", file=sys.stderr)
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
