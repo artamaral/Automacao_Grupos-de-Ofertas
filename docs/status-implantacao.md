@@ -47,6 +47,7 @@ Implementado até agora:
 - builder assinado com nomes neutros;
 - gateway de busca;
 - validação interna de `limit > 0` no gateway;
+- retry opcional injetável no gateway;
 - transport HTTP injetável/fake;
 - execução fake controlada no gateway, sem internet;
 - `ShopeeProvider.fetch()` integrado ao gateway injetável;
@@ -55,7 +56,8 @@ Implementado até agora:
 - tratamento amigável de payload inválido no harness;
 - fixture anônima de contrato;
 - teste de resposta vazia;
-- teste de limite com fixture de contrato.
+- teste de limite com fixture de contrato;
+- teste de retry opcional com transport fake.
 
 Ainda não implementado:
 
@@ -63,7 +65,6 @@ Ainda não implementado:
 - configuração real de base URL no `Settings`;
 - paginação real;
 - validação com payload real anonimizado da Shopee;
-- retries e rate limit;
 - persistência de resultados.
 
 #### Amazon
@@ -78,6 +79,7 @@ Implementado até agora:
 - mapper de payload para `Offer`;
 - gateway de busca;
 - validação interna de `limit > 0` no gateway;
+- retry opcional injetável no gateway;
 - transport HTTP injetável/fake;
 - `AmazonProvider.fetch()` integrado ao gateway injetável;
 - tratamento de erro HTTP no gateway;
@@ -85,7 +87,8 @@ Implementado até agora:
 - tratamento amigável de payload inválido no harness;
 - fixture anônima de contrato;
 - teste de resposta vazia;
-- teste de limite com fixture de contrato.
+- teste de limite com fixture de contrato;
+- teste de retry opcional com transport fake.
 
 Ainda não implementado:
 
@@ -93,7 +96,6 @@ Ainda não implementado:
 - chamada real à PA API;
 - configuração real de base URL no `Settings`;
 - validação com payload real anonimizado da Amazon;
-- retries e rate limit;
 - persistência de resultados.
 
 ### Transporte HTTP
@@ -110,6 +112,22 @@ Implementado até agora:
 - tratamento amigável de `HttpTransportError` no harness.
 
 Importante: o transport real não está conectado automaticamente aos providers e não é usado pelo harness.
+
+### Retry e rate limit
+
+Implementado até agora:
+
+- `RetryPolicy` com tentativas máximas, códigos retryable e backoff;
+- `Sleeper` injetável;
+- `NoOpSleeper` para testes sem espera real;
+- `SystemSleeper` preparado para uso futuro controlado;
+- retry opcional no helper `execute_provider_request`;
+- retry opcional nos gateways de Shopee e Amazon;
+- testes de política de retry;
+- testes de retry no helper de gateway;
+- testes de retry integrado aos gateways com transport fake.
+
+Critério atual: retry existe como estrutura técnica, mas não ativa chamada real nem conecta HTTP real por padrão.
 
 ### Gateways
 
@@ -153,7 +171,8 @@ Casos resolvidos:
 
 - builder antigo da Shopee foi removido;
 - teste do transport real foi ajustado para deixar imports da biblioteca padrão antes de `pytest`;
-- teste do helper de gateway foi formatado com imports quebrados em bloco.
+- teste do helper de gateway foi formatado com imports quebrados em bloco;
+- teste de retry do helper foi formatado com imports quebrados em bloco.
 
 Decisão atual:
 
@@ -184,7 +203,6 @@ Soluções adotadas:
 - Criar configuração para base URL sem expor credenciais.
 - Mapear payload real da Shopee quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API.
-- Adicionar retry/rate limit antes de qualquer chamada real.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
 ### Amazon
@@ -193,7 +211,6 @@ Soluções adotadas:
 - Criar configuração para base URL sem expor credenciais.
 - Mapear payload real da Amazon quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API.
-- Adicionar retry/rate limit antes de qualquer chamada real.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
 ### Configuração e operação
@@ -209,4 +226,4 @@ Soluções adotadas:
 
 ## Próximo passo imediato
 
-Preparar a estrutura inicial para retries/rate limit sem conectar chamadas reais, mantendo o fluxo testável com transport fake.
+Adicionar configuração explícita de base URL por provider no `Settings`, mantendo valores fake por padrão e sem ativar HTTP real.
