@@ -57,9 +57,17 @@ class GroupPlanSimulation:
             now=now,
             last_runs_by_group=last_runs_by_group,
         )
+        summary = summarize_group_plans(plans)
+        summary["metadata"] = {
+            "niche": normalized_niche,
+            "generated_at": now.isoformat(),
+            "offer_limit": offer_limit,
+            "collected_offer_count": len(offers),
+            "source_marketplace": Marketplace.MOCK.value,
+        }
         return GroupPlanSimulationResult(
             plans=plans,
-            summary=summarize_group_plans(plans),
+            summary=summary,
         )
 
     def save_summary(
