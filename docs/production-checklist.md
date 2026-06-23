@@ -29,6 +29,8 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Erros esperados mostram `ERRO`, `DETALHE` e `AÇÃO`.
 - [ ] Traceback só aparece para erro inesperado durante desenvolvimento.
 - [ ] Mensagens do CLI orientam fallback para `--marketplace mock` quando aplicável.
+- [ ] Erro de escrita do `--save-json` retorna mensagem amigável e exit code `3`.
+- [ ] Aviso de `--save-json` na raiz recomenda `.data/`, `tmp/` ou `exports/`.
 
 ## 4. HTTP real
 
@@ -40,7 +42,45 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Teste fake continua cobrindo o contrato do transport.
 - [ ] Transport real só conectado quando `enable_real_http=True`.
 
-## 5. Shopee
+## 5. Retry e rate limit
+
+- [ ] Retry permanece opcional e desligado por padrão.
+- [ ] Tentativas máximas são limitadas.
+- [ ] Backoff configurado e testado.
+- [ ] Códigos retryable são explícitos.
+- [ ] Não existe retry infinito.
+- [ ] Testes usam sleeper fake para não esperar tempo real.
+- [ ] Rate limit real de cada marketplace revisado antes de produção.
+
+## 6. Paginação
+
+- [ ] Paginação fake coberta por testes.
+- [ ] Parada por `has_next_page` coberta por testes.
+- [ ] Parada por página vazia coberta por testes.
+- [ ] Parada por `limit` coberta por testes.
+- [ ] Parada por `max_pages` coberta por testes.
+- [ ] Paginação real validada contra contrato oficial antes de HTTP real.
+- [ ] Payload real de paginação entra apenas como fixture anonimizada.
+
+## 7. Persistência local
+
+- [ ] `--save-json` continua opcional.
+- [ ] Fluxo padrão não grava arquivo.
+- [ ] JSON salva apenas campos normalizados de oferta.
+- [ ] JSON não salva payload bruto sensível.
+- [ ] Caminhos recomendados são ignorados pelo Git.
+- [ ] Falha de escrita é tratada sem traceback.
+- [ ] Saídas locais são revisadas antes de qualquer uso com dados reais anonimizados.
+
+## 8. Artefatos fake e temporários
+
+- [ ] Inventário de artefatos fake atualizado.
+- [ ] Cada artefato fake tem motivo atual registrado.
+- [ ] Cada artefato fake tem ação futura definida.
+- [ ] Artefatos fake sem função prática são removidos.
+- [ ] Artefatos fake úteis para segurança e testes são mantidos.
+
+## 9. Shopee
 
 - [ ] Assinatura validada contra documentação oficial ou ambiente controlado.
 - [ ] Payload real anonimizado salvo como fixture de teste.
@@ -49,7 +89,7 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Teste com transport fake cobre request e normalização.
 - [ ] Nenhum dado sensível da Shopee aparece em logs.
 
-## 6. Amazon
+## 10. Amazon
 
 - [ ] Assinatura real da PA API implementada em módulo isolado.
 - [ ] Payload real anonimizado salvo como fixture de teste.
@@ -58,7 +98,7 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Teste com transport fake cobre request e normalização.
 - [ ] Nenhum dado sensível da Amazon aparece em logs.
 
-## 7. Publicação
+## 11. Publicação
 
 - [ ] Publicador real ainda desativado por padrão.
 - [ ] Grupos de destino são opt-in.
@@ -67,7 +107,7 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 - [ ] Teste dry-run aprovado antes de qualquer envio real.
 - [ ] Lista de destinos reais revisada manualmente.
 
-## 8. Qualidade
+## 12. Qualidade
 
 - [ ] `ruff check .` sem erros.
 - [ ] `pytest` sem erros.
@@ -77,6 +117,6 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 
 ## Critério de liberação
 
-A ativação de `enable_real_http=True` só pode acontecer depois que as seções 1 a 6 estiverem concluídas.
+A ativação de `enable_real_http=True` só pode acontecer depois que as seções 1 a 10 estiverem concluídas.
 
 A ativação de `enable_real_publish=True` só pode acontecer depois que todas as seções estiverem concluídas e revisadas manualmente.
