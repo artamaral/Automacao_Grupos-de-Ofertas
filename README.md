@@ -23,15 +23,14 @@ A versão atual usa um **harness dry-run**: busca ofertas mockadas ou providers 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev]
+python -m pip install -e .[dev]
 ```
 
-No Windows PowerShell:
+No Windows PowerShell, use sempre o Python da venv para evitar `pip` global apontando para outra versão:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e .[dev]
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .[dev]
 ```
 
 ## Configuração
@@ -137,8 +136,8 @@ Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem
 ## Testes
 
 ```bash
-ruff check .
-pytest
+python -m ruff check .
+python -m pytest
 ```
 
 No Windows PowerShell:
