@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ofertas_bot.storage.json_message_draft_store import (
@@ -68,7 +68,7 @@ def run(argv: Sequence[str] | None = None) -> int:
 
 
 def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
 def _print_manifest_error(error: Exception) -> int:
