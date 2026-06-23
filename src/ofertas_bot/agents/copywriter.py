@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from ofertas_bot.group_profiles import GroupProfile
 from ofertas_bot.models import Marketplace, MessageDraft, Offer, ScoredOffer
 
@@ -22,6 +24,17 @@ class CopywriterAgent:
         return self._create_message(
             scored_offer=scored_offer,
             group_profile=group_profile,
+        )
+
+    def create_messages_for_group(
+        self,
+        scored_offers: Sequence[ScoredOffer],
+        group_profile: GroupProfile,
+    ) -> tuple[MessageDraft, ...]:
+        selected_offers = tuple(scored_offers[: group_profile.max_offers_per_run])
+        return tuple(
+            self.create_message_for_group(scored_offer, group_profile)
+            for scored_offer in selected_offers
         )
 
     def _create_message(
