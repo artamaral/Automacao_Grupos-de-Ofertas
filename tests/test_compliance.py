@@ -67,3 +67,17 @@ def test_compliance_filters_approved_drafts() -> None:
     )
 
     assert drafts == (approved_draft,)
+
+
+def test_compliance_summarizes_batch() -> None:
+    summary = ComplianceAgent(settings=Settings()).summarize_batch(
+        drafts=(make_approved_draft(), make_blocked_draft()),
+        dry_run=True,
+    )
+
+    assert summary == {
+        "total": 2,
+        "approved": 1,
+        "blocked": 1,
+        "reasons": ["mensagem sem aviso de afiliado"],
+    }
