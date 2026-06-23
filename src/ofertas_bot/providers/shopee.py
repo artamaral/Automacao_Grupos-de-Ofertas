@@ -9,6 +9,7 @@ from ofertas_bot.providers.http import HttpRequest
 from ofertas_bot.providers.provider_settings import get_provider_base_urls, get_provider_paths
 from ofertas_bot.providers.real_http_guard import (
     RealHttpPrerequisites,
+    RealHttpValidationError,
     validate_real_http_prerequisites,
 )
 from ofertas_bot.providers.shopee_gateway import ShopeeGateway
