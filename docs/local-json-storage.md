@@ -37,7 +37,8 @@ Comportamento:
 - sem `--save-json`, nenhum arquivo é gravado;
 - com `--save-json`, o arquivo recebe uma lista de ofertas normalizadas;
 - o diretório de destino é criado se não existir;
-- a mensagem de sucesso informa o caminho usado.
+- a mensagem de sucesso informa o caminho usado;
+- se o arquivo for salvo diretamente no diretório atual, a CLI emite um aviso e continua.
 
 ## Caminhos recomendados
 
@@ -48,6 +49,12 @@ Use caminhos locais ignorados pelo Git:
 - `./exports/ofertas.json`.
 
 Evite salvar arquivos de saída diretamente na raiz do repositório.
+
+Se isso acontecer, o aviso esperado é:
+
+```text
+WARN | O arquivo ofertas.json será salvo no diretório atual. Prefira .data/, tmp/ ou exports/ para evitar commit acidental.
+```
 
 ## O que é salvo
 
