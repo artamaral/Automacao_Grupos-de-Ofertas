@@ -11,6 +11,7 @@ class ShopeeSignedRequestBuilder:
     partner_id: str
     api_credential: str
     base_url: str
+    search_path: str = SHOPEE_SEARCH_PATH
 
     def build(
         self,
@@ -18,7 +19,7 @@ class ShopeeSignedRequestBuilder:
         limit: int,
         timestamp: int,
     ) -> HttpRequest:
-        base_string = f"{self.partner_id}{SHOPEE_SEARCH_PATH}{timestamp}"
+        base_string = f"{self.partner_id}{self.search_path}{timestamp}"
         signature = hmac.new(
             self.api_credential.encode("utf-8"),
             base_string.encode("utf-8"),
@@ -33,6 +34,6 @@ class ShopeeSignedRequestBuilder:
         }
         return HttpRequest(
             method="GET",
-            url=f"{self.base_url}{SHOPEE_SEARCH_PATH}",
+            url=f"{self.base_url}{self.search_path}",
             params=params,
         )
