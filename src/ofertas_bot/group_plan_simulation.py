@@ -12,7 +12,7 @@ from ofertas_bot.group_plan import (
     format_group_plan_summary,
     summarize_group_plans,
 )
-from ofertas_bot.group_plan_naming import build_group_plan_file_prefix
+from ofertas_bot.group_plan_naming import build_group_plan_file_names
 from ofertas_bot.group_plan_validation import normalize_plan_niche, validate_plan_limit
 from ofertas_bot.group_profiles import GroupProfileCatalog
 from ofertas_bot.models import Marketplace
@@ -82,13 +82,15 @@ class GroupPlanSimulation:
             last_runs_by_group=last_runs_by_group,
         )
         summary = summarize_group_plans(plans)
+        file_names = build_group_plan_file_names(
+            niche=normalized_niche,
+            generated_at=now,
+        )
         summary["metadata"] = {
             "niche": normalized_niche,
             "generated_at": now.isoformat(),
-            "file_prefix": build_group_plan_file_prefix(
-                niche=normalized_niche,
-                generated_at=now,
-            ),
+            "json_name": file_names.json_name,
+            "text_name": file_names.text_name,
             "offer_limit": offer_limit,
             "collected_offer_count": len(offers),
             "source_marketplace": Marketplace.MOCK.value,
