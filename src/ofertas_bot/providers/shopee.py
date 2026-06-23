@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from time import time
 from typing import Any
 
 from ofertas_bot.models import Marketplace, Offer
@@ -25,9 +26,18 @@ class ShopeeProvider:
 
     def fetch(self, niche: str, limit: int) -> list[Offer]:
         self._validate_configuration()
-        raise NotImplementedError(
-            "Shopee API integration is not implemented yet. "
-            "Use the mock provider while credentials and endpoint mapping are prepared."
+        gateway = self._get_gateway()
+        if gateway.transport is None:
+            raise NotImplementedError(
+                "Shopee API integration is not implemented yet. "
+                "Use an injected fake transport while credentials and endpoint mapping are prepared."
+            )
+
+        return gateway.execute_search(
+            keyword=niche,
+            niche=niche,
+            limit=limit,
+            timestamp=int(time()),
         )
 
     def build_search_request(self, keyword: str, limit: int, timestamp: int) -> HttpRequest:
