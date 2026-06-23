@@ -96,6 +96,8 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     if args.save_json:
         save_path = Path(args.save_json)
+        if _is_root_output_path(save_path):
+            _print_save_json_root_warning(save_path)
         try:
             JsonOfferStore(path=save_path).save(offers)
         except OfferStoreWriteError as error:
@@ -127,6 +129,10 @@ def run(argv: Sequence[str] | None = None) -> int:
         )
 
     return 0
+
+
+def _is_root_output_path(path: Path) -> bool:
+    return not path.is_absolute() and path.parent == Path(".")
 
 
 def _print_configuration_error(marketplace: Marketplace, error: Exception) -> int:
@@ -194,6 +200,13 @@ def _print_transport_error(marketplace: Marketplace, error: Exception) -> int:
         file=sys.stderr,
     )
     return 3
+
+
+def _print_save_json_root_warning(path: Path) -> None:
+    print(
+        f"WARN | O arquivo {path} será salvo no diretório atual. "
+        "Prefira .data/, tmp/ ou exports/ para evitar commit acidental."
+    )
 
 
 def _print_save_json_error(error: Exception) -> int:
