@@ -89,6 +89,35 @@ Se algum desses campos estiver ausente, vazio ou inválido, o mapper deve rejeit
 
 Essa validação já é coberta por testes fake para Shopee e Amazon e deve ser mantida quando payloads reais anonimizados forem adicionados.
 
+## Paginação fake
+
+Os gateways possuem paginação opcional para testes e fluxos futuros:
+
+- `ShopeeGateway.execute_paginated_search()`;
+- `AmazonGateway.execute_paginated_search()`.
+
+Esse fluxo não é usado pelo harness nem pelos providers por padrão. Ele existe para validar o desenho de paginação com payloads controlados antes de qualquer chamada real.
+
+Regras atuais:
+
+- `limit`, `page_size` e `max_pages` precisam ser positivos;
+- cada página usa o mesmo transport fake injetado;
+- Shopee envia `page` nos parâmetros do request;
+- Amazon envia `Page` no body do request;
+- a coleta para quando `has_next_page` não é `True`;
+- a coleta também para quando chega em `limit` ou `max_pages`.
+
+Exemplo conceitual:
+
+```python
+offers = gateway.execute_paginated_search(
+    keyword="maquiagem",
+    niche="maquiagem",
+    limit=10,
+    page_size=5,
+)
+```
+
 ## Retry e rate limit
 
 A estrutura de retry já existe, mas é opcional e desligada por padrão.
@@ -232,5 +261,5 @@ Durante a fase atual, qualquer chamada real deve continuar desabilitada por padr
 - Conectar `enable_real_http` aos providers somente depois do checklist de produção.
 - Implementar assinatura real da Amazon PA API em módulo isolado.
 - Evoluir mappers com payloads reais anonimizados.
-- Criar testes de paginação quando os contratos reais forem definidos.
+- Evoluir paginação com contratos reais quando houver fixtures seguras.
 - Definir checklist antes de liberar qualquer publicação fora de dry-run.
