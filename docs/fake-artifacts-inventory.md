@@ -24,6 +24,8 @@ A regra é simples:
 | `provider_settings.py` com default `https://example.com` | Configuração segura | Evita base real por padrão e contorna edição direta de settings sensíveis. | Reavaliar quando a configuração final de produção estiver definida. |
 | `execute_paginated_search()` nos gateways | Fluxo fake/opcional | Permite testar paginação sem chamada real. | Manter se o desenho bater com o contrato real; adaptar ou remover se o contrato real for diferente. |
 | `RetryPolicy` com sleeper fake nos testes | Simulação controlada | Permite testar retry sem espera real. | Manter como estrutura de teste e produção controlada. |
+| `JsonOfferStore` | Persistência local opcional | Permite salvar ofertas normalizadas em JSON para inspeção e testes sem ativar gravação automática. | Manter isolado; conectar ao CLI só com opção explícita ou remover se não for usado. |
+| `docs/local-json-storage.md` | Documento de transição | Explica a persistência local opcional e seus limites de segurança. | Atualizar quando houver opção de CLI; remover se a persistência for descartada. |
 
 ## Critérios para remover
 
