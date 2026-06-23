@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "title": "Produto anonimizado",
+      "url": "https://example.com/redacted",
+      "image_url": "https://example.com/redacted",
+      "price": 49.9,
+      "old_price": 89.9,
+      "commission_rate": 0.08,
+      "sales_count": 120,
+      "rating": 4.8,
+      "is_free_shipping": true,
+      "sign": "<redacted>",
+      "seller_id": "<redacted>"
+    }
+  ]
+}
