@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from ofertas_bot.agents.collector import CollectorAgent
 from ofertas_bot.agents.compliance import ComplianceAgent
@@ -18,6 +19,7 @@ from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import get_settings
+from ofertas_bot.storage.json_offer_store import JsonOfferStore
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,6 +51,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=True,
         help="Simula publicação",
+    )
+    parser.add_argument(
+        "--save-json",
+        default=None,
+        help="Caminho local para salvar ofertas normalizadas em JSON",
     )
     return parser
 
@@ -86,6 +93,11 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_provider_http_error(marketplace=marketplace, error=error)
     except HttpTransportError as error:
         return _print_transport_error(marketplace=marketplace, error=error)
+
+    if args.save_json:
+        save_path = Path(args.save_json)
+        JsonOfferStore(path=save_path).save(offers)
+        print(f"INFO | Ofertas normalizadas salvas em {save_path}")
 
     scored_offers = scorer.score(offers)
 
