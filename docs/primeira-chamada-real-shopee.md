@@ -16,6 +16,7 @@ Antes de rodar qualquer chamada real:
 - [ ] HTTP real habilitado apenas no ambiente local de teste.
 - [ ] Publicação real continua desligada.
 - [ ] Base URL real da Shopee configurada fora do Git.
+- [ ] Caminho do endpoint confirmado na documentação oficial da conta Shopee usada.
 - [ ] Configuração obrigatória da Shopee preenchida fora do Git.
 - [ ] Preview seguro do request revisado antes da chamada.
 - [ ] `--limit 1` usado na primeira execução.
@@ -33,7 +34,17 @@ git pull
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-### 2. Rodar o diagnóstico
+### 2. Confirmar endpoint oficial
+
+Antes do diagnóstico, conferir o endpoint atual em:
+
+```text
+docs/status-endpoint-shopee.md
+```
+
+O caminho atual no código está registrado como provisório. Se o caminho oficial da conta Shopee usada for diferente, não seguir para chamada real.
+
+### 3. Rodar o diagnóstico
 
 ```text
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --diagnose-real-http
@@ -50,7 +61,7 @@ INFO | Nenhum JSON foi salvo automaticamente.
 
 Se esse diagnóstico falhar, não rode o preview e não rode a chamada real.
 
-### 3. Gerar preview seguro do request
+### 4. Gerar preview seguro do request
 
 ```text
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
@@ -76,7 +87,7 @@ Antes da chamada real, conferir:
 
 - se o método é o esperado;
 - se a URL base está correta;
-- se o caminho do endpoint parece correto;
+- se o caminho do endpoint bate com o endpoint oficial;
 - se `page_size` está em `1`;
 - se `partner_id` aparece mascarado;
 - se `sign` aparece mascarado;
@@ -84,7 +95,7 @@ Antes da chamada real, conferir:
 
 Se o preview estiver errado, não rode a chamada real.
 
-### 4. Rodar a primeira chamada controlada
+### 5. Rodar a primeira chamada controlada
 
 ```text
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --execute-real-http-once
