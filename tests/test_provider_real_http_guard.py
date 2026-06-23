@@ -28,7 +28,8 @@ def make_amazon_settings(**overrides) -> Settings:
     return Settings(**values)
 
 
-def test_shopee_provider_blocks_real_http_with_placeholder_base_url() -> None:
+def test_shopee_provider_blocks_real_http_with_placeholder_base_url(monkeypatch) -> None:
+    monkeypatch.delenv("SHOPEE_BASE_URL", raising=False)
     provider = ShopeeProvider(settings=make_shopee_settings())
 
     with pytest.raises(RealHttpValidationError, match="non-placeholder base URL"):
@@ -50,7 +51,8 @@ def test_shopee_provider_blocks_missing_tracking_id(monkeypatch) -> None:
         provider.validate_real_http_ready()
 
 
-def test_amazon_provider_blocks_real_http_with_placeholder_base_url() -> None:
+def test_amazon_provider_blocks_real_http_with_placeholder_base_url(monkeypatch) -> None:
+    monkeypatch.delenv("AMAZON_BASE_URL", raising=False)
     provider = AmazonProvider(settings=make_amazon_settings())
 
     with pytest.raises(RealHttpValidationError, match="non-placeholder base URL"):
