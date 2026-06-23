@@ -21,6 +21,17 @@ Para reduzir erro manual de copia e cola, o fluxo oficial deste projeto é:
 - Após cada mudança feita no GitHub, o usuário deve rodar `git pull` em `C:\Automacao_Grupos-de-Ofertas` antes de testar localmente.
 - Segredos, tokens, chaves de API, cookies, QR codes e sessões nunca devem ser enviados ao GitHub.
 
+### Continuidade e agrupamento de etapas
+
+Para reduzir interrupções durante o desenvolvimento assistido:
+
+- Não pedir validação após cada alteração pequena.
+- Agrupar mudanças relacionadas em blocos maiores antes de solicitar teste local.
+- Executar em sequência todas as etapas seguras que não exigem decisão do usuário.
+- Solicitar interação somente quando houver necessidade de definição humana, credencial, aprovação externa, validação local indispensável ou alteração de trava de segurança.
+- Quando vários testes validarem o mesmo bloco de mudanças, solicitar uma única rodada de `ruff` e `pytest` ao final do bloco.
+- Se uma etapa falhar por lint ou teste, corrigir a falha antes de iniciar nova funcionalidade.
+
 Comandos locais recomendados após mudanças no GitHub:
 
 ```powershell
