@@ -6,6 +6,7 @@ from ofertas_bot.storage.json_publication_manifest_store import (
     PublicationManifestItem,
     PublicationManifestStoreError,
     create_publication_manifest,
+    validate_publication_manifest,
 )
 
 
@@ -54,6 +55,20 @@ def test_create_publication_manifest_requires_target() -> None:
             target=" ",
             created_at="2026-01-01T00:00:00+00:00",
         )
+
+
+def test_validate_publication_manifest_accepts_ready_manifest() -> None:
+    manifest = create_publication_manifest(
+        drafts=(make_draft(),),
+        target="grupo-maquiagem",
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+
+    assert validate_publication_manifest(manifest) == ()
+
+
+def test_validate_publication_manifest_rejects_empty_manifest() -> None:
+    assert validate_publication_manifest(()) == ("manifesto vazio",)
 
 
 def test_json_publication_manifest_store_saves_and_loads_items(tmp_path) -> None:
