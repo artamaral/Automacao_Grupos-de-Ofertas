@@ -36,8 +36,14 @@ Comandos locais recomendados após mudanças no GitHub:
 
 ```powershell
 git pull
+.\.venv\Scripts\python.exe -m ruff check .
 .\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace shopee --dry-run
+```
+
+O harness dry-run pode ser rodado como validação operacional adicional, sem substituir `ruff` e `pytest`:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace mock --dry-run
 ```
 
 ## Agentes
@@ -113,7 +119,7 @@ No futuro:
 O harness executa o pipeline completo localmente:
 
 ```bash
-python -m ofertas_bot.harness --niche maquiagem --marketplace shopee --dry-run
+python -m ofertas_bot.harness --niche maquiagem --marketplace mock --dry-run
 ```
 
 Fluxo:
