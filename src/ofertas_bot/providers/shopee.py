@@ -14,6 +14,7 @@ from ofertas_bot.providers.real_http_guard import (
 from ofertas_bot.providers.shopee_gateway import ShopeeGateway
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuilder
+from ofertas_bot.providers.transport import UrllibHttpTransport
 from ofertas_bot.settings import Settings
 
 
@@ -99,7 +100,8 @@ class ShopeeProvider:
             api_credential=self.settings.shopee_secret_key or "",
             base_url=get_provider_base_urls().shopee,
         )
-        return ShopeeGateway(request_builder=builder, mapper=self.mapper)
+        transport = UrllibHttpTransport() if self.settings.enable_real_http else None
+        return ShopeeGateway(request_builder=builder, mapper=self.mapper, transport=transport)
 
     def _validate_configuration(self) -> None:
         missing = []
