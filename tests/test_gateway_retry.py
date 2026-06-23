@@ -3,7 +3,12 @@ from dataclasses import dataclass, field
 import pytest
 
 from ofertas_bot.providers.gateway import execute_provider_request
-from ofertas_bot.providers.http import HttpRequest, HttpResponse, ProviderHttpClient, ProviderHttpError
+from ofertas_bot.providers.http import (
+    HttpRequest,
+    HttpResponse,
+    ProviderHttpClient,
+    ProviderHttpError,
+)
 from ofertas_bot.providers.retry import RetryPolicy
 
 
