@@ -36,6 +36,7 @@ O arquivo `.env` não deve ser versionado.
 | `SHOPEE_TRACKING_ID` | Não | Identificador de rastreio de afiliado, quando aplicável. |
 | `SHOPEE_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
 | `SHOPEE_SEARCH_PATH` | Não | Caminho do endpoint de busca/listagem. Padrão provisório: `/api/v2/product/search_item`. Confirmar no painel/documentação oficial antes de chamada real. |
+| `SHOPEE_SEARCH_PATH_CONFIRMED` | Sim, para chamada real | Deve ser `true` apenas depois de comparar o preview com o endpoint oficial. Padrão seguro: `false`. |
 
 Estado atual:
 
@@ -44,6 +45,7 @@ Estado atual:
 - base URL é configurável sem ativar HTTP real;
 - path de busca é configurável fora do Git;
 - chamada real continua desativada por padrão;
+- chamada real da Shopee exige confirmação explícita do path;
 - payload real ainda não deve ser usado sem anonimização;
 - endpoint da Shopee precisa de confirmação manual antes de chamada real.
 
@@ -102,6 +104,16 @@ Se o `.env` não tiver as variáveis da Amazon, o CLI deve mostrar erro amigáve
 
 Use esse comando para revisar método, base URL, path e parâmetros não sensíveis antes de uma chamada real controlada.
 
+### Chamada real controlada da Shopee
+
+Antes de rodar `--execute-real-http-once`, o `.env` local precisa ter:
+
+```text
+SHOPEE_SEARCH_PATH_CONFIRMED=true
+```
+
+Só defina esse valor depois de confirmar o endpoint oficial.
+
 ## Testes locais
 
 Use sempre:
@@ -122,6 +134,7 @@ Os testes de provider usam transport fake e não acessam internet.
 - Não ativar `ENABLE_REAL_PUBLISH=true` antes de revisão manual completa.
 - Não usar payload real em teste sem anonimização.
 - Não executar chamada real se o endpoint oficial não foi confirmado.
+- Não definir `SHOPEE_SEARCH_PATH_CONFIRMED=true` sem revisão manual.
 
 ## Ordem segura para evoluir
 
