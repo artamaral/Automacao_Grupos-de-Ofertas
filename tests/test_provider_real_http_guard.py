@@ -9,7 +9,7 @@ from ofertas_bot.settings import Settings
 def make_shopee_settings(**overrides) -> Settings:
     values = {
         "enable_real_http": True,
-        "shopee_partner_id": "partner",
+        "shopee_partner_id": "123456",
         "shopee_tracking_id": "tracking",
     }
     values["shopee_" + "secret_key"] = "credential"
@@ -41,6 +41,22 @@ def test_shopee_provider_allows_real_http_prerequisites(monkeypatch) -> None:
     provider = ShopeeProvider(settings=make_shopee_settings())
 
     provider.validate_real_http_ready()
+
+
+def test_shopee_provider_blocks_non_numeric_partner_id(monkeypatch) -> None:
+    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
+    provider = ShopeeProvider(settings=make_shopee_settings(shopee_partner_id="partner"))
+
+    with pytest.raises(RealHttpValidationError, match="partner id must be numeric"):
+        provider.validate_real_http_ready()
+
+
+def test_shopee_provider_blocks_out_of_range_partner_id(monkeypatch) -> None:
+    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
+    provider = ShopeeProvider(settings=make_shopee_settings(shopee_partner_id="4294967296"))
+
+    with pytest.raises(RealHttpValidationError, match="partner id is out of range"):
+        provider.validate_real_http_ready()
 
 
 def test_shopee_provider_blocks_missing_tracking_id(monkeypatch) -> None:
