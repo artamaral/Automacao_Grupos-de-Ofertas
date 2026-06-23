@@ -1,4 +1,5 @@
 from ofertas_bot.agents.copywriter import CopywriterAgent
+from ofertas_bot.group_plan import GroupPlan
 from ofertas_bot.group_profiles import GroupProfile
 from ofertas_bot.models import Marketplace, Offer, ScoredOffer
 
@@ -160,3 +161,36 @@ def test_copywriter_batch_uses_compact_messages_for_single_offer_group() -> None
     assert len(drafts) == 1
     assert "Grupo: Maquiagem VIP" in drafts[0].text
     assert "Loja:" not in drafts[0].text
+
+
+def test_copywriter_creates_messages_from_allowed_plan() -> None:
+    group_profile = make_group_profile(max_offers_per_run=2)
+    plan = GroupPlan(
+        group_slug="maquiagem-vip",
+        allowed=True,
+        selected_offers=(
+            make_offer(title="Produto 1"),
+            make_offer(title="Produto 2"),
+        ),
+        reasons=(),
+    )
+
+    drafts = CopywriterAgent().create_messages_for_plan(plan, group_profile)
+
+    assert len(drafts) == 2
+    assert "Produto 1" in drafts[0].text
+    assert "Produto 2" in drafts[1].text
+
+
+def test_copywriter_does_not_create_messages_from_blocked_plan() -> None:
+    group_profile = make_group_profile(max_offers_per_run=2)
+    plan = GroupPlan(
+        group_slug="maquiagem-vip",
+        allowed=False,
+        selected_offers=(make_offer(title="Produto 1"),),
+        reasons=("bloqueado",),
+    )
+
+    drafts = CopywriterAgent().create_messages_for_plan(plan, group_profile)
+
+    assert drafts == ()
