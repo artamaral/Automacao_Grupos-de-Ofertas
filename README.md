@@ -2,12 +2,13 @@
 
 Projeto em **Python** para curadoria, pontuação e publicação controlada de ofertas de afiliados para grupos opt-in.
 
-A primeira versão usa um **harness dry-run**: busca ofertas mockadas, pontua, gera copy, valida compliance e simula a publicação sem enviar nada para WhatsApp real.
+A versão atual usa um **harness dry-run**: busca ofertas mockadas ou providers com transport fake injetável, pontua, gera copy, valida compliance e simula a publicação sem enviar nada para WhatsApp real.
 
 ## Princípios
 
 - Somente grupos com entrada voluntária e consentimento claro.
 - Publicação real desabilitada por padrão.
+- HTTP real desabilitado por padrão.
 - Nenhum segredo versionado.
 - Integrações externas isoladas atrás de providers.
 - Nada de automação para burlar políticas, limites ou detecção de plataformas.
@@ -33,42 +34,94 @@ python -m venv .venv
 pip install -e .[dev]
 ```
 
-## Rodar o harness
+## Configuração
 
-```bash
-python -m ofertas_bot.harness --niche maquiagem --marketplace shopee --dry-run
+Copie o arquivo de exemplo e preencha apenas o `.env` local:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-Exemplo com Amazon mockada:
+As travas devem permanecer desligadas por padrão:
+
+```text
+ENABLE_REAL_HTTP=false
+ENABLE_REAL_PUBLISH=false
+```
+
+Mais detalhes em [`docs/environment.md`](docs/environment.md).
+
+## Rodar o harness com segurança
+
+Caminho recomendado para testar o pipeline completo:
 
 ```bash
-python -m ofertas_bot.harness --niche casa --marketplace amazon --dry-run
+python -m ofertas_bot.harness --niche maquiagem --marketplace mock --dry-run
+```
+
+No Windows PowerShell, usando o Python da venv:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace mock --dry-run
+```
+
+Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem chamada externa real:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace shopee --dry-run
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche casa --marketplace amazon --dry-run
 ```
 
 ## Testes
 
 ```bash
+ruff check .
 pytest
 ```
+
+No Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m pytest
+```
+
+## Documentação
+
+- [`docs/environment.md`](docs/environment.md): variáveis de ambiente e execução local segura.
+- [`docs/provider-fake-flow.md`](docs/provider-fake-flow.md): fluxo fake/injetável dos providers.
+- [`docs/production-checklist.md`](docs/production-checklist.md): checklist antes de chamadas reais ou publicação real.
+- [`docs/status-implantacao.md`](docs/status-implantacao.md): status atual da implantação e backlog.
+- [`docs/cli-messages.md`](docs/cli-messages.md): padrão de mensagens do CLI.
+- [`docs/copy-guidelines.md`](docs/copy-guidelines.md): diretrizes de copy.
+- [`docs/commit-pattern.md`](docs/commit-pattern.md): padrão de commits.
 
 ## Estrutura
 
 ```text
 src/ofertas_bot/
   agents/        # agentes funcionais do pipeline
-  providers/     # integrações Shopee, Amazon, WhatsApp etc.
+  providers/     # integrações Shopee, Amazon, transport e mappers
   harness.py     # CLI de simulação
   models.py      # modelos de domínio
   settings.py    # configuração via ambiente
-  utils/         # utilidades compartilhadas
 tests/
+docs/
 ```
+
+## Estado dos providers
+
+- Mock: funcional para testes de ponta a ponta.
+- Shopee: provider, gateway, builder, mapper e transport fake injetável implementados; chamada real não ativada.
+- Amazon: provider, gateway, builder, mapper e transport fake injetável implementados; chamada real não ativada.
 
 ## Roadmap
 
-1. Base Python dry-run com mocks.
-2. Provider Shopee real.
-3. Provider Amazon PA API real.
-4. Persistência de ofertas e histórico.
-5. Fila de aprovação humana.
-6. Publicação controlada em canal permitido e auditável.
+1. Base Python dry-run com mocks. Concluído.
+2. Providers Shopee e Amazon com fluxo fake/injetável. Concluído.
+3. Fixtures anonimizadas com payloads reais.
+4. Assinatura real da Amazon PA API.
+5. Configuração controlada para HTTP real.
+6. Persistência de ofertas e histórico.
+7. Fila de aprovação humana.
+8. Publicação controlada em canal permitido e auditável.
