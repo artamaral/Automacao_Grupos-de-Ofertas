@@ -41,6 +41,7 @@ def test_harness_execute_real_http_once_collects_without_publish_or_save(
 
     monkeypatch.setattr(harness, "get_settings", make_shopee_settings)
     monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
+    monkeypatch.setenv("SHOPEE_SEARCH_PATH_CONFIRMED", "true")
     monkeypatch.setattr(harness.CollectorAgent, "collect", fake_collect)
 
     exit_code = harness.run(
@@ -83,8 +84,33 @@ def test_harness_execute_real_http_once_blocks_mock(capsys) -> None:
     assert "AÇÃO | Use --marketplace shopee ou --marketplace amazon." in captured.err
 
 
+def test_harness_execute_real_http_once_requires_confirmed_shopee_path(
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.setattr(harness, "get_settings", make_shopee_settings)
+    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
+    monkeypatch.delenv("SHOPEE_SEARCH_PATH_CONFIRMED", raising=False)
+
+    exit_code = harness.run(
+        [
+            "--marketplace",
+            "shopee",
+            "--niche",
+            "maquiagem",
+            "--execute-real-http-once",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 3
+    assert "ERRO | Endpoint da Shopee não confirmado" in captured.err
+    assert "SHOPEE_SEARCH_PATH_CONFIRMED=true" in captured.err
+
+
 def test_harness_execute_real_http_once_reports_guard_block(monkeypatch, capsys) -> None:
     monkeypatch.setattr(harness, "get_settings", lambda: make_shopee_settings(enabled=False))
+    monkeypatch.setenv("SHOPEE_SEARCH_PATH_CONFIRMED", "true")
 
     exit_code = harness.run(
         [
