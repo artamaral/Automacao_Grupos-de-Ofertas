@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from ofertas_bot.group_plan import GroupPlan, summarize_group_plans
+
 
 class GroupPlanStoreError(ValueError):
     """Raised when local group plan storage cannot parse saved data."""
@@ -29,6 +31,9 @@ class JsonGroupPlanStore:
         except OSError as error:
             msg = f"Could not write group plan JSON to {self.path}"
             raise GroupPlanStoreWriteError(msg) from error
+
+    def save_plans(self, plans: tuple[GroupPlan, ...]) -> None:
+        self.save(summarize_group_plans(plans))
 
     def load(self) -> dict[str, Any]:
         if not self.path.exists():
