@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import argparse
+from collections.abc import Sequence
+
+from ofertas_bot.agents.collector import CollectorAgent
+from ofertas_bot.agents.compliance import ComplianceAgent
+from ofertas_bot.agents.copywriter import CopywriterAgent
+from ofertas_bot.agents.publisher import DryRunPublisher
+from ofertas_bot.agents.scorer import ScorerAgent
+from ofertas_bot.models import Marketplace
+from ofertas_bot.settings import get_settings
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Harness dry-run do bot de ofertas")
+    parser.add_argument("--niche", required=True, help="Nicho do grupo, ex: maquiagem, pesca, casa")
+    parser.add_argument(
+        "--marketplace",
+        choices=[item.value for item in Marketplace],
+        default=Marketplace.MOCK.value,
+        help="Marketplace para simular/buscar",
+    )
+    parser.add_argument("--limit", type=int, default=None, help="Quantidade máxima de ofertas")
+    parser.add_argument("--target", default="grupo-vip-dry-run", help="Destino lógico da publicação")
+    parser.add_argument("--dry-run", action="store_true", default=True, help="Simula publicação")
+    return parser
+
+
+def run(argv: Sequence[str] | None = None) -> int:
+    settings = get_settings()
+    args = build_parser().parse_args(argv)
+
+    marketplace = Marketplace(args.marketplace)
+    limit = args.limit or settings.max_offers_per_run
+    dry_run = bool(args.dry_run or settings.default_dry_run)
+
+    collector = CollectorAgent()
+    scorer = ScorerAgent()
+    copywriter = CopywriterAgent()
+    compliance = ComplianceAgent(settings=settings)
+    publisher = DryRunPublisher()
+
+    offers = collector.collect(marketplace=marketplace, niche=args.niche, limit=limit)
+    scored_offers = scorer.score(offers)
+
+    print(f"Encontradas {len(scored_offers)} ofertas para nicho={args.niche} marketplace={marketplace}")
+
+    for index, scored in enumerate(scored_offers, start=1):
+        draft = copywriter.create_message(scored)
+        result = compliance.validate(draft=draft, dry_run=dry_run)
+
+        print("-" * 80)
+        print(f"#{index} score={scored.score} aprovado={result.approved}")
+        if result.reasons:
+            print("Bloqueios:", "; ".join(result.reasons))
+            continue
+
+        publish_result = publisher.publish(draft=draft, target=args.target)
+        print(publish_result.message)
+        print(f"dry_run={publish_result.dry_run} sent={publish_result.sent} target={publish_result.target}")
+
+    return 0
+
+
+def main() -> None:
+    raise SystemExit(run())
+
+
+if __name__ == "__main__":
+    main()
