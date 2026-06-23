@@ -21,9 +21,14 @@ def make_offer(*, niche: str = "maquiagem", price: float = 49.9) -> Offer:
     )
 
 
-def make_profile(*, max_offers: int = 2, minutes: int = 120) -> GroupProfile:
+def make_profile(
+    *,
+    slug: str = "maquiagem-vip",
+    max_offers: int = 2,
+    minutes: int = 120,
+) -> GroupProfile:
     return GroupProfile(
-        slug="maquiagem-vip",
+        slug=slug,
         name="Maquiagem VIP",
         allowed_niches=("maquiagem",),
         max_offers_per_run=max_offers,
@@ -79,3 +84,23 @@ def test_group_plan_blocks_when_no_offer_is_eligible() -> None:
     assert plan.allowed is False
     assert plan.selected_offers == ()
     assert plan.reasons == ("nenhuma oferta elegível para o grupo",)
+
+
+def test_group_plan_builder_builds_batch_with_individual_last_runs() -> None:
+    now = datetime(2026, 6, 23, 18, 0, tzinfo=UTC)
+    active_profile = make_profile(slug="maquiagem-vip", minutes=120)
+    blocked_profile = make_profile(slug="beleza-vip", minutes=120)
+
+    plans = GroupPlanBuilder().build_plans(
+        group_profiles=(active_profile, blocked_profile),
+        offers=[make_offer()],
+        now=now,
+        last_runs_by_group={"beleza-vip": now - timedelta(minutes=30)},
+    )
+
+    assert len(plans) == 2
+    assert plans[0].group_slug == "maquiagem-vip"
+    assert plans[0].allowed is True
+    assert plans[1].group_slug == "beleza-vip"
+    assert plans[1].allowed is False
+    assert plans[1].reasons == ("intervalo mínimo entre rodadas não atingido",)
