@@ -17,6 +17,8 @@ from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuild
 from ofertas_bot.providers.transport import UrllibHttpTransport
 from ofertas_bot.settings import Settings
 
+MAX_SHOPEE_PARTNER_ID = 4_294_967_295
+
 
 class ShopeeConfigurationError(RuntimeError):
     """Raised when Shopee credentials are missing or invalid."""
@@ -88,6 +90,7 @@ class ShopeeProvider:
                 },
             )
         )
+        self._validate_partner_id_range()
 
     def normalize_response(
         self,
@@ -137,3 +140,14 @@ class ShopeeProvider:
                 f"Missing Shopee configuration: {names}. "
                 "Set these values in your local .env file."
             )
+
+    def _validate_partner_id_range(self) -> None:
+        partner_id = self.settings.shopee_partner_id or ""
+        if not partner_id.isdecimal():
+            msg = "Real HTTP for Shopee is blocked: Shopee partner id must be numeric"
+            raise RealHttpValidationError(msg)
+
+        numeric_partner_id = int(partner_id)
+        if numeric_partner_id > MAX_SHOPEE_PARTNER_ID:
+            msg = "Real HTTP for Shopee is blocked: Shopee partner id is out of range"
+            raise RealHttpValidationError(msg)
