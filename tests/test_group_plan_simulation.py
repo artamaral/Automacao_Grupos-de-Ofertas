@@ -44,6 +44,26 @@ def test_group_plan_simulation_builds_summary_with_mock_offers() -> None:
     assert result.summary["blocked_groups"] == 1
     assert result.summary["total_selected_offers"] == 1
     assert result.summary["groups"][0]["group_slug"] == "maquiagem-vip"
+    assert result.summary["metadata"] == {
+        "niche": "maquiagem",
+        "generated_at": "2026-06-23T18:00:00+00:00",
+        "offer_limit": 2,
+        "collected_offer_count": 2,
+        "source_marketplace": "mock",
+    }
+
+
+def test_group_plan_simulation_normalizes_metadata_niche() -> None:
+    now = datetime(2026, 6, 23, 18, 0, tzinfo=UTC)
+    simulation = GroupPlanSimulation(
+        settings=Settings(max_offers_per_run=2),
+        catalog=make_catalog(),
+    )
+
+    result = simulation.build(niche=" Maquiagem ", now=now, limit=1)
+
+    assert result.summary["metadata"]["niche"] == "maquiagem"
+    assert result.summary["metadata"]["offer_limit"] == 1
 
 
 def test_group_plan_simulation_rejects_blank_niche() -> None:
