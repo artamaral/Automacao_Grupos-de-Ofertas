@@ -1,5 +1,6 @@
-import pytest
 from urllib.error import URLError
+
+import pytest
 
 from ofertas_bot.providers.http import HttpRequest
 from ofertas_bot.providers.transport import HttpTransportError, UrllibHttpTransport
@@ -68,7 +69,7 @@ def test_urllib_http_transport_sends_json_body() -> None:
 
 
 def test_urllib_http_transport_rejects_invalid_json() -> None:
-    opener = RecordingOpener(FakeUrlResponse(status=200, body=b'not-json'))
+    opener = RecordingOpener(FakeUrlResponse(status=200, body=b"not-json"))
     transport = UrllibHttpTransport(opener=opener)
 
     with pytest.raises(HttpTransportError, match="not valid JSON"):
