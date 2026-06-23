@@ -6,7 +6,7 @@ from ofertas_bot.settings import Settings
 def make_shopee_settings(enabled: bool = True) -> Settings:
     values = {
         "enable_real_http": enabled,
-        "shopee_partner_id": "partner",
+        "shopee_partner_id": "123456789",
         "shopee_tracking_id": "tracking",
     }
     values["shopee_" + "secret_key"] = "credential"
