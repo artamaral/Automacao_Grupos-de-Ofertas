@@ -5,8 +5,8 @@ from time import time
 from typing import Any
 
 from ofertas_bot.models import Marketplace, Offer
-from ofertas_bot.providers.endpoints import SHOPEE_DEFAULT_BASE_URL
 from ofertas_bot.providers.http import HttpRequest
+from ofertas_bot.providers.provider_settings import get_provider_base_urls
 from ofertas_bot.providers.shopee_gateway import ShopeeGateway
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuilder
@@ -76,7 +76,7 @@ class ShopeeProvider:
         builder = ShopeeSignedRequestBuilder(
             partner_id=self.settings.shopee_partner_id or "",
             api_credential=self.settings.shopee_secret_key or "",
-            base_url=SHOPEE_DEFAULT_BASE_URL,
+            base_url=get_provider_base_urls().shopee,
         )
         return ShopeeGateway(request_builder=builder, mapper=self.mapper)
 
