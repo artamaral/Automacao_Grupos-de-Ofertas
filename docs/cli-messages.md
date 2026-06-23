@@ -109,7 +109,13 @@ AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de esc
 
 A opção `--save-json` salva as ofertas normalizadas em um arquivo JSON local somente quando informada explicitamente.
 
-Exemplo:
+Exemplo recomendado:
+
+```text
+python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --save-json ./.data/ofertas.json
+```
+
+Para testes rápidos também é possível usar:
 
 ```text
 python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --save-json ./tmp/ofertas.json
@@ -118,7 +124,7 @@ python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --s
 Mensagem esperada:
 
 ```text
-INFO | Ofertas normalizadas salvas em tmp/ofertas.json
+INFO | Ofertas normalizadas salvas em .data/ofertas.json
 ```
 
 Regras:
@@ -126,7 +132,8 @@ Regras:
 - o fluxo padrão não grava arquivo;
 - o arquivo deve conter apenas campos normalizados de `Offer`;
 - não salvar credenciais, tokens, cookies, sessões, headers, QR codes ou payload bruto;
-- usar caminhos locais fora do repositório quando estiver testando dados reais anonimizados;
+- usar caminhos locais ignorados pelo Git, como `./.data/`, `./tmp/` ou `./exports/`;
+- evitar salvar arquivos de saída diretamente na raiz do repositório;
 - erro de escrita deve retornar mensagem amigável e exit code `3`.
 
 ## Regras para mensagens de sucesso
