@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.amazon_gateway import AmazonGateway
 from ofertas_bot.providers.amazon_request import AmazonSearchRequestBuilder
-from ofertas_bot.providers.endpoints import AMAZON_DEFAULT_BASE_URL
+from ofertas_bot.providers.provider_settings import get_provider_base_urls
 from ofertas_bot.settings import Settings
 
 
@@ -37,7 +37,7 @@ class AmazonProvider:
 
         builder = AmazonSearchRequestBuilder(
             partner_tag=self.settings.amazon_partner_tag or "",
-            base_url=AMAZON_DEFAULT_BASE_URL,
+            base_url=get_provider_base_urls().amazon,
         )
         return AmazonGateway(request_builder=builder)
 
