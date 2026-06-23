@@ -128,6 +128,7 @@ class ShopeeGateway:
         limit: int,
     ) -> list[Offer]:
         validate_positive_limit(limit)
+        self._raise_if_error_payload(response_data)
         items = response_data.get("items", [])
         if not isinstance(items, list):
             msg = "Shopee response field 'items' must be a list"
@@ -153,3 +154,15 @@ class ShopeeGateway:
 
     def _has_next_page(self, response_data: dict[str, object]) -> bool:
         return response_data.get("has_next_page") is True
+
+    def _raise_if_error_payload(self, response_data: dict[str, object]) -> None:
+        error = response_data.get("error")
+        if not isinstance(error, str) or not error:
+            return
+
+        message = response_data.get("message")
+        if isinstance(message, str) and message:
+            msg = f"Shopee response returned error={error}: {message}"
+        else:
+            msg = f"Shopee response returned error={error}"
+        raise ShopeePayloadError(msg)
