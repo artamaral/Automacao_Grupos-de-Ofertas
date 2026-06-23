@@ -32,3 +32,15 @@ class ComplianceAgent:
         dry_run: bool,
     ) -> tuple[ComplianceResult, ...]:
         return tuple(self.validate(draft=draft, dry_run=dry_run) for draft in drafts)
+
+    def approved_drafts(
+        self,
+        drafts: tuple[MessageDraft, ...],
+        dry_run: bool,
+    ) -> tuple[MessageDraft, ...]:
+        results = self.validate_batch(drafts=drafts, dry_run=dry_run)
+        return tuple(
+            draft
+            for draft, result in zip(drafts, results, strict=True)
+            if result.approved
+        )
