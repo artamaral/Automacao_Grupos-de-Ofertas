@@ -92,6 +92,7 @@ No Windows PowerShell:
 - [`docs/provider-fake-flow.md`](docs/provider-fake-flow.md): fluxo fake/injetável dos providers.
 - [`docs/production-checklist.md`](docs/production-checklist.md): checklist antes de chamadas reais ou publicação real.
 - [`docs/status-implantacao.md`](docs/status-implantacao.md): status atual da implantação e backlog.
+- [`docs/status-integracao-shopee.md`](docs/status-integracao-shopee.md): ponto de retomada da integração Shopee.
 - [`docs/cli-messages.md`](docs/cli-messages.md): padrão de mensagens do CLI.
 - [`docs/copy-guidelines.md`](docs/copy-guidelines.md): diretrizes de copy.
 - [`docs/commit-pattern.md`](docs/commit-pattern.md): padrão de commits.
@@ -112,16 +113,17 @@ docs/
 ## Estado dos providers
 
 - Mock: funcional para testes de ponta a ponta.
-- Shopee: provider, gateway, builder, mapper e transport fake injetável implementados; chamada real não ativada.
+- Shopee: provider, gateway, builder, mapper, validações e captura anonimizada implementados; retomada real depende da aprovação da conta/app. Ver `docs/status-integracao-shopee.md`.
 - Amazon: provider, gateway, builder, mapper e transport fake injetável implementados; chamada real não ativada.
 
 ## Roadmap
 
 1. Base Python dry-run com mocks. Concluído.
 2. Providers Shopee e Amazon com fluxo fake/injetável. Concluído.
-3. Fixtures anonimizadas com payloads reais.
-4. Assinatura real da Amazon PA API.
-5. Configuração controlada para HTTP real.
-6. Persistência de ofertas e histórico.
-7. Fila de aprovação humana.
-8. Publicação controlada em canal permitido e auditável.
+3. Status de retomada da integração Shopee. Concluído.
+4. Fixtures anonimizadas com payloads reais.
+5. Assinatura real da Amazon PA API.
+6. Configuração controlada para HTTP real.
+7. Persistência de ofertas e histórico.
+8. Fila de aprovação humana.
+9. Publicação controlada em canal permitido e auditável.
