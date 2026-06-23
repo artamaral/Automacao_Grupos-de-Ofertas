@@ -1,0 +1,2 @@
+[console_scripts]
+ofertas-harness = ofertas_bot.harness:main
