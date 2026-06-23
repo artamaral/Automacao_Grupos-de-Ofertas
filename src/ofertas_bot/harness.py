@@ -12,7 +12,7 @@ from ofertas_bot.agents.compliance import ComplianceAgent
 from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
-from ofertas_bot.models import Marketplace
+from ofertas_bot.models import Marketplace, MessageDraft
 from ofertas_bot.providers.amazon import AmazonConfigurationError, AmazonProvider
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.gateway import ProviderLimitError
@@ -23,6 +23,10 @@ from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvide
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import Settings, get_settings
+from ofertas_bot.storage.json_message_draft_store import (
+    JsonMessageDraftStore,
+    MessageDraftStoreWriteError,
+)
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
 
 SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
@@ -62,6 +66,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--save-json",
         default=None,
         help="Caminho local para salvar ofertas normalizadas em JSON",
+    )
+    parser.add_argument(
+        "--save-messages-json",
+        default=None,
+        help="Caminho local para salvar mensagens aprovadas em JSON",
     )
     parser.add_argument(
         "--diagnose-real-http",
@@ -158,6 +167,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(f"INFO | Ofertas normalizadas salvas em {save_path}")
 
     scored_offers = scorer.score(offers)
+    approved_drafts: list[MessageDraft] = []
 
     print(
         f"INFO | Encontradas {len(scored_offers)} ofertas "
@@ -174,12 +184,23 @@ def run(argv: Sequence[str] | None = None) -> int:
             print("WARN | Bloqueios:", "; ".join(result.reasons))
             continue
 
+        approved_drafts.append(draft)
         publish_result = publisher.publish(draft=draft, target=args.target)
         print(publish_result.message)
         print(
             f"INFO | dry_run={publish_result.dry_run} "
             f"sent={publish_result.sent} target={publish_result.target}"
         )
+
+    if args.save_messages_json:
+        save_path = Path(args.save_messages_json)
+        if _is_root_output_path(save_path):
+            _print_save_json_root_warning(save_path)
+        try:
+            JsonMessageDraftStore(path=save_path).save(tuple(approved_drafts))
+        except MessageDraftStoreWriteError as error:
+            return _print_save_messages_json_error(error=error)
+        print(f"INFO | Mensagens aprovadas salvas em {save_path}")
 
     return 0
 
@@ -426,6 +447,16 @@ def _print_save_json_root_warning(path: Path) -> None:
 
 def _print_save_json_error(error: Exception) -> int:
     print("ERRO | Não foi possível salvar o JSON de ofertas", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_save_messages_json_error(error: Exception) -> int:
+    print("ERRO | Não foi possível salvar o JSON de mensagens", file=sys.stderr)
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
