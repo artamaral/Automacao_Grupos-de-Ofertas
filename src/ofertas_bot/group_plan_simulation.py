@@ -17,6 +17,7 @@ from ofertas_bot.group_plan_approval import (
     GroupPlanApprovalGate,
     GroupPlanApprovalResult,
 )
+from ofertas_bot.group_plan_approval_summary import summarize_group_plan_approval
 from ofertas_bot.group_plan_naming import build_group_plan_file_names
 from ofertas_bot.group_plan_validation import normalize_plan_niche, validate_plan_limit
 from ofertas_bot.group_profiles import GroupProfileCatalog
@@ -43,6 +44,13 @@ class GroupPlanSimulationResult:
         approval: GroupPlanApproval | None,
     ) -> GroupPlanApprovalResult:
         return GroupPlanApprovalGate().evaluate(plans=self.plans, approval=approval)
+
+    def summarize_approval(self, approval: GroupPlanApproval | None) -> dict[str, Any]:
+        approval_result = self.evaluate_approval(approval)
+        return summarize_group_plan_approval(
+            approval=approval,
+            result=approval_result,
+        )
 
     def save_json(self, path: Path) -> None:
         JsonGroupPlanStore(path=path).save(self.summary)
