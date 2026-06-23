@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from ofertas_bot.models import Offer
+from ofertas_bot.providers.gateway import execute_provider_request
 from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 from ofertas_bot.providers.transport import HttpTransport
@@ -42,17 +43,17 @@ class ShopeeGateway:
         limit: int,
         timestamp: int,
     ) -> list[Offer]:
-        if self.transport is None:
-            msg = "Shopee gateway transport is not configured"
-            raise RuntimeError(msg)
-
         request = self.build_search_request(
             keyword=keyword,
             limit=limit,
             timestamp=timestamp,
         )
-        response = self.transport.send(request)
-        response_data = self.http_client.validate_response(response, provider_name="Shopee")
+        response_data = execute_provider_request(
+            request=request,
+            transport=self.transport,
+            http_client=self.http_client,
+            provider_name="Shopee",
+        )
         return self.normalize_search_response(
             response_data=response_data,
             niche=niche,
