@@ -64,6 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Valida pré-requisitos de HTTP real sem executar chamada externa",
     )
+    parser.add_argument(
+        "--execute-real-http-once",
+        action="store_true",
+        default=False,
+        help="Executa uma coleta HTTP real controlada sem publicar e sem salvar JSON",
+    )
     return parser
 
 
@@ -76,12 +82,23 @@ def run(argv: Sequence[str] | None = None) -> int:
     if limit <= 0:
         return _print_limit_error(limit=limit)
 
+    if args.diagnose_real_http and args.execute_real_http_once:
+        return _print_real_http_mode_conflict()
+
     if args.diagnose_real_http:
         return _run_real_http_diagnostic(marketplace=marketplace, settings=settings)
 
+    if args.execute_real_http_once:
+        return _run_real_http_once(
+            marketplace=marketplace,
+            settings=settings,
+            niche=args.niche,
+            limit=limit,
+        )
+
     dry_run = bool(args.dry_run or settings.default_dry_run)
 
-    collector = CollectorAgent()
+    collector = CollectorAgent(settings=settings)
     scorer = ScorerAgent()
     copywriter = CopywriterAgent()
     compliance = ComplianceAgent(settings=settings)
@@ -150,10 +167,7 @@ def _run_real_http_diagnostic(marketplace: Marketplace, settings: Settings) -> i
         return 0
 
     try:
-        if marketplace == Marketplace.SHOPEE:
-            ShopeeProvider(settings=settings).validate_real_http_ready()
-        elif marketplace == Marketplace.AMAZON:
-            AmazonProvider(settings=settings).validate_real_http_ready()
+        _validate_real_http_ready(marketplace=marketplace, settings=settings)
     except RealHttpValidationError as error:
         return _print_real_http_guard_error(error=error)
 
@@ -162,6 +176,57 @@ def _run_real_http_diagnostic(marketplace: Marketplace, settings: Settings) -> i
     print("INFO | Nenhuma publicação foi executada.")
     print("INFO | Nenhum JSON foi salvo automaticamente.")
     return 0
+
+
+def _run_real_http_once(
+    marketplace: Marketplace,
+    settings: Settings,
+    niche: str,
+    limit: int,
+) -> int:
+    if marketplace == Marketplace.MOCK:
+        print("ERRO | Chamada HTTP real não se aplica ao marketplace mock", file=sys.stderr)
+        print("AÇÃO | Use --marketplace shopee ou --marketplace amazon.", file=sys.stderr)
+        return 3
+
+    try:
+        _validate_real_http_ready(marketplace=marketplace, settings=settings)
+        offers = CollectorAgent(settings=settings).collect(
+            marketplace=marketplace,
+            niche=niche,
+            limit=limit,
+        )
+    except ShopeeConfigurationError as error:
+        return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
+    except AmazonConfigurationError as error:
+        return _print_configuration_error(marketplace=Marketplace.AMAZON, error=error)
+    except RealHttpValidationError as error:
+        return _print_real_http_guard_error(error=error)
+    except ProviderLimitError as error:
+        return _print_provider_limit_error(error=error)
+    except ShopeePayloadError as error:
+        return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
+    except AmazonPayloadError as error:
+        return _print_payload_error(marketplace=Marketplace.AMAZON, error=error)
+    except ProviderHttpError as error:
+        return _print_provider_http_error(marketplace=marketplace, error=error)
+    except HttpTransportError as error:
+        return _print_transport_error(marketplace=marketplace, error=error)
+
+    print(f"INFO | Chamada HTTP real controlada concluída para marketplace={marketplace.value}")
+    print(f"INFO | Ofertas normalizadas recebidas: {len(offers)}")
+    print("INFO | Nenhuma publicação foi executada.")
+    print("INFO | Nenhum JSON foi salvo automaticamente.")
+    return 0
+
+
+def _validate_real_http_ready(marketplace: Marketplace, settings: Settings) -> None:
+    if marketplace == Marketplace.SHOPEE:
+        ShopeeProvider(settings=settings).validate_real_http_ready()
+        return
+    if marketplace == Marketplace.AMAZON:
+        AmazonProvider(settings=settings).validate_real_http_ready()
+        return
 
 
 def _is_root_output_path(path: Path) -> bool:
@@ -242,6 +307,16 @@ def _print_real_http_guard_error(error: Exception) -> int:
         "AÇÃO | Revise o checklist de produção antes de habilitar chamadas reais.",
         file=sys.stderr,
     )
+    return 3
+
+
+def _print_real_http_mode_conflict() -> int:
+    print("ERRO | Modo de HTTP real inválido", file=sys.stderr)
+    print(
+        "DETALHE | Use apenas um modo: --diagnose-real-http ou --execute-real-http-once.",
+        file=sys.stderr,
+    )
+    print("AÇÃO | Rode primeiro o diagnóstico e depois a execução controlada.", file=sys.stderr)
     return 3
 
 
