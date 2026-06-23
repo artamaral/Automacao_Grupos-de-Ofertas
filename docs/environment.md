@@ -24,7 +24,7 @@ O arquivo `.env` não deve ser versionado.
 | `LOG_LEVEL` | `INFO` | Nível de log planejado para execução local. |
 | `DEFAULT_DRY_RUN` | `true` | Mantém publicação simulada por padrão. |
 | `MAX_OFFERS_PER_RUN` | `5` | Limite padrão de ofertas por execução. |
-| `ENABLE_REAL_HTTP` | `false` | Trava para futuras chamadas HTTP reais. Ainda não ativa provider real automaticamente. |
+| `ENABLE_REAL_HTTP` | `false` | Trava para chamadas HTTP reais. Deve permanecer desligada até o checklist permitir. |
 | `ENABLE_REAL_PUBLISH` | `false` | Trava para publicação real. Deve permanecer desligada. |
 
 ## Shopee
@@ -35,14 +35,17 @@ O arquivo `.env` não deve ser versionado.
 | `SHOPEE_SECRET_KEY` | Sim | Chave usada para assinatura. Não imprimir em logs. |
 | `SHOPEE_TRACKING_ID` | Não | Identificador de rastreio de afiliado, quando aplicável. |
 | `SHOPEE_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
+| `SHOPEE_SEARCH_PATH` | Não | Caminho do endpoint de busca/listagem. Padrão provisório: `/api/v2/product/search_item`. Confirmar no painel/documentação oficial antes de chamada real. |
 
 Estado atual:
 
 - provider valida configuração;
 - gateway fake/injetável funciona em teste;
 - base URL é configurável sem ativar HTTP real;
+- path de busca é configurável fora do Git;
 - chamada real continua desativada por padrão;
-- payload real ainda não deve ser usado sem anonimização.
+- payload real ainda não deve ser usado sem anonimização;
+- endpoint da Shopee precisa de confirmação manual antes de chamada real.
 
 ## Amazon
 
@@ -53,14 +56,17 @@ Estado atual:
 | `AMAZON_PARTNER_TAG` | Sim | Tag de associado. |
 | `AMAZON_REGION` | Não | Região lógica. Padrão atual: `BR`. |
 | `AMAZON_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
+| `AMAZON_SEARCH_PATH` | Não | Caminho do endpoint de busca. Padrão atual: `/paapi5/searchitems`. Revisar a decisão PA-API 5.0 versus Creators API antes de chamada real. |
 
 Estado atual:
 
 - provider valida configuração;
 - gateway fake/injetável funciona em teste;
 - base URL é configurável sem ativar HTTP real;
+- path de busca é configurável fora do Git;
 - chamada real continua desativada por padrão;
-- assinatura real da PA API ainda não foi implementada.
+- assinatura real da PA API ainda não foi implementada;
+- contrato final da Amazon depende da decisão PA-API 5.0 versus Creators API.
 
 ## Execução segura recomendada
 
@@ -88,6 +94,14 @@ Se o `.env` não tiver as variáveis da Shopee, o CLI deve mostrar erro amigáve
 
 Se o `.env` não tiver as variáveis da Amazon, o CLI deve mostrar erro amigável e exit code `2`.
 
+### Preview seguro da Shopee antes de chamada real
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
+```
+
+Use esse comando para revisar método, base URL, path e parâmetros não sensíveis antes de uma chamada real controlada.
+
 ## Testes locais
 
 Use sempre:
@@ -107,12 +121,14 @@ Os testes de provider usam transport fake e não acessam internet.
 - Não ativar `ENABLE_REAL_HTTP=true` antes do checklist de produção.
 - Não ativar `ENABLE_REAL_PUBLISH=true` antes de revisão manual completa.
 - Não usar payload real em teste sem anonimização.
+- Não executar chamada real se o endpoint oficial não foi confirmado.
 
 ## Ordem segura para evoluir
 
 1. Testar sempre com `mock`.
 2. Testar providers com `StaticHttpTransport`.
 3. Validar payloads reais apenas como fixtures anonimizadas.
-4. Concluir checklist de produção.
-5. Só depois conectar `ENABLE_REAL_HTTP` ao transport real.
-6. Manter publicação real desligada até revisão manual final.
+4. Confirmar contratos oficiais dos marketplaces.
+5. Concluir checklist de produção.
+6. Só depois conectar `ENABLE_REAL_HTTP` ao transport real.
+7. Manter publicação real desligada até revisão manual final.
