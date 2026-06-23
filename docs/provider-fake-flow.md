@@ -105,7 +105,11 @@ Regras atuais:
 - Shopee envia `page` nos parâmetros do request;
 - Amazon envia `Page` no body do request;
 - a coleta para quando `has_next_page` não é `True`;
-- a coleta também para quando chega em `limit` ou `max_pages`.
+- a coleta para quando uma página retorna lista vazia;
+- a coleta para quando chega em `limit`;
+- a coleta para quando chega em `max_pages`.
+
+Os testes cobrem coleta em múltiplas páginas, parada por `max_pages` e parada por página vazia para Shopee e Amazon.
 
 Exemplo conceitual:
 
