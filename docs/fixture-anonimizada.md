@@ -14,6 +14,16 @@ Use o comando abaixo para gerar uma versão anonimizada de um JSON bruto salvo l
 python -m ofertas_bot.tools.anonymize_payload --input tmp/raw-shopee-response.json --output tests/fixtures/shopee-real-anonymized.json
 ```
 
+## Fixture exemplo
+
+Existe uma fixture exemplo, artificial e já anonimizada, para validar o formato esperado pelo mapper:
+
+```text
+tests/fixtures/shopee-real-anonymized.example.json
+```
+
+Ela não veio de resposta real. Serve apenas como referência segura para a futura fixture real anonimizada.
+
 ## Ordem segura
 
 1. Executar chamada real controlada com `--limit 1`.
