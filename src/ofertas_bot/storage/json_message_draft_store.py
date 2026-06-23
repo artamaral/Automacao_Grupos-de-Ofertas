@@ -71,3 +71,27 @@ def message_draft_from_json(data: object) -> MessageDraft:
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved message draft item is invalid"
         raise MessageDraftStoreError(msg) from error
+
+
+def format_message_drafts_for_review(drafts: tuple[MessageDraft, ...]) -> str:
+    if not drafts:
+        return "Nenhuma mensagem aprovada para revisão.\n"
+
+    blocks = [
+        format_message_draft_for_review(index, draft)
+        for index, draft in enumerate(drafts, start=1)
+    ]
+    return "\n\n".join(blocks) + "\n"
+
+
+def format_message_draft_for_review(index: int, draft: MessageDraft) -> str:
+    offer = draft.offer
+    return (
+        f"# Mensagem {index}\n"
+        f"Marketplace: {offer.marketplace.value}\n"
+        f"Nicho: {offer.niche}\n"
+        f"Oferta: {offer.title}\n"
+        f"Preço: R$ {offer.price:.2f}\n"
+        f"Link: {offer.url}\n\n"
+        f"{draft.text}"
+    )
