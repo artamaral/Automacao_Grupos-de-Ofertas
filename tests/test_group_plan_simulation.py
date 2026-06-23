@@ -1,6 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from ofertas_bot.group_plan_simulation import GroupPlanSimulation
+from ofertas_bot.group_plan_validation import GroupPlanValidationError
 from ofertas_bot.group_profiles import GroupProfile, GroupProfileCatalog
 from ofertas_bot.settings import Settings
 
@@ -41,6 +44,33 @@ def test_group_plan_simulation_builds_summary_with_mock_offers() -> None:
     assert result.summary["blocked_groups"] == 1
     assert result.summary["total_selected_offers"] == 1
     assert result.summary["groups"][0]["group_slug"] == "maquiagem-vip"
+
+
+def test_group_plan_simulation_rejects_blank_niche() -> None:
+    simulation = GroupPlanSimulation(
+        settings=Settings(max_offers_per_run=2),
+        catalog=make_catalog(),
+    )
+
+    with pytest.raises(GroupPlanValidationError, match="niche"):
+        simulation.build(
+            niche="   ",
+            now=datetime(2026, 6, 23, 18, 0, tzinfo=UTC),
+        )
+
+
+def test_group_plan_simulation_rejects_invalid_limit() -> None:
+    simulation = GroupPlanSimulation(
+        settings=Settings(max_offers_per_run=2),
+        catalog=make_catalog(),
+    )
+
+    with pytest.raises(GroupPlanValidationError, match="positive"):
+        simulation.build(
+            niche="maquiagem",
+            now=datetime(2026, 6, 23, 18, 0, tzinfo=UTC),
+            limit=0,
+        )
 
 
 def test_group_plan_simulation_respects_group_last_run() -> None:
