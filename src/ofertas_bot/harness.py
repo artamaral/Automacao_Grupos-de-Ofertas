@@ -57,7 +57,10 @@ def run(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
     marketplace = Marketplace(args.marketplace)
-    limit = args.limit or settings.max_offers_per_run
+    limit = args.limit if args.limit is not None else settings.max_offers_per_run
+    if limit <= 0:
+        return _print_limit_error(limit=limit)
+
     dry_run = bool(args.dry_run or settings.default_dry_run)
 
     collector = CollectorAgent()
@@ -117,6 +120,16 @@ def _print_configuration_error(marketplace: Marketplace, error: Exception) -> in
         file=sys.stderr,
     )
     return 2
+
+
+def _print_limit_error(limit: int) -> int:
+    print("ERRO | Limite de ofertas inválido", file=sys.stderr)
+    print(f"DETALHE | --limit deve ser maior que zero. Valor recebido: {limit}", file=sys.stderr)
+    print(
+        "AÇÃO | Informe um valor positivo, por exemplo --limit 5.",
+        file=sys.stderr,
+    )
+    return 3
 
 
 def _print_payload_error(marketplace: Marketplace, error: Exception) -> int:
