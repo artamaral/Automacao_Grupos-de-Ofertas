@@ -45,3 +45,25 @@ def test_harness_does_not_save_json_by_default(tmp_path) -> None:
 
     assert exit_code == 0
     assert not output_path.exists()
+
+
+def test_harness_handles_save_json_write_error(tmp_path, capsys) -> None:
+    output_path = tmp_path
+
+    exit_code = harness.run(
+        [
+            "--marketplace",
+            "mock",
+            "--niche",
+            "maquiagem",
+            "--limit",
+            "1",
+            "--save-json",
+            str(output_path),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 3
+    assert "ERRO | Não foi possível salvar o JSON de ofertas" in captured.err
+    assert "AÇÃO | Verifique se o caminho é um arquivo válido" in captured.err
