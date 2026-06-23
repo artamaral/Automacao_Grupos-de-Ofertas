@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import time
+from time import time
 
 from ofertas_bot.providers.http import HttpRequest
 from ofertas_bot.providers.shopee_auth import ShopeeAuthParams, ShopeeSigner
@@ -23,7 +23,7 @@ class ShopeeSearchRequestBuilder:
         limit: int,
         timestamp: int | None = None,
     ) -> HttpRequest:
-        request_timestamp = timestamp or int(time.time())
+        request_timestamp = timestamp or int(time())
         sign = self.signer.sign(
             ShopeeAuthParams(
                 partner_id=self.partner_id,
