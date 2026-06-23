@@ -4,6 +4,8 @@ import argparse
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from time import time
+from typing import Any
 
 from ofertas_bot.agents.collector import CollectorAgent
 from ofertas_bot.agents.compliance import ComplianceAgent
@@ -21,6 +23,9 @@ from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
+
+
+SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,6 +75,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Executa uma coleta HTTP real controlada sem publicar e sem salvar JSON",
     )
+    parser.add_argument(
+        "--print-provider-request",
+        action="store_true",
+        default=False,
+        help="Mostra o request da Shopee com campos sensíveis mascarados e sem enviar",
+    )
     return parser
 
 
@@ -82,11 +93,24 @@ def run(argv: Sequence[str] | None = None) -> int:
     if limit <= 0:
         return _print_limit_error(limit=limit)
 
-    if args.diagnose_real_http and args.execute_real_http_once:
+    selected_real_http_modes = (
+        args.diagnose_real_http,
+        args.execute_real_http_once,
+        args.print_provider_request,
+    )
+    if sum(bool(mode) for mode in selected_real_http_modes) > 1:
         return _print_real_http_mode_conflict()
 
     if args.diagnose_real_http:
         return _run_real_http_diagnostic(marketplace=marketplace, settings=settings)
+
+    if args.print_provider_request:
+        return _print_provider_request_preview(
+            marketplace=marketplace,
+            settings=settings,
+            niche=args.niche,
+            limit=limit,
+        )
 
     if args.execute_real_http_once:
         return _run_real_http_once(
@@ -178,6 +202,40 @@ def _run_real_http_diagnostic(marketplace: Marketplace, settings: Settings) -> i
     return 0
 
 
+def _print_provider_request_preview(
+    marketplace: Marketplace,
+    settings: Settings,
+    niche: str,
+    limit: int,
+) -> int:
+    if marketplace != Marketplace.SHOPEE:
+        print("ERRO | Preview de request disponível apenas para Shopee", file=sys.stderr)
+        print("AÇÃO | Use --marketplace shopee.", file=sys.stderr)
+        return 3
+
+    try:
+        _validate_real_http_ready(marketplace=marketplace, settings=settings)
+        request = ShopeeProvider(settings=settings).build_search_request(
+            keyword=niche,
+            limit=limit,
+            timestamp=int(time()),
+        )
+    except ShopeeConfigurationError as error:
+        return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
+    except RealHttpValidationError as error:
+        return _print_real_http_guard_error(error=error)
+
+    print("INFO | Preview seguro do request da Shopee")
+    print(f"INFO | method={request.method}")
+    print(f"INFO | url={request.url}")
+    for key, value in sorted(_mask_shopee_request_params(request.params).items()):
+        print(f"INFO | param.{key}={value}")
+    print("INFO | Nenhuma chamada HTTP foi executada.")
+    print("INFO | Nenhuma publicação foi executada.")
+    print("INFO | Nenhum JSON foi salvo automaticamente.")
+    return 0
+
+
 def _run_real_http_once(
     marketplace: Marketplace,
     settings: Settings,
@@ -227,6 +285,23 @@ def _validate_real_http_ready(marketplace: Marketplace, settings: Settings) -> N
     if marketplace == Marketplace.AMAZON:
         AmazonProvider(settings=settings).validate_real_http_ready()
         return
+
+
+def _mask_shopee_request_params(params: dict[str, Any]) -> dict[str, str]:
+    safe_params: dict[str, str] = {}
+    for key, value in params.items():
+        if key in SHOPEE_MASKED_REQUEST_PARAMS:
+            safe_params[key] = _mask_value(value)
+        else:
+            safe_params[key] = str(value)
+    return safe_params
+
+
+def _mask_value(value: Any) -> str:
+    text = str(value)
+    if not text:
+        return "<masked>"
+    return f"<masked:{len(text)} chars>"
 
 
 def _is_root_output_path(path: Path) -> bool:
@@ -313,7 +388,8 @@ def _print_real_http_guard_error(error: Exception) -> int:
 def _print_real_http_mode_conflict() -> int:
     print("ERRO | Modo de HTTP real inválido", file=sys.stderr)
     print(
-        "DETALHE | Use apenas um modo: --diagnose-real-http ou --execute-real-http-once.",
+        "DETALHE | Use apenas um modo: --diagnose-real-http ou "
+        "--execute-real-http-once ou --print-provider-request.",
         file=sys.stderr,
     )
     print("AÇÃO | Rode primeiro o diagnóstico e depois a execução controlada.", file=sys.stderr)
