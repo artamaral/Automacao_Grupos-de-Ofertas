@@ -180,6 +180,7 @@ def test_copywriter_creates_messages_from_allowed_plan() -> None:
     assert len(drafts) == 2
     assert "Produto 1" in drafts[0].text
     assert "Produto 2" in drafts[1].text
+    assert "selecionada para este grupo" in drafts[0].text
 
 
 def test_copywriter_does_not_create_messages_from_blocked_plan() -> None:
