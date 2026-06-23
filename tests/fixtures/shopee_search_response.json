@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "title": "Kit Maquiagem Shopee Anonimizado",
+      "url": "https://example.com/shopee/oferta-001",
+      "price": 49.9,
+      "old_price": 89.9,
+      "image_url": "https://example.com/images/shopee-001.jpg",
+      "commission_rate": 0.08,
+      "sales_count": 240,
+      "rating": 4.7,
+      "is_free_shipping": true
+    },
+    {
+      "title": "Organizador de Cosméticos Shopee Anonimizado",
+      "url": "https://example.com/shopee/oferta-002",
+      "price": 32.5,
+      "old_price": 59.9,
+      "image_url": "https://example.com/images/shopee-002.jpg",
+      "commission_rate": 0.05,
+      "sales_count": 180,
+      "rating": 4.5,
+      "is_free_shipping": false
+    }
+  ]
+}
