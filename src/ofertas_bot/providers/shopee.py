@@ -48,6 +48,24 @@ class ShopeeProvider:
             timestamp=int(time()),
         )
 
+    def fetch_raw_response(self, niche: str, limit: int) -> dict[str, Any]:
+        self._validate_configuration()
+        if self.settings.enable_real_http:
+            self.validate_real_http_ready()
+        gateway = self._get_gateway()
+        if gateway.transport is None:
+            raise NotImplementedError(
+                "Shopee API integration is not implemented yet. "
+                "Use an injected fake transport while credentials and endpoint "
+                "mapping are prepared."
+            )
+
+        return gateway.execute_raw_search(
+            keyword=niche,
+            limit=limit,
+            timestamp=int(time()),
+        )
+
     def build_search_request(self, keyword: str, limit: int, timestamp: int) -> HttpRequest:
         self._validate_configuration()
         return self._get_gateway().build_search_request(
