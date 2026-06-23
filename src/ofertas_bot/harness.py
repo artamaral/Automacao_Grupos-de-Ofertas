@@ -11,15 +11,15 @@ from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.models import Marketplace
-from ofertas_bot.providers.amazon import AmazonConfigurationError
+from ofertas_bot.providers.amazon import AmazonConfigurationError, AmazonProvider
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.gateway import ProviderLimitError
 from ofertas_bot.providers.http import ProviderHttpError
 from ofertas_bot.providers.real_http_guard import RealHttpValidationError
-from ofertas_bot.providers.shopee import ShopeeConfigurationError
+from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvider
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.transport import HttpTransportError
-from ofertas_bot.settings import get_settings
+from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
 
 
@@ -58,6 +58,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Caminho local para salvar ofertas normalizadas em JSON",
     )
+    parser.add_argument(
+        "--diagnose-real-http",
+        action="store_true",
+        default=False,
+        help="Valida pré-requisitos de HTTP real sem executar chamada externa",
+    )
     return parser
 
 
@@ -69,6 +75,9 @@ def run(argv: Sequence[str] | None = None) -> int:
     limit = args.limit if args.limit is not None else settings.max_offers_per_run
     if limit <= 0:
         return _print_limit_error(limit=limit)
+
+    if args.diagnose_real_http:
+        return _run_real_http_diagnostic(marketplace=marketplace, settings=settings)
 
     dry_run = bool(args.dry_run or settings.default_dry_run)
 
@@ -131,6 +140,27 @@ def run(argv: Sequence[str] | None = None) -> int:
             f"sent={publish_result.sent} target={publish_result.target}"
         )
 
+    return 0
+
+
+def _run_real_http_diagnostic(marketplace: Marketplace, settings: Settings) -> int:
+    if marketplace == Marketplace.MOCK:
+        print("WARN | Diagnóstico de HTTP real não se aplica ao marketplace mock.")
+        print("AÇÃO | Use --marketplace shopee ou --marketplace amazon.")
+        return 0
+
+    try:
+        if marketplace == Marketplace.SHOPEE:
+            ShopeeProvider(settings=settings).validate_real_http_ready()
+        elif marketplace == Marketplace.AMAZON:
+            AmazonProvider(settings=settings).validate_real_http_ready()
+    except RealHttpValidationError as error:
+        return _print_real_http_guard_error(error=error)
+
+    print(f"INFO | Diagnóstico de HTTP real aprovado para marketplace={marketplace.value}")
+    print("INFO | Nenhuma chamada HTTP foi executada.")
+    print("INFO | Nenhuma publicação foi executada.")
+    print("INFO | Nenhum JSON foi salvo automaticamente.")
     return 0
 
 
