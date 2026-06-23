@@ -36,6 +36,27 @@ def amazon_item(title: str) -> dict[str, object]:
     }
 
 
+def make_shopee_gateway(transport: SequentialTransport) -> ShopeeGateway:
+    return ShopeeGateway(
+        request_builder=ShopeeSignedRequestBuilder(
+            partner_id="partner",
+            api_credential="credential",
+            base_url="https://example.com",
+        ),
+        transport=transport,
+    )
+
+
+def make_amazon_gateway(transport: SequentialTransport) -> AmazonGateway:
+    return AmazonGateway(
+        request_builder=AmazonSearchRequestBuilder(
+            partner_tag="tag-20",
+            base_url="https://example.com",
+        ),
+        transport=transport,
+    )
+
+
 def test_shopee_gateway_collects_paginated_fake_responses() -> None:
     transport = SequentialTransport(
         responses=[
@@ -49,14 +70,7 @@ def test_shopee_gateway_collects_paginated_fake_responses() -> None:
             ),
         ]
     )
-    gateway = ShopeeGateway(
-        request_builder=ShopeeSignedRequestBuilder(
-            partner_id="partner",
-            api_credential="credential",
-            base_url="https://example.com",
-        ),
-        transport=transport,
-    )
+    gateway = make_shopee_gateway(transport)
 
     offers = gateway.execute_paginated_search(
         keyword="maquiagem",
@@ -69,6 +83,54 @@ def test_shopee_gateway_collects_paginated_fake_responses() -> None:
     assert [offer.title for offer in offers] == ["Oferta 1", "Oferta 2"]
     assert [request.params["page"] for request in transport.requests] == [1, 2]
     assert [request.params["page_size"] for request in transport.requests] == [1, 1]
+
+
+def test_shopee_gateway_stops_at_max_pages() -> None:
+    transport = SequentialTransport(
+        responses=[
+            HttpResponse(
+                status_code=200,
+                data={"items": [shopee_item("Oferta 1")], "has_next_page": True},
+            ),
+        ]
+    )
+    gateway = make_shopee_gateway(transport)
+
+    offers = gateway.execute_paginated_search(
+        keyword="maquiagem",
+        niche="maquiagem",
+        limit=3,
+        page_size=1,
+        timestamp=1700000000,
+        max_pages=1,
+    )
+
+    assert [offer.title for offer in offers] == ["Oferta 1"]
+    assert len(transport.requests) == 1
+    assert transport.requests[0].params["page"] == 1
+
+
+def test_shopee_gateway_stops_on_empty_page() -> None:
+    transport = SequentialTransport(
+        responses=[
+            HttpResponse(
+                status_code=200,
+                data={"items": [], "has_next_page": True},
+            ),
+        ]
+    )
+    gateway = make_shopee_gateway(transport)
+
+    offers = gateway.execute_paginated_search(
+        keyword="maquiagem",
+        niche="maquiagem",
+        limit=3,
+        page_size=1,
+        timestamp=1700000000,
+    )
+
+    assert offers == []
+    assert len(transport.requests) == 1
 
 
 def test_amazon_gateway_collects_paginated_fake_responses() -> None:
@@ -90,13 +152,7 @@ def test_amazon_gateway_collects_paginated_fake_responses() -> None:
             ),
         ]
     )
-    gateway = AmazonGateway(
-        request_builder=AmazonSearchRequestBuilder(
-            partner_tag="tag-20",
-            base_url="https://example.com",
-        ),
-        transport=transport,
-    )
+    gateway = make_amazon_gateway(transport)
 
     offers = gateway.execute_paginated_search(
         keyword="casa",
@@ -107,4 +163,57 @@ def test_amazon_gateway_collects_paginated_fake_responses() -> None:
 
     assert [offer.title for offer in offers] == ["Oferta 1", "Oferta 2"]
     assert [request.body["Page"] for request in transport.requests if request.body] == [1, 2]
-    assert [request.body["ItemCount"] for request in transport.requests if request.body] == [1, 1]
+    assert [request.body["ItemCount"] for request in transport.requests if request.body] == [
+        1,
+        1,
+    ]
+
+
+def test_amazon_gateway_stops_at_max_pages() -> None:
+    transport = SequentialTransport(
+        responses=[
+            HttpResponse(
+                status_code=200,
+                data={
+                    "SearchResult": {"Items": [amazon_item("Oferta 1")]},
+                    "has_next_page": True,
+                },
+            ),
+        ]
+    )
+    gateway = make_amazon_gateway(transport)
+
+    offers = gateway.execute_paginated_search(
+        keyword="casa",
+        niche="casa",
+        limit=3,
+        page_size=1,
+        max_pages=1,
+    )
+
+    assert [offer.title for offer in offers] == ["Oferta 1"]
+    assert len(transport.requests) == 1
+    assert transport.requests[0].body is not None
+    assert transport.requests[0].body["Page"] == 1
+
+
+def test_amazon_gateway_stops_on_empty_page() -> None:
+    transport = SequentialTransport(
+        responses=[
+            HttpResponse(
+                status_code=200,
+                data={"SearchResult": {"Items": []}, "has_next_page": True},
+            ),
+        ]
+    )
+    gateway = make_amazon_gateway(transport)
+
+    offers = gateway.execute_paginated_search(
+        keyword="casa",
+        niche="casa",
+        limit=3,
+        page_size=1,
+    )
+
+    assert offers == []
+    assert len(transport.requests) == 1
