@@ -4,7 +4,6 @@ from pathlib import Path
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.settings import Settings
 
-
 FIXTURE_PATH = Path("tests/fixtures/shopee-real-anonymized.example.json")
 
 
