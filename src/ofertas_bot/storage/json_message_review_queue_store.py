@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Literal, TypedDict, cast
 
 from ofertas_bot.models import MessageDraft
 from ofertas_bot.storage.json_message_draft_store import (
@@ -25,6 +25,13 @@ class MessageReviewQueueStoreWriteError(OSError):
 
 class MessageReviewQueueUpdateError(ValueError):
     """Raised when a review queue item cannot be updated."""
+
+
+class MessageReviewQueueSummary(TypedDict):
+    total: int
+    pending: int
+    approved: int
+    rejected: int
 
 
 @dataclass(frozen=True)
@@ -80,6 +87,20 @@ def approved_review_drafts(
     items: tuple[MessageReviewQueueItem, ...],
 ) -> tuple[MessageDraft, ...]:
     return tuple(item.draft for item in items if item.status == "approved")
+
+
+def summarize_review_queue(
+    items: tuple[MessageReviewQueueItem, ...],
+) -> MessageReviewQueueSummary:
+    summary: MessageReviewQueueSummary = {
+        "total": len(items),
+        "pending": 0,
+        "approved": 0,
+        "rejected": 0,
+    }
+    for item in items:
+        summary[item.status] += 1
+    return summary
 
 
 def approve_review_queue_item(
