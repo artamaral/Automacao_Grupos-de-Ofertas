@@ -12,6 +12,23 @@ Este arquivo define os agentes internos, o fluxo de implementação e o harness 
 - Publicação real só deve existir após aprovação humana, logs e configuração explícita.
 - Mensagens de commit devem seguir `docs/commit-pattern.md`.
 
+## Regra de trabalho GitHub/local
+
+Para reduzir erro manual de copia e cola, o fluxo oficial deste projeto é:
+
+- Mudanças de código e documentação são feitas diretamente no GitHub por este assistente.
+- Testes locais, arquivo `.env`, credenciais e validações com ambiente real são feitos pelo usuário no VSCode.
+- Após cada mudança feita no GitHub, o usuário deve rodar `git pull` em `C:\Automacao_Grupos-de-Ofertas` antes de testar localmente.
+- Segredos, tokens, chaves de API, cookies, QR codes e sessões nunca devem ser enviados ao GitHub.
+
+Comandos locais recomendados após mudanças no GitHub:
+
+```powershell
+git pull
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace shopee --dry-run
+```
+
 ## Agentes
 
 ### 1. Collector Agent
