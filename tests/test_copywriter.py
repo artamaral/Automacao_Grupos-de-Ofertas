@@ -11,10 +11,11 @@ def make_offer(
     sales_count: int = 100,
     rating: float | None = 4.7,
     is_prime_or_free_shipping: bool = False,
+    title: str = "Produto teste",
 ) -> Offer:
     return Offer(
         marketplace=marketplace,
-        title="Produto teste",
+        title=title,
         url="https://example.com/produto",
         image_url=None,
         price=price,
@@ -33,6 +34,14 @@ def make_group_profile(*, max_offers_per_run: int = 3) -> GroupProfile:
         name="Maquiagem VIP",
         allowed_niches=("teste",),
         max_offers_per_run=max_offers_per_run,
+    )
+
+
+def make_scored_offer(title: str = "Produto teste") -> ScoredOffer:
+    return ScoredOffer(
+        offer=make_offer(title=title),
+        score=10,
+        reasons=["desconto", "bem avaliado", "frete"],
     )
 
 
@@ -110,12 +119,7 @@ def test_copywriter_creates_detailed_message_for_group() -> None:
 
 
 def test_copywriter_creates_compact_message_for_single_offer_group() -> None:
-    offer = make_offer()
-    scored = ScoredOffer(
-        offer=offer,
-        score=10,
-        reasons=["desconto", "bem avaliado", "frete"],
-    )
+    scored = make_scored_offer()
     group_profile = make_group_profile(max_offers_per_run=1)
 
     draft = CopywriterAgent().create_message_for_group(scored, group_profile)
@@ -125,3 +129,34 @@ def test_copywriter_creates_compact_message_for_single_offer_group() -> None:
     assert "Loja:" not in draft.text
     assert "Sinal de confiança:" not in draft.text
     assert "Entrega:" not in draft.text
+
+
+def test_copywriter_creates_message_batch_limited_by_group() -> None:
+    scored_offers = [
+        make_scored_offer("Produto 1"),
+        make_scored_offer("Produto 2"),
+        make_scored_offer("Produto 3"),
+    ]
+    group_profile = make_group_profile(max_offers_per_run=2)
+
+    drafts = CopywriterAgent().create_messages_for_group(
+        scored_offers,
+        group_profile,
+    )
+
+    assert len(drafts) == 2
+    assert "Produto 1" in drafts[0].text
+    assert "Produto 2" in drafts[1].text
+
+
+def test_copywriter_batch_uses_compact_messages_for_single_offer_group() -> None:
+    group_profile = make_group_profile(max_offers_per_run=1)
+
+    drafts = CopywriterAgent().create_messages_for_group(
+        [make_scored_offer()],
+        group_profile,
+    )
+
+    assert len(drafts) == 1
+    assert "Grupo: Maquiagem VIP" in drafts[0].text
+    assert "Loja:" not in drafts[0].text
