@@ -12,6 +12,11 @@ from ofertas_bot.group_plan import (
     format_group_plan_summary,
     summarize_group_plans,
 )
+from ofertas_bot.group_plan_approval import (
+    GroupPlanApproval,
+    GroupPlanApprovalGate,
+    GroupPlanApprovalResult,
+)
 from ofertas_bot.group_plan_naming import build_group_plan_file_names
 from ofertas_bot.group_plan_validation import normalize_plan_niche, validate_plan_limit
 from ofertas_bot.group_profiles import GroupProfileCatalog
@@ -32,6 +37,12 @@ class GroupPlanSimulationResult:
 
     def to_text(self) -> str:
         return format_group_plan_summary(self.summary)
+
+    def evaluate_approval(
+        self,
+        approval: GroupPlanApproval | None,
+    ) -> GroupPlanApprovalResult:
+        return GroupPlanApprovalGate().evaluate(plans=self.plans, approval=approval)
 
     def save_json(self, path: Path) -> None:
         JsonGroupPlanStore(path=path).save(self.summary)
