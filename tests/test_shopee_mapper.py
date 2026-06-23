@@ -1,4 +1,7 @@
+import pytest
+
 from ofertas_bot.models import Marketplace
+from ofertas_bot.providers.mapper import OfferMappingError
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 
 
@@ -27,3 +30,36 @@ def test_shopee_mapper_normalizes_item_payload() -> None:
     assert offer.rating == 4.8
     assert offer.niche == "maquiagem"
     assert offer.is_prime_or_free_shipping is True
+
+
+def test_shopee_mapper_rejects_item_without_title() -> None:
+    item = {
+        "url": "https://example.com/shopee-item",
+        "price": "49.90",
+        "old_price": "89.90",
+    }
+
+    with pytest.raises(OfferMappingError, match="title"):
+        ShopeeOfferMapper().map_item(item=item, niche="maquiagem")
+
+
+def test_shopee_mapper_rejects_item_without_url() -> None:
+    item = {
+        "title": "Kit Maquiagem",
+        "price": "49.90",
+        "old_price": "89.90",
+    }
+
+    with pytest.raises(OfferMappingError, match="url"):
+        ShopeeOfferMapper().map_item(item=item, niche="maquiagem")
+
+
+def test_shopee_mapper_rejects_item_without_price() -> None:
+    item = {
+        "title": "Kit Maquiagem",
+        "url": "https://example.com/shopee-item",
+        "old_price": "89.90",
+    }
+
+    with pytest.raises(OfferMappingError, match="price"):
+        ShopeeOfferMapper().map_item(item=item, niche="maquiagem")
