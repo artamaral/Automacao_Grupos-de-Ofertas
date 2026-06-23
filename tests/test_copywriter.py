@@ -1,4 +1,5 @@
 from ofertas_bot.agents.copywriter import CopywriterAgent
+from ofertas_bot.group_profiles import GroupProfile
 from ofertas_bot.models import Marketplace, Offer, ScoredOffer
 
 
@@ -23,6 +24,15 @@ def make_offer(
         rating=rating,
         niche="teste",
         is_prime_or_free_shipping=is_prime_or_free_shipping,
+    )
+
+
+def make_group_profile(*, max_offers_per_run: int = 3) -> GroupProfile:
+    return GroupProfile(
+        slug="maquiagem-vip",
+        name="Maquiagem VIP",
+        allowed_niches=("teste",),
+        max_offers_per_run=max_offers_per_run,
     )
 
 
@@ -84,3 +94,34 @@ def test_copywriter_includes_safe_call_to_action() -> None:
     draft = CopywriterAgent().create_message(scored)
 
     assert "Confira enquanto estiver disponível." in draft.text
+
+
+def test_copywriter_creates_detailed_message_for_group() -> None:
+    offer = make_offer()
+    scored = ScoredOffer(offer=offer, score=10, reasons=["desconto"])
+    group_profile = make_group_profile(max_offers_per_run=3)
+
+    draft = CopywriterAgent().create_message_for_group(scored, group_profile)
+
+    assert "Grupo: Maquiagem VIP" in draft.text
+    assert "Loja: Amazon" in draft.text
+    assert "Sinal de confiança:" in draft.text
+    assert "Entrega:" in draft.text
+
+
+def test_copywriter_creates_compact_message_for_single_offer_group() -> None:
+    offer = make_offer()
+    scored = ScoredOffer(
+        offer=offer,
+        score=10,
+        reasons=["desconto", "bem avaliado", "frete"],
+    )
+    group_profile = make_group_profile(max_offers_per_run=1)
+
+    draft = CopywriterAgent().create_message_for_group(scored, group_profile)
+
+    assert "Grupo: Maquiagem VIP" in draft.text
+    assert "Destaques: desconto, bem avaliado." in draft.text
+    assert "Loja:" not in draft.text
+    assert "Sinal de confiança:" not in draft.text
+    assert "Entrega:" not in draft.text
