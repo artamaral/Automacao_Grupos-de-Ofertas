@@ -87,6 +87,29 @@ def create_publication_manifest(
     )
 
 
+def validate_publication_manifest(
+    items: tuple[PublicationManifestItem, ...],
+) -> tuple[str, ...]:
+    issues: list[str] = []
+
+    if not items:
+        issues.append("manifesto vazio")
+
+    for index, item in enumerate(items, start=1):
+        if item.status != "ready":
+            issues.append(f"item {index} com status inválido")
+        if not item.target.strip():
+            issues.append(f"item {index} sem alvo")
+        if not item.created_at.strip():
+            issues.append(f"item {index} sem data de criação")
+        if not item.draft.text.strip():
+            issues.append(f"item {index} sem mensagem")
+        if not item.draft.offer.url.strip():
+            issues.append(f"item {index} sem link da oferta")
+
+    return tuple(issues)
+
+
 def publication_manifest_item_to_json(
     item: PublicationManifestItem,
 ) -> dict[str, Any]:
