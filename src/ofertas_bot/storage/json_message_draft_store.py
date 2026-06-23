@@ -27,7 +27,7 @@ class JsonMessageDraftStore:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             payload = [message_draft_to_json(draft) for draft in drafts]
             self.path.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2),
+                json.dumps(payload, ensure_ascii=True, indent=2),
                 encoding="utf-8",
             )
         except OSError as error:
