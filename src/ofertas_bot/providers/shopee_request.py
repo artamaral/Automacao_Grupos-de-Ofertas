@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from time import time
 
 from ofertas_bot.providers.http import HttpRequest
@@ -10,12 +9,18 @@ from ofertas_bot.providers.shopee_auth import ShopeeAuthParams, ShopeeSigner
 SHOPEE_SEARCH_PATH = "/api/v2/product/search_item"
 
 
-@dataclass(frozen=True)
 class ShopeeSearchRequestBuilder:
-    partner_id: str
-    secret_key: str
-    base_url: str
-    signer: ShopeeSigner = ShopeeSigner()
+    def __init__(
+        self,
+        partner_id: str,
+        secret_key: str,
+        base_url: str,
+        signer: ShopeeSigner | None = None,
+    ) -> None:
+        self.partner_id = partner_id
+        self.secret_key = secret_key
+        self.base_url = base_url
+        self.signer = signer or ShopeeSigner()
 
     def build(
         self,
