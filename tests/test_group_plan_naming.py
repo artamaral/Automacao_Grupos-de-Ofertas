@@ -2,7 +2,10 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from ofertas_bot.group_plan_naming import build_group_plan_file_prefix
+from ofertas_bot.group_plan_naming import (
+    build_group_plan_file_names,
+    build_group_plan_file_prefix,
+)
 from ofertas_bot.group_plan_validation import GroupPlanValidationError
 
 
@@ -13,6 +16,16 @@ def test_build_group_plan_file_prefix_uses_utc_timestamp_and_slug() -> None:
     )
 
     assert prefix == "20260623T180000Z-maquiagem"
+
+
+def test_build_group_plan_file_names_returns_json_and_text_names() -> None:
+    names = build_group_plan_file_names(
+        niche=" Maquiagem ",
+        generated_at=datetime(2026, 6, 23, 18, 0, tzinfo=UTC),
+    )
+
+    assert names.json_name == "20260623T180000Z-maquiagem.json"
+    assert names.text_name == "20260623T180000Z-maquiagem.txt"
 
 
 def test_build_group_plan_file_prefix_normalizes_timezone_to_utc() -> None:
