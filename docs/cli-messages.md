@@ -127,6 +127,12 @@ Mensagem esperada:
 INFO | Ofertas normalizadas salvas em .data/ofertas.json
 ```
 
+Aviso esperado quando o arquivo for salvo diretamente no diretório atual:
+
+```text
+WARN | O arquivo ofertas.json será salvo no diretório atual. Prefira .data/, tmp/ ou exports/ para evitar commit acidental.
+```
+
 Regras:
 
 - o fluxo padrão não grava arquivo;
@@ -134,6 +140,7 @@ Regras:
 - não salvar credenciais, tokens, cookies, sessões, headers, QR codes ou payload bruto;
 - usar caminhos locais ignorados pelo Git, como `./.data/`, `./tmp/` ou `./exports/`;
 - evitar salvar arquivos de saída diretamente na raiz do repositório;
+- se um arquivo na raiz for solicitado, a CLI apenas avisa e continua;
 - erro de escrita deve retornar mensagem amigável e exit code `3`.
 
 ## Regras para mensagens de sucesso
