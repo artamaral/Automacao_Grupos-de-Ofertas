@@ -31,6 +31,26 @@ def test_shopee_provider_is_not_implemented_after_configuration() -> None:
         provider.fetch(niche="maquiagem", limit=3)
 
 
+def test_shopee_provider_builds_search_request_after_configuration() -> None:
+    settings = Settings(
+        shopee_partner_id="123",
+        shopee_secret_key="abc",
+    )
+    provider = ShopeeProvider(settings=settings)
+
+    request = provider.build_search_request(
+        keyword="maquiagem",
+        limit=10,
+        timestamp=1710000000,
+    )
+
+    assert request.method == "GET"
+    assert request.params["partner_id"] == "123"
+    assert request.params["keyword"] == "maquiagem"
+    assert request.params["page_size"] == 10
+    assert request.params["timestamp"] == 1710000000
+
+
 def test_shopee_provider_normalizes_response_items() -> None:
     provider = ShopeeProvider(settings=Settings())
     response_data = {
