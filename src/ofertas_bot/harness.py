@@ -12,6 +12,7 @@ from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.models import Marketplace
 from ofertas_bot.providers.amazon import AmazonConfigurationError
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
+from ofertas_bot.providers.gateway import ProviderLimitError
 from ofertas_bot.providers.http import ProviderHttpError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
@@ -75,6 +76,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonConfigurationError as error:
         return _print_configuration_error(marketplace=Marketplace.AMAZON, error=error)
+    except ProviderLimitError as error:
+        return _print_provider_limit_error(error=error)
     except ShopeePayloadError as error:
         return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonPayloadError as error:
@@ -124,9 +127,22 @@ def _print_configuration_error(marketplace: Marketplace, error: Exception) -> in
 
 def _print_limit_error(limit: int) -> int:
     print("ERRO | Limite de ofertas inválido", file=sys.stderr)
-    print(f"DETALHE | --limit deve ser maior que zero. Valor recebido: {limit}", file=sys.stderr)
+    print(
+        f"DETALHE | --limit deve ser maior que zero. Valor recebido: {limit}",
+        file=sys.stderr,
+    )
     print(
         "AÇÃO | Informe um valor positivo, por exemplo --limit 5.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_provider_limit_error(error: Exception) -> int:
+    print("ERRO | Limite interno de provider inválido", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Revise a origem do limite antes de executar novamente.",
         file=sys.stderr,
     )
     return 3
