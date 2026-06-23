@@ -47,6 +47,47 @@ class AmazonGateway:
             limit=limit,
         )
 
+    def execute_paginated_search(
+        self,
+        keyword: str,
+        niche: str,
+        limit: int,
+        page_size: int,
+        max_pages: int = 3,
+    ) -> list[Offer]:
+        validate_positive_limit(limit)
+        validate_positive_limit(page_size)
+        validate_positive_limit(max_pages)
+
+        offers: list[Offer] = []
+        page = 1
+        while len(offers) < limit and page <= max_pages:
+            request_limit = min(page_size, limit - len(offers))
+            request = self._build_paginated_request(
+                keyword=keyword,
+                limit=request_limit,
+                page=page,
+            )
+            response_data = execute_provider_request(
+                request=request,
+                transport=self.transport,
+                http_client=self.http_client,
+                provider_name="Amazon",
+                retry_policy=self.retry_policy,
+                sleeper=self.sleeper,
+            )
+            page_offers = self.normalize_search_response(
+                response_data=response_data,
+                niche=niche,
+                limit=request_limit,
+            )
+            offers.extend(page_offers)
+            if not page_offers or not self._has_next_page(response_data):
+                break
+            page += 1
+
+        return offers[:limit]
+
     def normalize_search_response(
         self,
         response_data: dict[str, Any],
@@ -56,6 +97,26 @@ class AmazonGateway:
         validate_positive_limit(limit)
         items = self._get_items(response_data)
         return [self.mapper.map_item(item=item, niche=niche) for item in items[:limit]]
+
+    def _build_paginated_request(
+        self,
+        keyword: str,
+        limit: int,
+        page: int,
+    ) -> HttpRequest:
+        request = self.build_search_request(keyword=keyword, limit=limit)
+        body = dict(request.body or {})
+        body["Page"] = page
+        return HttpRequest(
+            method=request.method,
+            url=request.url,
+            params=request.params,
+            headers=request.headers,
+            body=body,
+        )
+
+    def _has_next_page(self, response_data: dict[str, Any]) -> bool:
+        return response_data.get("has_next_page") is True
 
     def _get_items(self, response_data: dict[str, Any]) -> list[dict[str, Any]]:
         items_result = response_data.get("SearchResult", {})
