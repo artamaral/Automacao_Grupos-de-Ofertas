@@ -4,7 +4,7 @@
 
 A persistência local em JSON permite salvar ofertas já normalizadas em arquivo local para inspeção, depuração e testes futuros.
 
-Ela é opcional e não é chamada automaticamente pelo harness.
+Ela é opcional e só acontece quando a opção `--save-json` é informada no CLI.
 
 ## Módulo
 
@@ -20,6 +20,21 @@ Componentes:
 - `offer_to_json()`;
 - `offer_from_json()`;
 - `OfferStoreError`.
+
+## Uso no CLI
+
+Exemplo:
+
+```text
+python -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2 --save-json ./tmp/ofertas.json
+```
+
+Comportamento:
+
+- sem `--save-json`, nenhum arquivo é gravado;
+- com `--save-json`, o arquivo recebe uma lista de ofertas normalizadas;
+- o diretório de destino é criado se não existir;
+- a mensagem de sucesso informa o caminho usado.
 
 ## O que é salvo
 
@@ -50,7 +65,7 @@ Não salvar:
 - assinaturas;
 - payload bruto com dados sensíveis.
 
-## Comportamento atual
+## Comportamento técnico
 
 - `save()` cria o diretório de destino se necessário;
 - `load()` retorna lista vazia se o arquivo não existir;
@@ -58,11 +73,9 @@ Não salvar:
 - formato inválido gera `OfferStoreError`;
 - itens inválidos geram `OfferStoreError`.
 
-## Uso futuro
+## Cuidados antes de uso real
 
-Este módulo pode ser conectado futuramente a uma opção explícita do CLI, por exemplo `--save-json`, mas não deve gravar nada automaticamente.
-
-Antes de conectar ao harness, validar:
+Antes de usar com payload real anonimizado, validar:
 
 1. caminho local seguro;
 2. nenhuma credencial no payload;
