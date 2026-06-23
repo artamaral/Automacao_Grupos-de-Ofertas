@@ -44,6 +44,15 @@ class GroupPlanSimulationResult:
             msg = f"Could not write group plan text to {path}"
             raise GroupPlanTextWriteError(msg) from error
 
+    def update_history(
+        self,
+        *,
+        history_path: Path,
+        ran_at: datetime,
+    ) -> dict[str, datetime | None]:
+        store = JsonGroupRunHistoryStore(path=history_path)
+        return store.update_allowed_runs(plans=self.plans, ran_at=ran_at)
+
 
 class GroupPlanSimulation:
     def __init__(
