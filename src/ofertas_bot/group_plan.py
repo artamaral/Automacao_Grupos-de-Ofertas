@@ -102,6 +102,36 @@ def summarize_group_plans(plans: tuple[GroupPlan, ...]) -> dict[str, Any]:
     }
 
 
+def format_group_plan_summary(summary: dict[str, Any]) -> str:
+    lines = [
+        "Resumo do plano por grupo",
+        f"total_groups={summary.get('total_groups', 0)}",
+        f"allowed_groups={summary.get('allowed_groups', 0)}",
+        f"blocked_groups={summary.get('blocked_groups', 0)}",
+        f"total_selected_offers={summary.get('total_selected_offers', 0)}",
+    ]
+
+    metadata = summary.get("metadata")
+    if isinstance(metadata, dict):
+        lines.extend(
+            [
+                f"metadata.niche={metadata.get('niche')}",
+                f"metadata.generated_at={metadata.get('generated_at')}",
+                f"metadata.offer_limit={metadata.get('offer_limit')}",
+                f"metadata.collected_offer_count={metadata.get('collected_offer_count')}",
+                f"metadata.source_marketplace={metadata.get('source_marketplace')}",
+            ]
+        )
+
+    groups = summary.get("groups")
+    if isinstance(groups, list):
+        for group in groups:
+            if isinstance(group, dict):
+                lines.extend(_format_group_summary(group))
+
+    return "\n".join(lines)
+
+
 def _summarize_group_plan(plan: GroupPlan) -> dict[str, Any]:
     return {
         "group_slug": plan.group_slug,
@@ -112,3 +142,19 @@ def _summarize_group_plan(plan: GroupPlan) -> dict[str, Any]:
         if plan.next_available_at
         else None,
     }
+
+
+def _format_group_summary(group: dict[str, Any]) -> list[str]:
+    lines = [
+        "-" * 80,
+        f"group={group.get('group_slug')}",
+        f"allowed={group.get('allowed')}",
+        f"selected_offer_count={group.get('selected_offer_count', 0)}",
+    ]
+    reasons = group.get("reasons")
+    if isinstance(reasons, list) and reasons:
+        lines.append(f"reasons={'; '.join(str(reason) for reason in reasons)}")
+    next_available_at = group.get("next_available_at")
+    if next_available_at:
+        lines.append(f"next_available_at={next_available_at}")
+    return lines
