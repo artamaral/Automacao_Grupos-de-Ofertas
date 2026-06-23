@@ -65,6 +65,14 @@ No Windows PowerShell, usando o Python da venv:
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace mock --dry-run
 ```
 
+Também é possível salvar as mensagens aprovadas pelo compliance para revisão humana local, sem publicar nada real:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace mock --limit 1 --save-messages-json .data\messages.json --save-messages-text .data\messages.txt
+```
+
+Use o JSON para auditoria técnica e o TXT para leitura/revisão manual antes de qualquer etapa de publicação.
+
 Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem chamada externa real:
 
 ```powershell
