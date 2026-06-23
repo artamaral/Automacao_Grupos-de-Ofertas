@@ -31,6 +31,9 @@ class GroupPlanSimulationResult:
     def to_text(self) -> str:
         return format_group_plan_summary(self.summary)
 
+    def save_json(self, path: Path) -> None:
+        JsonGroupPlanStore(path=path).save(self.summary)
+
     def save_text(self, path: Path) -> None:
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
