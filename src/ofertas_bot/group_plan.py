@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from ofertas_bot.group_cadence import GroupCadencePolicy
 from ofertas_bot.group_eligibility import GroupEligibilityPolicy
@@ -87,3 +88,27 @@ class GroupPlanBuilder:
             )
             for group_profile in group_profiles
         )
+
+
+def summarize_group_plans(plans: tuple[GroupPlan, ...]) -> dict[str, Any]:
+    allowed_count = sum(1 for plan in plans if plan.allowed)
+    selected_count = sum(len(plan.selected_offers) for plan in plans)
+    return {
+        "total_groups": len(plans),
+        "allowed_groups": allowed_count,
+        "blocked_groups": len(plans) - allowed_count,
+        "total_selected_offers": selected_count,
+        "groups": [_summarize_group_plan(plan) for plan in plans],
+    }
+
+
+def _summarize_group_plan(plan: GroupPlan) -> dict[str, Any]:
+    return {
+        "group_slug": plan.group_slug,
+        "allowed": plan.allowed,
+        "selected_offer_count": len(plan.selected_offers),
+        "reasons": list(plan.reasons),
+        "next_available_at": plan.next_available_at.isoformat()
+        if plan.next_available_at
+        else None,
+    }
