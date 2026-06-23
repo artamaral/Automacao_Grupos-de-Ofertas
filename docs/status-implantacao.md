@@ -50,7 +50,9 @@ Implementado até agora:
 - `ShopeeProvider.fetch()` integrado ao gateway injetável;
 - tratamento de erro HTTP no gateway;
 - tratamento de payload inválido com `ShopeePayloadError`;
-- tratamento amigável de payload inválido no harness.
+- tratamento amigável de payload inválido no harness;
+- fixture anônima de contrato;
+- teste de resposta vazia.
 
 Ainda não implementado:
 
@@ -76,7 +78,9 @@ Implementado até agora:
 - `AmazonProvider.fetch()` integrado ao gateway injetável;
 - tratamento de erro HTTP no gateway;
 - tratamento de payload inválido com `AmazonPayloadError`;
-- tratamento amigável de payload inválido no harness.
+- tratamento amigável de payload inválido no harness;
+- fixture anônima de contrato;
+- teste de resposta vazia.
 
 Ainda não implementado:
 
@@ -100,6 +104,17 @@ Implementado até agora:
 - testes do transport real usando opener fake, sem internet.
 
 Importante: o transport real não está conectado automaticamente aos providers e não é usado pelo harness.
+
+### Gateways
+
+Implementado até agora:
+
+- helper compartilhado `execute_provider_request`;
+- envio e validação HTTP centralizados;
+- erro padronizado quando o transport não está configurado;
+- testes diretos para sucesso, transport ausente e erro HTTP.
+
+Esse helper reduziu duplicação entre `ShopeeGateway` e `AmazonGateway` sem mudar o comportamento esperado.
 
 ### Travas de segurança
 
@@ -128,7 +143,8 @@ I001 Import block is un-sorted or un-formatted
 Casos resolvidos:
 
 - builder antigo da Shopee foi removido;
-- teste do transport real foi ajustado para deixar imports da biblioteca padrão antes de `pytest`.
+- teste do transport real foi ajustado para deixar imports da biblioteca padrão antes de `pytest`;
+- teste do helper de gateway foi formatado com imports quebrados em bloco.
 
 Decisão atual:
 
@@ -159,7 +175,6 @@ Soluções adotadas:
 - Criar configuração para base URL sem expor credenciais.
 - Mapear payload real da Shopee quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API.
-- Adicionar tratamento para resposta vazia.
 - Adicionar retry/rate limit antes de qualquer chamada real.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
@@ -169,25 +184,20 @@ Soluções adotadas:
 - Criar configuração para base URL sem expor credenciais.
 - Mapear payload real da Amazon quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API.
-- Adicionar tratamento para resposta vazia.
 - Adicionar retry/rate limit antes de qualquer chamada real.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
 ### Configuração e operação
 
-- Documentar variáveis de ambiente por provider.
-- Adicionar exemplos de execução local por marketplace.
 - Conectar `enable_real_http` aos providers somente depois do checklist.
-- Criar fixtures de contrato com payloads anonimizados.
 - Avaliar persistência de resultados.
 
 ### Qualidade
 
-- Reduzir duplicação entre gateways de Shopee e Amazon.
 - Revisar mensagens de exceção para manter padrão `ERRO | DETALHE | AÇÃO` no CLI.
-- Criar testes para resposta vazia por provider.
 - Criar testes para limites e paginação quando os contratos reais forem definidos.
+- Avaliar extração de validações comuns de payload quando os contratos reais estabilizarem.
 
 ## Próximo passo imediato
 
-Documentar variáveis de ambiente por provider e exemplos de execução local seguros, mantendo `mock` e `dry-run` como caminhos padrão.
+Tratar `HttpTransportError` no harness com mensagem amigável, preparando o CLI para falhas de rede futuras sem expor dados sensíveis.
