@@ -1,5 +1,6 @@
 import pytest
 
+from ofertas_bot.models import Marketplace
 from ofertas_bot.providers.amazon_gateway import AmazonGateway, AmazonPayloadError
 from ofertas_bot.providers.amazon_request import AmazonSearchRequestBuilder
 from ofertas_bot.providers.http import HttpResponse, ProviderHttpError
@@ -29,8 +30,16 @@ def test_amazon_gateway_executes_search_with_static_transport() -> None:
             "SearchResult": {
                 "Items": [
                     {
-                        "ASIN": "B001",
+                        "ItemInfo": {"Title": {"DisplayValue": "Kit Amazon"}},
                         "DetailPageURL": "https://example.com/amazon-1",
+                        "Offers": {
+                            "Listings": [
+                                {
+                                    "Price": {"Amount": 79.9},
+                                    "SavingBasis": {"Amount": 119.9},
+                                }
+                            ]
+                        },
                     }
                 ]
             }
@@ -45,9 +54,12 @@ def test_amazon_gateway_executes_search_with_static_transport() -> None:
         transport=transport,
     )
 
-    result = gateway.execute_search(keyword="maquiagem", limit=1)
+    offers = gateway.execute_search(keyword="maquiagem", niche="maquiagem", limit=1)
 
-    assert result == response.data
+    assert len(offers) == 1
+    assert offers[0].marketplace == Marketplace.AMAZON
+    assert offers[0].title == "Kit Amazon"
+    assert offers[0].price == 79.9
     assert transport.requests[0].body is not None
     assert transport.requests[0].body["Keywords"] == "maquiagem"
 
@@ -64,7 +76,7 @@ def test_amazon_gateway_rejects_http_error_response() -> None:
     )
 
     with pytest.raises(ProviderHttpError, match="Amazon request failed with status=500"):
-        gateway.execute_search(keyword="maquiagem", limit=1)
+        gateway.execute_search(keyword="maquiagem", niche="maquiagem", limit=1)
 
 
 def test_amazon_gateway_rejects_invalid_payload_shape() -> None:
@@ -79,7 +91,22 @@ def test_amazon_gateway_rejects_invalid_payload_shape() -> None:
     )
 
     with pytest.raises(AmazonPayloadError, match="SearchResult.Items"):
-        gateway.execute_search(keyword="maquiagem", limit=1)
+        gateway.execute_search(keyword="maquiagem", niche="maquiagem", limit=1)
+
+
+def test_amazon_gateway_rejects_items_with_invalid_shape() -> None:
+    response = HttpResponse(status_code=200, data={"SearchResult": {"Items": ["bad"]}})
+    transport = StaticHttpTransport(response=response)
+    gateway = AmazonGateway(
+        request_builder=AmazonSearchRequestBuilder(
+            partner_tag="tag-20",
+            base_url="https://example.com",
+        ),
+        transport=transport,
+    )
+
+    with pytest.raises(AmazonPayloadError, match="contain objects"):
+        gateway.execute_search(keyword="maquiagem", niche="maquiagem", limit=1)
 
 
 def test_amazon_gateway_requires_transport_to_execute_search() -> None:
@@ -91,4 +118,4 @@ def test_amazon_gateway_requires_transport_to_execute_search() -> None:
     )
 
     with pytest.raises(RuntimeError, match="transport"):
-        gateway.execute_search(keyword="maquiagem", limit=1)
+        gateway.execute_search(keyword="maquiagem", niche="maquiagem", limit=1)
