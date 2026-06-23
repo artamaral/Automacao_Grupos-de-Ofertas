@@ -36,6 +36,28 @@ def test_amazon_offer_mapper_maps_item_to_offer() -> None:
     assert offer.niche == "maquiagem"
 
 
+def test_amazon_offer_mapper_rejects_item_without_title() -> None:
+    mapper = AmazonOfferMapper()
+    item = {
+        "DetailPageURL": "https://example.com/amazon-1",
+        "Offers": {"Listings": [{"Price": {"Amount": 79.9}}]},
+    }
+
+    with pytest.raises(OfferMappingError, match="title"):
+        mapper.map_item(item=item, niche="maquiagem")
+
+
+def test_amazon_offer_mapper_rejects_item_without_url() -> None:
+    mapper = AmazonOfferMapper()
+    item = {
+        "ItemInfo": {"Title": {"DisplayValue": "Kit Maquiagem Amazon"}},
+        "Offers": {"Listings": [{"Price": {"Amount": 79.9}}]},
+    }
+
+    with pytest.raises(OfferMappingError, match="url"):
+        mapper.map_item(item=item, niche="maquiagem")
+
+
 def test_amazon_offer_mapper_rejects_item_without_price() -> None:
     mapper = AmazonOfferMapper()
     item = {
