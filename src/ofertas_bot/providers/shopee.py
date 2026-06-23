@@ -30,7 +30,8 @@ class ShopeeProvider:
         if gateway.transport is None:
             raise NotImplementedError(
                 "Shopee API integration is not implemented yet. "
-                "Use an injected fake transport while credentials and endpoint mapping are prepared."
+                "Use an injected fake transport while credentials and endpoint "
+                "mapping are prepared."
             )
 
         return gateway.execute_search(
