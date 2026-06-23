@@ -37,10 +37,47 @@ Erros esperados devem ser tratados sem traceback, por exemplo:
 - credenciais ausentes;
 - provider ainda não implementado;
 - marketplace sem suporte;
+- payload de provider em formato inesperado;
+- falha HTTP de provider;
+- falha de transporte HTTP;
 - oferta bloqueada por compliance;
 - publicação real desabilitada.
 
 Traceback completo deve ficar reservado para bugs inesperados durante desenvolvimento.
+
+## Exemplos de erros tratados
+
+### Configuração ausente
+
+```text
+ERRO | Configuração da Amazon incompleta
+DETALHE | Missing Amazon configuration: AMAZON_ACCESS_KEY, AMAZON_SECRET_KEY.
+AÇÃO | Configure o arquivo .env local ou rode com --marketplace mock.
+```
+
+### Payload inválido
+
+```text
+ERRO | Resposta da Shopee em formato inesperado
+DETALHE | Shopee response field 'items' must be a list
+AÇÃO | Valide o payload retornado pelo provider antes de publicar ofertas.
+```
+
+### HTTP inválido
+
+```text
+ERRO | Falha na resposta HTTP da Amazon
+DETALHE | Amazon request failed with status=500
+AÇÃO | Verifique status, rate limit e disponibilidade antes de nova tentativa.
+```
+
+### Falha de transporte
+
+```text
+ERRO | Falha de transporte HTTP da Amazon
+DETALHE | HTTP transport request failed
+AÇÃO | Verifique conexão, timeout e configuração antes de nova tentativa.
+```
 
 ## Regras para mensagens de sucesso
 
@@ -93,7 +130,7 @@ Sempre que possível:
 - `0`: execução concluída com sucesso;
 - `1`: erro inesperado;
 - `2`: erro esperado de configuração;
-- `3`: erro esperado de validação/compliance.
+- `3`: erro esperado de validação, compliance, HTTP ou transporte.
 
 ## Diretriz final
 
