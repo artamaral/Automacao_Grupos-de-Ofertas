@@ -19,6 +19,10 @@ from ofertas_bot.settings import Settings
 from ofertas_bot.storage.json_group_plan_store import JsonGroupPlanStore
 
 
+class GroupPlanTextWriteError(OSError):
+    """Raised when a group plan text summary cannot be written."""
+
+
 @dataclass(frozen=True)
 class GroupPlanSimulationResult:
     plans: tuple[GroupPlan, ...]
@@ -26,6 +30,14 @@ class GroupPlanSimulationResult:
 
     def to_text(self) -> str:
         return format_group_plan_summary(self.summary)
+
+    def save_text(self, path: Path) -> None:
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(self.to_text(), encoding="utf-8")
+        except OSError as error:
+            msg = f"Could not write group plan text to {path}"
+            raise GroupPlanTextWriteError(msg) from error
 
 
 class GroupPlanSimulation:
