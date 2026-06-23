@@ -11,7 +11,9 @@ from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.models import Marketplace
 from ofertas_bot.providers.amazon import AmazonConfigurationError
+from ofertas_bot.providers.http import ProviderHttpError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
+from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.settings import get_settings
 
 
@@ -68,6 +70,10 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonConfigurationError as error:
         return _print_configuration_error(marketplace=Marketplace.AMAZON, error=error)
+    except ShopeePayloadError as error:
+        return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
+    except ProviderHttpError as error:
+        return _print_provider_http_error(marketplace=marketplace, error=error)
 
     scored_offers = scorer.score(offers)
 
@@ -105,6 +111,28 @@ def _print_configuration_error(marketplace: Marketplace, error: Exception) -> in
         file=sys.stderr,
     )
     return 2
+
+
+def _print_payload_error(marketplace: Marketplace, error: Exception) -> int:
+    marketplace_name = marketplace.value.capitalize()
+    print(f"ERRO | Resposta da {marketplace_name} em formato inesperado", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Valide o payload retornado pelo provider antes de publicar ofertas.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_provider_http_error(marketplace: Marketplace, error: Exception) -> int:
+    marketplace_name = marketplace.value.capitalize()
+    print(f"ERRO | Falha na resposta HTTP da {marketplace_name}", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Verifique status, rate limit e disponibilidade antes de nova tentativa.",
+        file=sys.stderr,
+    )
+    return 3
 
 
 def main() -> None:
