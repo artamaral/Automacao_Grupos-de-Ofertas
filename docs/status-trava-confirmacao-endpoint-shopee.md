@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Registrar a regra de segurança criada para impedir chamada real da Shopee quando o endpoint ainda estiver no caminho provisório sem confirmação explícita.
+Registrar a regra de segurança criada para impedir chamada real da Shopee sem confirmação explícita do endpoint.
 
 ## Achado
 
@@ -16,7 +16,7 @@ Como esse caminho ainda depende de confirmação manual contra a documentação/
 
 ## Regra operacional
 
-Se `SHOPEE_SEARCH_PATH` estiver no valor provisório, a primeira chamada real controlada deve exigir confirmação explícita no ambiente local.
+A primeira chamada real controlada da Shopee exige confirmação explícita no ambiente local.
 
 A confirmação deve ser feita fora do Git com:
 
@@ -39,7 +39,7 @@ Mesmo sem confirmação explícita, continuam permitidos:
 - diagnóstico de HTTP real;
 - preview seguro do request.
 
-Esses modos não executam chamada externa ou não publicam conteúdo.
+Esses modos não publicam conteúdo. O diagnóstico e o preview também não executam chamada externa.
 
 ## O que permanece proibido
 
