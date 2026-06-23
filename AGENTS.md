@@ -10,6 +10,7 @@ Este arquivo define os agentes internos, o fluxo de implementação e o harness 
 - Não versionar segredos, tokens, cookies, QR codes ou sessões.
 - Não implementar mecanismos para burlar políticas, limites ou detecção de plataformas.
 - Publicação real só deve existir após aprovação humana, logs e configuração explícita.
+- Mensagens de commit devem seguir `docs/commit-pattern.md`.
 
 ## Agentes
 
@@ -91,6 +92,22 @@ Fluxo:
 
 ```text
 Collector -> Scorer -> Copywriter -> Compliance -> Publisher
+```
+
+## Commits
+
+Use `docs/commit-pattern.md` como recurso oficial para gerar mensagens de commit.
+
+Formato obrigatório:
+
+```text
+tipo(escopo): descrição curta no presente
+```
+
+Exemplo:
+
+```text
+docs(workflow): adiciona padrao de commits
 ```
 
 ## Critérios de aceite do MVP
