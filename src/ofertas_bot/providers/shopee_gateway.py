@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from ofertas_bot.models import Offer
-from ofertas_bot.providers.gateway import execute_provider_request
+from ofertas_bot.providers.gateway import execute_provider_request, validate_positive_limit
 from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 from ofertas_bot.providers.transport import HttpTransport
@@ -30,6 +30,7 @@ class ShopeeGateway:
         limit: int,
         timestamp: int,
     ) -> HttpRequest:
+        validate_positive_limit(limit)
         return self.request_builder.build(
             keyword=keyword,
             limit=limit,
@@ -66,6 +67,7 @@ class ShopeeGateway:
         niche: str,
         limit: int,
     ) -> list[Offer]:
+        validate_positive_limit(limit)
         items = response_data.get("items", [])
         if not isinstance(items, list):
             msg = "Shopee response field 'items' must be a list"
