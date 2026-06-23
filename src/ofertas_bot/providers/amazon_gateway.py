@@ -5,6 +5,7 @@ from ofertas_bot.models import Offer
 from ofertas_bot.providers.amazon_mapper import AmazonOfferMapper
 from ofertas_bot.providers.gateway import execute_provider_request, validate_positive_limit
 from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
+from ofertas_bot.providers.retry import RetryPolicy, Sleeper
 from ofertas_bot.providers.transport import HttpTransport
 
 
@@ -23,6 +24,8 @@ class AmazonGateway:
     mapper: AmazonOfferMapper = field(default_factory=AmazonOfferMapper)
     http_client: ProviderHttpClient = field(default_factory=ProviderHttpClient)
     transport: HttpTransport | None = None
+    retry_policy: RetryPolicy | None = None
+    sleeper: Sleeper | None = None
 
     def build_search_request(self, keyword: str, limit: int) -> HttpRequest:
         validate_positive_limit(limit)
@@ -35,6 +38,8 @@ class AmazonGateway:
             transport=self.transport,
             http_client=self.http_client,
             provider_name="Amazon",
+            retry_policy=self.retry_policy,
+            sleeper=self.sleeper,
         )
         return self.normalize_search_response(
             response_data=response_data,
