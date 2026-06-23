@@ -1,15 +1,24 @@
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from ofertas_bot.models import Offer
 from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
-from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuilder
 from ofertas_bot.providers.transport import HttpTransport
+
+
+class ShopeePayloadError(ValueError):
+    """Raised when Shopee returns an unexpected payload shape."""
+
+
+class ShopeeRequestBuilder(Protocol):
+    def build(self, keyword: str, limit: int, timestamp: int) -> HttpRequest:
+        """Build a signed Shopee search request."""
 
 
 @dataclass(frozen=True)
 class ShopeeGateway:
-    request_builder: ShopeeSignedRequestBuilder
+    request_builder: ShopeeRequestBuilder
     mapper: ShopeeOfferMapper = field(default_factory=ShopeeOfferMapper)
     http_client: ProviderHttpClient = field(default_factory=ProviderHttpClient)
     transport: HttpTransport | None = None
@@ -59,6 +68,6 @@ class ShopeeGateway:
         items = response_data.get("items", [])
         if not isinstance(items, list):
             msg = "Shopee response field 'items' must be a list"
-            raise ValueError(msg)
+            raise ShopeePayloadError(msg)
 
         return [self.mapper.map_item(item=item, niche=niche) for item in items[:limit]]
