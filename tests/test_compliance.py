@@ -18,25 +18,33 @@ def make_offer(*, url: str = "https://example.com/produto") -> Offer:
     )
 
 
-def test_compliance_blocks_missing_affiliate_disclosure() -> None:
-    offer = make_offer()
-    draft = MessageDraft(offer=offer, text="Compre agora: https://example.com/produto")
+def make_approved_draft() -> MessageDraft:
+    return MessageDraft(
+        offer=make_offer(),
+        text="Link de afiliado com comissão: https://example.com/produto",
+    )
 
-    result = ComplianceAgent(settings=Settings()).validate(draft=draft, dry_run=True)
+
+def make_blocked_draft() -> MessageDraft:
+    return MessageDraft(
+        offer=make_offer(),
+        text="Compre agora: https://example.com/produto",
+    )
+
+
+def test_compliance_blocks_missing_affiliate_disclosure() -> None:
+    result = ComplianceAgent(settings=Settings()).validate(
+        draft=make_blocked_draft(),
+        dry_run=True,
+    )
 
     assert not result.approved
     assert "mensagem sem aviso de afiliado" in result.reasons
 
 
 def test_compliance_validates_batch() -> None:
-    approved_draft = MessageDraft(
-        offer=make_offer(),
-        text="Link de afiliado com comissão: https://example.com/produto",
-    )
-    blocked_draft = MessageDraft(
-        offer=make_offer(),
-        text="Compre agora: https://example.com/produto",
-    )
+    approved_draft = make_approved_draft()
+    blocked_draft = make_blocked_draft()
 
     results = ComplianceAgent(settings=Settings()).validate_batch(
         drafts=(approved_draft, blocked_draft),
@@ -47,3 +55,15 @@ def test_compliance_validates_batch() -> None:
     assert results[0].approved
     assert not results[1].approved
     assert "mensagem sem aviso de afiliado" in results[1].reasons
+
+
+def test_compliance_filters_approved_drafts() -> None:
+    approved_draft = make_approved_draft()
+    blocked_draft = make_blocked_draft()
+
+    drafts = ComplianceAgent(settings=Settings()).approved_drafts(
+        drafts=(approved_draft, blocked_draft),
+        dry_run=True,
+    )
+
+    assert drafts == (approved_draft,)
