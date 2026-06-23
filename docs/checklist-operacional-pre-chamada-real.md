@@ -113,7 +113,22 @@ Critério para seguir:
 - preview já revisado;
 - contrato oficial confirmado.
 
-## 7. Executar chamada real controlada
+## 7. Rodar status seguro do ambiente
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.tools.safe_status --marketplace shopee
+```
+
+Critério para seguir:
+
+```text
+INFO | Ambiente pronto para chamada real controlada
+INFO | Publicação real continua fora do escopo deste status.
+```
+
+Se o status retornar ambiente bloqueado, não execute a chamada real.
+
+## 8. Executar chamada real controlada
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --execute-real-http-once
@@ -137,7 +152,7 @@ Critério de parada:
 - quantidade inesperada;
 - qualquer indício de publicação real.
 
-## 8. Se houver payload bruto local
+## 9. Se houver payload bruto local
 
 Se for necessário salvar o payload bruto para análise, usar apenas pasta ignorada pelo Git, como `tmp/`.
 
