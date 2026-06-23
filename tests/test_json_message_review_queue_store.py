@@ -9,6 +9,7 @@ from ofertas_bot.storage.json_message_review_queue_store import (
     approved_review_drafts,
     create_pending_review_queue,
     reject_review_queue_item,
+    summarize_review_queue,
 )
 
 
@@ -71,6 +72,24 @@ def test_approved_review_drafts_returns_only_approved_items() -> None:
     drafts = approved_review_drafts(items)
 
     assert drafts == (approved_draft,)
+
+
+def test_summarize_review_queue_counts_statuses() -> None:
+    items = (
+        MessageReviewQueueItem(draft=make_draft("Pendente"), status="pending"),
+        MessageReviewQueueItem(draft=make_draft("Aprovado"), status="approved"),
+        MessageReviewQueueItem(draft=make_draft("Rejeitado"), status="rejected"),
+        MessageReviewQueueItem(draft=make_draft("Pendente 2"), status="pending"),
+    )
+
+    summary = summarize_review_queue(items)
+
+    assert summary == {
+        "total": 4,
+        "pending": 2,
+        "approved": 1,
+        "rejected": 1,
+    }
 
 
 def test_approve_review_queue_item_marks_item_as_approved() -> None:
