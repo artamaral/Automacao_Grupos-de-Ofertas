@@ -119,6 +119,14 @@ Para validar o manifesto local antes de qualquer etapa futura de publicação:
 
 O manifesto apenas registra itens `ready`, alvo planejado e data de criação. Esses comandos apenas alteram, consultam ou exportam arquivos locais. Nenhum envio é executado.
 
+Para consolidar a revisão local em um único relatório auditável:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.local_review_bundle_cli --queue-json .data\review_queue.json --approved-messages-json .data\approved_messages.json --manifest-json .data\publication_manifest.json --save-bundle-json .data\local_review_bundle.json
+```
+
+O relatório consolidado registra hashes, tamanhos, contagens, checks e problemas encontrados nos arquivos locais.
+
 Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem chamada externa real:
 
 ```powershell
@@ -150,6 +158,7 @@ No Windows PowerShell:
 - [`docs/cli-messages.md`](docs/cli-messages.md): padrão de mensagens do CLI.
 - [`docs/copy-guidelines.md`](docs/copy-guidelines.md): diretrizes de copy.
 - [`docs/commit-pattern.md`](docs/commit-pattern.md): padrão de commits.
+- [`docs/ci.md`](docs/ci.md): validação automática com GitHub Actions.
 
 ## Estrutura
 
