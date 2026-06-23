@@ -10,6 +10,7 @@ from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.models import Marketplace
+from ofertas_bot.providers.amazon import AmazonConfigurationError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.settings import get_settings
 
@@ -64,13 +65,9 @@ def run(argv: Sequence[str] | None = None) -> int:
     try:
         offers = collector.collect(marketplace=marketplace, niche=args.niche, limit=limit)
     except ShopeeConfigurationError as error:
-        print("ERRO | Configuração da Shopee incompleta", file=sys.stderr)
-        print(f"DETALHE | {error}", file=sys.stderr)
-        print(
-            "AÇÃO | Configure o arquivo .env local ou rode com --marketplace mock.",
-            file=sys.stderr,
-        )
-        return 2
+        return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
+    except AmazonConfigurationError as error:
+        return _print_configuration_error(marketplace=Marketplace.AMAZON, error=error)
 
     scored_offers = scorer.score(offers)
 
@@ -97,6 +94,17 @@ def run(argv: Sequence[str] | None = None) -> int:
         )
 
     return 0
+
+
+def _print_configuration_error(marketplace: Marketplace, error: Exception) -> int:
+    marketplace_name = marketplace.value.capitalize()
+    print(f"ERRO | Configuração da {marketplace_name} incompleta", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Configure o arquivo .env local ou rode com --marketplace mock.",
+        file=sys.stderr,
+    )
+    return 2
 
 
 def main() -> None:
