@@ -68,10 +68,10 @@ No Windows PowerShell, usando o Python da venv:
 Também é possível salvar as mensagens aprovadas pelo compliance para revisão humana local, sem publicar nada real:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace mock --limit 1 --save-messages-json .data\messages.json --save-messages-text .data\messages.txt
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --niche maquiagem --marketplace mock --limit 1 --save-messages-json .data\messages.json --save-messages-text .data\messages.txt --save-review-queue-json .data\review_queue.json
 ```
 
-Use o JSON para auditoria técnica e o TXT para leitura/revisão manual antes de qualquer etapa de publicação.
+Use o JSON de mensagens para auditoria técnica, o TXT para leitura/revisão manual e a fila `review_queue.json` para controlar quais mensagens continuam pendentes, aprovadas ou rejeitadas antes de qualquer etapa de publicação.
 
 Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem chamada externa real:
 
