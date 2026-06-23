@@ -16,6 +16,30 @@ Edite apenas o `.env` local. Nunca edite `.env.example` com valores reais.
 
 O arquivo `.env` não deve ser versionado.
 
+Confirme que ele está ignorado pelo Git:
+
+```powershell
+git check-ignore -v .env
+```
+
+A saída esperada deve apontar para a regra `.env` no `.gitignore`.
+
+## Observação sobre variáveis externas
+
+As variáveis principais do `Settings` são carregadas do `.env` local.
+
+As configurações externas dos providers, como base URL, path e confirmação de endpoint, são lidas do ambiente da sessão de execução. Enquanto essa leitura não estiver centralizada, defina essas variáveis no PowerShell antes dos comandos de status, preview ou chamada controlada.
+
+Exemplo seguro para a sessão atual:
+
+```powershell
+$env:SHOPEE_BASE_URL="https://partner.shopeemobile.com"
+$env:SHOPEE_SEARCH_PATH="/api/v2/product/search_item"
+$env:SHOPEE_SEARCH_PATH_CONFIRMED="false"
+```
+
+Use `true` em `SHOPEE_SEARCH_PATH_CONFIRMED` somente depois de confirmar o endpoint oficial e revisar o preview seguro.
+
 ## Variáveis gerais
 
 | Variável | Padrão | Descrição |
@@ -96,6 +120,14 @@ Se o `.env` não tiver as variáveis da Shopee, o CLI deve mostrar erro amigáve
 
 Se o `.env` não tiver as variáveis da Amazon, o CLI deve mostrar erro amigável e exit code `2`.
 
+### Status seguro da Shopee antes de chamada real
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.tools.safe_status --marketplace shopee
+```
+
+Use esse comando para conferir se o ambiente está pronto ou bloqueado antes de qualquer chamada real controlada.
+
 ### Preview seguro da Shopee antes de chamada real
 
 ```powershell
@@ -106,7 +138,7 @@ Use esse comando para revisar método, base URL, path e parâmetros não sensív
 
 ### Chamada real controlada da Shopee
 
-Antes de rodar `--execute-real-http-once`, o `.env` local precisa ter:
+Antes de rodar `--execute-real-http-once`, o ambiente local precisa ter:
 
 ```text
 SHOPEE_SEARCH_PATH_CONFIRMED=true
