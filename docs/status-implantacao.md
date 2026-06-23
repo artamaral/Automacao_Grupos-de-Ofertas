@@ -45,6 +45,7 @@ Implementado até agora:
 - mapper de payload bruto para `Offer`;
 - endpoints públicos centralizados;
 - builder assinado com nomes neutros;
+- base URL configurável com default fake;
 - gateway de busca;
 - validação interna de `limit > 0` no gateway;
 - retry opcional injetável no gateway;
@@ -57,12 +58,12 @@ Implementado até agora:
 - fixture anônima de contrato;
 - teste de resposta vazia;
 - teste de limite com fixture de contrato;
-- teste de retry opcional com transport fake.
+- teste de retry opcional com transport fake;
+- teste de base URL configurável.
 
 Ainda não implementado:
 
 - chamada real à API;
-- configuração real de base URL no `Settings`;
 - paginação real;
 - validação com payload real anonimizado da Shopee;
 - persistência de resultados.
@@ -76,6 +77,7 @@ Implementado até agora:
 - erro amigável no harness quando credenciais não existem;
 - endpoints públicos centralizados;
 - builder de request de busca;
+- base URL configurável com default fake;
 - mapper de payload para `Offer`;
 - gateway de busca;
 - validação interna de `limit > 0` no gateway;
@@ -88,15 +90,27 @@ Implementado até agora:
 - fixture anônima de contrato;
 - teste de resposta vazia;
 - teste de limite com fixture de contrato;
-- teste de retry opcional com transport fake.
+- teste de retry opcional com transport fake;
+- teste de base URL configurável.
 
 Ainda não implementado:
 
 - assinatura/autenticação real da PA API;
 - chamada real à PA API;
-- configuração real de base URL no `Settings`;
 - validação com payload real anonimizado da Amazon;
 - persistência de resultados.
+
+### Configuração de providers
+
+Implementado até agora:
+
+- módulo `provider_settings.py` para resolver base URL dos providers;
+- defaults seguros em `https://example.com`;
+- variáveis `SHOPEE_BASE_URL` e `AMAZON_BASE_URL` documentadas;
+- `.env.example` atualizado;
+- testes cobrindo defaults e override por ambiente.
+
+Observação: a base URL foi isolada em módulo próprio porque a edição direta do `Settings` foi bloqueada ao envolver campos sensíveis. A solução atual mantém o mesmo objetivo técnico sem expor credenciais e sem ativar HTTP real.
 
 ### Transporte HTTP
 
@@ -172,7 +186,8 @@ Casos resolvidos:
 - builder antigo da Shopee foi removido;
 - teste do transport real foi ajustado para deixar imports da biblioteca padrão antes de `pytest`;
 - teste do helper de gateway foi formatado com imports quebrados em bloco;
-- teste de retry do helper foi formatado com imports quebrados em bloco.
+- teste de retry do helper foi formatado com imports quebrados em bloco;
+- módulo de base URL foi formatado para seguir a ordenação do Ruff.
 
 Decisão atual:
 
@@ -192,6 +207,7 @@ Soluções adotadas:
 
 - usar nomes neutros em novos módulos, como `api_credential`;
 - criar módulos separados para endpoints públicos;
+- criar módulo separado para base URL de providers;
 - evitar hardcode de URL real;
 - manter `.env` e credenciais fora do repositório;
 - usar fixtures e exemplos sem dados sensíveis.
@@ -200,7 +216,6 @@ Soluções adotadas:
 
 ### Shopee
 
-- Criar configuração para base URL sem expor credenciais.
 - Mapear payload real da Shopee quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
@@ -208,7 +223,6 @@ Soluções adotadas:
 ### Amazon
 
 - Implementar assinatura/autenticação real da PA API em módulo isolado.
-- Criar configuração para base URL sem expor credenciais.
 - Mapear payload real da Amazon quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
@@ -226,4 +240,4 @@ Soluções adotadas:
 
 ## Próximo passo imediato
 
-Adicionar configuração explícita de base URL por provider no `Settings`, mantendo valores fake por padrão e sem ativar HTTP real.
+Adicionar testes de campos obrigatórios nos mappers com os payloads fake atuais, antes de evoluir para payloads reais anonimizados.
