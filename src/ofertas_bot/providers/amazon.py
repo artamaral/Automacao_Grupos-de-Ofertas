@@ -10,6 +10,7 @@ from ofertas_bot.providers.real_http_guard import (
     RealHttpPrerequisites,
     validate_real_http_prerequisites,
 )
+from ofertas_bot.providers.transport import UrllibHttpTransport
 from ofertas_bot.settings import Settings
 
 
@@ -60,7 +61,8 @@ class AmazonProvider:
             partner_tag=self.settings.amazon_partner_tag or "",
             base_url=get_provider_base_urls().amazon,
         )
-        return AmazonGateway(request_builder=builder)
+        transport = UrllibHttpTransport() if self.settings.enable_real_http else None
+        return AmazonGateway(request_builder=builder, transport=transport)
 
     def _validate_configuration(self) -> None:
         missing = []
