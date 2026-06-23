@@ -5,7 +5,7 @@ from ofertas_bot.settings import Settings
 def make_shopee_settings(enabled: bool = True) -> Settings:
     values = {
         "enable_real_http": enabled,
-        "shopee_partner_id": "123456789",
+        "shopee_partner_id": "987654321",
         "shopee_tracking_id": "tracking",
     }
     values["shopee_" + "secret_key"] = "credential"
@@ -39,7 +39,7 @@ def test_harness_prints_safe_shopee_request_preview(monkeypatch, capsys) -> None
     assert "INFO | param.timestamp=1234567890" in captured.out
     assert "INFO | param.partner_id=<masked:9 chars>" in captured.out
     assert "INFO | param.sign=<masked:64 chars>" in captured.out
-    assert "123456789" not in captured.out
+    assert "987654321" not in captured.out
     assert "INFO | Nenhuma chamada HTTP foi executada." in captured.out
     assert "INFO | Nenhuma publicação foi executada." in captured.out
     assert "INFO | Nenhum JSON foi salvo automaticamente." in captured.out
