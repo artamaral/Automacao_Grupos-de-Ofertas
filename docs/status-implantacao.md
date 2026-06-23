@@ -48,6 +48,7 @@ Implementado até agora:
 - builder assinado com nomes neutros;
 - base URL configurável com default fake;
 - gateway de busca;
+- paginação fake opcional no gateway;
 - validação interna de `limit > 0` no gateway;
 - retry opcional injetável no gateway;
 - transport HTTP injetável/fake;
@@ -60,12 +61,13 @@ Implementado até agora:
 - teste de resposta vazia;
 - teste de limite com fixture de contrato;
 - teste de retry opcional com transport fake;
-- teste de base URL configurável.
+- teste de base URL configurável;
+- teste de paginação fake com transport sequencial.
 
 Ainda não implementado:
 
 - chamada real à API;
-- paginação real;
+- paginação real validada contra contrato oficial;
 - validação com payload real anonimizado da Shopee;
 - persistência de resultados.
 
@@ -82,6 +84,7 @@ Implementado até agora:
 - mapper de payload para `Offer`;
 - validação de campos obrigatórios no mapper;
 - gateway de busca;
+- paginação fake opcional no gateway;
 - validação interna de `limit > 0` no gateway;
 - retry opcional injetável no gateway;
 - transport HTTP injetável/fake;
@@ -93,12 +96,14 @@ Implementado até agora:
 - teste de resposta vazia;
 - teste de limite com fixture de contrato;
 - teste de retry opcional com transport fake;
-- teste de base URL configurável.
+- teste de base URL configurável;
+- teste de paginação fake com transport sequencial.
 
 Ainda não implementado:
 
 - assinatura/autenticação real da PA API;
 - chamada real à PA API;
+- paginação real validada contra contrato oficial;
 - validação com payload real anonimizado da Amazon;
 - persistência de resultados.
 
@@ -124,6 +129,20 @@ Implementado até agora:
 - payload inválido falha antes de score, copy ou publicação.
 
 Critério atual: payload real só deve entrar como fixture anonimizada e precisa respeitar essas validações mínimas.
+
+### Paginação
+
+Implementado até agora:
+
+- `execute_paginated_search()` opcional no gateway da Shopee;
+- `execute_paginated_search()` opcional no gateway da Amazon;
+- paginação fake com `limit`, `page_size` e `max_pages` positivos;
+- Shopee envia `page` nos parâmetros do request;
+- Amazon envia `Page` no body do request;
+- parada por `has_next_page`, `limit` ou `max_pages`;
+- testes com transport fake sequencial.
+
+Critério atual: paginação existe apenas para fluxo fake/injetável e ainda não é usada pelo harness nem por chamadas reais.
 
 ### Transporte HTTP
 
@@ -231,6 +250,7 @@ Soluções adotadas:
 
 - Mapear payload real da Shopee quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API além do mínimo comum.
+- Validar paginação contra contrato real anonimizado quando disponível.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
 ### Amazon
@@ -238,6 +258,7 @@ Soluções adotadas:
 - Implementar assinatura/autenticação real da PA API em módulo isolado.
 - Mapear payload real da Amazon quando houver exemplo anonimizado seguro.
 - Adicionar validação de campos obrigatórios vindos da API além do mínimo comum.
+- Validar paginação contra contrato real anonimizado quando disponível.
 - Definir logs seguros, sem imprimir tokens, assinatura ou credenciais.
 
 ### Configuração e operação
@@ -247,10 +268,9 @@ Soluções adotadas:
 
 ### Qualidade
 
-- Criar testes para paginação quando os contratos reais forem definidos.
 - Avaliar extração de validações comuns de payload quando os contratos reais estabilizarem.
 - Revisar documentação quando o primeiro payload real anonimizado for adicionado.
 
 ## Próximo passo imediato
 
-Criar paginação fake nos gateways usando payloads controlados, sem chamada real e sem mudar o comportamento padrão dos providers.
+Adicionar validação e testes de `max_pages`/parada de paginação para evitar loops longos em fluxos fake e futuros fluxos reais.
