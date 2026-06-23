@@ -73,10 +73,28 @@ Também é possível salvar as mensagens aprovadas pelo compliance para revisão
 
 Use o JSON de mensagens para auditoria técnica, o TXT para leitura/revisão manual e a fila `review_queue.json` para controlar quais mensagens continuam pendentes, aprovadas ou rejeitadas antes de qualquer etapa de publicação.
 
+Para listar a fila local:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.review_queue_list_cli --queue-json .data\review_queue.json
+```
+
+Para ver o resumo da fila local:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.review_queue_summary_cli --queue-json .data\review_queue.json
+```
+
 Para marcar uma decisão humana na fila local:
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.review_queue_cli --queue-json .data\review_queue.json --item 1 --status approved --reviewer Arthur --notes "ok para teste"
+```
+
+Antes da exportação final, valide o gate local:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.review_queue_gate_cli --queue-json .data\review_queue.json
 ```
 
 Para exportar somente as mensagens aprovadas:
@@ -85,7 +103,7 @@ Para exportar somente as mensagens aprovadas:
 .\.venv\Scripts\python.exe -m ofertas_bot.review_queue_export_cli --queue-json .data\review_queue.json --save-approved-messages-json .data\approved_messages.json --save-approved-messages-text .data\approved_messages.txt
 ```
 
-Esses comandos apenas alteram ou exportam arquivos locais. Nenhum envio é executado.
+A exportação final também aplica o gate automaticamente: ela bloqueia se ainda houver item pendente ou se não existir nenhuma mensagem aprovada. Esses comandos apenas alteram, consultam ou exportam arquivos locais. Nenhum envio é executado.
 
 Exemplos com Shopee ou Amazon sem credenciais devem retornar erro amigável, sem chamada externa real:
 
