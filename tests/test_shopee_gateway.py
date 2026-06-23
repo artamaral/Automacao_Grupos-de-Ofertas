@@ -1,7 +1,7 @@
 import pytest
 
 from ofertas_bot.models import Marketplace
-from ofertas_bot.providers.http import HttpResponse
+from ofertas_bot.providers.http import HttpResponse, ProviderHttpError
 from ofertas_bot.providers.shopee_gateway import ShopeeGateway
 from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuilder
 from ofertas_bot.providers.transport import StaticHttpTransport
@@ -66,6 +66,29 @@ def test_shopee_gateway_executes_search_with_static_transport() -> None:
     assert len(offers) == 1
     assert offers[0].marketplace == Marketplace.SHOPEE
     assert offers[0].title == "Kit Maquiagem"
+    assert transport.requests[0].params["keyword"] == "maquiagem"
+
+
+def test_shopee_gateway_rejects_http_error_response() -> None:
+    response = HttpResponse(status_code=500, data={"items": []})
+    transport = StaticHttpTransport(response=response)
+    gateway = ShopeeGateway(
+        request_builder=ShopeeSignedRequestBuilder(
+            partner_id="123",
+            api_credential="abc",
+            base_url="https://example.com",
+        ),
+        transport=transport,
+    )
+
+    with pytest.raises(ProviderHttpError, match="Shopee request failed with status=500"):
+        gateway.execute_search(
+            keyword="maquiagem",
+            niche="maquiagem",
+            limit=1,
+            timestamp=1710000000,
+        )
+
     assert transport.requests[0].params["keyword"] == "maquiagem"
 
 
