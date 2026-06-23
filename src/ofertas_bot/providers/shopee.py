@@ -7,6 +7,10 @@ from typing import Any
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.http import HttpRequest
 from ofertas_bot.providers.provider_settings import get_provider_base_urls
+from ofertas_bot.providers.real_http_guard import (
+    RealHttpPrerequisites,
+    validate_real_http_prerequisites,
+)
 from ofertas_bot.providers.shopee_gateway import ShopeeGateway
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuilder
@@ -26,6 +30,8 @@ class ShopeeProvider:
 
     def fetch(self, niche: str, limit: int) -> list[Offer]:
         self._validate_configuration()
+        if self.settings.enable_real_http:
+            self.validate_real_http_ready()
         gateway = self._get_gateway()
         if gateway.transport is None:
             raise NotImplementedError(
@@ -47,6 +53,21 @@ class ShopeeProvider:
             keyword=keyword,
             limit=limit,
             timestamp=timestamp,
+        )
+
+    def validate_real_http_ready(self) -> None:
+        base_urls = get_provider_base_urls()
+        validate_real_http_prerequisites(
+            RealHttpPrerequisites(
+                provider_name="Shopee",
+                enabled=self.settings.enable_real_http,
+                base_url=base_urls.shopee,
+                required_config={
+                    "Shopee partner id": self.settings.shopee_partner_id,
+                    "Shopee tracking id": self.settings.shopee_tracking_id,
+                    "Shopee API credential": self.settings.shopee_secret_key,
+                },
+            )
         )
 
     def normalize_response(
