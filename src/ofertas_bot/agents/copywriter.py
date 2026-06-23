@@ -11,6 +11,7 @@ MARKETPLACE_LABELS = {
     Marketplace.SHOPEE: "Shopee",
     Marketplace.MOCK: "Oferta monitorada",
 }
+PLAN_SELECTED_REASON = "selecionada para este grupo"
 
 
 class CopywriterAgent:
@@ -46,7 +47,7 @@ class CopywriterAgent:
         if not plan.allowed:
             return ()
         scored_offers = tuple(
-            ScoredOffer(offer=offer, score=0, reasons=[])
+            ScoredOffer(offer=offer, score=0, reasons=[PLAN_SELECTED_REASON])
             for offer in plan.selected_offers
         )
         return self.create_messages_for_group(scored_offers, group_profile)
