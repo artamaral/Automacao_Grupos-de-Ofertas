@@ -17,6 +17,7 @@ from ofertas_bot.providers.amazon import AmazonConfigurationError, AmazonProvide
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.gateway import ProviderLimitError
 from ofertas_bot.providers.http import ProviderHttpError
+from ofertas_bot.providers.provider_settings import get_provider_path_confirmations
 from ofertas_bot.providers.real_http_guard import RealHttpValidationError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvider
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
@@ -246,6 +247,9 @@ def _run_real_http_once(
         print("AÇÃO | Use --marketplace shopee ou --marketplace amazon.", file=sys.stderr)
         return 3
 
+    if marketplace == Marketplace.SHOPEE and not _shopee_search_path_is_confirmed():
+        return _print_shopee_endpoint_confirmation_error()
+
     try:
         _validate_real_http_ready(marketplace=marketplace, settings=settings)
         offers = CollectorAgent(settings=settings).collect(
@@ -284,6 +288,10 @@ def _validate_real_http_ready(marketplace: Marketplace, settings: Settings) -> N
     if marketplace == Marketplace.AMAZON:
         AmazonProvider(settings=settings).validate_real_http_ready()
         return
+
+
+def _shopee_search_path_is_confirmed() -> bool:
+    return get_provider_path_confirmations().shopee_search
 
 
 def _mask_shopee_request_params(params: dict[str, Any]) -> dict[str, str]:
@@ -379,6 +387,20 @@ def _print_real_http_guard_error(error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Revise o checklist de produção antes de habilitar chamadas reais.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_shopee_endpoint_confirmation_error() -> int:
+    print("ERRO | Endpoint da Shopee não confirmado para chamada real", file=sys.stderr)
+    print(
+        "DETALHE | Defina SHOPEE_SEARCH_PATH_CONFIRMED=true somente após "
+        "conferir o path oficial.",
+        file=sys.stderr,
+    )
+    print(
+        "AÇÃO | Rode --print-provider-request e compare com a documentação oficial.",
         file=sys.stderr,
     )
     return 3
