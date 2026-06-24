@@ -12,6 +12,7 @@ src/ofertas_bot/group_plan_validation.py
 src/ofertas_bot/group_profiles.py
 src/ofertas_bot/harness.py
 src/ofertas_bot/local_artifacts_doctor_cli.py
+src/ofertas_bot/local_flow_cli.py
 src/ofertas_bot/local_manifest_audit_cli.py
 src/ofertas_bot/local_manifest_count_cli.py
 src/ofertas_bot/local_manifest_hash_cli.py
@@ -119,6 +120,7 @@ tests/test_json_message_review_queue_store.py
 tests/test_json_offer_store.py
 tests/test_json_publication_manifest_store.py
 tests/test_local_artifacts_doctor_cli.py
+tests/test_local_flow_cli.py
 tests/test_local_manifest_audit_cli.py
 tests/test_local_manifest_count_cli.py
 tests/test_local_manifest_hash_cli.py

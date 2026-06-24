@@ -1,6 +1,7 @@
 [console_scripts]
 ofertas-harness = ofertas_bot.harness:main
 ofertas-local-doctor = ofertas_bot.local_artifacts_doctor_cli:main
+ofertas-local-flow = ofertas_bot.local_flow_cli:main
 ofertas-manifest-count = ofertas_bot.local_manifest_count_cli:main
 ofertas-manifest-create = ofertas_bot.publication_manifest_cli:main
 ofertas-manifest-hash = ofertas_bot.local_manifest_hash_cli:main
