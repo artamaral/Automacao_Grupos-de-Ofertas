@@ -12,6 +12,20 @@ Este arquivo define os agentes internos, o fluxo de implementação e o harness 
 - Publicação real só deve existir após aprovação humana, logs e configuração explícita.
 - Mensagens de commit devem seguir `docs/commit-pattern.md`.
 
+## Decisão operacional atual
+
+O projeto deve priorizar simplicidade operacional. A partir desta decisão, o foco é reduzir comandos, flags e artefatos soltos, consolidando o fluxo em poucos pontos de entrada automatizáveis.
+
+Diretrizes obrigatórias:
+
+- Não criar novos CLIs pequenos ou flags auxiliares sem necessidade operacional clara.
+- Tratar os CLIs já existentes como ferramentas internas de suporte, não como fluxo principal para operação humana diária.
+- O fluxo final deve ser pensado para ser chamado por automação/agendador/orquestrador, não por um humano executando vários scripts manualmente.
+- Humanos participam apenas nas decisões necessárias: aprovação/rejeição, credenciais, configuração de travas e validações locais importantes.
+- A próxima prioridade de implementação é simplificar o fluxo local em um comando/orquestrador operacional com caminhos padrão e poucas entradas.
+- Documentação deve destacar o fluxo recomendado e mover detalhes avançados para seções de apoio ou debug.
+- Segurança continua obrigatória: nada de envio real, HTTP real, credenciais ou publicação real sem configuração explícita, canal permitido e aprovação humana.
+
 ## Regra de trabalho GitHub/local
 
 Para reduzir erro manual de copia e cola, o fluxo oficial deste projeto é:
@@ -151,11 +165,12 @@ docs(workflow): adiciona padrao de commits
 - Nenhuma publicação real acontece.
 - Mensagens contêm aviso de afiliado.
 - Código organizado por agentes/providers.
+- Fluxo operacional simplificado e automatizável.
 
 ## Próximas issues sugeridas
 
-1. Implementar provider real da Shopee.
-2. Implementar provider real da Amazon PA API.
-3. Adicionar persistência SQLite.
-4. Criar fila de aprovação humana.
-5. Criar CI com pytest e ruff.
+1. Consolidar fluxo local em um orquestrador operacional simples.
+2. Reduzir documentação operacional para o caminho recomendado.
+3. Mover ferramentas auxiliares para documentação de debug/auditoria.
+4. Adicionar persistência SQLite para histórico.
+5. Retomar Shopee/Amazon reais apenas após credenciais e aprovações formais.
