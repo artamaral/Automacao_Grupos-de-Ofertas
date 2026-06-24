@@ -20,6 +20,7 @@ def test_pyproject_registers_expected_cli_scripts() -> None:
         "ofertas-manifest-hash",
         "ofertas-review-bundle",
         "ofertas-local-doctor",
+        "ofertas-local-flow",
     }
 
     assert expected_scripts <= set(scripts)

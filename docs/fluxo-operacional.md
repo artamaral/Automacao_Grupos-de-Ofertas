@@ -1,0 +1,101 @@
+# Fluxo operacional local
+
+Este projeto deve ser operado por automação, agendador ou orquestrador. O objetivo é evitar execução manual de vários scripts pequenos.
+
+## Comando principal
+
+Use o orquestrador local:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --niche maquiagem --marketplace mock --target grupo-maquiagem
+```
+
+Após a aprovação/rejeição da fila por um processo humano ou interface externa, finalize os artefatos locais:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage finalize --target grupo-maquiagem
+```
+
+Se o pacote foi instalado na venv, os atalhos equivalentes são:
+
+```powershell
+ofertas-local-flow --stage prepare --niche maquiagem --marketplace mock --target grupo-maquiagem
+ofertas-local-flow --stage finalize --target grupo-maquiagem
+```
+
+## Caminhos padrão
+
+O fluxo usa `.data` por padrão:
+
+```text
+.data/offers.json
+.data/messages.json
+.data/messages.txt
+.data/review_queue.json
+.data/approved_messages.json
+.data/approved_messages.txt
+.data/publication_manifest.json
+.data/local_review_bundle.json
+```
+
+## Etapa prepare
+
+A etapa `prepare`:
+
+- coleta ofertas em modo seguro;
+- pontua ofertas;
+- gera mensagens;
+- valida compliance;
+- salva artefatos locais;
+- cria fila de revisão pendente;
+- não envia nada;
+- não chama publicação real.
+
+## Etapa finalize
+
+A etapa `finalize`:
+
+- aplica gate da fila;
+- exporta somente aprovadas;
+- cria manifesto local;
+- valida manifesto;
+- cria bundle local de auditoria;
+- executa doctor local;
+- para na primeira falha;
+- não envia nada;
+- não chama publicação real.
+
+## Papel humano
+
+O humano não deve operar vários CLIs manualmente no fluxo principal.
+
+O humano participa apenas para:
+
+- aprovar ou rejeitar mensagens;
+- configurar credenciais;
+- liberar travas de segurança quando for apropriado;
+- validar localmente quando solicitado.
+
+## Ferramentas auxiliares
+
+Os CLIs menores existentes permanecem úteis para debug, auditoria e manutenção, mas não devem ser o caminho operacional principal.
+
+Exemplos:
+
+```text
+ofertas-review-list
+ofertas-review-decide
+ofertas-review-export
+ofertas-review-gate
+ofertas-manifest-validate
+ofertas-local-doctor
+```
+
+## Validação de desenvolvimento
+
+Após mudanças no código:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m pytest
+```
