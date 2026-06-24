@@ -40,6 +40,13 @@ $env:SHOPEE_SEARCH_PATH_CONFIRMED="false"
 
 Use `true` em `SHOPEE_SEARCH_PATH_CONFIRMED` somente depois de confirmar o endpoint oficial e revisar o preview seguro.
 
+Observação: a Open API de afiliados informada para a Shopee usa GraphQL no
+endpoint `https://open-api.affiliate.shopee.com.br/graphql`. A query de lista de
+ofertas é `shopeeOfferV2`, e a mutação `generateShortLink` deve ser usada para
+gerar links curtos rastreáveis. As variáveis REST acima pertencem ao contrato
+legado do projeto e devem ser substituídas por configuração GraphQL antes de
+chamada real.
+
 ## Variáveis gerais
 
 | Variável | Padrão | Descrição |
@@ -61,6 +68,7 @@ Use `true` em `SHOPEE_SEARCH_PATH_CONFIRMED` somente depois de confirmar o endpo
 | `SHOPEE_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
 | `SHOPEE_SEARCH_PATH` | Não | Caminho do endpoint de busca/listagem. Padrão provisório: `/api/v2/product/search_item`. Confirmar no painel/documentação oficial antes de chamada real. |
 | `SHOPEE_SEARCH_PATH_CONFIRMED` | Sim, para chamada real | Deve ser `true` apenas depois de comparar o preview com o endpoint oficial. Padrão seguro: `false`. |
+| `SHOPEE_GRAPHQL_URL` | Sim, para integração real futura | Endpoint GraphQL da Open API de afiliados. Valor informado: `https://open-api.affiliate.shopee.com.br/graphql`. |
 
 Estado atual:
 
@@ -72,7 +80,11 @@ Estado atual:
 - chamada real continua desativada por padrão;
 - chamada real da Shopee exige confirmação explícita do path;
 - payload real ainda não deve ser usado sem anonimização;
-- endpoint da Shopee precisa de confirmação manual antes de chamada real.
+- endpoint da Shopee precisa de confirmação manual antes de chamada real;
+- contrato correto informado para ofertas é GraphQL com a query
+  `shopeeOfferV2`;
+- short links devem ser gerados pela mutação `generateShortLink`;
+- o provider REST atual deve ser refatorado antes de uso real.
 
 ## Amazon
 

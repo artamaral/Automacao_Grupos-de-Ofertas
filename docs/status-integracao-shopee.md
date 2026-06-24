@@ -4,9 +4,12 @@ Este arquivo registra o ponto exato em que a integração real com a Shopee foi 
 
 ## Status atual
 
-**Status:** pausado, aguardando aprovação/liberação da conta Shopee.
+**Status:** contrato real identificado como GraphQL, aguardando refatoração do
+provider Shopee antes de qualquer chamada real.
 
-A conta Shopee ainda está em análise. Por isso, a validação final de credenciais, permissões do app e contrato real do endpoint não pode ser concluída neste momento.
+A conta Shopee e a Open API de afiliados devem ser tratadas pelo contrato
+GraphQL informado para o projeto. O contrato REST usado antes no código fica
+registrado apenas como legado/provisório.
 
 ## O que já foi validado
 
@@ -16,12 +19,110 @@ A conta Shopee ainda está em análise. Por isso, a validação final de credenc
 - A trava `ENABLE_REAL_PUBLISH` deve permanecer desligada.
 - O `safe_status` valida pré-requisitos antes de qualquer chamada real.
 - O preview seguro do request mascara `partner_id` e `sign`.
-- A base URL real usada nos testes manuais foi `https://partner.shopeemobile.com`.
-- O path em análise foi `/api/v2/product/search_item`.
+- A base URL real usada nos testes manuais antigos foi `https://partner.shopeemobile.com`.
+- O path legado em análise foi `/api/v2/product/search_item`.
 - O endpoint respondeu quando chamado sem query, indicando ausência de `partner_id`.
 - O código passou a validar que `SHOPEE_PARTNER_ID` precisa ser numérico.
 - O código passou a rejeitar payloads de erro da Shopee em vez de normalizar `0` ofertas silenciosamente.
 - Foi criada ferramenta para capturar resposta real já anonimizada em `tmp/`.
+- A Open API correta informada para ofertas usa GraphQL com a query
+  `shopeeOfferV2`.
+
+## Contrato GraphQL informado
+
+Query:
+
+```text
+shopeeOfferV2
+```
+
+Endpoint informado:
+
+```text
+POST https://open-api.affiliate.shopee.com.br/graphql
+```
+
+Headers conhecidos:
+
+```text
+Authorization: SHA256 Credential=<credential>, Signature=<signature>, Timestamp=<timestamp>
+Content-Type: application/json
+```
+
+Além da listagem de ofertas, a Open API informada possui operações para marca,
+produto, product feed, brand feed e geração de short URL.
+
+Retorno:
+
+```text
+ShopeeOfferConnectionV2!
+```
+
+Parâmetros:
+
+| Campo | Tipo | Descrição |
+| --- | --- | --- |
+| `keyword` | `String` | Busca por nome da oferta. |
+| `sortType` | `Int` | `1` mais recentes, `2` maior comissão. |
+| `page` | `Int` | Número da página. |
+| `limit` | `Int` | Quantidade por página. |
+
+Resposta:
+
+| Campo | Tipo | Descrição |
+| --- | --- | --- |
+| `nodes` | `[ShopeeOfferV2]!` | Lista de ofertas. |
+| `pageInfo` | `PageInfo!` | Paginação. |
+
+Campos de `ShopeeOfferV2`:
+
+| Campo | Tipo |
+| --- | --- |
+| `commissionRate` | `String` |
+| `imageUrl` | `String` |
+| `offerLink` | `String` |
+| `originalLink` | `String` |
+| `offerName` | `String` |
+| `offerType` | `Int` |
+| `categoryId` | `Int64` |
+| `collectionId` | `Int64` |
+| `periodStartTime` | `Int` |
+| `periodEndTime` | `Int` |
+
+Campos de `PageInfo`:
+
+| Campo | Tipo |
+| --- | --- |
+| `page` | `Int` |
+| `limit` | `Int` |
+| `hasNextPage` | `Bool` |
+
+### Mutação `generateShortLink`
+
+A mutação de short URL deve ser considerada importante para o fluxo de envio,
+pois permite gerar links curtos rastreáveis para as mensagens.
+
+Exemplo informado:
+
+```graphql
+mutation {
+  generateShortLink(
+    input: {
+      originUrl: "https://shopee.com.br/Apple-Iphone-11-128GB-Local-Set-i.52377417.6309028319"
+      subIds: ["s1", "s2", "s3", "s4", "s5"]
+    }
+  ) {
+    shortLink
+  }
+}
+```
+
+Uso esperado:
+
+- receber `originUrl` de oferta, produto ou cupom;
+- gerar `subIds` internos para rastrear grupo, campanha, execução e origem;
+- salvar `shortLink` junto da oferta selecionada;
+- usar `shortLink` nas mensagens aprovadas.
 
 ## Evidências observadas
 
@@ -86,9 +187,7 @@ SHOPEE_TRACKING_ID=<tracking_id_se_aplicavel>
 E, na sessão do PowerShell usada para os comandos reais:
 
 ```powershell
-$env:SHOPEE_BASE_URL="https://partner.shopeemobile.com"
-$env:SHOPEE_SEARCH_PATH="/api/v2/product/search_item"
-$env:SHOPEE_SEARCH_PATH_CONFIRMED="true"
+$env:SHOPEE_GRAPHQL_URL="https://open-api.affiliate.shopee.com.br/graphql"
 ```
 
 ## Comandos para retomar quando a conta for aprovada
@@ -111,9 +210,7 @@ git pull
 3. Reconfigurar variáveis de sessão:
 
 ```powershell
-$env:SHOPEE_BASE_URL="https://partner.shopeemobile.com"
-$env:SHOPEE_SEARCH_PATH="/api/v2/product/search_item"
-$env:SHOPEE_SEARCH_PATH_CONFIRMED="true"
+$env:SHOPEE_GRAPHQL_URL="https://open-api.affiliate.shopee.com.br/graphql"
 ```
 
 4. Rodar status seguro:
@@ -129,21 +226,30 @@ INFO | Ambiente pronto para chamada real controlada
 INFO | Publicação real continua fora do escopo deste status.
 ```
 
-5. Rodar preview seguro:
+5. Refatorar o provider Shopee para GraphQL antes de rodar preview ou chamada real.
+
+O provider deve montar um `POST` GraphQL para `shopeeOfferV2`, normalizar
+`nodes` para `Offer` e usar `pageInfo.hasNextPage` para paginação.
+
+6. Rodar preview seguro após a refatoração:
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
 ```
 
-6. Conferir no painel/documentação oficial da conta aprovada se a assinatura esperada para o endpoint usa exatamente:
+7. Conferir no painel/documentação oficial da conta aprovada:
 
-```text
-partner_id + path + timestamp
-```
+- endpoint GraphQL;
+- headers obrigatórios;
+- formato de assinatura/autenticação;
+- envelope de resposta;
+- query de cupons, se existir;
+- queries de marca, produto, product feed e brand feed;
+- mutação `generateShortLink`;
+- limites e formato de `subIds`;
+- se `offerLink` já contém tracking de afiliado.
 
-Se o contrato exigir `access_token`, `shop_id`, `merchant_id`, outro path, outro host ou outro método HTTP, ajustar o `ShopeeSignedRequestBuilder` antes de nova chamada real.
-
-7. Fazer uma única chamada real controlada:
+8. Fazer uma única chamada real controlada:
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --execute-real-http-once
@@ -163,9 +269,10 @@ Se o contrato exigir `access_token`, `shop_id`, `merchant_id`, outro path, outro
 A integração Shopee só deve sair de `pausado` quando:
 
 1. a conta/app Shopee estiver aprovada;
-2. o endpoint real estiver confirmado no painel/documentação oficial;
-3. a assinatura estiver compatível com o contrato oficial;
-4. uma chamada real controlada com `--limit 1` retornar pelo menos uma resposta válida ou um payload vazio documentado como válido;
-5. a resposta real for anonimizada antes de virar fixture;
-6. `ruff` e `pytest` passarem sem erros;
-7. `ENABLE_REAL_PUBLISH` continuar `false`.
+2. o endpoint GraphQL real estiver confirmado no painel/documentação oficial;
+3. autenticação e headers estiverem compatíveis com o contrato oficial;
+4. `ShopeeProvider`, gateway e mapper estiverem refatorados para `shopeeOfferV2`;
+5. uma chamada real controlada com `--limit 1` retornar pelo menos uma resposta válida ou um payload vazio documentado como válido;
+6. a resposta real for anonimizada antes de virar fixture;
+7. `ruff` e `pytest` passarem sem erros;
+8. `ENABLE_REAL_PUBLISH` continuar `false`.
