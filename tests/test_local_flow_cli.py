@@ -45,7 +45,11 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
 
     monkeypatch.setattr(local_flow_cli.review_queue_export_cli, "run", make_step("export"))
     monkeypatch.setattr(local_flow_cli.publication_manifest_cli, "run", make_step("manifest"))
-    monkeypatch.setattr(local_flow_cli.publication_manifest_validate_cli, "run", make_step("validate"))
+    monkeypatch.setattr(
+        local_flow_cli.publication_manifest_validate_cli,
+        "run",
+        make_step("validate"),
+    )
     monkeypatch.setattr(local_flow_cli.local_review_bundle_cli, "run", make_step("bundle"))
     monkeypatch.setattr(local_flow_cli.local_artifacts_doctor_cli, "run", make_step("doctor"))
 

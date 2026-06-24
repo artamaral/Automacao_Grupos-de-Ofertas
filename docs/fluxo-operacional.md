@@ -99,3 +99,11 @@ Após mudanças no código:
 .\.venv\Scripts\python.exe -m ruff check .
 .\.venv\Scripts\python.exe -m pytest
 ```
+
+No Windows PowerShell, se a saída do fluxo falhar por encoding ao imprimir
+textos acentuados ou símbolos da mensagem, habilite UTF-8 antes de rodar o
+comando:
+
+```powershell
+$env:PYTHONUTF8='1'
+```

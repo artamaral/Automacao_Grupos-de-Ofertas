@@ -111,6 +111,14 @@ No Windows PowerShell:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
+Se o console do Windows falhar ao imprimir mensagens acentuadas ou símbolos da
+copy, habilite UTF-8 na sessão antes de rodar o fluxo operacional:
+
+```powershell
+$env:PYTHONUTF8='1'
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --niche maquiagem --marketplace mock --target grupo-maquiagem
+```
+
 ## Documentação
 
 - [`docs/fluxo-operacional.md`](docs/fluxo-operacional.md): fluxo operacional local simplificado.
