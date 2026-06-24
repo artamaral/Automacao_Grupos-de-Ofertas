@@ -3,7 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from os import getenv
 
-from ofertas_bot.providers.endpoints import AMAZON_SEARCH_PATH, SHOPEE_SEARCH_PATH
+from ofertas_bot.providers.endpoints import (
+    AMAZON_SEARCH_PATH,
+    SHOPEE_GRAPHQL_URL,
+    SHOPEE_SEARCH_PATH,
+)
 
 DEFAULT_PROVIDER_BASE_URL = "https://example.com"
 TRUE_ENV_VALUES = {"1", "true", "yes", "sim"}
@@ -22,6 +26,11 @@ class ProviderPaths:
 
 
 @dataclass(frozen=True)
+class ProviderGraphqlUrls:
+    shopee: str = SHOPEE_GRAPHQL_URL
+
+
+@dataclass(frozen=True)
 class ProviderPathConfirmations:
     shopee_search: bool = False
 
@@ -37,6 +46,12 @@ def get_provider_paths() -> ProviderPaths:
     return ProviderPaths(
         shopee_search=getenv("SHOPEE_SEARCH_PATH", SHOPEE_SEARCH_PATH),
         amazon_search=getenv("AMAZON_SEARCH_PATH", AMAZON_SEARCH_PATH),
+    )
+
+
+def get_provider_graphql_urls() -> ProviderGraphqlUrls:
+    return ProviderGraphqlUrls(
+        shopee=getenv("SHOPEE_GRAPHQL_URL", SHOPEE_GRAPHQL_URL),
     )
 
 

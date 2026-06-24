@@ -109,6 +109,48 @@ O header acima não deve ser logado com valores reais. `Credential`,
 `Signature` e `Timestamp` devem ser tratados como dados sensíveis ou
 operacionais.
 
+Assinatura:
+
+```text
+Signature = SHA256(Credential + Timestamp + Payload + Secret)
+```
+
+Onde:
+
+- `Credential` é o AppId da Open API;
+- `Timestamp` é o Unix timestamp atual, com diferença máxima de 10 minutos em
+  relação ao servidor;
+- `Payload` é o body JSON exato enviado na requisição;
+- `Secret` é a senha/chave da Open API e nunca deve ser exposta.
+
+Formato do body:
+
+```json
+{
+  "query": "...",
+  "operationName": "...",
+  "variables": {
+    "myVariable": "someValue"
+  }
+}
+```
+
+`operationName` e `variables` são opcionais no protocolo GraphQL, mas
+`operationName` é obrigatório quando houver mais de uma operação no mesmo
+documento. No projeto, os builders devem sempre preencher `operationName` para
+facilitar rastreio, logs seguros e testes.
+
+Envelope de resposta:
+
+```json
+{
+  "data": {},
+  "errors": []
+}
+```
+
+Quando não houver erro, `errors` pode não ser retornado.
+
 ### Contrato GraphQL conhecido
 
 Famílias de operações informadas:
@@ -175,6 +217,28 @@ Estrutura `PageInfo`:
 | `page` | `Int` | Página atual. |
 | `limit` | `Int` | Quantidade por página. |
 | `hasNextPage` | `Bool` | Indica se há próxima página. |
+
+### Estrutura de erro GraphQL
+
+Campos conhecidos em `errors`:
+
+| Campo | Tipo | Descrição |
+| --- | --- | --- |
+| `message` | `String` | Resumo do erro. |
+| `path` | `String` | Localização da requisição com erro. |
+| `extensions` | `object` | Detalhes do erro. |
+| `extensions.code` | `Int` | Código do erro. |
+| `extensions.message` | `String` | Descrição do erro. |
+
+Códigos conhecidos:
+
+| Código | Significado | Descrição |
+| --- | --- | --- |
+| `10000` | System error | Erro de sistema. |
+| `10010` | Request parsing error | Sintaxe incorreta, tipo incorreto ou API inexistente. |
+| `10020` | Identity authentication error | Assinatura incorreta ou expirada. |
+| `10030` | Trigger traffic limiting | Número de requests excedeu o limite. |
+| `11000` | Business processing error | Erro de processamento de negócio. |
 
 ### Mutação de short URL
 

@@ -49,8 +49,41 @@ Authorization: SHA256 Credential=<credential>, Signature=<signature>, Timestamp=
 Content-Type: application/json
 ```
 
+Assinatura:
+
+```text
+Signature = SHA256(Credential + Timestamp + Payload + Secret)
+```
+
+`Payload` é o body JSON exato enviado na requisição. A máquina precisa manter
+horário correto, porque a diferença entre `Timestamp` e o servidor não pode
+exceder 10 minutos.
+
 Além da listagem de ofertas, a Open API informada possui operações para marca,
 produto, product feed, brand feed e geração de short URL.
+
+Formato do body:
+
+```json
+{
+  "query": "...",
+  "operationName": "...",
+  "variables": {
+    "myVariable": "someValue"
+  }
+}
+```
+
+Envelope de resposta:
+
+```json
+{
+  "data": {},
+  "errors": []
+}
+```
+
+Quando não houver erro, `errors` pode não ser retornado.
 
 Retorno:
 
@@ -96,6 +129,28 @@ Campos de `PageInfo`:
 | `page` | `Int` |
 | `limit` | `Int` |
 | `hasNextPage` | `Bool` |
+
+### Erros GraphQL conhecidos
+
+Campos esperados em `errors`:
+
+| Campo | Tipo |
+| --- | --- |
+| `message` | `String` |
+| `path` | `String` |
+| `extensions` | `object` |
+| `extensions.code` | `Int` |
+| `extensions.message` | `String` |
+
+Códigos conhecidos:
+
+| Código | Significado |
+| --- | --- |
+| `10000` | System error |
+| `10010` | Request parsing error |
+| `10020` | Identity authentication error |
+| `10030` | Trigger traffic limiting |
+| `11000` | Business processing error |
 
 ### Mutação `generateShortLink`
 

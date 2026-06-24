@@ -1,5 +1,6 @@
 from ofertas_bot.providers.endpoints import AMAZON_SEARCH_PATH, SHOPEE_SEARCH_PATH
 from ofertas_bot.providers.provider_settings import (
+    get_provider_graphql_urls,
     get_provider_path_confirmations,
     get_provider_paths,
 )
@@ -39,3 +40,19 @@ def test_provider_path_confirmations_accept_truthy_values(monkeypatch) -> None:
     confirmations = get_provider_path_confirmations()
 
     assert confirmations.shopee_search is True
+
+
+def test_provider_graphql_urls_use_shopee_default(monkeypatch) -> None:
+    monkeypatch.delenv("SHOPEE_GRAPHQL_URL", raising=False)
+
+    urls = get_provider_graphql_urls()
+
+    assert urls.shopee == "https://open-api.affiliate.shopee.com.br/graphql"
+
+
+def test_provider_graphql_urls_can_be_configured_from_environment(monkeypatch) -> None:
+    monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://shopee.example.test/graphql")
+
+    urls = get_provider_graphql_urls()
+
+    assert urls.shopee == "https://shopee.example.test/graphql"
