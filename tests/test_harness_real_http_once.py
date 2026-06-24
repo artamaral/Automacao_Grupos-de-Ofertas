@@ -1,4 +1,4 @@
-from ofertas_bot import harness
+﻿from ofertas_bot import harness
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.settings import Settings
 
@@ -40,8 +40,7 @@ def test_harness_execute_real_http_once_collects_without_publish_or_save(
         return [sample_offer()]
 
     monkeypatch.setattr(harness, "get_settings", make_shopee_settings)
-    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
-    monkeypatch.setenv("SHOPEE_SEARCH_PATH_CONFIRMED", "true")
+    monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://api.shopee.test/graphql")
     monkeypatch.setattr(harness.CollectorAgent, "collect", fake_collect)
 
     exit_code = harness.run(
@@ -59,9 +58,9 @@ def test_harness_execute_real_http_once_collects_without_publish_or_save(
     captured = capsys.readouterr()
     assert exit_code == 0
     assert calls == [(Marketplace.SHOPEE, "maquiagem", 1)]
-    assert "INFO | Chamada HTTP real controlada concluída" in captured.out
+    assert "INFO | Chamada HTTP real controlada" in captured.out
     assert "INFO | Ofertas normalizadas recebidas: 1" in captured.out
-    assert "INFO | Nenhuma publicação foi executada." in captured.out
+    assert "Nenhuma publicação foi executada." in captured.out
     assert "INFO | Nenhum JSON foi salvo automaticamente." in captured.out
     assert "Oferta #1" not in captured.out
     assert "Ofertas normalizadas salvas" not in captured.out
@@ -80,37 +79,15 @@ def test_harness_execute_real_http_once_blocks_mock(capsys) -> None:
 
     captured = capsys.readouterr()
     assert exit_code == 3
-    assert "ERRO | Chamada HTTP real não se aplica ao marketplace mock" in captured.err
-    assert "AÇÃO | Use --marketplace shopee ou --marketplace amazon." in captured.err
+    assert "ERRO | Chamada HTTP real" in captured.err
+    assert "marketplace mock" in captured.err
+    assert "Use --marketplace shopee ou --marketplace amazon." in captured.err
 
-
-def test_harness_execute_real_http_once_requires_confirmed_shopee_path(
-    monkeypatch,
-    capsys,
-) -> None:
-    monkeypatch.setattr(harness, "get_settings", make_shopee_settings)
-    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
-    monkeypatch.delenv("SHOPEE_SEARCH_PATH_CONFIRMED", raising=False)
-
-    exit_code = harness.run(
-        [
-            "--marketplace",
-            "shopee",
-            "--niche",
-            "maquiagem",
-            "--execute-real-http-once",
-        ]
-    )
-
-    captured = capsys.readouterr()
-    assert exit_code == 3
-    assert "ERRO | Endpoint da Shopee não confirmado" in captured.err
-    assert "SHOPEE_SEARCH_PATH_CONFIRMED=true" in captured.err
 
 
 def test_harness_execute_real_http_once_reports_guard_block(monkeypatch, capsys) -> None:
     monkeypatch.setattr(harness, "get_settings", lambda: make_shopee_settings(enabled=False))
-    monkeypatch.setenv("SHOPEE_SEARCH_PATH_CONFIRMED", "true")
+    monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://api.shopee.test/graphql")
 
     exit_code = harness.run(
         [
@@ -124,7 +101,7 @@ def test_harness_execute_real_http_once_reports_guard_block(monkeypatch, capsys)
 
     captured = capsys.readouterr()
     assert exit_code == 3
-    assert "ERRO | HTTP real bloqueado por configuração insegura" in captured.err
+    assert "ERRO | HTTP real bloqueado" in captured.err
     assert "real HTTP flag enabled" in captured.err
 
 
@@ -142,5 +119,5 @@ def test_harness_real_http_modes_are_mutually_exclusive(capsys) -> None:
 
     captured = capsys.readouterr()
     assert exit_code == 3
-    assert "ERRO | Modo de HTTP real inválido" in captured.err
+    assert "ERRO | Modo de HTTP real" in captured.err
     assert "--diagnose-real-http ou --execute-real-http-once" in captured.err

@@ -22,6 +22,7 @@ class ExternalOfferPayload:
     sales_count: int = 0
     rating: float | None = None
     is_prime_or_free_shipping: bool = False
+    allow_unknown_price: bool = False
 
 
 class OfferMapper:
@@ -50,7 +51,7 @@ class OfferMapper:
         if not payload.url.strip():
             errors.append("url")
 
-        if payload.price <= 0:
+        if payload.price < 0 or (payload.price == 0 and not payload.allow_unknown_price):
             errors.append("price")
 
         if payload.old_price is not None and payload.old_price <= 0:

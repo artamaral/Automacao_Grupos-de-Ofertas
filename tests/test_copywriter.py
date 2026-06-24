@@ -79,6 +79,19 @@ def test_copywriter_includes_marketplace_label() -> None:
     assert "Loja: Shopee" in draft.text
 
 
+def test_copywriter_handles_unknown_price() -> None:
+    offer = make_offer(
+        marketplace=Marketplace.SHOPEE,
+        price=0,
+        old_price=None,
+    )
+    scored = ScoredOffer(offer=offer, score=10, reasons=["comissao"])
+
+    draft = CopywriterAgent().create_message(scored)
+
+    assert "consulte o valor atualizado no link da oferta" in draft.text
+
+
 def test_copywriter_includes_trust_line() -> None:
     offer = make_offer(sales_count=250, rating=4.8)
     scored = ScoredOffer(offer=offer, score=10, reasons=["bem avaliado"])

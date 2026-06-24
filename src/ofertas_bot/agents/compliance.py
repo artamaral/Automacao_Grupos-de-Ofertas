@@ -17,7 +17,7 @@ class ComplianceAgent:
         if not draft.offer.url:
             reasons.append("oferta sem link")
 
-        if draft.offer.price <= 0:
+        if draft.offer.price < 0:
             reasons.append("preço inválido")
 
         if "afiliado" not in text and "comissão" not in text:

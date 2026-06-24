@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 import hashlib
-import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
+from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.endpoints import SHOPEE_GRAPHQL_URL
-from ofertas_bot.providers.http import HttpRequest
+from ofertas_bot.providers.gateway import execute_provider_request, validate_positive_limit
+from ofertas_bot.providers.http import HttpRequest, ProviderHttpClient
+from ofertas_bot.providers.mapper import ExternalOfferPayload, OfferMapper
+from ofertas_bot.providers.retry import RetryPolicy, Sleeper
+from ofertas_bot.providers.transport import HttpTransport, encode_json_body
 
 SHOPEE_OFFER_LIST_OPERATION = "ShopeeOfferList"
 SHOPEE_GENERATE_SHORT_LINK_OPERATION = "GenerateShortLink"
+SHOPEE_SORT_LATEST_DESC = 1
+SHOPEE_SORT_HIGHEST_COMMISSION_DESC = 2
 
 SHOPEE_OFFER_LIST_QUERY = """
 query ShopeeOfferList($keyword: String, $sortType: Int, $page: Int, $limit: Int) {
@@ -48,6 +54,29 @@ class ShopeeGraphqlPayloadError(ValueError):
     """Raised when Shopee GraphQL returns an error envelope or invalid shape."""
 
 
+class ShopeeGraphqlOfferMapper:
+    def __init__(self, marketplace: Marketplace = Marketplace.SHOPEE) -> None:
+        self.marketplace = marketplace
+        self._mapper = OfferMapper()
+
+    def map_node(self, node: dict[str, Any], niche: str) -> Offer:
+        payload = ExternalOfferPayload(
+            marketplace=self.marketplace,
+            title=str(node.get("offerName", "")),
+            url=str(node.get("offerLink", "")),
+            image_url=_optional_str(node.get("imageUrl")),
+            price=0,
+            old_price=None,
+            commission_rate=_optional_float(node.get("commissionRate")) or 0,
+            sales_count=0,
+            rating=None,
+            niche=niche,
+            is_prime_or_free_shipping=False,
+            allow_unknown_price=True,
+        )
+        return self._mapper.map_external_offer(payload)
+
+
 @dataclass(frozen=True)
 class ShopeeGraphqlAuthorization:
     credential: str
@@ -81,7 +110,6 @@ class ShopeeGraphqlSigner:
 @dataclass(frozen=True)
 class ShopeeOfferListGraphqlRequestBuilder:
     signer: ShopeeGraphqlSigner
-    timestamp: int
     graphql_url: str = SHOPEE_GRAPHQL_URL
 
     def build(
@@ -91,11 +119,12 @@ class ShopeeOfferListGraphqlRequestBuilder:
         sort_type: int,
         page: int,
         limit: int,
+        timestamp: int,
     ) -> HttpRequest:
         return _build_graphql_request(
             graphql_url=self.graphql_url,
             signer=self.signer,
-            timestamp=self.timestamp,
+            timestamp=timestamp,
             query=SHOPEE_OFFER_LIST_QUERY,
             operation_name=SHOPEE_OFFER_LIST_OPERATION,
             variables={
@@ -110,14 +139,13 @@ class ShopeeOfferListGraphqlRequestBuilder:
 @dataclass(frozen=True)
 class ShopeeShortLinkGraphqlRequestBuilder:
     signer: ShopeeGraphqlSigner
-    timestamp: int
     graphql_url: str = SHOPEE_GRAPHQL_URL
 
-    def build(self, *, origin_url: str, sub_ids: list[str]) -> HttpRequest:
+    def build(self, *, origin_url: str, sub_ids: list[str], timestamp: int) -> HttpRequest:
         return _build_graphql_request(
             graphql_url=self.graphql_url,
             signer=self.signer,
-            timestamp=self.timestamp,
+            timestamp=timestamp,
             query=SHOPEE_GENERATE_SHORT_LINK_MUTATION,
             operation_name=SHOPEE_GENERATE_SHORT_LINK_OPERATION,
             variables={
@@ -125,6 +153,169 @@ class ShopeeShortLinkGraphqlRequestBuilder:
                 "subIds": sub_ids,
             },
         )
+
+
+@dataclass(frozen=True)
+class ShopeeGraphqlGateway:
+    offer_list_builder: ShopeeOfferListGraphqlRequestBuilder
+    short_link_builder: ShopeeShortLinkGraphqlRequestBuilder
+    mapper: ShopeeGraphqlOfferMapper
+    http_client: ProviderHttpClient = field(default_factory=ProviderHttpClient)
+    transport: HttpTransport | None = None
+    retry_policy: RetryPolicy | None = None
+    sleeper: Sleeper | None = None
+
+    def build_offer_list_request(
+        self,
+        *,
+        keyword: str,
+        limit: int,
+        timestamp: int,
+        page: int = 1,
+        sort_type: int = SHOPEE_SORT_LATEST_DESC,
+    ) -> HttpRequest:
+        validate_positive_limit(limit)
+        validate_positive_limit(page)
+        return self.offer_list_builder.build(
+            keyword=keyword,
+            sort_type=sort_type,
+            page=page,
+            limit=limit,
+            timestamp=timestamp,
+        )
+
+    def execute_raw_offer_list(
+        self,
+        *,
+        keyword: str,
+        limit: int,
+        timestamp: int,
+        page: int = 1,
+        sort_type: int = SHOPEE_SORT_LATEST_DESC,
+    ) -> dict[str, Any]:
+        request = self.build_offer_list_request(
+            keyword=keyword,
+            limit=limit,
+            timestamp=timestamp,
+            page=page,
+            sort_type=sort_type,
+        )
+        return execute_provider_request(
+            request=request,
+            transport=self.transport,
+            http_client=self.http_client,
+            provider_name="Shopee",
+            retry_policy=self.retry_policy,
+            sleeper=self.sleeper,
+        )
+
+    def execute_offer_list(
+        self,
+        *,
+        keyword: str,
+        niche: str,
+        limit: int,
+        timestamp: int,
+        page: int = 1,
+        sort_type: int = SHOPEE_SORT_LATEST_DESC,
+    ) -> list[Offer]:
+        response_data = self.execute_raw_offer_list(
+            keyword=keyword,
+            limit=limit,
+            timestamp=timestamp,
+            page=page,
+            sort_type=sort_type,
+        )
+        return self.normalize_offer_list_response(
+            response_data=response_data,
+            niche=niche,
+            limit=limit,
+        )
+
+    def execute_paginated_offer_list(
+        self,
+        *,
+        keyword: str,
+        niche: str,
+        limit: int,
+        page_size: int,
+        timestamp: int,
+        max_pages: int = 3,
+        sort_type: int = SHOPEE_SORT_LATEST_DESC,
+    ) -> list[Offer]:
+        validate_positive_limit(limit)
+        validate_positive_limit(page_size)
+        validate_positive_limit(max_pages)
+
+        offers: list[Offer] = []
+        page = 1
+        while len(offers) < limit and page <= max_pages:
+            request_limit = min(page_size, limit - len(offers))
+            response_data = self.execute_raw_offer_list(
+                keyword=keyword,
+                limit=request_limit,
+                timestamp=timestamp,
+                page=page,
+                sort_type=sort_type,
+            )
+            page_offers = self.normalize_offer_list_response(
+                response_data=response_data,
+                niche=niche,
+                limit=request_limit,
+            )
+            offers.extend(page_offers)
+            if not page_offers or not _has_next_page(response_data):
+                break
+            page += 1
+
+        return offers[:limit]
+
+    def build_short_link_request(
+        self,
+        *,
+        origin_url: str,
+        sub_ids: list[str],
+        timestamp: int,
+    ) -> HttpRequest:
+        return self.short_link_builder.build(
+            origin_url=origin_url,
+            sub_ids=sub_ids,
+            timestamp=timestamp,
+        )
+
+    def execute_short_link(
+        self,
+        *,
+        origin_url: str,
+        sub_ids: list[str],
+        timestamp: int,
+    ) -> str:
+        request = self.build_short_link_request(
+            origin_url=origin_url,
+            sub_ids=sub_ids,
+            timestamp=timestamp,
+        )
+        response_data = execute_provider_request(
+            request=request,
+            transport=self.transport,
+            http_client=self.http_client,
+            provider_name="Shopee",
+            retry_policy=self.retry_policy,
+            sleeper=self.sleeper,
+        )
+        return extract_shopee_short_link(response_data)
+
+    def normalize_offer_list_response(
+        self,
+        *,
+        response_data: dict[str, Any],
+        niche: str,
+        limit: int,
+    ) -> list[Offer]:
+        validate_positive_limit(limit)
+        connection = extract_shopee_offer_connection(response_data)
+        nodes = connection["nodes"]
+        return [self.mapper.map_node(node=node, niche=niche) for node in nodes[:limit]]
 
 
 def extract_shopee_offer_connection(response_data: dict[str, Any]) -> dict[str, Any]:
@@ -230,7 +421,12 @@ def _build_graphql_request(
 
 
 def encode_graphql_payload(body: dict[str, Any]) -> str:
-    return json.dumps(body, ensure_ascii=False, separators=(",", ":"))
+    return encode_json_body(body).decode("utf-8")
+
+
+def _has_next_page(response_data: dict[str, Any]) -> bool:
+    connection = extract_shopee_offer_connection(response_data)
+    return connection["pageInfo"].get("hasNextPage") is True
 
 
 def _graphql_extension_code(extensions: Any) -> int | None:
@@ -250,4 +446,17 @@ def _optional_text(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
     text = value.strip()
+    return text or None
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None or value == "":
+        return None
+    return float(value)
+
+
+def _optional_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
     return text or None

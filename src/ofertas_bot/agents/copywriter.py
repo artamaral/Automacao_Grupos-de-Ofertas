@@ -125,6 +125,9 @@ class CopywriterAgent:
         old_price: float | None,
         discount_percent: float,
     ) -> str:
+        if price <= 0:
+            return "Preço: consulte o valor atualizado no link da oferta"
+
         discount = f" ({discount_percent:.0f}% OFF)" if discount_percent else ""
 
         if old_price and old_price > price:

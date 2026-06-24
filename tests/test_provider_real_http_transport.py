@@ -27,14 +27,14 @@ def make_amazon_settings(enabled: bool) -> Settings:
 def test_shopee_provider_keeps_transport_disabled_by_default() -> None:
     provider = ShopeeProvider(settings=make_shopee_settings(enabled=False))
 
-    assert provider._get_gateway().transport is None
+    assert provider._get_graphql_gateway().transport is None
 
 
 def test_shopee_provider_connects_real_transport_when_enabled(monkeypatch) -> None:
-    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
+    monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://api.shopee.test/graphql")
     provider = ShopeeProvider(settings=make_shopee_settings(enabled=True))
 
-    assert isinstance(provider._get_gateway().transport, UrllibHttpTransport)
+    assert isinstance(provider._get_graphql_gateway().transport, UrllibHttpTransport)
 
 
 def test_amazon_provider_keeps_transport_disabled_by_default() -> None:

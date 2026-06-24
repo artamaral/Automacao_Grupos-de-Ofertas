@@ -1,30 +1,32 @@
-# Trava de confirmação do endpoint Shopee
+﻿# Trava de confirmaÃ§Ã£o do endpoint Shopee
+
+> Nota: este documento registra o fluxo REST legado. O fluxo principal atual da Shopee usa GraphQL via `SHOPEE_GRAPHQL_URL` e nao depende de `SHOPEE_SEARCH_PATH_CONFIRMED`.
 
 ## Objetivo
 
-Registrar a regra de segurança criada para impedir chamada real da Shopee sem confirmação explícita do endpoint.
+Registrar a regra de seguranÃ§a criada para impedir chamada real da Shopee sem confirmaÃ§Ã£o explÃ­cita do endpoint.
 
 ## Achado
 
-O caminho atual da Shopee foi mantido como padrão provisório:
+O caminho atual da Shopee foi mantido como padrÃ£o provisÃ³rio:
 
 ```text
 /api/v2/product/search_item
 ```
 
-Como esse caminho ainda depende de confirmação manual contra a documentação/painel oficial da conta usada, a execução real controlada não deve prosseguir apenas porque a guarda de HTTP real passou.
+Como esse caminho ainda depende de confirmaÃ§Ã£o manual contra a documentaÃ§Ã£o/painel oficial da conta usada, a execuÃ§Ã£o real controlada nÃ£o deve prosseguir apenas porque a guarda de HTTP real passou.
 
 ## Regra operacional
 
-A primeira chamada real controlada da Shopee exige confirmação explícita no ambiente local.
+A primeira chamada real controlada da Shopee exige confirmaÃ§Ã£o explÃ­cita no ambiente local.
 
-A confirmação deve ser feita fora do Git com:
+A confirmaÃ§Ã£o deve ser feita fora do Git com:
 
 ```text
 SHOPEE_SEARCH_PATH_CONFIRMED=true
 ```
 
-Sem essa confirmação, o modo abaixo deve ser bloqueado:
+Sem essa confirmaÃ§Ã£o, o modo abaixo deve ser bloqueado:
 
 ```text
 --execute-real-http-once
@@ -32,32 +34,32 @@ Sem essa confirmação, o modo abaixo deve ser bloqueado:
 
 ## O que permanece permitido
 
-Mesmo sem confirmação explícita, continuam permitidos:
+Mesmo sem confirmaÃ§Ã£o explÃ­cita, continuam permitidos:
 
 - testes locais;
-- execução com mock;
-- diagnóstico de HTTP real;
+- execuÃ§Ã£o com mock;
+- diagnÃ³stico de HTTP real;
 - preview seguro do request.
 
-Esses modos não publicam conteúdo. O diagnóstico e o preview também não executam chamada externa.
+Esses modos nÃ£o publicam conteÃºdo. O diagnÃ³stico e o preview tambÃ©m nÃ£o executam chamada externa.
 
 ## O que permanece proibido
 
-Sem confirmação explícita do endpoint:
+Sem confirmaÃ§Ã£o explÃ­cita do endpoint:
 
-- não executar chamada real controlada;
-- não aumentar limite;
-- não salvar payload real;
-- não publicar;
-- não transformar resposta real em fixture sem anonimização.
+- nÃ£o executar chamada real controlada;
+- nÃ£o aumentar limite;
+- nÃ£o salvar payload real;
+- nÃ£o publicar;
+- nÃ£o transformar resposta real em fixture sem anonimizaÃ§Ã£o.
 
-## Critério para liberar
+## CritÃ©rio para liberar
 
-A liberação exige:
+A liberaÃ§Ã£o exige:
 
-1. confirmar o path oficial no painel/documentação da conta Shopee usada;
+1. confirmar o path oficial no painel/documentaÃ§Ã£o da conta Shopee usada;
 2. configurar `SHOPEE_SEARCH_PATH_CONFIRMED=true` apenas no `.env` local;
-3. rodar diagnóstico;
+3. rodar diagnÃ³stico;
 4. gerar preview seguro;
 5. revisar manualmente o preview;
 6. executar chamada real controlada com `--limit 1`.

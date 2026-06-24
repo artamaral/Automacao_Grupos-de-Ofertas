@@ -19,6 +19,9 @@ def test_collector_uses_mock_provider_for_mock_marketplace() -> None:
     assert len(offers) == 1
     assert offers[0].marketplace == Marketplace.MOCK
     assert offers[0].niche == "maquiagem"
+    assert offers[0].price == 0
+    assert offers[0].commission_rate == 0.08
+    assert offers[0].url == "https://example.com/oferta-1?tag=afiliado"
 
 
 def test_collector_raises_controlled_error_for_amazon_without_configuration() -> None:

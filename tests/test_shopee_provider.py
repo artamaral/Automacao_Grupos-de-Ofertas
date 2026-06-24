@@ -3,8 +3,13 @@ import pytest
 from ofertas_bot.models import Marketplace
 from ofertas_bot.providers.http import HttpResponse
 from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvider
-from ofertas_bot.providers.shopee_gateway import ShopeeGateway
-from ofertas_bot.providers.shopee_signed_request import ShopeeSignedRequestBuilder
+from ofertas_bot.providers.shopee_graphql import (
+    ShopeeGraphqlGateway,
+    ShopeeGraphqlOfferMapper,
+    ShopeeGraphqlSigner,
+    ShopeeOfferListGraphqlRequestBuilder,
+    ShopeeShortLinkGraphqlRequestBuilder,
+)
 from ofertas_bot.providers.transport import StaticHttpTransport
 from ofertas_bot.settings import Settings
 
@@ -24,7 +29,7 @@ def test_shopee_provider_requires_credentials() -> None:
     assert "SHOPEE_SECRET_KEY" in message
 
 
-def test_shopee_provider_is_not_implemented_after_configuration() -> None:
+def test_shopee_provider_requires_configured_graphql_transport() -> None:
     settings = Settings(
         shopee_partner_id="configured",
         shopee_secret_key="configured",
@@ -39,32 +44,41 @@ def test_shopee_provider_fetch_uses_injected_transport() -> None:
     response = HttpResponse(
         status_code=200,
         data={
-            "items": [
-                {
-                    "title": "Kit Maquiagem",
-                    "url": "https://example.com/shopee-1",
-                    "price": "49.90",
-                    "old_price": "89.90",
-                    "commission_rate": "0.08",
-                    "sales_count": "1200",
-                    "rating": "4.8",
-                    "is_free_shipping": True,
+            "data": {
+                "shopeeOfferV2": {
+                    "nodes": [
+                        {
+                            "commissionRate": "0.08",
+                            "imageUrl": "https://example.com/shopee-1.jpg",
+                            "offerLink": "https://example.com/shopee-1",
+                            "originalLink": "https://example.com/produto-1",
+                            "offerName": "Kit Maquiagem",
+                            "offerType": 1,
+                            "collectionId": 123,
+                            "periodStartTime": 1710000000,
+                            "periodEndTime": 1710086400,
+                        }
+                    ],
+                    "pageInfo": {
+                        "page": 1,
+                        "limit": 1,
+                        "hasNextPage": False,
+                    },
                 }
-            ]
+            }
         },
     )
     transport = StaticHttpTransport(response=response)
-    gateway = ShopeeGateway(
-        request_builder=ShopeeSignedRequestBuilder(
-            partner_id="123",
-            api_credential="abc",
-            base_url="https://example.com",
-        ),
+    signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")
+    gateway = ShopeeGraphqlGateway(
+        offer_list_builder=ShopeeOfferListGraphqlRequestBuilder(signer=signer),
+        short_link_builder=ShopeeShortLinkGraphqlRequestBuilder(signer=signer),
+        mapper=ShopeeGraphqlOfferMapper(marketplace=Marketplace.SHOPEE),
         transport=transport,
     )
     provider = ShopeeProvider(
         settings=Settings(shopee_partner_id="123", shopee_secret_key="abc"),
-        gateway=gateway,
+        graphql_gateway=gateway,
     )
 
     offers = provider.fetch(niche="maquiagem", limit=1)
@@ -72,7 +86,9 @@ def test_shopee_provider_fetch_uses_injected_transport() -> None:
     assert len(offers) == 1
     assert offers[0].marketplace == Marketplace.SHOPEE
     assert offers[0].title == "Kit Maquiagem"
-    assert transport.requests[0].params["keyword"] == "maquiagem"
+    assert offers[0].price == 0
+    assert transport.requests[0].body is not None
+    assert transport.requests[0].body["variables"]["keyword"] == "maquiagem"
 
 
 def test_shopee_provider_builds_search_request_after_configuration() -> None:
@@ -88,34 +104,47 @@ def test_shopee_provider_builds_search_request_after_configuration() -> None:
         timestamp=1710000000,
     )
 
-    assert request.method == "GET"
-    assert request.params["partner_id"] == "123"
-    assert request.params["keyword"] == "maquiagem"
-    assert request.params["page_size"] == 10
-    assert request.params["timestamp"] == 1710000000
+    assert request.method == "POST"
+    assert request.body is not None
+    assert request.body["operationName"] == "ShopeeOfferList"
+    assert request.body["variables"]["keyword"] == "maquiagem"
+    assert request.body["variables"]["limit"] == 10
+    assert request.body["variables"]["page"] == 1
+    assert request.headers["Authorization"].startswith("SHA256 Credential=123")
 
 
 def test_shopee_provider_normalizes_response_items() -> None:
     provider = ShopeeProvider(settings=Settings())
     response_data = {
-        "items": [
-            {
-                "title": "Kit Maquiagem",
-                "url": "https://example.com/shopee-1",
-                "price": "49.90",
-                "old_price": "89.90",
-                "commission_rate": "0.08",
-                "sales_count": "1200",
-                "rating": "4.8",
-                "is_free_shipping": True,
-            },
-            {
-                "title": "Oferta ignorada pelo limite",
-                "url": "https://example.com/shopee-2",
-                "price": "10",
-                "old_price": "20",
-            },
-        ]
+        "data": {
+            "shopeeOfferV2": {
+                "nodes": [
+                    {
+                        "commissionRate": "0.08",
+                        "imageUrl": "https://example.com/shopee-1.jpg",
+                        "offerLink": "https://example.com/shopee-1",
+                        "originalLink": "https://example.com/produto-1",
+                        "offerName": "Kit Maquiagem",
+                        "offerType": 1,
+                        "collectionId": 123,
+                        "periodStartTime": 1710000000,
+                        "periodEndTime": 1710086400,
+                    },
+                    {
+                        "commissionRate": "0.05",
+                        "imageUrl": "https://example.com/shopee-2.jpg",
+                        "offerLink": "https://example.com/shopee-2",
+                        "originalLink": "https://example.com/produto-2",
+                        "offerName": "Oferta ignorada pelo limite",
+                        "offerType": 2,
+                        "categoryId": 456,
+                        "periodStartTime": 1710000000,
+                        "periodEndTime": 1710086400,
+                    },
+                ],
+                "pageInfo": {"page": 1, "limit": 2, "hasNextPage": False},
+            }
+        }
     }
 
     offers = provider.normalize_response(response_data=response_data, niche="maquiagem", limit=1)
@@ -123,11 +152,11 @@ def test_shopee_provider_normalizes_response_items() -> None:
     assert len(offers) == 1
     assert offers[0].marketplace == Marketplace.SHOPEE
     assert offers[0].title == "Kit Maquiagem"
-    assert offers[0].discount_percent == 44.49
+    assert offers[0].price == 0
 
 
 def test_shopee_provider_rejects_invalid_items_shape() -> None:
     provider = ShopeeProvider(settings=Settings())
 
-    with pytest.raises(ValueError, match="items"):
-        provider.normalize_response(response_data={"items": {}}, niche="maquiagem", limit=1)
+    with pytest.raises(ValueError, match="shopeeOfferV2"):
+        provider.normalize_response(response_data={"data": {}}, niche="maquiagem", limit=1)

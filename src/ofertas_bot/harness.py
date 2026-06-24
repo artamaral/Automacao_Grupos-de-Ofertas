@@ -17,10 +17,10 @@ from ofertas_bot.providers.amazon import AmazonConfigurationError, AmazonProvide
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.gateway import ProviderLimitError
 from ofertas_bot.providers.http import ProviderHttpError
-from ofertas_bot.providers.provider_settings import get_provider_path_confirmations
 from ofertas_bot.providers.real_http_guard import RealHttpValidationError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvider
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
+from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_message_draft_store import (
@@ -36,6 +36,7 @@ from ofertas_bot.storage.json_message_review_queue_store import (
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
 
 SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
+SHOPEE_MASKED_REQUEST_HEADERS = {"authorization"}
 REVIEW_TEXT_ENCODING = "utf-8-sig"
 
 
@@ -165,6 +166,8 @@ def run(argv: Sequence[str] | None = None) -> int:
     except ProviderLimitError as error:
         return _print_provider_limit_error(error=error)
     except ShopeePayloadError as error:
+        return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
+    except ShopeeGraphqlPayloadError as error:
         return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonPayloadError as error:
         return _print_payload_error(marketplace=Marketplace.AMAZON, error=error)
@@ -296,6 +299,16 @@ def _print_provider_request_preview(
     print(f"INFO | url={request.url}")
     for key, value in sorted(_mask_shopee_request_params(request.params).items()):
         print(f"INFO | param.{key}={value}")
+    for key, value in sorted(_mask_shopee_request_headers(request.headers).items()):
+        print(f"INFO | header.{key}={value}")
+    if request.body:
+        operation_name = request.body.get("operationName")
+        if operation_name:
+            print(f"INFO | body.operationName={operation_name}")
+        variables = request.body.get("variables")
+        if isinstance(variables, dict):
+            for key, value in sorted(variables.items()):
+                print(f"INFO | body.variables.{key}={value}")
     print("INFO | Nenhuma chamada HTTP foi executada.")
     print("INFO | Nenhuma publicação foi executada.")
     print("INFO | Nenhum JSON foi salvo automaticamente.")
@@ -313,9 +326,6 @@ def _run_real_http_once(
         print("AÇÃO | Use --marketplace shopee ou --marketplace amazon.", file=sys.stderr)
         return 3
 
-    if marketplace == Marketplace.SHOPEE and not _shopee_search_path_is_confirmed():
-        return _print_shopee_endpoint_confirmation_error()
-
     try:
         _validate_real_http_ready(marketplace=marketplace, settings=settings)
         offers = CollectorAgent(settings=settings).collect(
@@ -332,6 +342,8 @@ def _run_real_http_once(
     except ProviderLimitError as error:
         return _print_provider_limit_error(error=error)
     except ShopeePayloadError as error:
+        return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
+    except ShopeeGraphqlPayloadError as error:
         return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonPayloadError as error:
         return _print_payload_error(marketplace=Marketplace.AMAZON, error=error)
@@ -356,10 +368,6 @@ def _validate_real_http_ready(marketplace: Marketplace, settings: Settings) -> N
         return
 
 
-def _shopee_search_path_is_confirmed() -> bool:
-    return get_provider_path_confirmations().shopee_search
-
-
 def _mask_shopee_request_params(params: dict[str, Any]) -> dict[str, str]:
     safe_params: dict[str, str] = {}
     for key, value in params.items():
@@ -368,6 +376,16 @@ def _mask_shopee_request_params(params: dict[str, Any]) -> dict[str, str]:
         else:
             safe_params[key] = str(value)
     return safe_params
+
+
+def _mask_shopee_request_headers(headers: dict[str, str]) -> dict[str, str]:
+    safe_headers: dict[str, str] = {}
+    for key, value in headers.items():
+        if key.lower() in SHOPEE_MASKED_REQUEST_HEADERS:
+            safe_headers[key] = _mask_value(value)
+        else:
+            safe_headers[key] = str(value)
+    return safe_headers
 
 
 def _mask_value(value: Any) -> str:
@@ -453,20 +471,6 @@ def _print_real_http_guard_error(error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Revise o checklist de produção antes de habilitar chamadas reais.",
-        file=sys.stderr,
-    )
-    return 3
-
-
-def _print_shopee_endpoint_confirmation_error() -> int:
-    print("ERRO | Endpoint da Shopee não confirmado para chamada real", file=sys.stderr)
-    print(
-        "DETALHE | Defina SHOPEE_SEARCH_PATH_CONFIRMED=true somente após "
-        "conferir o path oficial.",
-        file=sys.stderr,
-    )
-    print(
-        "AÇÃO | Rode --print-provider-request e compare com a documentação oficial.",
         file=sys.stderr,
     )
     return 3

@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 from ofertas_bot.tools import capture_shopee_payload
 
@@ -9,22 +9,26 @@ class FakeShopeeProvider:
 
     def fetch_raw_response(self, niche: str, limit: int):
         return {
-            "items": [
-                {
-                    "title": "Oferta sensível",
-                    "url": "https://example.com/oferta",
-                    "image_url": "https://example.com/imagem.jpg",
-                    "seller_id": "seller-123",
-                    "sign": "signature-value",
+            "data": {
+                "shopeeOfferV2": {
+                    "nodes": [
+                        {
+                            "offerName": "Oferta sensivel",
+                            "offerLink": "https://example.com/oferta",
+                            "imageUrl": "https://example.com/imagem.jpg",
+                            "seller_id": "seller-123",
+                            "signature": "signature-value",
+                        }
+                    ],
+                    "pageInfo": {"page": 1, "limit": limit, "hasNextPage": False},
                 }
-            ],
+            },
             "meta": {"keyword": niche, "limit": limit},
         }
 
 
 def test_capture_shopee_payload_saves_anonymized_response(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("SHOPEE_SEARCH_PATH_CONFIRMED", "true")
     monkeypatch.setattr(capture_shopee_payload, "ShopeeProvider", FakeShopeeProvider)
 
     exit_code = capture_shopee_payload.run(
@@ -32,22 +36,13 @@ def test_capture_shopee_payload_saves_anonymized_response(tmp_path, monkeypatch)
     )
 
     payload = json.loads(tmp_path.joinpath("tmp/out.json").read_text(encoding="utf-8"))
+    node = payload["data"]["shopeeOfferV2"]["nodes"][0]
     assert exit_code == 0
-    assert payload["items"][0]["title"] == "Produto anonimizado"
-    assert payload["items"][0]["url"] == "https://example.com/redacted"
-    assert payload["items"][0]["image_url"] == "https://example.com/redacted"
-    assert payload["items"][0]["seller_id"] == "<redacted>"
-    assert payload["items"][0]["sign"] == "<redacted>"
-
-
-def test_capture_shopee_payload_blocks_unconfirmed_endpoint(monkeypatch, capsys) -> None:
-    monkeypatch.delenv("SHOPEE_SEARCH_PATH_CONFIRMED", raising=False)
-
-    exit_code = capture_shopee_payload.run(["--niche", "maquiagem"])
-
-    captured = capsys.readouterr()
-    assert exit_code == 3
-    assert "ERRO | Endpoint da Shopee não confirmado" in captured.err
+    assert node["offerName"] == "Oferta sensivel"
+    assert node["offerLink"] == "https://example.com/redacted"
+    assert node["imageUrl"] == "https://example.com/redacted"
+    assert node["seller_id"] == "<redacted>"
+    assert node["signature"] == "<redacted>"
 
 
 def test_capture_shopee_payload_requires_tmp_output() -> None:
@@ -56,6 +51,6 @@ def test_capture_shopee_payload_requires_tmp_output() -> None:
             ["--niche", "maquiagem", "--output", "tests/fixtures/out.json"]
         )
     except SystemExit as error:
-        assert str(error) == "ERRO | O arquivo de saída deve ficar dentro de tmp/"
+        assert str(error) == "ERRO | O arquivo de saida deve ficar dentro de tmp/"
     else:
         raise AssertionError("expected SystemExit")

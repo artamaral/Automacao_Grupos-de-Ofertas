@@ -20,6 +20,10 @@ class HttpTransport(Protocol):
         """Send an HTTP request and return a normalized response."""
 
 
+def encode_json_body(body: dict[str, Any]) -> bytes:
+    return json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
 @dataclass
 class StaticHttpTransport:
     response: HttpResponse
@@ -72,7 +76,7 @@ class UrllibHttpTransport:
     def _encode_body(self, body: dict[str, Any] | None) -> bytes | None:
         if body is None:
             return None
-        return json.dumps(body).encode("utf-8")
+        return encode_json_body(body)
 
     def _read_json(self, raw_body: bytes) -> dict[str, Any]:
         if not raw_body:

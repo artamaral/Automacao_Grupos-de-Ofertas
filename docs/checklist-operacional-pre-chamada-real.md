@@ -1,16 +1,16 @@
-# Checklist operacional pré-chamada real
+﻿# Checklist operacional prÃ©-chamada real
 
 ## Objetivo
 
-Consolidar a ordem final de execução antes de qualquer chamada real controlada.
+Consolidar a ordem final de execuÃ§Ã£o antes de qualquer chamada real controlada.
 
-Este checklist não libera publicação real e não substitui a revisão manual dos contratos oficiais dos marketplaces.
+Este checklist nÃ£o libera publicaÃ§Ã£o real e nÃ£o substitui a revisÃ£o manual dos contratos oficiais dos marketplaces.
 
 ## Regra principal
 
-Pare imediatamente se qualquer etapa falhar, divergir do esperado ou mostrar valor sensível no terminal.
+Pare imediatamente se qualquer etapa falhar, divergir do esperado ou mostrar valor sensÃ­vel no terminal.
 
-## 1. Atualizar repositório e validar testes
+## 1. Atualizar repositÃ³rio e validar testes
 
 ```powershell
 cd C:\Automacao_Grupos-de-Ofertas
@@ -19,7 +19,7 @@ git pull
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Critério para seguir:
+CritÃ©rio para seguir:
 
 - `ruff` sem erros;
 - `pytest` sem erros.
@@ -34,53 +34,50 @@ docs/status-endpoint-shopee.md
 docs/confirmacao-endpoint-shopee.md
 ```
 
-Critério para seguir:
+CritÃ©rio para seguir:
 
 - host/base URL confirmado;
 - endpoint confirmado;
-- método confirmado;
-- parâmetros obrigatórios confirmados;
+- mÃ©todo confirmado;
+- parÃ¢metros obrigatÃ³rios confirmados;
 - formato de assinatura confirmado;
 - formato de resposta esperado compreendido.
 
 ## 3. Configurar `.env` local
-
-Editar somente o `.env` local. Não editar o `.env.example` com valores reais.
 
 Configurar apenas no ambiente local:
 
 ```text
 ENABLE_REAL_HTTP=true
 ENABLE_REAL_PUBLISH=false
-SHOPEE_BASE_URL=<base-url-oficial>
-SHOPEE_SEARCH_PATH=<path-oficial-confirmado>
+SHOPEE_GRAPHQL_URL=https://open-api.affiliate.shopee.com.br/graphql
 ```
 
-Ainda não definir confirmação explícita do path antes do preview.
+Credenciais reais ficam somente no `.env` local: `SHOPEE_PARTNER_ID`, `SHOPEE_SECRET_KEY` e, se aplicavel, `SHOPEE_TRACKING_ID`.
 
-Critério para seguir:
+Criterio para seguir:
 
-- `.env` não versionado;
-- publicação real desligada;
-- path oficial configurado;
+- `.env` nao versionado;
+- publicacao real desligada;
+- endpoint GraphQL oficial conferido;
 - nenhum valor real copiado para arquivos versionados.
 
-## 4. Rodar diagnóstico de HTTP real
+## 4. Rodar diagnÃ³stico de HTTP real
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --diagnose-real-http
 ```
 
-Critério para seguir:
+CritÃ©rio para seguir:
 
 ```text
-INFO | Diagnóstico de HTTP real aprovado para marketplace=shopee
+INFO | DiagnÃ³stico de HTTP real aprovado para marketplace=shopee
 INFO | Nenhuma chamada HTTP foi executada.
-INFO | Nenhuma publicação foi executada.
+INFO | Nenhuma publicaÃ§Ã£o foi executada.
 INFO | Nenhum JSON foi salvo automaticamente.
 ```
 
-Se falhar, revisar `.env`, base URL e pré-requisitos.
+Se falhar, revisar `.env`, base URL e prÃ©-requisitos.
 
 ## 5. Gerar preview seguro do request
 
@@ -88,73 +85,59 @@ Se falhar, revisar `.env`, base URL e pré-requisitos.
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
 ```
 
-Critério para seguir:
+Criterio para seguir:
 
-- método correto;
-- URL base correta;
-- path correto;
-- `page_size=1`;
-- parâmetros sensíveis mascarados;
+- metodo `POST`;
+- URL GraphQL oficial correta;
+- header `Authorization` mascarado;
+- `body.operationName=ShopeeOfferList`;
+- `body.variables.limit=1`;
 - nenhuma chamada HTTP executada;
-- nenhuma publicação executada;
+- nenhuma publicacao executada;
 - nenhum JSON salvo automaticamente.
 
-## 6. Confirmar explicitamente o endpoint
-
-Somente depois do preview correto, definir no `.env` local:
-
-```text
-SHOPEE_SEARCH_PATH_CONFIRMED=true
-```
-
-Critério para seguir:
-
-- confirmação feita apenas localmente;
-- preview já revisado;
-- contrato oficial confirmado.
-
-## 7. Rodar status seguro do ambiente
+## 6. Rodar status seguro do ambiente
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.tools.safe_status --marketplace shopee
 ```
 
-Critério para seguir:
+CritÃ©rio para seguir:
 
 ```text
 INFO | Ambiente pronto para chamada real controlada
-INFO | Publicação real continua fora do escopo deste status.
+INFO | PublicaÃ§Ã£o real continua fora do escopo deste status.
 ```
 
-Se o status retornar ambiente bloqueado, não execute a chamada real.
+Se o status retornar ambiente bloqueado, nÃ£o execute a chamada real.
 
-## 8. Executar chamada real controlada
+## 7. Executar chamada real controlada
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --execute-real-http-once
 ```
 
-Critério de sucesso:
+CritÃ©rio de sucesso:
 
 ```text
-INFO | Chamada HTTP real controlada concluída para marketplace=shopee
+INFO | Chamada HTTP real controlada concluÃ­da para marketplace=shopee
 INFO | Ofertas normalizadas recebidas: 1
-INFO | Nenhuma publicação foi executada.
+INFO | Nenhuma publicaÃ§Ã£o foi executada.
 INFO | Nenhum JSON foi salvo automaticamente.
 ```
 
-Critério de parada:
+CritÃ©rio de parada:
 
 - erro HTTP;
 - erro de transporte;
 - erro de payload;
-- saída com valor sensível;
+- saÃ­da com valor sensÃ­vel;
 - quantidade inesperada;
-- qualquer indício de publicação real.
+- qualquer indÃ­cio de publicaÃ§Ã£o real.
 
-## 9. Se houver payload bruto local
+## 8. Se houver payload bruto local
 
-Se for necessário salvar o payload bruto para análise, usar apenas pasta ignorada pelo Git, como `tmp/`.
+Se for necessÃ¡rio salvar o payload bruto para anÃ¡lise, usar apenas pasta ignorada pelo Git, como `tmp/`.
 
 Depois, gerar fixture anonimizada:
 
@@ -170,10 +153,10 @@ Antes de commitar a fixture:
 
 ## O que continua proibido
 
-- Publicação real.
+- PublicaÃ§Ã£o real.
 - Envio para grupos.
 - Commit de `.env`.
 - Commit de payload bruto.
-- Commit de print sensível.
+- Commit de print sensÃ­vel.
 - Aumentar `--limit` antes de validar a primeira resposta.
 - Rodar chamadas repetidas sem entender erro anterior.

@@ -3,13 +3,13 @@ from ofertas_bot.models import Marketplace, MessageDraft, Offer
 from ofertas_bot.settings import Settings
 
 
-def make_offer(*, url: str = "https://example.com/produto") -> Offer:
+def make_offer(*, url: str = "https://example.com/produto", price: float = 10) -> Offer:
     return Offer(
         marketplace=Marketplace.SHOPEE,
         title="Produto",
         url=url,
         image_url=None,
-        price=10,
+        price=price,
         old_price=20,
         commission_rate=0.05,
         sales_count=100,
@@ -81,3 +81,14 @@ def test_compliance_summarizes_batch() -> None:
         "blocked": 1,
         "reasons": ["mensagem sem aviso de afiliado"],
     }
+
+
+def test_compliance_allows_unknown_price() -> None:
+    draft = MessageDraft(
+        offer=make_offer(price=0),
+        text="Link de afiliado com comissão: https://example.com/produto",
+    )
+
+    result = ComplianceAgent(settings=Settings()).validate(draft=draft, dry_run=True)
+
+    assert result.approved

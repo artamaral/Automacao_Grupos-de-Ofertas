@@ -63,7 +63,7 @@ def test_urllib_http_transport_sends_json_body() -> None:
     response = transport.send(request)
 
     assert response.data == {"ok": True}
-    assert opener.requests[0].data == b'{"keyword": "maquiagem"}'
+    assert opener.requests[0].data == b'{"keyword":"maquiagem"}'
     assert opener.requests[0].get_header("Content-type") == "application/json"
     assert opener.requests[0].get_method() == "POST"
 

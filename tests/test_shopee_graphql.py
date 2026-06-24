@@ -65,12 +65,12 @@ def test_encode_graphql_payload_uses_compact_json() -> None:
 def test_shopee_offer_list_builder_uses_post_json_graphql_request() -> None:
     request = ShopeeOfferListGraphqlRequestBuilder(
         signer=make_signer(),
-        timestamp=1577836800,
     ).build(
         keyword="roupa",
         sort_type=2,
         page=1,
         limit=10,
+        timestamp=1577836800,
     )
 
     assert request.method == "POST"
@@ -93,10 +93,10 @@ def test_shopee_offer_list_builder_uses_post_json_graphql_request() -> None:
 def test_shopee_short_link_builder_uses_post_json_graphql_request() -> None:
     request = ShopeeShortLinkGraphqlRequestBuilder(
         signer=make_signer(),
-        timestamp=1577836800,
     ).build(
         origin_url="https://shopee.com.br/produto",
         sub_ids=["grupo-maquiagem", "campanha-1"],
+        timestamp=1577836800,
     )
 
     assert request.method == "POST"

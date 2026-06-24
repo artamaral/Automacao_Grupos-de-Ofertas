@@ -76,7 +76,7 @@ def test_group_plan_blocks_when_no_offer_is_eligible() -> None:
 
     plan = GroupPlanBuilder().build_plan(
         group_profile=make_profile(),
-        offers=[make_offer(niche="pesca"), make_offer(price=0)],
+        offers=[make_offer(niche="pesca"), make_offer(price=-1)],
         now=now,
         last_run_at=None,
     )

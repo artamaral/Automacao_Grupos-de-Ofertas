@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import sys
@@ -9,7 +9,7 @@ from ofertas_bot.providers.amazon import AmazonProvider
 from ofertas_bot.providers.provider_settings import (
     DEFAULT_PROVIDER_BASE_URL,
     get_provider_base_urls,
-    get_provider_path_confirmations,
+    get_provider_graphql_urls,
     get_provider_paths,
 )
 from ofertas_bot.providers.real_http_guard import RealHttpValidationError
@@ -47,11 +47,11 @@ def run(argv: Sequence[str] | None = None) -> int:
         print("ERRO | Ambiente bloqueado para chamada real", file=sys.stderr)
         for reason in blocked_reasons:
             print(f"DETALHE | {reason}", file=sys.stderr)
-        print("AÇÃO | Revise o checklist operacional pré-chamada real.", file=sys.stderr)
+        print("ACAO | Revise o checklist operacional pre-chamada real.", file=sys.stderr)
         return 3
 
     print("INFO | Ambiente pronto para chamada real controlada")
-    print("INFO | Publicação real continua fora do escopo deste status.")
+    print("INFO | Publicacao real continua fora do escopo deste status.")
     return 0
 
 
@@ -59,10 +59,10 @@ def _collect_blocked_reasons(marketplace: Marketplace, settings: Settings) -> li
     blocked_reasons: list[str] = []
 
     if settings.enable_real_publish:
-        blocked_reasons.append("publicação real habilitada")
+        blocked_reasons.append("publicacao real habilitada")
 
     blocked_reasons.extend(_collect_provider_readiness_errors(marketplace, settings))
-    blocked_reasons.extend(_collect_path_status_errors(marketplace))
+    _print_provider_endpoint_status(marketplace)
 
     return blocked_reasons
 
@@ -82,25 +82,17 @@ def _collect_provider_readiness_errors(
     return []
 
 
-def _collect_path_status_errors(marketplace: Marketplace) -> list[str]:
+def _print_provider_endpoint_status(marketplace: Marketplace) -> None:
     base_urls = get_provider_base_urls()
     paths = get_provider_paths()
-    confirmations = get_provider_path_confirmations()
+    graphql_urls = get_provider_graphql_urls()
 
     if marketplace == Marketplace.SHOPEE:
-        print(f"INFO | base_url={_format_base_url(base_urls.shopee)}")
-        print(f"INFO | search_path={paths.shopee_search}")
-        print(
-            "INFO | search_path_confirmed="
-            f"{_format_bool(confirmations.shopee_search)}"
-        )
-        if not confirmations.shopee_search:
-            return ["endpoint da Shopee não confirmado"]
-        return []
+        print(f"INFO | graphql_url={_format_base_url(graphql_urls.shopee)}")
+        return
 
     print(f"INFO | base_url={_format_base_url(base_urls.amazon)}")
     print(f"INFO | search_path={paths.amazon_search}")
-    return []
 
 
 def _format_base_url(value: str) -> str:

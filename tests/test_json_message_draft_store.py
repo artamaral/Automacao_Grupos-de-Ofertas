@@ -8,13 +8,13 @@ from ofertas_bot.storage.json_message_draft_store import (
 )
 
 
-def make_draft() -> MessageDraft:
+def make_draft(*, price: float = 10) -> MessageDraft:
     offer = Offer(
         marketplace=Marketplace.AMAZON,
         title="Produto teste",
         url="https://example.com/produto",
         image_url=None,
-        price=10,
+        price=price,
         old_price=20,
         commission_rate=0.05,
         sales_count=100,
@@ -69,6 +69,12 @@ def test_format_message_drafts_for_review() -> None:
     assert "Nicho: teste" in text
     assert "Oferta: Produto teste" in text
     assert "Link de afiliado com comissão" in text
+
+
+def test_format_message_drafts_for_review_handles_unknown_price() -> None:
+    text = format_message_drafts_for_review((make_draft(price=0),))
+
+    assert "consulte o valor atualizado no link da oferta" in text
 
 
 def test_format_message_drafts_for_review_handles_empty_tuple() -> None:

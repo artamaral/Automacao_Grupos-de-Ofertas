@@ -1,8 +1,8 @@
-# Variáveis de ambiente e execução local segura
+﻿# VariÃ¡veis de ambiente e execuÃ§Ã£o local segura
 
-Este documento descreve as variáveis usadas pelo projeto e exemplos seguros de execução local.
+Este documento descreve as variÃ¡veis usadas pelo projeto e exemplos seguros de execuÃ§Ã£o local.
 
-A regra principal é: por padrão, o projeto deve rodar em `mock`, com `dry-run` ativo, sem HTTP real e sem publicação real.
+A regra principal Ã©: por padrÃ£o, o projeto deve rodar em `mock`, com `dry-run` ativo, sem HTTP real e sem publicaÃ§Ã£o real.
 
 ## Como preparar o `.env`
 
@@ -14,106 +14,93 @@ Copy-Item .env.example .env
 
 Edite apenas o `.env` local. Nunca edite `.env.example` com valores reais.
 
-O arquivo `.env` não deve ser versionado.
+O arquivo `.env` nÃ£o deve ser versionado.
 
-Confirme que ele está ignorado pelo Git:
+Confirme que ele estÃ¡ ignorado pelo Git:
 
 ```powershell
 git check-ignore -v .env
 ```
 
-A saída esperada deve apontar para a regra `.env` no `.gitignore`.
+A saÃ­da esperada deve apontar para a regra `.env` no `.gitignore`.
 
-## Observação sobre variáveis externas
+## ObservaÃ§Ã£o sobre variÃ¡veis externas
 
-As variáveis principais do `Settings` são carregadas do `.env` local.
+As variÃ¡veis principais do `Settings` sÃ£o carregadas do `.env` local.
 
-As configurações externas dos providers, como base URL, path e confirmação de endpoint, são lidas do ambiente da sessão de execução. Enquanto essa leitura não estiver centralizada, defina essas variáveis no PowerShell antes dos comandos de status, preview ou chamada controlada.
+As configuracoes externas dos providers sao lidas do ambiente da sessao de execucao. Para Shopee, o caminho operacional atual usa GraphQL; as variaveis REST antigas existem apenas para codigo legado e testes de compatibilidade.
 
-Exemplo seguro para a sessão atual:
+Exemplo seguro para a sessao atual:
 
 ```powershell
-$env:SHOPEE_BASE_URL="https://partner.shopeemobile.com"
-$env:SHOPEE_SEARCH_PATH="/api/v2/product/search_item"
-$env:SHOPEE_SEARCH_PATH_CONFIRMED="false"
+$env:SHOPEE_GRAPHQL_URL="https://open-api.affiliate.shopee.com.br/graphql"
 ```
 
-Use `true` em `SHOPEE_SEARCH_PATH_CONFIRMED` somente depois de confirmar o endpoint oficial e revisar o preview seguro.
+A Open API de afiliados informada para a Shopee usa GraphQL. A query de lista de ofertas e `shopeeOfferV2`, e a mutacao `generateShortLink` deve ser usada para gerar links curtos rastreaveis.
 
-Observação: a Open API de afiliados informada para a Shopee usa GraphQL no
-endpoint `https://open-api.affiliate.shopee.com.br/graphql`. A query de lista de
-ofertas é `shopeeOfferV2`, e a mutação `generateShortLink` deve ser usada para
-gerar links curtos rastreáveis. As variáveis REST acima pertencem ao contrato
-legado do projeto e devem ser substituídas por configuração GraphQL antes de
-chamada real.
+## VariÃ¡veis gerais
 
-## Variáveis gerais
-
-| Variável | Padrão | Descrição |
+| VariÃ¡vel | PadrÃ£o | DescriÃ§Ã£o |
 | --- | --- | --- |
-| `APP_ENV` | `local` | Ambiente lógico da execução. |
-| `LOG_LEVEL` | `INFO` | Nível de log planejado para execução local. |
-| `DEFAULT_DRY_RUN` | `true` | Mantém publicação simulada por padrão. |
-| `MAX_OFFERS_PER_RUN` | `5` | Limite padrão de ofertas por execução. |
-| `ENABLE_REAL_HTTP` | `false` | Trava para chamadas HTTP reais. Deve permanecer desligada até o checklist permitir. |
-| `ENABLE_REAL_PUBLISH` | `false` | Trava para publicação real. Deve permanecer desligada. |
+| `APP_ENV` | `local` | Ambiente lÃ³gico da execuÃ§Ã£o. |
+| `LOG_LEVEL` | `INFO` | NÃ­vel de log planejado para execuÃ§Ã£o local. |
+| `DEFAULT_DRY_RUN` | `true` | MantÃ©m publicaÃ§Ã£o simulada por padrÃ£o. |
+| `MAX_OFFERS_PER_RUN` | `5` | Limite padrÃ£o de ofertas por execuÃ§Ã£o. |
+| `ENABLE_REAL_HTTP` | `false` | Trava para chamadas HTTP reais. Deve permanecer desligada atÃ© o checklist permitir. |
+| `ENABLE_REAL_PUBLISH` | `false` | Trava para publicaÃ§Ã£o real. Deve permanecer desligada. |
 
 ## Shopee
 
-| Variável | Obrigatória para provider Shopee | Descrição |
+| VariÃ¡vel | ObrigatÃ³ria para provider Shopee | DescriÃ§Ã£o |
 | --- | --- | --- |
-| `SHOPEE_PARTNER_ID` | Sim | Identificador numérico do parceiro. Deve conter apenas dígitos e estar no intervalo aceito pela API. |
-| `SHOPEE_SECRET_KEY` | Sim | Chave usada para assinatura. Não imprimir em logs. |
-| `SHOPEE_TRACKING_ID` | Não | Identificador de rastreio de afiliado, quando aplicável. |
-| `SHOPEE_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
-| `SHOPEE_SEARCH_PATH` | Não | Caminho do endpoint de busca/listagem. Padrão provisório: `/api/v2/product/search_item`. Confirmar no painel/documentação oficial antes de chamada real. |
-| `SHOPEE_SEARCH_PATH_CONFIRMED` | Sim, para chamada real | Deve ser `true` apenas depois de comparar o preview com o endpoint oficial. Padrão seguro: `false`. |
-| `SHOPEE_GRAPHQL_URL` | Sim, para integração real futura | Endpoint GraphQL da Open API de afiliados. Valor informado: `https://open-api.affiliate.shopee.com.br/graphql`. |
+| `SHOPEE_PARTNER_ID` | Sim | Identificador numÃ©rico do parceiro. Deve conter apenas dÃ­gitos e estar no intervalo aceito pela API. |
+| `SHOPEE_SECRET_KEY` | Sim | Chave usada para assinatura. NÃ£o imprimir em logs. |
+| `SHOPEE_TRACKING_ID` | Nao | Identificador de rastreio de afiliado, quando aplicavel. |
+| `SHOPEE_GRAPHQL_URL` | Nao | Endpoint GraphQL da Open API de afiliados. Padrao: `https://open-api.affiliate.shopee.com.br/graphql`. |
+| `SHOPEE_BASE_URL` | Nao | Legado REST. Nao usado no fluxo principal Shopee GraphQL. |
+| `SHOPEE_SEARCH_PATH` | Nao | Legado REST. Nao usado no fluxo principal Shopee GraphQL. |
+| `SHOPEE_SEARCH_PATH_CONFIRMED` | Nao | Legado REST. Nao e mais trava do fluxo principal GraphQL. |
 
 Estado atual:
 
-- provider valida configuração;
-- partner id da Shopee é validado como numérico antes da chamada real;
-- gateway fake/injetável funciona em teste;
-- base URL é configurável sem ativar HTTP real;
-- path de busca é configurável fora do Git;
-- chamada real continua desativada por padrão;
-- chamada real da Shopee exige confirmação explícita do path;
-- payload real ainda não deve ser usado sem anonimização;
-- endpoint da Shopee precisa de confirmação manual antes de chamada real;
-- contrato correto informado para ofertas é GraphQL com a query
-  `shopeeOfferV2`;
-- short links devem ser gerados pela mutação `generateShortLink`;
-- o provider REST atual deve ser refatorado antes de uso real.
+- provider valida configuracao;
+- partner id da Shopee e validado como numerico antes da chamada real;
+- gateway GraphQL monta `POST` assinado para `shopeeOfferV2`;
+- preview seguro mascara o header `Authorization`;
+- mock usa payload fake no formato `ShopeeOfferConnectionV2`, em paridade com o caminho real;
+- mapper GraphQL normaliza `nodes` para `Offer` sem inventar preco quando a API nao retornar preco;
+- chamada real continua desativada por padrao via `ENABLE_REAL_HTTP=false`;
+- payload real ainda nao deve ser usado sem anonimizacao;
+- short links devem ser gerados pela mutacao `generateShortLink`.
 
 ## Amazon
 
-| Variável | Obrigatória para provider Amazon | Descrição |
+| VariÃ¡vel | ObrigatÃ³ria para provider Amazon | DescriÃ§Ã£o |
 | --- | --- | --- |
-| `AMAZON_ACCESS_KEY` | Sim | Identificador de acesso da PA API. Não imprimir em logs. |
-| `AMAZON_SECRET_KEY` | Sim | Chave usada para autenticação. Não imprimir em logs. |
+| `AMAZON_ACCESS_KEY` | Sim | Identificador de acesso da PA API. NÃ£o imprimir em logs. |
+| `AMAZON_SECRET_KEY` | Sim | Chave usada para autenticaÃ§Ã£o. NÃ£o imprimir em logs. |
 | `AMAZON_PARTNER_TAG` | Sim | Tag de associado. |
-| `AMAZON_REGION` | Não | Região lógica. Padrão atual: `BR`. |
-| `AMAZON_BASE_URL` | Não | Base URL usada pelo builder. Padrão seguro: `https://example.com`. |
-| `AMAZON_SEARCH_PATH` | Não | Caminho do endpoint de busca. Padrão atual: `/paapi5/searchitems`. Revisar a decisão PA-API 5.0 versus Creators API antes de chamada real. |
+| `AMAZON_REGION` | NÃ£o | RegiÃ£o lÃ³gica. PadrÃ£o atual: `BR`. |
+| `AMAZON_BASE_URL` | NÃ£o | Base URL usada pelo builder. PadrÃ£o seguro: `https://example.com`. |
+| `AMAZON_SEARCH_PATH` | NÃ£o | Caminho do endpoint de busca. PadrÃ£o atual: `/paapi5/searchitems`. Revisar a decisÃ£o PA-API 5.0 versus Creators API antes de chamada real. |
 
 Estado atual:
 
-- provider valida configuração;
-- gateway fake/injetável funciona em teste;
-- base URL é configurável sem ativar HTTP real;
-- path de busca é configurável fora do Git;
-- chamada real continua desativada por padrão;
-- assinatura real da PA API ainda não foi implementada;
-- contrato final da Amazon depende da decisão PA-API 5.0 versus Creators API;
+- provider valida configuraÃ§Ã£o;
+- gateway fake/injetÃ¡vel funciona em teste;
+- base URL Ã© configurÃ¡vel sem ativar HTTP real;
+- path de busca Ã© configurÃ¡vel fora do Git;
+- chamada real continua desativada por padrÃ£o;
+- assinatura real da PA API ainda nÃ£o foi implementada;
+- contrato final da Amazon depende da decisÃ£o PA-API 5.0 versus Creators API;
 - uso oficial da Amazon pode depender de elegibilidade da conta na Creators API,
-  incluindo conta de criador aprovada e volume mínimo recente de vendas
+  incluindo conta de criador aprovada e volume mÃ­nimo recente de vendas
   qualificadas;
-- enquanto não houver elegibilidade, Amazon deve operar apenas em modo
+- enquanto nÃ£o houver elegibilidade, Amazon deve operar apenas em modo
   mock/fake, entrada manual/curada ou experimento de scraping explicitamente
   aprovado e isolado.
 
-## Execução segura recomendada
+## ExecuÃ§Ã£o segura recomendada
 
 ### Rodar pipeline completo com mock
 
@@ -121,23 +108,23 @@ Estado atual:
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace mock --niche maquiagem --limit 2
 ```
 
-Esse é o caminho mais seguro para testar o fluxo completo.
+Esse Ã© o caminho mais seguro para testar o fluxo completo.
 
-### Validar erro amigável da Shopee sem credenciais
+### Validar erro amigÃ¡vel da Shopee sem credenciais
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 2
 ```
 
-Se o `.env` não tiver as variáveis da Shopee, o CLI deve mostrar erro amigável e exit code `2`.
+Se o `.env` nÃ£o tiver as variÃ¡veis da Shopee, o CLI deve mostrar erro amigÃ¡vel e exit code `2`.
 
-### Validar erro amigável da Amazon sem credenciais
+### Validar erro amigÃ¡vel da Amazon sem credenciais
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace amazon --niche casa --limit 2
 ```
 
-Se o `.env` não tiver as variáveis da Amazon, o CLI deve mostrar erro amigável e exit code `2`.
+Se o `.env` nÃ£o tiver as variÃ¡veis da Amazon, o CLI deve mostrar erro amigÃ¡vel e exit code `2`.
 
 ### Status seguro da Shopee antes de chamada real
 
@@ -145,7 +132,7 @@ Se o `.env` não tiver as variáveis da Amazon, o CLI deve mostrar erro amigáve
 .\.venv\Scripts\python.exe -m ofertas_bot.tools.safe_status --marketplace shopee
 ```
 
-Use esse comando para conferir se o ambiente está pronto ou bloqueado antes de qualquer chamada real controlada.
+Use esse comando para conferir se o ambiente estÃ¡ pronto ou bloqueado antes de qualquer chamada real controlada.
 
 ### Preview seguro da Shopee antes de chamada real
 
@@ -153,17 +140,11 @@ Use esse comando para conferir se o ambiente está pronto ou bloqueado antes de 
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
 ```
 
-Use esse comando para revisar método, base URL, path e parâmetros não sensíveis antes de uma chamada real controlada.
+Use esse comando para revisar metodo, URL GraphQL, header `Authorization` mascarado e variaveis nao sensiveis do body antes de uma chamada real controlada.
 
 ### Chamada real controlada da Shopee
 
-Antes de rodar `--execute-real-http-once`, o ambiente local precisa ter:
-
-```text
-SHOPEE_SEARCH_PATH_CONFIRMED=true
-```
-
-Só defina esse valor depois de confirmar o endpoint oficial.
+Antes de rodar `--execute-real-http-once`, o ambiente local precisa ter `ENABLE_REAL_HTTP=true`, credenciais Shopee aprovadas no `.env` local e, se necessario, `SHOPEE_GRAPHQL_URL` apontando para o endpoint oficial. `ENABLE_REAL_PUBLISH` deve continuar `false`.
 
 ## Testes locais
 
@@ -174,18 +155,17 @@ Use sempre:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Os testes de provider usam transport fake e não acessam internet.
+Os testes de provider usam transport fake e nÃ£o acessam internet.
 
-## O que não fazer
+## O que nÃ£o fazer
 
-- Não colocar valores reais no `.env.example`.
-- Não commitar `.env`.
-- Não imprimir chaves, tokens, cookies, QR code ou sessões.
-- Não ativar `ENABLE_REAL_HTTP=true` antes do checklist de produção.
-- Não ativar `ENABLE_REAL_PUBLISH=true` antes de revisão manual completa.
-- Não usar payload real em teste sem anonimização.
-- Não executar chamada real se o endpoint oficial não foi confirmado.
-- Não definir `SHOPEE_SEARCH_PATH_CONFIRMED=true` sem revisão manual.
+- NÃ£o colocar valores reais no `.env.example`.
+- NÃ£o commitar `.env`.
+- NÃ£o imprimir chaves, tokens, cookies, QR code ou sessÃµes.
+- NÃ£o ativar `ENABLE_REAL_HTTP=true` antes do checklist de produÃ§Ã£o.
+- NÃ£o ativar `ENABLE_REAL_PUBLISH=true` antes de revisÃ£o manual completa.
+- NÃ£o usar payload real em teste sem anonimizaÃ§Ã£o.
+- NÃ£o executar chamada real se o endpoint oficial nÃ£o foi confirmado.
 
 ## Ordem segura para evoluir
 
@@ -193,6 +173,6 @@ Os testes de provider usam transport fake e não acessam internet.
 2. Testar providers com `StaticHttpTransport`.
 3. Validar payloads reais apenas como fixtures anonimizadas.
 4. Confirmar contratos oficiais dos marketplaces.
-5. Concluir checklist de produção.
-6. Só depois conectar `ENABLE_REAL_HTTP` ao transport real.
-7. Manter publicação real desligada até revisão manual final.
+5. Concluir checklist de produÃ§Ã£o.
+6. SÃ³ depois conectar `ENABLE_REAL_HTTP` ao transport real.
+7. Manter publicaÃ§Ã£o real desligada atÃ© revisÃ£o manual final.

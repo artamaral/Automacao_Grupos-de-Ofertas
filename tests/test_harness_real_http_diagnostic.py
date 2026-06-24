@@ -17,7 +17,7 @@ def test_harness_real_http_diagnostic_succeeds_without_external_call(
     capsys,
 ) -> None:
     monkeypatch.setattr(harness, "get_settings", make_shopee_settings)
-    monkeypatch.setenv("SHOPEE_BASE_URL", "https://api.shopee.test")
+    monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://api.shopee.test/graphql")
 
     exit_code = harness.run(
         [

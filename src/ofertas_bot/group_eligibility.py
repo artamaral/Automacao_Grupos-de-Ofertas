@@ -22,7 +22,7 @@ class GroupEligibilityPolicy:
         if not group_profile.allows_niche(offer.niche):
             reasons.append("nicho não permitido para o grupo")
 
-        if offer.price <= 0:
+        if offer.price < 0:
             reasons.append("preço inválido")
 
         if not offer.url:

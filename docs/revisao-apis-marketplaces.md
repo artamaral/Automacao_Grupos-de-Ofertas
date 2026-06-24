@@ -285,17 +285,20 @@ Uso esperado no projeto:
 
 ### Impacto no projeto
 
-- A implementação atual REST/GET deve ser substituída por um provider GraphQL
-  para a Open API de afiliados.
-- O provider GraphQL deve montar `POST` para
+- A implementação principal da Shopee foi migrada do REST/GET legado para um
+  provider GraphQL da Open API de afiliados.
+- O provider GraphQL monta `POST` para
   `https://open-api.affiliate.shopee.com.br/graphql`.
-- A autenticação deve gerar o header `Authorization` no formato SHA256 informado
+- A autenticação gera o header `Authorization` no formato SHA256 informado
   pela documentação, sem expor credenciais ou assinatura em logs.
-- O mapper da Shopee deve deixar de esperar `items` e passar a normalizar
-  `data.shopeeOfferV2.nodes` ou a estrutura real equivalente retornada pela API.
-- A paginação deve usar `pageInfo.hasNextPage`, `pageInfo.page` e
+- O mapper da Shopee normaliza `data.shopeeOfferV2.nodes` para `Offer`.
+- Como `shopeeOfferV2` nao retorna preco de produto, o projeto trata preco `0`
+  como preco desconhecido e orienta a mensagem para consultar o valor no link.
+- O mock usa payload fake no formato `ShopeeOfferConnectionV2`, mantendo paridade
+  com o caminho real de desenvolvimento.
+- A paginação usa `pageInfo.hasNextPage`, `pageInfo.page` e
   `pageInfo.limit`.
-- A busca deve suportar `keyword`, `sortType`, `page` e `limit`.
+- A busca suporta `keyword`, `sortType`, `page` e `limit`.
 - O ranking interno do projeto deve continuar independente do `sortType`; a
   ordenação da Shopee é apenas ordenação da fonte.
 - Cupons/ofertas de campanha devem considerar `periodStartTime` e
@@ -316,10 +319,11 @@ Uso esperado no projeto:
 - [ ] Confirmar schema das queries de marca, produto, product feed e brand feed.
 - [ ] Confirmar limites e formato aceito de `subIds`.
 - [ ] Definir padrão interno de `subIds`.
-- [ ] Criar fixture fake/anonimizada com `shopeeOfferV2`.
+- [x] Criar payload fake com `shopeeOfferV2` para o provider mock.
 - [ ] Criar fixture fake/anonimizada com `generateShortLink`.
-- [ ] Refatorar `ShopeeSignedRequestBuilder`, `ShopeeGateway` e
-      `ShopeeOfferMapper` para GraphQL antes de qualquer chamada real.
+- [x] Implementar builder, gateway e mapper GraphQL para `shopeeOfferV2`.
+- [ ] Validar builder, gateway e mapper GraphQL contra uma resposta real
+      anonimizada da conta aprovada.
 
 ## Regra antes de chamada real
 

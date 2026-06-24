@@ -1,5 +1,8 @@
 from ofertas_bot.providers.amazon import AmazonProvider
-from ofertas_bot.providers.provider_settings import get_provider_base_urls
+from ofertas_bot.providers.provider_settings import (
+    get_provider_base_urls,
+    get_provider_graphql_urls,
+)
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.settings import Settings
 
@@ -24,8 +27,8 @@ def test_provider_base_urls_can_be_overridden(monkeypatch) -> None:
     assert base_urls.amazon == "https://amazon.example.test"
 
 
-def test_shopee_provider_uses_configured_base_url(monkeypatch) -> None:
-    monkeypatch.setenv("SHOPEE_BASE_URL", "https://shopee.example.test")
+def test_shopee_provider_uses_configured_graphql_url(monkeypatch) -> None:
+    monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://shopee.example.test/graphql")
     provider = ShopeeProvider(
         settings=Settings(shopee_partner_id="partner", shopee_secret_key="credential")
     )
@@ -36,7 +39,15 @@ def test_shopee_provider_uses_configured_base_url(monkeypatch) -> None:
         timestamp=1700000000,
     )
 
-    assert request.url.startswith("https://shopee.example.test")
+    assert request.url == "https://shopee.example.test/graphql"
+
+
+def test_provider_graphql_urls_can_be_overridden(monkeypatch) -> None:
+    monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://shopee.example.test/graphql")
+
+    urls = get_provider_graphql_urls()
+
+    assert urls.shopee == "https://shopee.example.test/graphql"
 
 
 def test_amazon_provider_uses_configured_base_url(monkeypatch) -> None:

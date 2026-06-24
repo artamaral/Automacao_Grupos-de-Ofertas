@@ -86,12 +86,17 @@ def format_message_drafts_for_review(drafts: tuple[MessageDraft, ...]) -> str:
 
 def format_message_draft_for_review(index: int, draft: MessageDraft) -> str:
     offer = draft.offer
+    price_line = (
+        f"Preço: R$ {offer.price:.2f}"
+        if offer.price > 0
+        else "Preço: consulte o valor atualizado no link da oferta"
+    )
     return (
         f"# Mensagem {index}\n"
         f"Marketplace: {offer.marketplace.value}\n"
         f"Nicho: {offer.niche}\n"
         f"Oferta: {offer.title}\n"
-        f"Preço: R$ {offer.price:.2f}\n"
+        f"{price_line}\n"
         f"Link: {offer.url}\n\n"
         f"{draft.text}"
     )

@@ -81,13 +81,28 @@ def test_group_eligibility_rejects_invalid_offer_data() -> None:
     )
 
     result = GroupEligibilityPolicy().validate_offer(
-        offer=make_offer(price=0, url=""),
+        offer=make_offer(price=-1, url=""),
         group_profile=profile,
     )
 
     assert result.approved is False
     assert "preço inválido" in result.reasons
     assert "oferta sem link" in result.reasons
+
+
+def test_group_eligibility_allows_unknown_price() -> None:
+    profile = GroupProfile(
+        slug="maquiagem-vip",
+        name="Maquiagem VIP",
+        allowed_niches=("maquiagem",),
+    )
+
+    result = GroupEligibilityPolicy().validate_offer(
+        offer=make_offer(price=0),
+        group_profile=profile,
+    )
+
+    assert result.approved is True
 
 
 def test_select_eligible_offers_respects_group_limit() -> None:

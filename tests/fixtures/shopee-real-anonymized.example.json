@@ -1,17 +1,26 @@
 {
-  "items": [
-    {
-      "title": "Produto anonimizado",
-      "url": "https://example.com/redacted",
-      "image_url": "https://example.com/redacted",
-      "price": 49.9,
-      "old_price": 89.9,
-      "commission_rate": 0.08,
-      "sales_count": 120,
-      "rating": 4.8,
-      "is_free_shipping": true,
-      "sign": "<redacted>",
-      "seller_id": "<redacted>"
+  "data": {
+    "shopeeOfferV2": {
+      "nodes": [
+        {
+          "commissionRate": "0.08",
+          "imageUrl": "https://example.com/redacted",
+          "offerLink": "https://example.com/redacted",
+          "originalLink": "https://example.com/redacted",
+          "offerName": "Produto anonimizado",
+          "offerType": 1,
+          "collectionId": 123,
+          "periodStartTime": 1710000000,
+          "periodEndTime": 1710086400,
+          "signature": "<redacted>",
+          "seller_id": "<redacted>"
+        }
+      ],
+      "pageInfo": {
+        "page": 1,
+        "limit": 1,
+        "hasNextPage": false
+      }
     }
-  ]
+  }
 }

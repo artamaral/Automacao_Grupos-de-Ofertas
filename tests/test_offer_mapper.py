@@ -48,3 +48,20 @@ def test_offer_mapper_rejects_invalid_payload() -> None:
     assert "url" in message
     assert "price" in message
     assert "niche" in message
+
+
+def test_offer_mapper_accepts_unknown_price_when_explicitly_allowed() -> None:
+    payload = ExternalOfferPayload(
+        marketplace=Marketplace.SHOPEE,
+        title="Campanha Shopee",
+        url="https://example.com/oferta",
+        price=0,
+        old_price=None,
+        niche="maquiagem",
+        allow_unknown_price=True,
+    )
+
+    offer = OfferMapper().map_external_offer(payload)
+
+    assert offer.price == 0
+    assert offer.title == "Campanha Shopee"
