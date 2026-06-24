@@ -53,16 +53,34 @@ O projeto já consegue gerar uma lista normalizada de ofertas:
 
 A lista existe, mas ainda não está apresentada como produto operacional principal. Hoje ela aparece como efeito colateral do harness ou de arquivos auxiliares.
 
+Além disso, a automação não deve depender de `--subgroup` como forma principal
+de descoberta. `Profile` e `subgroup` ajudam na organização, no debug e no
+recorte controlado, mas o fluxo operacional alvo precisa aceitar coleta ampla
+por macro-nicho, seguida de classificação e roteamento.
+
 O que falta para este eixo:
 
 - Ter uma função/serviço explícito para gerar lista de ofertas por nicho e marketplace.
 - Retornar uma estrutura clara com `offer`, `score` e `reasons`.
 - Definir limite padrão e ordenação como comportamento central.
 - Evitar que o fluxo dependa de vários arquivos intermediários para entender quais ofertas foram selecionadas.
+- Criar uma camada de classificação para atribuir `subgroup` e sinais de
+  aderência depois da coleta.
+- Criar uma camada de roteamento para indicar para quais grupos cada oferta pode
+  seguir.
 
 ### Decisão
 
 A próxima implementação deve favorecer uma camada clara de geração de lista de ofertas. Antes de qualquer publicação ou auditoria avançada, o sistema deve responder bem à pergunta: “quais ofertas foram selecionadas e por quê?”.
+
+Também fica registrada a decisão arquitetural:
+
+- `subgroup` não é o motor principal da automação;
+- `subgroup` é apoio para taxonomia, debug, coleta dirigida e futura
+  catalogação;
+- a automação principal deve preferir coleta ampla por `profile`;
+- depois da coleta, o sistema deve classificar a oferta e só então decidir seu
+  roteamento.
 
 ## 3. Geração de mensagens
 
@@ -109,10 +127,48 @@ Essas peças só devem receber correção de bug, lint ou teste.
 
 A ordem recomendada é:
 
-1. Criar uma camada operacional para gerar lista de ofertas selecionadas.
-2. Criar uma camada operacional para gerar mensagens a partir dessa lista.
-3. Unificar o fluxo principal para automação chamar essas camadas com poucos parâmetros.
-4. Só depois retomar persistência, histórico e integrações reais.
+1. Criar uma camada operacional de descoberta ampla por `profile`.
+2. Criar uma camada operacional de classificação e roteamento das ofertas
+   coletadas.
+3. Criar uma camada operacional para gerar lista de ofertas selecionadas com
+   `offer + score + classification + routing`.
+4. Criar uma camada operacional para gerar mensagens a partir dessa lista.
+5. Unificar o fluxo principal para automação chamar essas camadas com poucos
+   parâmetros.
+6. Só depois retomar persistência, histórico e integrações reais.
+
+## Próxima etapa de maior valor operacional
+
+A camada completa de classificação, roteamento e decisão deve ser adiada até a
+entrada de dados reais.
+
+Motivos registrados:
+
+1. a estrutura real de saída da API ainda não está suficientemente conhecida;
+2. sem dados reais, fica frágil definir regra de score, aderência e ponderação
+   do que é uma boa oferta.
+
+Decisão:
+
+- manter a taxonomia de `subgroups` como escopo inicial e apoio de catalogação;
+- não transformar isso ainda em motor definitivo de decisão;
+- adiar regra rígida de classificação e roteamento até existir retorno real da
+  Shopee.
+
+Assim, a próxima etapa de maior valor operacional passa a ser:
+
+criar uma camada operacional de coleta ampla e inspeção estruturada da saída.
+
+Saída esperada dessa etapa:
+
+- coletar mais ofertas por `profile`;
+- salvar saída normalizada de forma consistente;
+- preservar sinais úteis para análise posterior;
+- facilitar leitura do que a API realmente devolve por nicho;
+- preparar base para calibrar score e roteamento com evidência real.
+
+Sem esse passo, o projeto corre o risco de sofisticar regras sobre hipóteses em
+vez de sobre dados observados.
 
 ## Critério para aceitar nova implementação
 

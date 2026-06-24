@@ -10,6 +10,15 @@ Use o orquestrador local:
 .\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --niche maquiagem --marketplace mock --target grupo-maquiagem
 ```
 
+Fluxo recomendado para operação recorrente:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza
+```
+
+O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
+e está documentado em [`docs/discovery-profiles.md`](discovery-profiles.md).
+
 Após a aprovação/rejeição da fila por um processo humano ou interface externa, finalize os artefatos locais:
 
 ```powershell

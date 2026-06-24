@@ -27,6 +27,17 @@ aderência ao público e regras de qualidade, o sistema deve coletar ofertas e
 cupons, normalizar os dados recebidos e criar uma lista ranqueada de
 oportunidades.
 
+Quando existir taxonomia de subgrupos, ela deve apoiar escopo, catalogação e
+roteamento, mas não obrigatoriamente limitar a coleta principal. O fluxo alvo
+deve aceitar coleta ampla por macro-nicho e classificação posterior por
+subgrupo, para que o sistema descubra mais ofertas úteis antes de decidir para
+qual grupo cada item deve seguir.
+
+Até que existam dados reais suficientes, essa taxonomia deve ser tratada como
+estrutura inicial de escopo e catalogação, não como regra fechada de decisão.
+Classificação, roteamento e ponderação fina de score dependem da observação da
+saída real da API e do comportamento real das ofertas coletadas.
+
 Esse ranking determina quais ofertas têm qualidade suficiente para avançar no
 fluxo. Cada oferta selecionada deve ter justificativas claras para sua escolha,
 permitindo auditoria, revisão humana e melhoria contínua dos critérios de
@@ -103,9 +114,11 @@ agendador ou orquestrador:
 ```text
 APIs de ofertas
   -> Normalização dos dados
+  -> Classificação por subgrupo/categoria
   -> Coleta de cupons diários
   -> Aplicação de parâmetros e critérios
   -> Ranking de ofertas
+  -> Roteamento para grupos elegíveis
   -> Seleção das melhores oportunidades
   -> Geração de mensagens de produto, cupom e contexto
   -> Revisão humana
@@ -124,6 +137,42 @@ ou responsabilidade:
 
 O operador não deve precisar executar uma sequência longa de scripts pequenos
 para concluir o fluxo diário.
+
+## Decisão operacional atual sobre contas por nicho
+
+Para organizar a operação desde o início, o projeto passa a considerar a
+segregação por nicho também no nível de identidade operacional.
+
+Decisão registrada:
+
+- usar contas de email separadas por nicho principal;
+- evitar misturar credenciais, aprovações e histórico entre nichos diferentes;
+- preparar o projeto para operar múltiplos contextos de publicação no futuro,
+  mesmo sem frontend ou banco nesta fase.
+
+Contas atualmente reservadas:
+
+1. beleza
+2. mãe e bebê
+3. auto e moto
+4. achadinhos geral
+
+Implicações práticas desta decisão:
+
+- cada nicho pode evoluir com credenciais, grupos, sessões e aprovações
+  próprias;
+- integrações futuras com WhatsApp, Telegram, n8n e marketplaces devem assumir
+  isolamento por nicho quando houver credenciais distintas;
+- logs, manifests e artefatos locais devem sempre deixar claro a qual nicho ou
+  perfil operacional pertencem;
+- nenhuma credencial, sessão, cookie, QR code ou segredo dessas contas deve ser
+  versionado no repositório;
+- essa separação não entra na descoberta neste momento; os perfis de descoberta
+  devem continuar focados apenas em filtros de coleta e seleção.
+
+Nesta fase, essa separação ainda é documentada e tratada por configuração
+versionada. No futuro, se a operação crescer, ela poderá migrar para uma camada
+administrativa mais estruturada sem mudar a regra de negócio.
 
 ## Métodos e recursos necessários
 
@@ -170,6 +219,11 @@ Possíveis responsabilidades do n8n:
 O n8n não deve conter regra de negócio central de ranking, compliance ou copy.
 Essas regras devem continuar no projeto para serem testáveis, versionadas e
 reutilizáveis.
+
+Além disso, quando a automação evoluir, o n8n deve considerar a segregação por
+nicho como contexto de execução. Isso significa que fluxos, credenciais,
+aprovações e destinos podem variar por identidade operacional, e não apenas por
+provider ou grupo.
 
 ### APIs de ofertas
 
