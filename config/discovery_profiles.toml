@@ -1,0 +1,185 @@
+# Referência operacional:
+# As listas abaixo registram categorias visíveis manualmente no site da Shopee
+# no momento do mapeamento. Elas servem como apoio para descoberta e evolução
+# dos perfis, mas não representam um catálogo completo nem definitivo.
+# Existem subcategorias adicionais e a taxonomia pode mudar ao longo do tempo.
+#
+# Os subgrupos definidos neste arquivo devem ser tratados, por enquanto, como
+# definição inicial de escopo operacional. Eles ainda precisam ser validados
+# depois contra a API real e contra dados reais de retorno da Shopee antes de
+# virarem contrato rígido de coleta.
+
+[[profiles]]
+slug = "beleza"
+name = "Beleza"
+niche = "beleza"
+marketplace = "mock"
+query = "beleza skincare maquiagem"
+target = "grupo-beleza"
+limit = 2
+keywords = ["skincare", "maquiagem", "cabelo"]
+brands = ["maybelline", "ruby rose", "loreal"]
+creators = []
+categories = ["beleza"]
+include_terms = []
+exclude_terms = ["infantil", "fantasia"]
+subgroups = [
+  { slug = "maquiagem", label = "Maquiagem", query = "maquiagem batom base corretivo", categories = ["Maquiagem"] },
+  { slug = "skincare", label = "Skincare", query = "cuidados com a pele skincare serum hidratante", categories = ["Cuidados com a Pele"] },
+  { slug = "cabelo", label = "Cabelo", query = "cuidados com o cabelo shampoo mascara finalizador", categories = ["Cuidados com o Cabelo"] },
+  { slug = "corpo-e-banho", label = "Corpo e Banho", query = "banho cuidados com o corpo hidratante sabonete", categories = ["Banho e Cuidados com o Corpo"] },
+  { slug = "unhas-e-beleza", label = "Unhas e Utensilios", query = "unhas utensilios de beleza manicure pedicure", categories = ["Utensílios de Beleza", "Cuidados com as Mãos, Pés e Unhas"] },
+  { slug = "perfumaria", label = "Perfumaria", query = "perfumes fragrancias body splash", categories = ["Perfumes e Fragrâncias"] },
+]
+notes = """
+Lista visível observada manualmente na Shopee para beleza e moda feminina,
+considerando que esse universo pode estar sob a área de mulher no site.
+Esta referência é parcial e não exaustiva.
+
+Beleza:
+- Maquiagem
+- Cuidados com o Cabelo
+- Perfumes e Fragrâncias
+- Banho e Cuidados com o Corpo
+- Cuidados com a Pele
+- Utensílios de Beleza
+- Cuidados com as Mãos, Pés e Unhas
+- Cuidados Masculinos
+- Pacotes e Conjuntos de Beleza
+- Outros
+
+Roupas femininas:
+- Vestidos
+- Blusas
+- Saias
+- Shorts
+- Jeans
+- Calças e Leggings
+- Conjuntos
+- Lingerie e Roupa Íntima
+- Traje para dormir e Pijamas
+- Macacões, Macaquinhos e Jardineiras
+- Jaquetas, Casacos e Coletes
+- Moletons e Suéteres
+- Agasalhos e Cardigans
+- Roupas de Maternidade
+- Meias
+- Roupas Tradicionais
+- Fantasias e Cosplay
+- Vestidos de Casamento
+- Tecidos
+- Outros
+"""
+
+[[profiles]]
+slug = "mae-e-bebe"
+name = "Mae e Bebe"
+niche = "mae e bebe"
+marketplace = "mock"
+query = "mae bebe fralda enxoval maternidade"
+target = "grupo-mae-e-bebe"
+limit = 2
+keywords = ["fralda", "enxoval", "maternidade"]
+brands = []
+creators = []
+categories = ["mae e bebe"]
+include_terms = []
+exclude_terms = []
+subgroups = [
+  { slug = "fraldas", label = "Fraldas", query = "fraldas penicos lencos umedecidos", categories = ["Fraldas e Penicos"] },
+  { slug = "enxoval", label = "Enxoval e Bercario", query = "bercario enxoval bebe quarto infantil", categories = ["Berçário"] },
+  { slug = "viagem", label = "Viagem com Bebe", query = "viagem bebe bolsa maternidade carrinho acessorios", categories = ["Coisas Essenciais para Viagens com Bebês"] },
+  { slug = "banho-e-cuidados", label = "Banho e Cuidados", query = "banho bebe cuidados corpo higiene", categories = ["Banho e Cuidados com o Corpo"] },
+  { slug = "saude", label = "Saude Mae e Bebe", query = "saude gravidez saude bebe termometro aspirador", categories = ["Saúde na Gravidez", "Cuidados com a Saúde do Bebê"] },
+  { slug = "seguranca", label = "Seguranca do Bebe", query = "seguranca bebe protetor trava monitor", categories = ["Segurança do Bebê"] },
+  { slug = "alimentacao", label = "Alimentacao do Bebe", query = "leite em po comida bebe alimentacao infantil", categories = ["Leite em Pó e Comida para Bebês", "Alimentos Essenciais"] },
+  { slug = "brinquedos", label = "Brinquedos", query = "brinquedos bebe primeira infancia", categories = ["Brinquedos"] },
+]
+notes = """
+Lista visível observada manualmente na Shopee para mãe e bebê.
+Esta referência é parcial e não exaustiva; existem subcategorias adicionais
+que não foram mapeadas neste momento.
+
+- Banho e Cuidados com o Corpo
+- Acessórios para Grávidas
+- Brinquedos
+- Fraldas e Penicos
+- Berçário
+- Coisas Essenciais para Viagens com Bebês
+- Saúde na Gravidez
+- Segurança do Bebê
+- Leite em Pó e Comida para Bebês
+- Cuidados com a Saúde do Bebê
+- Alimentos Essenciais
+- Pacotes e Conjuntos de Presentes
+- Outros
+"""
+
+[[profiles]]
+slug = "auto-e-moto"
+name = "Auto e Moto"
+niche = "auto e moto"
+marketplace = "mock"
+query = "carro moto acessorios automotivos"
+target = "grupo-auto-e-moto"
+limit = 2
+keywords = ["carro", "moto", "acessorios"]
+brands = []
+creators = []
+categories = ["auto e moto"]
+include_terms = []
+exclude_terms = []
+subgroups = [
+  { slug = "limpeza", label = "Limpeza Veicular", query = "limpeza veicular cera shampoo automotivo pretinho", categories = ["Limpeza Veicular"] },
+  { slug = "acessorios-internos", label = "Acessorios Internos", query = "acessorios internos automoveis suporte banco tapete", categories = ["Acessórios Internos para Automóveis"] },
+  { slug = "acessorios-externos", label = "Acessorios Externos", query = "acessorios externos automoveis pelicula antena capa", categories = ["Acessórios Externos para Automóveis"] },
+  { slug = "ferramentas", label = "Ferramentas Veiculares", query = "ferramentas veiculares macaco chave compressor", categories = ["Ferramentas Veiculares"] },
+  { slug = "pecas-auto", label = "Pecas Auto", query = "pecas reposicao automoveis lampada retrovisor filtro", categories = ["Peças de Reposição para Automóveis"] },
+  { slug = "pneus-e-rodas", label = "Pneus e Rodas", query = "pneus rodas calibrador", categories = ["Pneus e Rodas"] },
+  { slug = "seguranca", label = "Seguranca Veicular", query = "seguranca veicular camera alarme sensor", categories = ["Segurança Veicular"] },
+  { slug = "moto", label = "Moto", query = "acessorios motocicletas pecas moto capacete", categories = ["Peças de Reposição para Motocicletas", "Acessórios para Motocicletas"] },
+]
+notes = """
+Lista visível observada manualmente na Shopee para automotivo.
+Esta referência é parcial e não exaustiva; existem subcategorias adicionais
+que não foram mapeadas neste momento.
+
+- Pneus e Rodas
+- Acessórios Internos para Automóveis
+- Acessórios Externos para Automóveis
+- Peças de Reposição para Automóveis
+- Ferramentas Veiculares
+- Limpeza Veicular
+- Segurança Veicular
+- Peças de Reposição para Motocicletas
+- Acessórios para Motocicletas
+- Veículos Pesados e Barcos
+- Outros
+"""
+
+[[profiles]]
+slug = "achadinhos-geral"
+name = "Achadinhos Geral"
+niche = "achadinhos geral"
+marketplace = "mock"
+query = "achadinhos ofertas promocoes"
+target = "grupo-achadinhos-geral"
+limit = 2
+keywords = ["ofertas", "promocoes", "achadinhos"]
+brands = []
+creators = []
+categories = ["geral"]
+include_terms = []
+exclude_terms = []
+subgroups = [
+  { slug = "casa", label = "Casa", query = "organizacao casa cozinha utilidades", categories = [] },
+  { slug = "eletronicos", label = "Eletronicos", query = "fone caixa som carregador smart", categories = [] },
+  { slug = "moda", label = "Moda", query = "roupas acessorios bolsa", categories = [] },
+  { slug = "beleza", label = "Beleza", query = "beleza maquiagem skincare", categories = [] },
+  { slug = "infantil", label = "Infantil", query = "infantil brinquedos bebe", categories = [] },
+]
+notes = """
+Nicho amplo e transversal. Não há uma lista única de categorias visíveis
+registrada aqui porque ele pode reaproveitar itens de múltiplas áreas da
+Shopee. O detalhamento deve ser refinado conforme a operação avançar.
+"""
