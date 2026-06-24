@@ -16,13 +16,16 @@ Este arquivo define os agentes internos, o fluxo de implementação e o harness 
 
 O projeto deve priorizar simplicidade operacional. A partir desta decisão, o foco é reduzir comandos, flags e artefatos soltos, consolidando o fluxo em poucos pontos de entrada automatizáveis.
 
+A análise oficial que orienta as próximas decisões está em [`docs/analise-operacional.md`](docs/analise-operacional.md).
+
 Diretrizes obrigatórias:
 
+- Implementar apenas mudanças que ajudem diretamente um destes eixos: comunicador com API, geração de lista de ofertas ou geração de mensagens.
 - Não criar novos CLIs pequenos ou flags auxiliares sem necessidade operacional clara.
 - Tratar os CLIs já existentes como ferramentas internas de suporte, não como fluxo principal para operação humana diária.
 - O fluxo final deve ser pensado para ser chamado por automação/agendador/orquestrador, não por um humano executando vários scripts manualmente.
 - Humanos participam apenas nas decisões necessárias: aprovação/rejeição, credenciais, configuração de travas e validações locais importantes.
-- A próxima prioridade de implementação é simplificar o fluxo local em um comando/orquestrador operacional com caminhos padrão e poucas entradas.
+- A próxima prioridade de implementação é simplificar o fluxo principal em torno de API -> lista de ofertas -> mensagens.
 - Documentação deve destacar o fluxo recomendado e mover detalhes avançados para seções de apoio ou debug.
 - Segurança continua obrigatória: nada de envio real, HTTP real, credenciais ou publicação real sem configuração explícita, canal permitido e aprovação humana.
 
@@ -169,8 +172,8 @@ docs(workflow): adiciona padrao de commits
 
 ## Próximas issues sugeridas
 
-1. Consolidar fluxo local em um orquestrador operacional simples.
-2. Reduzir documentação operacional para o caminho recomendado.
-3. Mover ferramentas auxiliares para documentação de debug/auditoria.
-4. Adicionar persistência SQLite para histórico.
+1. Consolidar geração de lista de ofertas selecionadas.
+2. Consolidar geração de mensagens a partir das ofertas selecionadas.
+3. Simplificar o comunicador de API por contrato único.
+4. Reduzir documentação operacional para o caminho recomendado.
 5. Retomar Shopee/Amazon reais apenas após credenciais e aprovações formais.
