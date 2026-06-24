@@ -98,6 +98,11 @@ Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_h
 
 ## 10. Amazon
 
+- [ ] Elegibilidade da conta confirmada no painel oficial.
+- [ ] Restrição de vendas qualificadas recentes confirmada antes de depender da Creators API.
+- [ ] Estratégia temporária documentada caso a conta ainda não tenha acesso oficial.
+- [ ] Entrada manual/curada definida caso API oficial não esteja disponível.
+- [ ] Qualquer scraping experimental aprovado como risco explícito, isolado e sem bypass.
 - [ ] Assinatura real da PA API implementada em módulo isolado.
 - [ ] Payload real anonimizado salvo como fixture de teste.
 - [ ] Mapper validado com payload real anonimizado.

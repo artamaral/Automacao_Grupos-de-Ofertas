@@ -1,8 +1,8 @@
 # Automação de Grupos de Ofertas
 
-Projeto em **Python** para curadoria, pontuação e publicação controlada de ofertas de afiliados para grupos opt-in.
+Projeto em **Python** para operação própria de curadoria, ranqueamento e distribuição controlada de ofertas e cupons de afiliados para grupos opt-in de WhatsApp e Telegram.
 
-A versão atual usa um **fluxo local dry-run**: busca ofertas mockadas ou providers com transport fake injetável, pontua, gera copy, valida compliance e prepara artefatos locais sem enviar nada para WhatsApp real.
+A versão atual usa um **fluxo local dry-run**: busca ofertas mockadas ou providers com transport fake injetável, pontua e ranqueia por critérios configuráveis, gera copy de produtos, cupons e mensagens contextuais, valida compliance e prepara artefatos locais sem enviar nada para canais reais.
 
 ## Princípios
 
@@ -121,6 +121,7 @@ $env:PYTHONUTF8='1'
 
 ## Documentação
 
+- [`docs/objetivo-operacional.md`](docs/objetivo-operacional.md): objetivo do projeto, escopo atual e modelo operacional alvo.
 - [`docs/fluxo-operacional.md`](docs/fluxo-operacional.md): fluxo operacional local simplificado.
 - [`docs/environment.md`](docs/environment.md): variáveis de ambiente e execução local segura.
 - [`docs/provider-fake-flow.md`](docs/provider-fake-flow.md): fluxo fake/injetável dos providers.

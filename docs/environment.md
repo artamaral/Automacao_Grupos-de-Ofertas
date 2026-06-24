@@ -93,7 +93,13 @@ Estado atual:
 - path de busca é configurável fora do Git;
 - chamada real continua desativada por padrão;
 - assinatura real da PA API ainda não foi implementada;
-- contrato final da Amazon depende da decisão PA-API 5.0 versus Creators API.
+- contrato final da Amazon depende da decisão PA-API 5.0 versus Creators API;
+- uso oficial da Amazon pode depender de elegibilidade da conta na Creators API,
+  incluindo conta de criador aprovada e volume mínimo recente de vendas
+  qualificadas;
+- enquanto não houver elegibilidade, Amazon deve operar apenas em modo
+  mock/fake, entrada manual/curada ou experimento de scraping explicitamente
+  aprovado e isolado.
 
 ## Execução segura recomendada
 

@@ -16,6 +16,7 @@ Este arquivo define os agentes internos, o fluxo de implementação e o harness 
 
 O projeto deve priorizar simplicidade operacional. A partir desta decisão, o foco é reduzir comandos, flags e artefatos soltos, consolidando o fluxo em poucos pontos de entrada automatizáveis.
 
+A definição oficial de objetivo, escopo e modelo operacional está em [`docs/objetivo-operacional.md`](docs/objetivo-operacional.md).
 A análise oficial que orienta as próximas decisões está em [`docs/analise-operacional.md`](docs/analise-operacional.md).
 
 Diretrizes obrigatórias:

@@ -1,6 +1,9 @@
 # Análise operacional do projeto
 
-Este documento passa a orientar as próximas decisões de implementação. O foco do projeto é operacional e deve seguir apenas três eixos principais:
+Este documento orienta as próximas decisões de implementação. A definição de
+objetivo, escopo e modelo operacional está em `docs/objetivo-operacional.md`.
+O foco de implementação é operacional e deve seguir apenas três eixos
+principais:
 
 1. Comunicador com API.
 2. Geração de lista de ofertas.
