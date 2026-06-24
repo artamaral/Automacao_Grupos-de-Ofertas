@@ -106,8 +106,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     return 3
 
 
-def _run_prepare(argparse_namespace: argparse.Namespace | None = None, *, args, paths: LocalFlowPaths) -> int:
-    del argparse_namespace
+def _run_prepare(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
     print("INFO | Iniciando fluxo local: prepare")
     exit_code = harness.run(
         [
@@ -143,84 +142,81 @@ def _run_prepare(argparse_namespace: argparse.Namespace | None = None, *, args, 
 def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
     print("INFO | Iniciando fluxo local: finalize")
 
-    steps: tuple[tuple[str, int], ...] = (
-        (
-            "exportar aprovadas",
-            review_queue_export_cli.run(
-                [
-                    "--queue-json",
-                    str(paths.review_queue_json),
-                    "--save-approved-messages-json",
-                    str(paths.approved_messages_json),
-                    "--save-approved-messages-text",
-                    str(paths.approved_messages_text),
-                ]
-            ),
-        ),
-        (
-            "gerar manifesto",
-            publication_manifest_cli.run(
-                [
-                    "--approved-messages-json",
-                    str(paths.approved_messages_json),
-                    "--target",
-                    args.target,
-                    "--save-publication-manifest-json",
-                    str(paths.manifest_json),
-                ]
-            ),
-        ),
-        (
-            "validar manifesto",
-            publication_manifest_validate_cli.run(
-                [
-                    "--publication-manifest-json",
-                    str(paths.manifest_json),
-                ]
-            ),
-        ),
-        (
-            "gerar bundle local",
-            local_review_bundle_cli.run(
-                [
-                    "--queue-json",
-                    str(paths.review_queue_json),
-                    "--approved-messages-json",
-                    str(paths.approved_messages_json),
-                    "--manifest-json",
-                    str(paths.manifest_json),
-                    "--save-bundle-json",
-                    str(paths.bundle_json),
-                ]
-            ),
-        ),
-        (
-            "executar doctor local",
-            local_artifacts_doctor_cli.run(
-                [
-                    "--queue-json",
-                    str(paths.review_queue_json),
-                    "--approved-json",
-                    str(paths.approved_messages_json),
-                    "--manifest-json",
-                    str(paths.manifest_json),
-                    "--bundle-json",
-                    str(paths.bundle_json),
-                ]
-            ),
-        ),
+    step_exit_code = review_queue_export_cli.run(
+        [
+            "--queue-json",
+            str(paths.review_queue_json),
+            "--save-approved-messages-json",
+            str(paths.approved_messages_json),
+            "--save-approved-messages-text",
+            str(paths.approved_messages_text),
+        ]
     )
+    if step_exit_code != 0:
+        return _print_finalize_step_error("exportar aprovadas", step_exit_code)
 
-    for step_name, exit_code in steps:
-        if exit_code != 0:
-            print(f"ERRO | Etapa finalize falhou em: {step_name}", file=sys.stderr)
-            print("INFO | Nenhum envio foi executado.")
-            return exit_code
+    step_exit_code = publication_manifest_cli.run(
+        [
+            "--approved-messages-json",
+            str(paths.approved_messages_json),
+            "--target",
+            args.target,
+            "--save-publication-manifest-json",
+            str(paths.manifest_json),
+        ]
+    )
+    if step_exit_code != 0:
+        return _print_finalize_step_error("gerar manifesto", step_exit_code)
+
+    step_exit_code = publication_manifest_validate_cli.run(
+        [
+            "--publication-manifest-json",
+            str(paths.manifest_json),
+        ]
+    )
+    if step_exit_code != 0:
+        return _print_finalize_step_error("validar manifesto", step_exit_code)
+
+    step_exit_code = local_review_bundle_cli.run(
+        [
+            "--queue-json",
+            str(paths.review_queue_json),
+            "--approved-messages-json",
+            str(paths.approved_messages_json),
+            "--manifest-json",
+            str(paths.manifest_json),
+            "--save-bundle-json",
+            str(paths.bundle_json),
+        ]
+    )
+    if step_exit_code != 0:
+        return _print_finalize_step_error("gerar bundle local", step_exit_code)
+
+    step_exit_code = local_artifacts_doctor_cli.run(
+        [
+            "--queue-json",
+            str(paths.review_queue_json),
+            "--approved-json",
+            str(paths.approved_messages_json),
+            "--manifest-json",
+            str(paths.manifest_json),
+            "--bundle-json",
+            str(paths.bundle_json),
+        ]
+    )
+    if step_exit_code != 0:
+        return _print_finalize_step_error("executar doctor local", step_exit_code)
 
     print("INFO | Etapa finalize concluída.")
     print(f"INFO | Bundle local: {paths.bundle_json}")
     print("INFO | Nenhum envio foi executado.")
     return 0
+
+
+def _print_finalize_step_error(step_name: str, exit_code: int) -> int:
+    print(f"ERRO | Etapa finalize falhou em: {step_name}", file=sys.stderr)
+    print("INFO | Nenhum envio foi executado.")
+    return exit_code
 
 
 def main() -> None:
