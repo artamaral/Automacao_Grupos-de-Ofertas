@@ -39,6 +39,17 @@ def build_mock_shopee_offer_connection(niche: str) -> dict[str, object]:
 
 
 class MockOfferProvider:
+    def fetch_raw_response(self, niche: str, limit: int) -> dict[str, object]:
+        connection = build_mock_shopee_offer_connection(niche)
+        page_info = connection.get("pageInfo")
+        if isinstance(page_info, dict):
+            page_info["limit"] = min(limit, int(page_info.get("limit", limit)))
+        return {
+            "data": {
+                "shopeeOfferV2": connection,
+            }
+        }
+
     def fetch(self, marketplace: Marketplace, niche: str, limit: int) -> list[Offer]:
         mapper = ShopeeGraphqlOfferMapper(marketplace=marketplace)
         connection = build_mock_shopee_offer_connection(niche)

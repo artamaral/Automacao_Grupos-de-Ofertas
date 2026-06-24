@@ -12,6 +12,11 @@ from ofertas_bot.agents.compliance import ComplianceAgent
 from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
+from ofertas_bot.discovery_profiles import (
+    DiscoveryProfile,
+    DiscoveryProfileError,
+    load_discovery_profile_catalog,
+)
 from ofertas_bot.models import Marketplace, MessageDraft
 from ofertas_bot.providers.amazon import AmazonConfigurationError, AmazonProvider
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
@@ -23,6 +28,10 @@ from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.settings import Settings, get_settings
+from ofertas_bot.storage.json_collection_inspection_store import (
+    CollectionInspectionStoreWriteError,
+    JsonCollectionInspectionStore,
+)
 from ofertas_bot.storage.json_message_draft_store import (
     JsonMessageDraftStore,
     MessageDraftStoreWriteError,
@@ -33,24 +42,44 @@ from ofertas_bot.storage.json_message_review_queue_store import (
     MessageReviewQueueStoreWriteError,
     create_pending_review_queue,
 )
-from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreWriteError
+from ofertas_bot.storage.json_offer_store import (
+    JsonOfferStore,
+    OfferStoreWriteError,
+    offer_to_json,
+)
 
 SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
 SHOPEE_MASKED_REQUEST_HEADERS = {"authorization"}
 REVIEW_TEXT_ENCODING = "utf-8-sig"
+DEFAULT_DISCOVERY_PROFILES_PATH = Path("config/discovery_profiles.toml")
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harness dry-run do bot de ofertas")
     parser.add_argument(
         "--niche",
-        required=True,
+        default=None,
         help="Nicho do grupo, ex: maquiagem, pesca, casa",
+    )
+    parser.add_argument(
+        "--profile",
+        default=None,
+        help="Slug do perfil de descoberta salvo em arquivo versionado",
+    )
+    parser.add_argument(
+        "--subgroup",
+        default=None,
+        help="Slug opcional de subgroup dentro do profile selecionado",
+    )
+    parser.add_argument(
+        "--profiles-file",
+        default=str(DEFAULT_DISCOVERY_PROFILES_PATH),
+        help="Arquivo TOML com perfis de descoberta",
     )
     parser.add_argument(
         "--marketplace",
         choices=[item.value for item in Marketplace],
-        default=Marketplace.MOCK.value,
+        default=None,
         help="Marketplace para simular/buscar",
     )
     parser.add_argument(
@@ -61,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target",
-        default="grupo-vip-dry-run",
+        default=None,
         help="Destino lógico da publicação",
     )
     parser.add_argument(
@@ -74,6 +103,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--save-json",
         default=None,
         help="Caminho local para salvar ofertas normalizadas em JSON",
+    )
+    parser.add_argument(
+        "--save-inspection-json",
+        default=None,
+        help="Caminho local para salvar artefato estruturado de inspeção da coleta",
     )
     parser.add_argument(
         "--save-messages-json",
@@ -115,8 +149,44 @@ def run(argv: Sequence[str] | None = None) -> int:
     settings = get_settings()
     args = build_parser().parse_args(argv)
 
-    marketplace = Marketplace(args.marketplace)
-    limit = args.limit if args.limit is not None else settings.max_offers_per_run
+    profile: DiscoveryProfile | None = None
+    if args.profile:
+        try:
+            profile = load_discovery_profile_catalog(Path(args.profiles_file)).get(args.profile)
+        except DiscoveryProfileError as error:
+            return _print_discovery_profile_error(error)
+        if profile is None:
+            return _print_missing_discovery_profile_error(
+                slug=args.profile,
+                path=Path(args.profiles_file),
+            )
+        if args.subgroup:
+            try:
+                profile = profile.scoped_to_subgroup(args.subgroup)
+            except DiscoveryProfileError as error:
+                return _print_discovery_profile_error(error)
+    elif args.subgroup:
+        return _print_discovery_profile_error(
+            DiscoveryProfileError("use --profile junto com --subgroup")
+        )
+
+    try:
+        input_context = _resolve_input_context(
+            niche_arg=args.niche,
+            marketplace_arg=args.marketplace,
+            limit_arg=args.limit,
+            target_arg=args.target,
+            settings=settings,
+            profile=profile,
+        )
+    except DiscoveryProfileError as error:
+        return _print_discovery_profile_error(error)
+
+    marketplace = input_context.marketplace
+    limit = input_context.limit
+    niche = input_context.niche
+    target = input_context.target
+    search_term = profile.search_term() if profile is not None else niche
     if limit <= 0:
         return _print_limit_error(limit=limit)
 
@@ -135,7 +205,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_provider_request_preview(
             marketplace=marketplace,
             settings=settings,
-            niche=args.niche,
+            niche=search_term,
             limit=limit,
         )
 
@@ -143,8 +213,9 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _run_real_http_once(
             marketplace=marketplace,
             settings=settings,
-            niche=args.niche,
+            niche=niche,
             limit=limit,
+            profile=profile,
         )
 
     dry_run = bool(args.dry_run or settings.default_dry_run)
@@ -154,9 +225,26 @@ def run(argv: Sequence[str] | None = None) -> int:
     copywriter = CopywriterAgent()
     compliance = ComplianceAgent(settings=settings)
     publisher = DryRunPublisher()
+    raw_response: dict[str, object] | None = None
 
     try:
-        offers = collector.collect(marketplace=marketplace, niche=args.niche, limit=limit)
+        if args.save_inspection_json:
+            if profile is None:
+                batch = collector.collect_with_inspection(
+                    marketplace=marketplace,
+                    niche=niche,
+                    limit=limit,
+                    query=search_term,
+                )
+            else:
+                batch = collector.collect_from_profile_with_inspection(profile=profile, limit=limit)
+            offers = batch.offers
+            raw_response = batch.raw_response
+        else:
+            if profile is None:
+                offers = collector.collect(marketplace=marketplace, niche=niche, limit=limit)
+            else:
+                offers = collector.collect_from_profile(profile=profile, limit=limit)
     except ShopeeConfigurationError as error:
         return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonConfigurationError as error:
@@ -176,6 +264,28 @@ def run(argv: Sequence[str] | None = None) -> int:
     except HttpTransportError as error:
         return _print_transport_error(marketplace=marketplace, error=error)
 
+    if args.save_inspection_json:
+        save_path = Path(args.save_inspection_json)
+        if _is_root_output_path(save_path):
+            _print_save_json_root_warning(save_path)
+        try:
+            JsonCollectionInspectionStore(path=save_path).save(
+                _build_collection_inspection_payload(
+                    marketplace=marketplace,
+                    niche=niche,
+                    limit=limit,
+                    search_term=search_term,
+                    target=target,
+                    profile=profile,
+                    subgroup_slug=args.subgroup,
+                    offers=offers,
+                    raw_response=raw_response,
+                )
+            )
+        except CollectionInspectionStoreWriteError as error:
+            return _print_save_inspection_json_error(error=error)
+        print(f"INFO | Inspeção estruturada da coleta salva em {save_path}")
+
     if args.save_json:
         save_path = Path(args.save_json)
         if _is_root_output_path(save_path):
@@ -191,8 +301,13 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     print(
         f"INFO | Encontradas {len(scored_offers)} ofertas "
-        f"para nicho={args.niche} marketplace={marketplace}"
+        f"para nicho={niche} marketplace={marketplace}"
     )
+    if profile is not None:
+        print(
+            f"INFO | Perfil de descoberta={profile.slug} "
+            f"query=\"{profile.search_term()}\" target={target}"
+        )
 
     for index, scored in enumerate(scored_offers, start=1):
         draft = copywriter.create_message(scored)
@@ -205,8 +320,8 @@ def run(argv: Sequence[str] | None = None) -> int:
             continue
 
         approved_drafts.append(draft)
-        publish_result = publisher.publish(draft=draft, target=args.target)
-        print(publish_result.message)
+        publish_result = publisher.publish(draft=draft, target=target)
+        _print_stdout_safe(publish_result.message)
         print(
             f"INFO | dry_run={publish_result.dry_run} "
             f"sent={publish_result.sent} target={publish_result.target}"
@@ -271,6 +386,47 @@ def _run_real_http_diagnostic(marketplace: Marketplace, settings: Settings) -> i
     return 0
 
 
+class _InputContext(argparse.Namespace):
+    niche: str
+    marketplace: Marketplace
+    limit: int
+    target: str
+
+
+def _resolve_input_context(
+    *,
+    niche_arg: str | None,
+    marketplace_arg: str | None,
+    limit_arg: int | None,
+    target_arg: str | None,
+    settings: Settings,
+    profile: DiscoveryProfile | None,
+) -> _InputContext:
+    if profile is None and not niche_arg:
+        raise DiscoveryProfileError("use --niche ou --profile para definir a busca")
+
+    niche = profile.niche if profile is not None else str(niche_arg).strip().lower()
+    if not niche:
+        raise DiscoveryProfileError("niche vazio: revise --niche ou o profile configurado")
+
+    if marketplace_arg:
+        marketplace = Marketplace(marketplace_arg)
+    elif profile is not None:
+        marketplace = profile.marketplace
+    else:
+        marketplace = Marketplace.MOCK
+
+    if limit_arg is not None:
+        limit = limit_arg
+    elif profile is not None and profile.limit is not None:
+        limit = profile.limit
+    else:
+        limit = settings.max_offers_per_run
+
+    target = target_arg or (profile.target if profile is not None else None) or "grupo-vip-dry-run"
+    return _InputContext(niche=niche, marketplace=marketplace, limit=limit, target=target)
+
+
 def _print_provider_request_preview(
     marketplace: Marketplace,
     settings: Settings,
@@ -320,6 +476,7 @@ def _run_real_http_once(
     settings: Settings,
     niche: str,
     limit: int,
+    profile: DiscoveryProfile | None = None,
 ) -> int:
     if marketplace == Marketplace.MOCK:
         print("ERRO | Chamada HTTP real não se aplica ao marketplace mock", file=sys.stderr)
@@ -328,11 +485,15 @@ def _run_real_http_once(
 
     try:
         _validate_real_http_ready(marketplace=marketplace, settings=settings)
-        offers = CollectorAgent(settings=settings).collect(
-            marketplace=marketplace,
-            niche=niche,
-            limit=limit,
-        )
+        collector = CollectorAgent(settings=settings)
+        if profile is None:
+            offers = collector.collect(
+                marketplace=marketplace,
+                niche=niche,
+                limit=limit,
+            )
+        else:
+            offers = collector.collect_from_profile(profile=profile, limit=limit)
     except ShopeeConfigurationError as error:
         return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonConfigurationError as error:
@@ -418,6 +579,26 @@ def _print_limit_error(limit: int) -> int:
     )
     print(
         "AÇÃO | Informe um valor positivo, por exemplo --limit 5.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_discovery_profile_error(error: Exception) -> int:
+    print("ERRO | Perfil de descoberta inválido", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Revise o arquivo de perfis ou rode com --niche manual.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_missing_discovery_profile_error(slug: str, path: Path) -> int:
+    print("ERRO | Perfil de descoberta não encontrado", file=sys.stderr)
+    print(f"DETALHE | slug={slug} arquivo={path}", file=sys.stderr)
+    print(
+        "AÇÃO | Verifique o nome do perfil ou o caminho do arquivo configurado.",
         file=sys.stderr,
     )
     return 3
@@ -534,6 +715,89 @@ def _print_save_review_queue_json_error(error: Exception) -> int:
     return 3
 
 
+def _print_save_inspection_json_error(error: Exception) -> int:
+    print("ERRO | Não foi possível salvar a inspeção estruturada da coleta", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _build_collection_inspection_payload(
+    *,
+    marketplace: Marketplace,
+    niche: str,
+    limit: int,
+    search_term: str,
+    target: str,
+    profile: DiscoveryProfile | None,
+    subgroup_slug: str | None,
+    offers: list[Any],
+    raw_response: dict[str, object] | None,
+) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        "marketplace": marketplace.value,
+        "niche": niche,
+        "search_term": search_term,
+        "target": target,
+        "limit": limit,
+        "collected_offer_count": len(offers),
+        "profile_slug": profile.slug if profile is not None else None,
+        "subgroup_slug": subgroup_slug,
+    }
+    provider_snapshot = _build_provider_snapshot(marketplace=marketplace, raw_response=raw_response)
+    return {
+        "metadata": metadata,
+        "offers": [offer_to_json(offer) for offer in offers],
+        "provider_snapshot": provider_snapshot,
+    }
+
+
+def _build_provider_snapshot(
+    *,
+    marketplace: Marketplace,
+    raw_response: dict[str, object] | None,
+) -> dict[str, Any]:
+    if raw_response is None:
+        return {
+            "marketplace": marketplace.value,
+            "supports_raw_response": False,
+        }
+
+    snapshot: dict[str, Any] = {
+        "marketplace": marketplace.value,
+        "supports_raw_response": True,
+        "raw_response": raw_response,
+    }
+    if marketplace in {Marketplace.MOCK, Marketplace.SHOPEE}:
+        connection = _extract_shopee_connection(raw_response)
+        if connection is not None:
+            nodes = connection.get("nodes")
+            page_info = connection.get("pageInfo")
+            snapshot["offer_node_count"] = len(nodes) if isinstance(nodes, list) else 0
+            snapshot["page_info"] = page_info if isinstance(page_info, dict) else None
+    return snapshot
+
+
+def _extract_shopee_connection(raw_response: dict[str, object]) -> dict[str, Any] | None:
+    data = raw_response.get("data")
+    if not isinstance(data, dict):
+        return None
+    connection = data.get("shopeeOfferV2")
+    if not isinstance(connection, dict):
+        return None
+    return connection
+
+
+def _print_stdout_safe(text: str) -> None:
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+        safe_text = text.encode(encoding, errors="replace").decode(encoding)
+        print(safe_text)
 def main() -> None:
     raise SystemExit(run())
 

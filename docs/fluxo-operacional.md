@@ -19,6 +19,16 @@ Fluxo recomendado para operação recorrente:
 O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
 e está documentado em [`docs/discovery-profiles.md`](discovery-profiles.md).
 
+Quando a meta for aprender com a saída da coleta, o caminho recomendado é salvar
+também a inspeção estruturada:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza --save-inspection-json .\tmp\beleza-inspection.json
+```
+
+Esse artefato deve ser usado para observar a saída real por `profile` antes de
+endurecer classificação, roteamento e score.
+
 Após a aprovação/rejeição da fila por um processo humano ou interface externa, finalize os artefatos locais:
 
 ```powershell

@@ -38,6 +38,12 @@ Exemplo com subgroup:
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --profile auto-e-moto --subgroup limpeza
 ```
 
+Exemplo com inspeção estruturada da coleta:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza --save-inspection-json .\tmp\beleza-inspection.json
+```
+
 Também é possível apontar outro arquivo:
 
 ```powershell
@@ -74,6 +80,8 @@ Regras atuais:
 - `--profile` passa a ser o caminho recomendado para operação;
 - `--subgroup` permite recortar um macro-nicho quando o profile já tiver essa
   taxonomia definida;
+- `--save-inspection-json` salva metadados da coleta, ofertas normalizadas e
+  snapshot do provider para análise posterior;
 - o provider recebe a `query` derivada do perfil;
 - o sistema preserva o `niche` canônico do perfil na oferta normalizada;
 - `include_terms` e `exclude_terms` já podem filtrar a saída pós-coleta.
