@@ -2,6 +2,7 @@ import pytest
 
 from ofertas_bot.group_profiles import (
     DEFAULT_GROUP_PROFILES,
+    GroupDestination,
     GroupProfile,
     GroupProfileCatalog,
     GroupProfileError,
@@ -31,6 +32,31 @@ def test_group_profile_normalizes_fields() -> None:
     assert profile.message_tone == "direto"
     assert profile.allowed_content_types == ("product", "coupon")
     assert profile.allows_niche("BELEZA")
+
+
+def test_group_profile_supports_multiple_destinations() -> None:
+    profile = GroupProfile(
+        slug="beleza",
+        name="Beleza",
+        allowed_niches=("beleza",),
+        destinations=(
+            GroupDestination(
+                destination_kind="group",
+                destination_ref="grupo-beleza",
+                channel_adapter="whatsapp",
+            ),
+            GroupDestination(
+                destination_kind="channel",
+                destination_ref="canal-beleza",
+                channel_adapter="telegram",
+            ),
+        ),
+    )
+
+    assert len(profile.destinations) == 2
+    assert profile.destination_ref == "grupo-beleza"
+    assert profile.channel_adapter == "whatsapp"
+    assert profile.destinations[1].channel_adapter == "telegram"
 
 
 def test_group_profile_requires_niche() -> None:
@@ -130,3 +156,34 @@ active = true
     assert profile.destination_ref == "grupo-teste"
     assert profile.channel_adapter == "telegram"
     assert profile.allowed_content_types == ("product", "context")
+
+
+def test_load_group_profile_catalog_reads_multiple_destinations(tmp_path) -> None:
+    path = tmp_path / "group_profiles.toml"
+    path.write_text(
+        """
+[[profiles]]
+slug = "beleza"
+name = "Beleza"
+allowed_niches = ["beleza"]
+
+[[profiles.destinations]]
+destination_kind = "group"
+destination_ref = "grupo-beleza"
+channel_adapter = "whatsapp"
+
+[[profiles.destinations]]
+destination_kind = "channel"
+destination_ref = "canal-beleza"
+channel_adapter = "telegram"
+""".strip(),
+        encoding="utf-8",
+    )
+
+    catalog = load_group_profile_catalog(path)
+    profile = catalog.get("beleza")
+
+    assert profile is not None
+    assert len(profile.destinations) == 2
+    assert profile.destinations[0].destination_ref == "grupo-beleza"
+    assert profile.destinations[1].destination_ref == "canal-beleza"

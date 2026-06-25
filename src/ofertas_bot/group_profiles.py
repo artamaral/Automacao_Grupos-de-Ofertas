@@ -18,6 +18,27 @@ DEFAULT_GROUP_PROFILES_PATH = Path(__file__).resolve().parents[2] / "config" / "
 
 
 @dataclass(frozen=True)
+class GroupDestination:
+    destination_kind: str = "group"
+    destination_ref: str | None = None
+    channel_adapter: str = "whatsapp"
+
+    def __post_init__(self) -> None:
+        normalized_destination_kind = self.destination_kind.strip().lower()
+        normalized_destination_ref = _normalize_optional_text(self.destination_ref)
+        normalized_channel_adapter = self.channel_adapter.strip().lower()
+
+        if not normalized_destination_kind:
+            raise GroupProfileError("group destination destination_kind is required")
+        if normalized_channel_adapter not in VALID_CHANNEL_ADAPTERS:
+            raise GroupProfileError("group destination channel_adapter is invalid")
+
+        object.__setattr__(self, "destination_kind", normalized_destination_kind)
+        object.__setattr__(self, "destination_ref", normalized_destination_ref)
+        object.__setattr__(self, "channel_adapter", normalized_channel_adapter)
+
+
+@dataclass(frozen=True)
 class GroupProfile:
     slug: str
     name: str
@@ -26,6 +47,7 @@ class GroupProfile:
     destination_kind: str = "group"
     destination_ref: str | None = None
     channel_adapter: str = "whatsapp"
+    destinations: tuple[GroupDestination, ...] = ()
     message_tone: str = "direto"
     allowed_content_types: tuple[str, ...] = ("product", "coupon", "context")
     max_offers_per_run: int = 3
@@ -38,11 +60,17 @@ class GroupProfile:
         normalized_niches = tuple(
             niche.strip().lower() for niche in self.allowed_niches if niche.strip()
         )
-        normalized_destination_kind = self.destination_kind.strip().lower()
-        normalized_destination_ref = _normalize_optional_text(self.destination_ref)
-        normalized_channel_adapter = self.channel_adapter.strip().lower()
         normalized_message_tone = self.message_tone.strip().lower()
         normalized_content_types = _normalize_string_tuple(self.allowed_content_types)
+        normalized_destinations = tuple(self.destinations)
+        if not normalized_destinations:
+            normalized_destinations = (
+                GroupDestination(
+                    destination_kind=self.destination_kind,
+                    destination_ref=self.destination_ref,
+                    channel_adapter=self.channel_adapter,
+                ),
+            )
 
         if not normalized_slug:
             raise GroupProfileError("group profile slug is required")
@@ -52,10 +80,6 @@ class GroupProfile:
             raise GroupProfileError("group profile requires at least one niche")
         if not self.allowed_marketplaces:
             raise GroupProfileError("group profile requires at least one marketplace")
-        if not normalized_destination_kind:
-            raise GroupProfileError("group profile destination_kind is required")
-        if normalized_channel_adapter not in VALID_CHANNEL_ADAPTERS:
-            raise GroupProfileError("group profile channel_adapter is invalid")
         if not normalized_message_tone:
             raise GroupProfileError("group profile message_tone is required")
         if not normalized_content_types:
@@ -68,9 +92,10 @@ class GroupProfile:
         object.__setattr__(self, "slug", normalized_slug)
         object.__setattr__(self, "name", normalized_name)
         object.__setattr__(self, "allowed_niches", normalized_niches)
-        object.__setattr__(self, "destination_kind", normalized_destination_kind)
-        object.__setattr__(self, "destination_ref", normalized_destination_ref)
-        object.__setattr__(self, "channel_adapter", normalized_channel_adapter)
+        object.__setattr__(self, "destinations", normalized_destinations)
+        object.__setattr__(self, "destination_kind", normalized_destinations[0].destination_kind)
+        object.__setattr__(self, "destination_ref", normalized_destinations[0].destination_ref)
+        object.__setattr__(self, "channel_adapter", normalized_destinations[0].channel_adapter)
         object.__setattr__(self, "message_tone", normalized_message_tone)
         object.__setattr__(self, "allowed_content_types", normalized_content_types)
 
@@ -144,6 +169,7 @@ def _build_group_profile(item: object) -> GroupProfile:
         destination_kind=str(item.get("destination_kind", "group")),
         destination_ref=_optional_str(item.get("destination_ref")),
         channel_adapter=str(item.get("channel_adapter", "whatsapp")),
+        destinations=_destination_tuple(item.get("destinations")),
         message_tone=str(item.get("message_tone", "direto")),
         allowed_content_types=_string_tuple(item.get("allowed_content_types"))
         or ("product", "coupon", "context"),
@@ -174,6 +200,28 @@ def _marketplace_tuple(value: object) -> tuple[Marketplace, ...]:
         except ValueError as error:
             raise GroupProfileError(f"unsupported marketplace in group profile: {item}") from error
     return tuple(dict.fromkeys(marketplaces))
+
+
+def _destination_tuple(value: object) -> tuple[GroupDestination, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise GroupProfileError("destinations in group profile must be an array")
+
+    destinations: list[GroupDestination] = []
+    for item in value:
+        if not isinstance(item, dict):
+            raise GroupProfileError("each destination in group profile must be an object")
+        destinations.append(
+            GroupDestination(
+                destination_kind=str(item.get("destination_kind", "group")),
+                destination_ref=_optional_str(item.get("destination_ref")),
+                channel_adapter=str(item.get("channel_adapter", "whatsapp")),
+            )
+        )
+    if not destinations:
+        raise GroupProfileError("group profile destinations cannot be empty")
+    return tuple(destinations)
 
 
 def _normalize_optional_text(value: str | None) -> str | None:

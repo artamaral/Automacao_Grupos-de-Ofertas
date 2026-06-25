@@ -1,6 +1,6 @@
 import pytest
 
-from ofertas_bot.group_profiles import GroupProfile, GroupProfileCatalog
+from ofertas_bot.group_profiles import GroupDestination, GroupProfile, GroupProfileCatalog
 from ofertas_bot.models import Marketplace, MessageDraft, Offer
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
@@ -43,9 +43,14 @@ def test_create_pending_review_queue() -> None:
                 name="Grupo Teste",
                 allowed_niches=("teste",),
                 allowed_marketplaces=(Marketplace.AMAZON,),
-                destination_kind="group",
-                destination_ref="grupo-teste-destino",
                 message_tone="direto",
+                destinations=(
+                    GroupDestination(
+                        destination_kind="group",
+                        destination_ref="grupo-teste-destino",
+                        channel_adapter="whatsapp",
+                    ),
+                ),
             ),
         )
     )
@@ -60,10 +65,48 @@ def test_create_pending_review_queue() -> None:
                 group_name="Grupo Teste",
                 destination_kind="group",
                 destination_ref="grupo-teste-destino",
+                channel_adapter="whatsapp",
                 message_tone="direto",
             ),
         ),
     )
+
+
+def test_create_pending_review_queue_expands_multiple_destinations() -> None:
+    draft = make_draft()
+    catalog = GroupProfileCatalog.from_iterable(
+        (
+            GroupProfile(
+                slug="grupo-teste",
+                name="Grupo Teste",
+                allowed_niches=("teste",),
+                allowed_marketplaces=(Marketplace.AMAZON,),
+                message_tone="direto",
+                destinations=(
+                    GroupDestination(
+                        destination_kind="group",
+                        destination_ref="grupo-whatsapp",
+                        channel_adapter="whatsapp",
+                    ),
+                    GroupDestination(
+                        destination_kind="channel",
+                        destination_ref="canal-telegram",
+                        channel_adapter="telegram",
+                    ),
+                ),
+            ),
+        )
+    )
+
+    items = create_pending_review_queue((draft,), group_catalog=catalog)
+
+    assert len(items) == 2
+    assert items[0].routing is not None
+    assert items[0].routing.destination_ref == "grupo-whatsapp"
+    assert items[0].routing.channel_adapter == "whatsapp"
+    assert items[1].routing is not None
+    assert items[1].routing.destination_ref == "canal-telegram"
+    assert items[1].routing.channel_adapter == "telegram"
 
 
 def test_json_message_review_queue_store_saves_and_loads_items(tmp_path) -> None:

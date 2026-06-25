@@ -12,6 +12,7 @@ Esse arquivo define, por grupo:
 - `name`
 - `allowed_niches`
 - `allowed_marketplaces`
+- `destinations`
 - `destination_kind`
 - `destination_ref`
 - `channel_adapter`
@@ -32,9 +33,29 @@ Objetivo desta camada:
 Regra atual:
 
 - este catálogo é fonte de verdade para grupos de destino;
+- um grupo pode declarar um destino simples ou uma lista `destinations`;
 - a fila de revisão deve usar esse catálogo para gerar itens já roteados por grupo;
-- um mesmo draft pode aparecer mais de uma vez na fila se for elegível para mais de um grupo;
+- um mesmo draft pode aparecer mais de uma vez na fila se for elegível para mais de um grupo ou para mais de um destino dentro do mesmo grupo;
 - itens sem correspondência continuam possíveis e devem aparecer como sem rota;
 - ele ainda não implementa decisão automática completa;
 - ele serve para estruturar a operação e reduzir improviso quando os dados reais
   chegarem.
+
+Exemplo de múltiplos destinos no mesmo grupo:
+
+```toml
+[[profiles]]
+slug = "beleza-ofertas"
+name = "Beleza Ofertas"
+allowed_niches = ["beleza"]
+
+[[profiles.destinations]]
+destination_kind = "group"
+destination_ref = "grupo-beleza"
+channel_adapter = "whatsapp"
+
+[[profiles.destinations]]
+destination_kind = "channel"
+destination_ref = "canal-beleza"
+channel_adapter = "telegram"
+```

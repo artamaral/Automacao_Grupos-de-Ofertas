@@ -115,19 +115,20 @@ def create_pending_review_queue(
             items.append(MessageReviewQueueItem(draft=draft))
             continue
         for profile in matching_profiles:
-            items.append(
-                MessageReviewQueueItem(
-                    draft=draft,
-                    routing=MessageReviewRouting(
-                        group_slug=profile.slug,
-                        group_name=profile.name,
-                        destination_kind=profile.destination_kind,
-                        destination_ref=profile.destination_ref,
-                        channel_adapter=profile.channel_adapter,
-                        message_tone=profile.message_tone,
-                    ),
+            for destination in profile.destinations:
+                items.append(
+                    MessageReviewQueueItem(
+                        draft=draft,
+                        routing=MessageReviewRouting(
+                            group_slug=profile.slug,
+                            group_name=profile.name,
+                            destination_kind=destination.destination_kind,
+                            destination_ref=destination.destination_ref,
+                            channel_adapter=destination.channel_adapter,
+                            message_tone=profile.message_tone,
+                        ),
+                    )
                 )
-            )
     return tuple(items)
 
 
