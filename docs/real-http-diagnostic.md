@@ -2,10 +2,11 @@
 
 ## Objetivo
 
-Este documento descreve dois modos seguros para preparar uma chamada HTTP real:
+Este documento descreve tres modos seguros para preparar uma chamada HTTP real:
 
 1. diagnóstico de pré-requisitos, sem chamada externa;
-2. execução HTTP real controlada, sem publicação e sem gravação automática.
+2. preview seguro do request, sem chamada externa;
+3. execução HTTP real controlada, sem publicação e sem gravação automática.
 
 Esses modos existem para reduzir risco antes da primeira chamada real de verdade.
 
@@ -58,6 +59,55 @@ INFO | Diagnóstico de HTTP real aprovado para marketplace=shopee
 INFO | Nenhuma chamada HTTP foi executada.
 INFO | Nenhuma publicação foi executada.
 INFO | Nenhum JSON foi salvo automaticamente.
+```
+
+Exit code esperado: `0`.
+
+## Preview seguro do request
+
+O preview seguro monta o request do provider Shopee e mascara os campos
+sensiveis antes de imprimir.
+
+### Comando
+
+Exemplo para Shopee:
+
+```text
+python -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
+```
+
+### O que esse modo faz
+
+O preview:
+
+- valida a guarda de HTTP real;
+- monta o request GraphQL atual;
+- mascara o header `Authorization`;
+- imprime `operationName` e variaveis nao sensiveis;
+- nao executa chamada HTTP.
+
+### O que esse modo nao faz
+
+O preview nao:
+
+- executa chamada HTTP;
+- coleta ofertas;
+- publica mensagens;
+- salva JSON automaticamente;
+- imprime segredos.
+
+### Saída aprovada
+
+Quando o preview esta aprovado, a saida esperada inclui:
+
+```text
+INFO | Preview seguro do request da Shopee
+INFO | method=POST
+INFO | url=https://open-api.affiliate.shopee.com.br/graphql
+INFO | header.Authorization=<masked:126 chars>
+INFO | body.operationName=ShopeeOfferList
+INFO | body.variables.limit=1
+INFO | Nenhuma chamada HTTP foi executada.
 ```
 
 Exit code esperado: `0`.
@@ -149,10 +199,11 @@ AÇÃO | Use --marketplace shopee ou --marketplace amazon.
 
 ## Modos mutuamente exclusivos
 
-Não use os dois modos juntos:
+Nao use mais de um modo na mesma execucao:
 
 ```text
 --diagnose-real-http
+--print-provider-request
 --execute-real-http-once
 ```
 
@@ -160,7 +211,7 @@ Saída esperada:
 
 ```text
 ERRO | Modo de HTTP real inválido
-DETALHE | Use apenas um modo: --diagnose-real-http ou --execute-real-http-once.
+DETALHE | Use apenas um modo: --diagnose-real-http ou --execute-real-http-once ou --print-provider-request.
 AÇÃO | Rode primeiro o diagnóstico e depois a execução controlada.
 ```
 
@@ -177,6 +228,8 @@ A ordem recomendada é:
 3. habilitar HTTP real apenas em ambiente controlado;
 4. rodar o diagnóstico;
 5. revisar a saída;
-6. rodar a execução controlada com `--limit 1`;
-7. revisar a resposta normalizada;
-8. transformar resposta real em fixture anonimizada antes de evoluir o fluxo.
+6. rodar o preview seguro;
+7. revisar a saida do preview;
+8. rodar a execução controlada com `--limit 1`;
+9. revisar a resposta normalizada;
+10. transformar resposta real em fixture anonimizada antes de evoluir o fluxo.

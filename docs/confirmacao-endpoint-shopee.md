@@ -4,47 +4,37 @@
 
 ## Objetivo
 
-Registrar a trava adicional criada para impedir chamada real da Shopee sem confirmaÃ§Ã£o manual do endpoint.
+Registrar a regra operacional de confirmacao manual do endpoint antes da
+primeira chamada real da Shopee.
 
-Essa trava existe porque o caminho atual usado pelo cÃ³digo ainda Ã© provisÃ³rio e precisa ser comparado com o contrato oficial da conta Shopee usada.
+No fluxo GraphQL atual, essa confirmacao e uma revisao manual obrigatoria do
+operador. Ela nao e uma trava automatica aplicada pelo harness.
 
-## VariÃ¡vel de confirmaÃ§Ã£o
-
-A chamada real controlada da Shopee exige confirmaÃ§Ã£o explÃ­cita no ambiente local:
-
-```text
-SHOPEE_SEARCH_PATH_CONFIRMED=true
-```
-
-O valor padrÃ£o seguro Ã©:
-
-```text
-SHOPEE_SEARCH_PATH_CONFIRMED=false
-```
+## Confirmacao manual
 
 ## Regra de uso
 
-SÃ³ definir a confirmaÃ§Ã£o como verdadeira depois de:
+So considerar a chamada pronta depois de:
 
-1. conferir o endpoint no painel ou documentaÃ§Ã£o oficial da conta Shopee usada;
+1. conferir o endpoint GraphQL no painel ou documentacao oficial da conta Shopee usada;
 2. rodar o diagnÃ³stico de HTTP real;
 3. gerar o preview seguro do request;
-4. comparar host, path, mÃ©todo e parÃ¢metros;
+4. comparar host, metodo, `operationName` e variaveis;
 5. confirmar que nenhum valor sensÃ­vel apareceu no terminal.
 
-## Bloqueio esperado
+## Estado atual do harness
 
-Se a chamada real controlada for executada sem confirmaÃ§Ã£o explÃ­cita, o harness deve bloquear a operaÃ§Ã£o.
+O harness hoje valida:
 
-SaÃ­da esperada:
+- `ENABLE_REAL_HTTP=true`;
+- `ENABLE_REAL_PUBLISH=false`;
+- `SHOPEE_PARTNER_ID` preenchido e numerico;
+- `SHOPEE_SECRET_KEY` preenchido;
+- `SHOPEE_TRACKING_ID` preenchido;
+- `SHOPEE_GRAPHQL_URL` HTTPS e nao placeholder.
 
-```text
-ERRO | Endpoint da Shopee nÃ£o confirmado para chamada real
-DETALHE | Defina SHOPEE_SEARCH_PATH_CONFIRMED=true somente apÃ³s conferir o path oficial.
-AÃ‡ÃƒO | Rode --print-provider-request e compare com a documentaÃ§Ã£o oficial.
-```
-
-Exit code esperado: `3`.
+O harness nao aplica mais bloqueio automatico por `SHOPEE_SEARCH_PATH_CONFIRMED`
+no fluxo principal GraphQL.
 
 ## Ordem segura
 
@@ -56,12 +46,12 @@ A ordem segura antes da primeira chamada real fica:
 4. rodar `--diagnose-real-http`
 5. rodar `--print-provider-request`
 6. revisar manualmente o preview
-7. definir confirmaÃ§Ã£o explÃ­cita no `.env` local
+7. registrar a confirmacao manual fora do Git, no processo operacional da execucao
 8. rodar `--execute-real-http-once` com `--limit 1`
 
 ## O que continua proibido
 
-- NÃ£o confirmar endpoint sem revisÃ£o manual.
+- Nao considerar o endpoint confirmado sem revisao manual.
 - NÃ£o commitar `.env`.
 - NÃ£o commitar prints sensÃ­veis.
 - NÃ£o executar chamada real se o preview divergir do contrato oficial.

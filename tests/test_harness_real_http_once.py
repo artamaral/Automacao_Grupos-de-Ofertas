@@ -121,3 +121,21 @@ def test_harness_real_http_modes_are_mutually_exclusive(capsys) -> None:
     assert exit_code == 3
     assert "ERRO | Modo de HTTP real" in captured.err
     assert "--diagnose-real-http ou --execute-real-http-once" in captured.err
+
+
+def test_harness_real_http_modes_block_print_preview_combination(capsys) -> None:
+    exit_code = harness.run(
+        [
+            "--marketplace",
+            "shopee",
+            "--niche",
+            "maquiagem",
+            "--print-provider-request",
+            "--execute-real-http-once",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert exit_code == 3
+    assert "ERRO | Modo de HTTP real" in captured.err
+    assert "--print-provider-request" in captured.err

@@ -1,6 +1,8 @@
 ﻿# Checklist da primeira chamada real controlada na Shopee
 
-> Nota: este checklist registra a primeira tentativa REST/historica. Para a proxima chamada real, use `docs/checklist-operacional-pre-chamada-real.md`, que esta atualizado para Shopee GraphQL.
+> Nota: este checklist registra a primeira tentativa REST/historica.
+> Para a proxima chamada real, use `docs/checklist-operacional-pre-chamada-real.md`,
+> que esta atualizado para Shopee GraphQL.
 
 ## Objetivo
 
@@ -44,7 +46,9 @@ Antes do diagnÃ³stico, conferir o endpoint atual em:
 docs/status-endpoint-shopee.md
 ```
 
-O caminho atual no cÃ³digo estÃ¡ registrado como provisÃ³rio. Se o caminho oficial da conta Shopee usada for diferente, nÃ£o seguir para chamada real.
+O fluxo principal atual da Shopee usa GraphQL. Se o endpoint, o metodo `POST`
+ou a query `shopeeOfferV2` da conta usada forem diferentes do contrato atual,
+nao seguir para chamada real.
 
 ### 3. Rodar o diagnÃ³stico
 
@@ -69,17 +73,19 @@ Se esse diagnÃ³stico falhar, nÃ£o rode o preview e nÃ£o rode a chamada rea
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --marketplace shopee --niche maquiagem --limit 1 --print-provider-request
 ```
 
-SaÃ­da esperada:
+Saida esperada:
 
 ```text
 INFO | Preview seguro do request da Shopee
-INFO | method=GET
-INFO | url=https://api.shopee.test/api/v2/product/search_item
-INFO | param.keyword=maquiagem
-INFO | param.page_size=1
-INFO | param.partner_id=<masked:9 chars>
-INFO | param.sign=<masked:64 chars>
-INFO | param.timestamp=1234567890
+INFO | method=POST
+INFO | url=https://open-api.affiliate.shopee.com.br/graphql
+INFO | header.Authorization=<masked:126 chars>
+INFO | header.Content-Type=application/json
+INFO | body.operationName=ShopeeOfferList
+INFO | body.variables.keyword=maquiagem
+INFO | body.variables.limit=1
+INFO | body.variables.page=1
+INFO | body.variables.sortType=1
 INFO | Nenhuma chamada HTTP foi executada.
 INFO | Nenhuma publicaÃ§Ã£o foi executada.
 INFO | Nenhum JSON foi salvo automaticamente.
@@ -88,11 +94,10 @@ INFO | Nenhum JSON foi salvo automaticamente.
 Antes da chamada real, conferir:
 
 - se o mÃ©todo Ã© o esperado;
-- se a URL base estÃ¡ correta;
-- se o caminho do endpoint bate com o endpoint oficial;
-- se `page_size` estÃ¡ em `1`;
-- se `partner_id` aparece mascarado;
-- se `sign` aparece mascarado;
+- se a URL GraphQL estÃ¡ correta;
+- se `body.operationName` estÃ¡ em `ShopeeOfferList`;
+- se `body.variables.limit` estÃ¡ em `1`;
+- se o header `Authorization` aparece mascarado;
 - se nenhum valor sensÃ­vel aparece no terminal.
 
 Se o preview estiver errado, nÃ£o rode a chamada real.
@@ -131,7 +136,7 @@ ApÃ³s a execuÃ§Ã£o, verificar:
 AÃ§Ã£o:
 
 - revisar `.env` local;
-- revisar base URL;
+- revisar `SHOPEE_GRAPHQL_URL`;
 - revisar se HTTP real foi habilitado apenas localmente;
 - rodar diagnÃ³stico novamente.
 
@@ -139,8 +144,8 @@ AÃ§Ã£o:
 
 AÃ§Ã£o:
 
-- revisar base URL configurada fora do Git;
-- revisar endpoint esperado;
+- revisar URL GraphQL configurada fora do Git;
+- revisar operation name, query e variaveis esperadas;
 - revisar parÃ¢metros nÃ£o sensÃ­veis;
 - nÃ£o executar chamada real atÃ© entender a diferenÃ§a.
 

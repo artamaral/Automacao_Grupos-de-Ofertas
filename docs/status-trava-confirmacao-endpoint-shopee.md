@@ -4,33 +4,26 @@
 
 ## Objetivo
 
-Registrar a regra de seguranÃ§a criada para impedir chamada real da Shopee sem confirmaÃ§Ã£o explÃ­cita do endpoint.
+Registrar o historico da trava REST antiga e o que vale hoje no fluxo GraphQL.
 
 ## Achado
 
-O caminho atual da Shopee foi mantido como padrÃ£o provisÃ³rio:
+O caminho REST antigo da Shopee foi mantido como registro historico:
 
 ```text
 /api/v2/product/search_item
 ```
 
-Como esse caminho ainda depende de confirmaÃ§Ã£o manual contra a documentaÃ§Ã£o/painel oficial da conta usada, a execuÃ§Ã£o real controlada nÃ£o deve prosseguir apenas porque a guarda de HTTP real passou.
+Esse trecho existe apenas como legado. O fluxo principal atual da Shopee usa
+GraphQL via `SHOPEE_GRAPHQL_URL`.
 
-## Regra operacional
+## Regra operacional atual
 
-A primeira chamada real controlada da Shopee exige confirmaÃ§Ã£o explÃ­cita no ambiente local.
+A primeira chamada real controlada da Shopee continua exigindo confirmacao
+manual do operador, mas isso acontece por checklist e revisao operacional.
 
-A confirmaÃ§Ã£o deve ser feita fora do Git com:
-
-```text
-SHOPEE_SEARCH_PATH_CONFIRMED=true
-```
-
-Sem essa confirmaÃ§Ã£o, o modo abaixo deve ser bloqueado:
-
-```text
---execute-real-http-once
-```
+O harness atual nao bloqueia `--execute-real-http-once` com base em
+`SHOPEE_SEARCH_PATH_CONFIRMED` no fluxo principal GraphQL.
 
 ## O que permanece permitido
 
@@ -57,8 +50,8 @@ Sem confirmaÃ§Ã£o explÃ­cita do endpoint:
 
 A liberaÃ§Ã£o exige:
 
-1. confirmar o path oficial no painel/documentaÃ§Ã£o da conta Shopee usada;
-2. configurar `SHOPEE_SEARCH_PATH_CONFIRMED=true` apenas no `.env` local;
+1. confirmar o endpoint GraphQL oficial no painel/documentacao da conta Shopee usada;
+2. revisar o contrato atual em `docs/checklist-operacional-pre-chamada-real.md`;
 3. rodar diagnÃ³stico;
 4. gerar preview seguro;
 5. revisar manualmente o preview;
