@@ -308,6 +308,18 @@ def run(argv: Sequence[str] | None = None) -> int:
             f"INFO | Perfil de descoberta={profile.slug} "
             f"query=\"{profile.search_term()}\" target={target}"
         )
+        if profile.discovery_method:
+            print(f"INFO | discovery_method={profile.discovery_method}")
+        if profile.shopee_offer_names:
+            print(
+                "INFO | shopee_offer_names="
+                + ",".join(profile.shopee_offer_names)
+            )
+        if profile.shopee_product_match_ids:
+            print(
+                "INFO | shopee_product_match_ids="
+                + ",".join(str(item) for item in profile.shopee_product_match_ids)
+            )
 
     for index, scored in enumerate(scored_offers, start=1):
         draft = copywriter.create_message(scored)
@@ -746,6 +758,11 @@ def _build_collection_inspection_payload(
         "collected_offer_count": len(offers),
         "profile_slug": profile.slug if profile is not None else None,
         "subgroup_slug": subgroup_slug,
+        "discovery_method": profile.discovery_method if profile is not None else None,
+        "shopee_offer_names": list(profile.shopee_offer_names) if profile is not None else [],
+        "shopee_category_urls": list(profile.shopee_category_urls) if profile is not None else [],
+        "shopee_product_match_ids": list(profile.shopee_product_match_ids) if profile is not None else [],
+        "shopee_product_category_ids": list(profile.shopee_product_category_ids) if profile is not None else [],
     }
     provider_snapshot = _build_provider_snapshot(marketplace=marketplace, raw_response=raw_response)
     return {

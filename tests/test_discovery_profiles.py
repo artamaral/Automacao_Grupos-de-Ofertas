@@ -20,12 +20,17 @@ marketplace = "shopee"
 query = "batom maybelline"
 target = "grupo-maquiagem"
 limit = 4
+discovery_method = "descobridor-geral"
 keywords = ["batom", "base"]
 brands = ["maybelline"]
 creators = ["creator a"]
 categories = ["beleza"]
 include_terms = ["batom"]
 exclude_terms = ["fantasia"]
+shopee_offer_names = ["Beauty Deals"]
+shopee_category_urls = ["https://shopee.com.br/Beauty-cat.1100"]
+shopee_product_match_ids = [123, 123]
+shopee_product_category_ids = [1100]
 subgroups = [
   { slug = "labios", label = "Labios", query = "batom gloss", categories = ["Maquiagem"] },
 ]
@@ -42,7 +47,12 @@ subgroups = [
     assert profile.target == "grupo-maquiagem"
     assert profile.limit == 4
     assert profile.search_term() == "batom maybelline"
+    assert profile.discovery_method == "descobridor-geral"
     assert profile.brands == ("maybelline",)
+    assert profile.shopee_offer_names == ("beauty deals",)
+    assert profile.shopee_category_urls == ("https://shopee.com.br/Beauty-cat.1100",)
+    assert profile.shopee_product_match_ids == (123,)
+    assert profile.shopee_product_category_ids == (1100,)
     assert profile.get_subgroup("labios") is not None
     assert profile.get_subgroup("labios").query == "batom gloss"
 

@@ -76,6 +76,7 @@ slug = "mae-e-bebe"
 name = "Mae e Bebe"
 niche = "mae e bebe"
 marketplace = "mock"
+discovery_method = "descobridor-geral"
 query = "mae bebe fralda enxoval maternidade"
 target = "grupo-mae-e-bebe"
 limit = 2
@@ -85,6 +86,10 @@ creators = []
 categories = ["mae e bebe"]
 include_terms = []
 exclude_terms = []
+shopee_offer_names = ["Mom & Baby"]
+shopee_category_urls = ["https://shopee.com.br/Baby-Kids-Fashion-cat.11059973"]
+shopee_product_match_ids = [100632]
+shopee_product_category_ids = [11059973]
 subgroups = [
   { slug = "fraldas", label = "Fraldas", query = "fraldas penicos lencos umedecidos", categories = ["Fraldas e Penicos"] },
   { slug = "enxoval", label = "Enxoval e Bercario", query = "bercario enxoval bebe quarto infantil", categories = ["Berçário"] },
@@ -120,6 +125,7 @@ slug = "auto-e-moto"
 name = "Auto e Moto"
 niche = "auto e moto"
 marketplace = "mock"
+discovery_method = "descobridor-geral"
 query = "carro moto acessorios automotivos"
 target = "grupo-auto-e-moto"
 limit = 2
@@ -129,6 +135,11 @@ creators = []
 categories = ["auto e moto"]
 include_terms = []
 exclude_terms = []
+shopee_category_urls = [
+  "https://shopee.com.br/Motorcycles-cat.11059990",
+  "https://shopee.com.br/Automobiles-cat.11059972",
+]
+shopee_product_category_ids = [11059990, 11059972]
 subgroups = [
   { slug = "limpeza", label = "Limpeza Veicular", query = "limpeza veicular cera shampoo automotivo pretinho", categories = ["Limpeza Veicular"] },
   { slug = "acessorios-internos", label = "Acessorios Internos", query = "acessorios internos automoveis suporte banco tapete", categories = ["Acessórios Internos para Automóveis"] },

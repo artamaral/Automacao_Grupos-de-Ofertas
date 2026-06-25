@@ -43,6 +43,7 @@ class DiscoveryProfile:
     name: str
     niche: str
     marketplace: Marketplace
+    discovery_method: str | None = None
     query: str | None = None
     target: str | None = None
     limit: int | None = None
@@ -52,6 +53,10 @@ class DiscoveryProfile:
     categories: tuple[str, ...] = ()
     include_terms: tuple[str, ...] = ()
     exclude_terms: tuple[str, ...] = ()
+    shopee_offer_names: tuple[str, ...] = ()
+    shopee_category_urls: tuple[str, ...] = ()
+    shopee_product_match_ids: tuple[int, ...] = ()
+    shopee_product_category_ids: tuple[int, ...] = ()
     subgroups: tuple[DiscoverySubgroup, ...] = ()
 
     def __post_init__(self) -> None:
@@ -72,6 +77,7 @@ class DiscoveryProfile:
         object.__setattr__(self, "slug", normalized_slug)
         object.__setattr__(self, "name", normalized_name)
         object.__setattr__(self, "niche", normalized_niche)
+        object.__setattr__(self, "discovery_method", _normalize_optional_identifier(self.discovery_method))
         object.__setattr__(self, "query", _normalize_optional_text(self.query))
         object.__setattr__(self, "target", normalized_target)
         object.__setattr__(self, "keywords", _normalize_string_list(self.keywords))
@@ -80,6 +86,10 @@ class DiscoveryProfile:
         object.__setattr__(self, "categories", _normalize_string_list(self.categories))
         object.__setattr__(self, "include_terms", _normalize_string_list(self.include_terms))
         object.__setattr__(self, "exclude_terms", _normalize_string_list(self.exclude_terms))
+        object.__setattr__(self, "shopee_offer_names", _normalize_string_list(self.shopee_offer_names))
+        object.__setattr__(self, "shopee_category_urls", _normalize_preserved_string_list(self.shopee_category_urls))
+        object.__setattr__(self, "shopee_product_match_ids", _deduplicate_ints(self.shopee_product_match_ids))
+        object.__setattr__(self, "shopee_product_category_ids", _deduplicate_ints(self.shopee_product_category_ids))
         subgroup_slugs = [subgroup.slug for subgroup in self.subgroups]
         if len(subgroup_slugs) != len(set(subgroup_slugs)):
             raise DiscoveryProfileError("discovery subgroup slugs must be unique within profile")
@@ -146,6 +156,10 @@ class DiscoveryProfile:
 
         return filtered
 
+    def uses_discovery_method(self, method: str) -> bool:
+        normalized = method.strip().lower()
+        return self.discovery_method == normalized if normalized else False
+
 
 @dataclass(frozen=True)
 class DiscoveryProfileCatalog:
@@ -202,6 +216,7 @@ def _build_profile(item: object) -> DiscoveryProfile:
         name=str(item.get("name", "")),
         niche=str(item.get("niche", "")),
         marketplace=marketplace,
+        discovery_method=_string_or_none(item.get("discovery_method")),
         query=_string_or_none(item.get("query")),
         target=_string_or_none(item.get("target")),
         limit=_int_or_none(item.get("limit")),
@@ -211,6 +226,10 @@ def _build_profile(item: object) -> DiscoveryProfile:
         categories=_string_tuple(item.get("categories")),
         include_terms=_string_tuple(item.get("include_terms")),
         exclude_terms=_string_tuple(item.get("exclude_terms")),
+        shopee_offer_names=_string_tuple(item.get("shopee_offer_names")),
+        shopee_category_urls=_string_tuple(item.get("shopee_category_urls")),
+        shopee_product_match_ids=_int_tuple(item.get("shopee_product_match_ids")),
+        shopee_product_category_ids=_int_tuple(item.get("shopee_product_category_ids")),
         subgroups=_subgroup_tuple(item.get("subgroups")),
     )
 
@@ -244,6 +263,19 @@ def _subgroup_tuple(value: object) -> tuple[DiscoverySubgroup, ...]:
     return tuple(subgroups)
 
 
+def _int_tuple(value: object) -> tuple[int, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise DiscoveryProfileError("integer list fields in discovery profile must be arrays")
+    normalized: list[int] = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, int):
+            raise DiscoveryProfileError("integer list fields in discovery profile must contain integers")
+        normalized.append(item)
+    return tuple(normalized)
+
+
 def _string_or_none(value: object) -> str | None:
     if value is None:
         return None
@@ -265,9 +297,25 @@ def _normalize_optional_text(value: str | None) -> str | None:
     return normalized or None
 
 
+def _normalize_optional_identifier(value: str | None) -> str | None:
+    normalized = _normalize_optional_text(value)
+    if normalized is None:
+        return None
+    return normalized.lower()
+
+
 def _normalize_string_list(values: Iterable[str]) -> tuple[str, ...]:
     normalized = tuple(item.strip().lower() for item in values if item.strip())
     return tuple(dict.fromkeys(normalized))
+
+
+def _normalize_preserved_string_list(values: Iterable[str]) -> tuple[str, ...]:
+    normalized = tuple(item.strip() for item in values if item.strip())
+    return tuple(dict.fromkeys(normalized))
+
+
+def _deduplicate_ints(values: Iterable[int]) -> tuple[int, ...]:
+    return tuple(dict.fromkeys(values))
 
 
 def _replace_offer_niche(*, offer: Offer, niche: str) -> Offer:
