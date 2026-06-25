@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -15,9 +15,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--approved-json", required=True, help="Caminho de approved_messages.json")
     parser.add_argument("--manifest-json", required=True, help="Caminho do manifesto local")
     parser.add_argument(
+        "--dispatch-artifact-json",
+        default=None,
+        help="Caminho opcional do artefato local de disparo",
+    )
+    parser.add_argument(
+        "--dispatch-report-json",
+        default=None,
+        help="Caminho opcional do relatorio local de disparo",
+    )
+    parser.add_argument(
         "--bundle-json",
         default=None,
-        help="Caminho opcional do relatório consolidado local",
+        help="Caminho opcional do relatorio consolidado local",
     )
     return parser
 
@@ -29,6 +39,16 @@ def run(argv: Sequence[str] | None = None) -> int:
         queue_items = _load_json_list(Path(args.queue_json))
         approved_items = _load_json_list(Path(args.approved_json))
         manifest_items = _load_json_list(Path(args.manifest_json))
+        dispatch_artifact_payload = (
+            _load_json_object(Path(args.dispatch_artifact_json))
+            if args.dispatch_artifact_json
+            else None
+        )
+        dispatch_report_payload = (
+            _load_json_object(Path(args.dispatch_report_json))
+            if args.dispatch_report_json
+            else None
+        )
         bundle_payload = _load_json_object(Path(args.bundle_json)) if args.bundle_json else None
     except ValueError as error:
         return _print_doctor_error(error=error)
@@ -40,6 +60,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         approved_items=approved_items,
         manifest_items=manifest_items,
         manifest_status=manifest_status,
+        dispatch_artifact_payload=dispatch_artifact_payload,
+        dispatch_report_payload=dispatch_report_payload,
         bundle_payload=bundle_payload,
     )
 
@@ -50,14 +72,24 @@ def run(argv: Sequence[str] | None = None) -> int:
     print(f"INFO | Mensagens aprovadas exportadas: {len(approved_items)}")
     print(f"INFO | Manifesto total: {len(manifest_items)}")
     print(f"INFO | Manifesto ready: {manifest_status.get('ready', 0)}")
+    if dispatch_artifact_payload is not None:
+        print(
+            "INFO | Dispatch artifact mensagens disponiveis: "
+            f"{_summary_int(dispatch_artifact_payload, 'total_available_messages')}"
+        )
+    if dispatch_report_payload is not None:
+        print(
+            "INFO | Dispatch report mensagens: "
+            f"{_summary_int(dispatch_report_payload, 'total_messages')}"
+        )
     if bundle_payload is not None:
-        print(f"INFO | Bundle válido: {bundle_payload.get('valid', False)}")
+        print(f"INFO | Bundle valido: {bundle_payload.get('valid', False)}")
 
     if issues:
         print("ERRO | Doctor local encontrou problemas.", file=sys.stderr)
         for issue in issues:
             print(f"DETALHE | {issue}", file=sys.stderr)
-        print("AÇÃO | Corrija os artefatos locais antes de seguir.", file=sys.stderr)
+        print("ACAO | Corrija os artefatos locais antes de seguir.", file=sys.stderr)
         return 3
 
     print("INFO | Doctor local aprovado.")
@@ -74,7 +106,7 @@ def _load_json_list(path: Path) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for raw_item in payload:
         if not isinstance(raw_item, dict):
-            msg = f"{path} contém item que não é objeto"
+            msg = f"{path} contem item que nao e objeto"
             raise ValueError(msg)
         items.append(raw_item)
     return items
@@ -92,10 +124,10 @@ def _load_json(path: Path) -> object:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except OSError as error:
-        msg = f"Não foi possível ler {path}"
+        msg = f"Nao foi possivel ler {path}"
         raise ValueError(msg) from error
     except json.JSONDecodeError as error:
-        msg = f"{path} não contém JSON válido"
+        msg = f"{path} nao contem JSON valido"
         raise ValueError(msg) from error
 
 
@@ -110,6 +142,8 @@ def _find_issues(
     approved_items: list[dict[str, Any]],
     manifest_items: list[dict[str, Any]],
     manifest_status: dict[str, int],
+    dispatch_artifact_payload: dict[str, Any] | None,
+    dispatch_report_payload: dict[str, Any] | None,
     bundle_payload: dict[str, Any] | None,
 ) -> list[str]:
     issues: list[str] = []
@@ -126,16 +160,37 @@ def _find_issues(
         issues.append("manifesto possui item fora do status ready")
     if manifest_items and len(manifest_items) != len(approved_items):
         issues.append("manifesto e aprovadas possuem totais diferentes")
+    if dispatch_artifact_payload is not None:
+        if _summary_int(dispatch_artifact_payload, "total_available_messages") != len(
+            manifest_items
+        ):
+            issues.append("dispatch artifact diverge do total do manifesto")
+    if dispatch_artifact_payload is not None and dispatch_report_payload is not None:
+        if _summary_int(dispatch_artifact_payload, "total_selected_messages") != _summary_int(
+            dispatch_report_payload, "total_messages"
+        ):
+            issues.append("dispatch artifact e dispatch report possuem totais diferentes")
+        if str(dispatch_report_payload.get("source_generated_at", "")) != str(
+            dispatch_artifact_payload.get("generated_at", "")
+        ):
+            issues.append("dispatch report referencia artifact diferente")
     if bundle_payload is not None and bundle_payload.get("valid") is not True:
-        issues.append("bundle local não está válido")
+        issues.append("bundle local nao esta valido")
 
     return issues
 
 
+def _summary_int(payload: dict[str, Any], key: str) -> int:
+    summary = payload.get("summary", {})
+    if not isinstance(summary, dict):
+        return 0
+    return int(summary.get(key, 0))
+
+
 def _print_doctor_error(error: Exception) -> int:
-    print("ERRO | Não foi possível executar doctor local", file=sys.stderr)
+    print("ERRO | Nao foi possivel executar doctor local", file=sys.stderr)
     print(f"DETALHE | {error}", file=sys.stderr)
-    print("AÇÃO | Verifique caminhos e formatos dos arquivos locais.", file=sys.stderr)
+    print("ACAO | Verifique caminhos e formatos dos arquivos locais.", file=sys.stderr)
     return 3
 
 

@@ -83,6 +83,8 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     export_calls: list[list[str]] = []
     dispatch_calls: list[list[str]] = []
     dispatch_execute_calls: list[list[str]] = []
+    bundle_calls: list[list[str]] = []
+    doctor_calls: list[list[str]] = []
 
     def make_step(name: str):
         def fake_run(argv: list[str]) -> int:
@@ -95,6 +97,10 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
                 dispatch_calls.append(argv)
             if name == "dispatch-execute":
                 dispatch_execute_calls.append(argv)
+            if name == "bundle":
+                bundle_calls.append(argv)
+            if name == "doctor":
+                doctor_calls.append(argv)
             assert argv
             return 0
 
@@ -145,6 +151,12 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     assert str(tmp_path / "dispatch_report.json") in dispatch_execute_calls[0]
     assert "--save-dispatch-report-text" in dispatch_execute_calls[0]
     assert str(tmp_path / "dispatch_report.txt") in dispatch_execute_calls[0]
+    assert "--dispatch-artifact-json" in bundle_calls[0]
+    assert str(tmp_path / "dispatch_artifact.json") in bundle_calls[0]
+    assert "--dispatch-report-json" in bundle_calls[0]
+    assert str(tmp_path / "dispatch_report.json") in bundle_calls[0]
+    assert "--dispatch-artifact-json" in doctor_calls[0]
+    assert "--dispatch-report-json" in doctor_calls[0]
 
 
 def test_local_flow_prepare_prefers_profile_and_generates_review_plan(

@@ -271,6 +271,10 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
             str(paths.approved_messages_json),
             "--manifest-json",
             str(paths.manifest_json),
+            "--dispatch-artifact-json",
+            str(paths.dispatch_artifact_json),
+            "--dispatch-report-json",
+            str(paths.dispatch_report_json),
             "--save-bundle-json",
             str(paths.bundle_json),
         ]
@@ -286,6 +290,10 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
             str(paths.approved_messages_json),
             "--manifest-json",
             str(paths.manifest_json),
+            "--dispatch-artifact-json",
+            str(paths.dispatch_artifact_json),
+            "--dispatch-report-json",
+            str(paths.dispatch_report_json),
             "--bundle-json",
             str(paths.bundle_json),
         ]
