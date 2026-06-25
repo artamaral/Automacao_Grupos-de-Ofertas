@@ -75,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target",
-        required=True,
+        default=None,
         help="Alvo opt-in lógico usado nos artefatos locais",
     )
     parser.add_argument(
@@ -107,6 +107,8 @@ def run(argv: Sequence[str] | None = None) -> int:
 
 
 def _run_prepare(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
+    if not args.target:
+        return _print_missing_prepare_target()
     print("INFO | Iniciando fluxo local: prepare")
     exit_code = harness.run(
         [
@@ -157,10 +159,8 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
 
     step_exit_code = publication_manifest_cli.run(
         [
-            "--approved-messages-json",
-            str(paths.approved_messages_json),
-            "--target",
-            args.target,
+            "--queue-json",
+            str(paths.review_queue_json),
             "--save-publication-manifest-json",
             str(paths.manifest_json),
         ]
@@ -217,6 +217,12 @@ def _print_finalize_step_error(step_name: str, exit_code: int) -> int:
     print(f"ERRO | Etapa finalize falhou em: {step_name}", file=sys.stderr)
     print("INFO | Nenhum envio foi executado.")
     return exit_code
+
+
+def _print_missing_prepare_target() -> int:
+    print("ERRO | Etapa prepare requer --target", file=sys.stderr)
+    print("INFO | Nenhum envio foi executado.")
+    return 3
 
 
 def main() -> None:

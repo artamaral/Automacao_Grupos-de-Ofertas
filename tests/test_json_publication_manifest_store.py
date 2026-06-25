@@ -1,11 +1,16 @@
 import pytest
 
 from ofertas_bot.models import Marketplace, MessageDraft, Offer
+from ofertas_bot.storage.json_message_review_queue_store import (
+    MessageReviewQueueItem,
+    MessageReviewRouting,
+)
 from ofertas_bot.storage.json_publication_manifest_store import (
     JsonPublicationManifestStore,
     PublicationManifestItem,
     PublicationManifestStoreError,
     create_publication_manifest,
+    create_publication_manifest_from_review_queue,
     validate_publication_manifest,
 )
 
@@ -55,6 +60,55 @@ def test_create_publication_manifest_requires_target() -> None:
             target=" ",
             created_at="2026-01-01T00:00:00+00:00",
         )
+
+
+def test_create_publication_manifest_from_review_queue_uses_routed_targets() -> None:
+    draft = make_draft()
+    queue_items = (
+        MessageReviewQueueItem(
+            draft=draft,
+            status="approved",
+            routing=MessageReviewRouting(
+                group_slug="beleza-ofertas",
+                group_name="Beleza Ofertas",
+                destination_kind="group",
+                destination_ref="grupo-beleza",
+                message_tone="direto",
+            ),
+        ),
+    )
+
+    manifest = create_publication_manifest_from_review_queue(
+        items=queue_items,
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+
+    assert manifest == (
+        PublicationManifestItem(
+            draft=draft,
+            target="grupo-beleza",
+            status="ready",
+            created_at="2026-01-01T00:00:00+00:00",
+        ),
+    )
+
+
+def test_create_publication_manifest_from_review_queue_uses_fallback_target() -> None:
+    draft = make_draft()
+    queue_items = (
+        MessageReviewQueueItem(
+            draft=draft,
+            status="approved",
+        ),
+    )
+
+    manifest = create_publication_manifest_from_review_queue(
+        items=queue_items,
+        fallback_target="grupo-fallback",
+        created_at="2026-01-01T00:00:00+00:00",
+    )
+
+    assert manifest[0].target == "grupo-fallback"
 
 
 def test_validate_publication_manifest_accepts_ready_manifest() -> None:

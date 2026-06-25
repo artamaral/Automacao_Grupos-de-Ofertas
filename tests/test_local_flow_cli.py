@@ -34,10 +34,13 @@ def test_local_flow_prepare_uses_default_paths(tmp_path, monkeypatch, capsys) ->
 
 def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     order: list[str] = []
+    manifest_calls: list[list[str]] = []
 
     def make_step(name: str):
         def fake_run(argv: list[str]) -> int:
             order.append(name)
+            if name == "manifest":
+                manifest_calls.append(argv)
             assert argv
             return 0
 
@@ -57,8 +60,6 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
         [
             "--stage",
             "finalize",
-            "--target",
-            "grupo-maquiagem",
             "--data-dir",
             str(tmp_path),
         ]
@@ -66,6 +67,8 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
 
     assert exit_code == 0
     assert order == ["export", "manifest", "validate", "bundle", "doctor"]
+    assert "--queue-json" in manifest_calls[0]
+    assert "--target" not in manifest_calls[0]
 
 
 def test_local_flow_finalize_stops_on_first_error(tmp_path, monkeypatch) -> None:
@@ -88,8 +91,6 @@ def test_local_flow_finalize_stops_on_first_error(tmp_path, monkeypatch) -> None
         [
             "--stage",
             "finalize",
-            "--target",
-            "grupo-maquiagem",
             "--data-dir",
             str(tmp_path),
         ]
@@ -97,6 +98,19 @@ def test_local_flow_finalize_stops_on_first_error(tmp_path, monkeypatch) -> None
 
     assert exit_code == 3
     assert order == ["export"]
+
+
+def test_local_flow_prepare_requires_target(tmp_path) -> None:
+    exit_code = local_flow_cli.run(
+        [
+            "--stage",
+            "prepare",
+            "--data-dir",
+            str(tmp_path),
+        ]
+    )
+
+    assert exit_code == 3
 
 
 def test_local_flow_paths_uses_data_dir(tmp_path) -> None:

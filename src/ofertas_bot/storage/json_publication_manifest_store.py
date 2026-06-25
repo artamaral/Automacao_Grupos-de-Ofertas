@@ -10,6 +10,9 @@ from ofertas_bot.storage.json_message_draft_store import (
     message_draft_from_json,
     message_draft_to_json,
 )
+from ofertas_bot.storage.json_message_review_queue_store import (
+    MessageReviewQueueItem,
+)
 
 PublicationManifestStatus = Literal["ready"]
 VALID_PUBLICATION_MANIFEST_STATUSES = {"ready"}
@@ -87,6 +90,33 @@ def create_publication_manifest(
     )
 
 
+def create_publication_manifest_from_review_queue(
+    items: tuple[MessageReviewQueueItem, ...],
+    created_at: str,
+    fallback_target: str | None = None,
+) -> tuple[PublicationManifestItem, ...]:
+    clean_fallback_target = _clean_optional_target(fallback_target)
+    manifest: list[PublicationManifestItem] = []
+
+    for item in items:
+        if item.status != "approved":
+            continue
+        target = _resolve_review_queue_target(
+            item=item,
+            fallback_target=clean_fallback_target,
+        )
+        manifest.append(
+            PublicationManifestItem(
+                draft=item.draft,
+                target=target,
+                status="ready",
+                created_at=created_at,
+            )
+        )
+
+    return tuple(manifest)
+
+
 def validate_publication_manifest(
     items: tuple[PublicationManifestItem, ...],
 ) -> tuple[str, ...]:
@@ -141,3 +171,25 @@ def publication_manifest_item_from_json(data: object) -> PublicationManifestItem
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved publication manifest item is invalid"
         raise PublicationManifestStoreError(msg) from error
+
+
+def _clean_optional_target(target: str | None) -> str | None:
+    if target is None:
+        return None
+    clean_target = target.strip()
+    if not clean_target:
+        return None
+    return clean_target
+
+
+def _resolve_review_queue_target(
+    *,
+    item: MessageReviewQueueItem,
+    fallback_target: str | None,
+) -> str:
+    if item.routing is not None and item.routing.destination_ref:
+        return item.routing.destination_ref
+    if fallback_target is not None:
+        return fallback_target
+    msg = "Publication manifest target is required for approved review queue items"
+    raise PublicationManifestStoreError(msg)

@@ -35,14 +35,14 @@ endurecer classificação, roteamento e score.
 Após a aprovação/rejeição da fila por um processo humano ou interface externa, finalize os artefatos locais:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage finalize --target grupo-maquiagem
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage finalize
 ```
 
 Se o pacote foi instalado na venv, os atalhos equivalentes são:
 
 ```powershell
 ofertas-local-flow --stage prepare --niche maquiagem --marketplace mock --target grupo-maquiagem
-ofertas-local-flow --stage finalize --target grupo-maquiagem
+ofertas-local-flow --stage finalize
 ```
 
 ## Caminhos padrão
@@ -79,7 +79,7 @@ A etapa `finalize`:
 
 - aplica gate da fila;
 - exporta somente aprovadas;
-- cria manifesto local;
+- cria manifesto local usando o destino roteado em cada item aprovado da fila;
 - valida manifesto;
 - cria bundle local de auditoria;
 - executa doctor local;
