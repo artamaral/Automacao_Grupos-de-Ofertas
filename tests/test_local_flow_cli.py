@@ -80,10 +80,13 @@ def test_local_flow_prepare_uses_default_paths(tmp_path, monkeypatch, capsys) ->
 def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     order: list[str] = []
     manifest_calls: list[list[str]] = []
+    export_calls: list[list[str]] = []
 
     def make_step(name: str):
         def fake_run(argv: list[str]) -> int:
             order.append(name)
+            if name == "export":
+                export_calls.append(argv)
             if name == "manifest":
                 manifest_calls.append(argv)
             assert argv
@@ -114,6 +117,8 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     assert order == ["export", "manifest", "validate", "bundle", "doctor"]
     assert "--queue-json" in manifest_calls[0]
     assert "--target" not in manifest_calls[0]
+    assert "--save-approved-messages-by-group-dir" in export_calls[0]
+    assert str(tmp_path / "approved_messages_by_group") in export_calls[0]
 
 
 def test_local_flow_prepare_prefers_profile_and_generates_review_plan(
@@ -209,6 +214,7 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
     assert paths.offers_json == Path(tmp_path / "offers.json")
     assert paths.review_queue_json == Path(tmp_path / "review_queue.json")
     assert paths.approved_messages_json == Path(tmp_path / "approved_messages.json")
+    assert paths.approved_messages_by_group_dir == Path(tmp_path / "approved_messages_by_group")
     assert paths.manifest_json == Path(tmp_path / "publication_manifest.json")
     assert paths.bundle_json == Path(tmp_path / "local_review_bundle.json")
     assert paths.review_plan_json == Path(tmp_path / "review_plan.json")

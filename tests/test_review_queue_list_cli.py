@@ -61,6 +61,44 @@ def test_review_queue_list_cli_prints_items(tmp_path, capsys) -> None:
     assert "Nenhum envio" in output
 
 
+def test_review_queue_list_cli_filters_by_group(tmp_path, capsys) -> None:
+    queue_path = tmp_path / "review_queue.json"
+    JsonMessageReviewQueueStore(path=queue_path).save(
+        (
+            MessageReviewQueueItem(
+                draft=make_draft("Produto beleza"),
+                status="pending",
+                routing=MessageReviewRouting(
+                    group_slug="beleza-ofertas",
+                    group_name="Beleza Ofertas",
+                    destination_kind="group",
+                    destination_ref="grupo-beleza",
+                    message_tone="consultivo",
+                ),
+            ),
+            MessageReviewQueueItem(
+                draft=make_draft("Produto auto"),
+                status="approved",
+                routing=MessageReviewRouting(
+                    group_slug="auto-e-moto-ofertas",
+                    group_name="Auto e Moto Ofertas",
+                    destination_kind="group",
+                    destination_ref="grupo-auto",
+                    message_tone="direto",
+                ),
+            ),
+        )
+    )
+
+    exit_code = run(["--queue-json", str(queue_path), "--group", "beleza-ofertas"])
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "INFO | group=beleza-ofertas" in output
+    assert "Produto beleza" in output
+    assert "Produto auto" not in output
+
+
 def test_review_queue_list_cli_handles_empty_queue(tmp_path, capsys) -> None:
     queue_path = tmp_path / "review_queue.json"
     JsonMessageReviewQueueStore(path=queue_path).save(())

@@ -61,6 +61,10 @@ class LocalFlowPaths:
         return self.data_dir / "approved_messages.txt"
 
     @property
+    def approved_messages_by_group_dir(self) -> Path:
+        return self.data_dir / "approved_messages_by_group"
+
+    @property
     def manifest_json(self) -> Path:
         return self.data_dir / "publication_manifest.json"
 
@@ -194,6 +198,8 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
             str(paths.approved_messages_json),
             "--save-approved-messages-text",
             str(paths.approved_messages_text),
+            "--save-approved-messages-by-group-dir",
+            str(paths.approved_messages_by_group_dir),
         ]
     )
     if step_exit_code != 0:
@@ -250,6 +256,7 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
         return _print_finalize_step_error("executar doctor local", step_exit_code)
 
     print("INFO | Etapa finalize concluída.")
+    print(f"INFO | Aprovadas por grupo: {paths.approved_messages_by_group_dir}")
     print(f"INFO | Bundle local: {paths.bundle_json}")
     print("INFO | Nenhum envio foi executado.")
     return 0

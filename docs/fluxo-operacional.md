@@ -58,6 +58,7 @@ O fluxo usa `.data` por padrão:
 .data/review_plan.txt
 .data/approved_messages.json
 .data/approved_messages.txt
+.data/approved_messages_by_group/
 .data/publication_manifest.json
 .data/local_review_bundle.json
 ```
@@ -82,6 +83,7 @@ A etapa `finalize`:
 
 - aplica gate da fila;
 - exporta somente aprovadas;
+- separa aprovadas por grupo em artefatos prontos para operacao;
 - cria manifesto local usando o destino roteado em cada item aprovado da fila;
 - valida manifesto;
 - cria bundle local de auditoria;
@@ -89,6 +91,10 @@ A etapa `finalize`:
 - para na primeira falha;
 - não envia nada;
 - não chama publicação real.
+
+Dentro de `.data/approved_messages_by_group/`, cada grupo gera um par de arquivos
+`<group-slug>.json` e `<group-slug>.txt`, mantendo o destino da revisão já pronto
+para uso posterior no disparo.
 
 ## Papel humano
 

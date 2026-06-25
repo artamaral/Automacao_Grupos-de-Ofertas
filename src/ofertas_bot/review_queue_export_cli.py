@@ -37,13 +37,22 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Caminho local para salvar mensagens aprovadas em texto",
     )
+    parser.add_argument(
+        "--save-approved-messages-by-group-dir",
+        default=None,
+        help="Diretorio local para salvar mensagens aprovadas separadas por grupo",
+    )
     return parser
 
 
 def run(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
-    if not args.save_approved_messages_json and not args.save_approved_messages_text:
+    if (
+        not args.save_approved_messages_json
+        and not args.save_approved_messages_text
+        and not args.save_approved_messages_by_group_dir
+    ):
         return _print_missing_output_error()
 
     queue_store = JsonMessageReviewQueueStore(path=Path(args.queue_json))
@@ -73,6 +82,16 @@ def run(argv: Sequence[str] | None = None) -> int:
                 encoding=REVIEW_TEXT_ENCODING,
             )
             print(f"INFO | Revisão aprovada salva em {save_path}")
+        if args.save_approved_messages_by_group_dir:
+            saved_groups = export_review_queue_items_by_group(
+                queue_items=queue_items,
+                output_dir=Path(args.save_approved_messages_by_group_dir),
+            )
+            print(
+                "INFO | Mensagens aprovadas por grupo salvas em "
+                f"{args.save_approved_messages_by_group_dir}"
+            )
+            print(f"INFO | Total de grupos exportados: {saved_groups}")
     except (MessageReviewQueueStoreError, MessageDraftStoreWriteError, OSError) as error:
         return _print_export_error(error=error)
 
@@ -84,7 +103,9 @@ def run(argv: Sequence[str] | None = None) -> int:
 def _print_missing_output_error() -> int:
     print("ERRO | Nenhum destino de exportação informado", file=sys.stderr)
     print(
-        "AÇÃO | Use --save-approved-messages-json e/ou --save-approved-messages-text.",
+        "AÇÃO | Use --save-approved-messages-json, "
+        "--save-approved-messages-text e/ou "
+        "--save-approved-messages-by-group-dir.",
         file=sys.stderr,
     )
     return 3
@@ -121,6 +142,40 @@ def format_review_queue_items_for_export(
         for index, item in enumerate(approved_items, start=1)
     ]
     return "\n\n".join(blocks) + "\n"
+
+
+def export_review_queue_items_by_group(
+    *,
+    queue_items: tuple[MessageReviewQueueItem, ...],
+    output_dir: Path,
+) -> int:
+    grouped_items = approved_review_queue_items_by_group(queue_items)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for group_slug, items in grouped_items.items():
+        drafts = tuple(item.draft for item in items)
+        JsonMessageDraftStore(path=output_dir / f"{group_slug}.json").save(drafts)
+        (output_dir / f"{group_slug}.txt").write_text(
+            format_review_queue_items_for_export(items),
+            encoding=REVIEW_TEXT_ENCODING,
+        )
+
+    return len(grouped_items)
+
+
+def approved_review_queue_items_by_group(
+    items: tuple[MessageReviewQueueItem, ...],
+) -> dict[str, tuple[MessageReviewQueueItem, ...]]:
+    grouped_items: dict[str, list[MessageReviewQueueItem]] = {}
+    for item in items:
+        if item.status != "approved" or item.routing is None:
+            continue
+        grouped_items.setdefault(item.routing.group_slug, []).append(item)
+
+    return {
+        group_slug: tuple(group_items)
+        for group_slug, group_items in sorted(grouped_items.items())
+    }
 
 
 def _format_review_queue_item_for_export(

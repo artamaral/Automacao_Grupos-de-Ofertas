@@ -9,11 +9,17 @@ from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     MessageReviewQueueItem,
     MessageReviewQueueStoreError,
+    filter_review_queue_items,
 )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Lista a fila local de revisão")
+    parser.add_argument(
+        "--group",
+        default=None,
+        help="Slug opcional do grupo para filtrar a fila",
+    )
     parser.add_argument(
         "--queue-json",
         required=True,
@@ -27,7 +33,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     store = JsonMessageReviewQueueStore(path=Path(args.queue_json))
 
     try:
-        items = store.load()
+        items = filter_review_queue_items(store.load(), group_slug=args.group)
     except MessageReviewQueueStoreError as error:
         return _print_list_error(error=error)
 
@@ -35,6 +41,9 @@ def run(argv: Sequence[str] | None = None) -> int:
         print("INFO | Fila de revisão vazia.")
         print("INFO | Nenhum envio foi executado.")
         return 0
+
+    if args.group:
+        print(f"INFO | group={args.group.strip().lower()}")
 
     for item_number, item in enumerate(items, start=1):
         print(_format_review_queue_item(item_number=item_number, item=item))

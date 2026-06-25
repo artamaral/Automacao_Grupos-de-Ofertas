@@ -12,11 +12,17 @@ from ofertas_bot.storage.json_message_review_queue_store import (
     MessageReviewQueueUpdateError,
     approve_review_queue_item,
     reject_review_queue_item,
+    resolve_review_queue_item_number,
 )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Atualiza a fila local de revisão")
+    parser.add_argument(
+        "--group",
+        default=None,
+        help="Slug opcional do grupo para resolver o item dentro do grupo",
+    )
     parser.add_argument(
         "--queue-json",
         required=True,
@@ -59,6 +65,7 @@ def run(argv: Sequence[str] | None = None) -> int:
                 item_number=args.item,
                 reviewer=args.reviewer,
                 notes=args.notes,
+                group_slug=args.group,
             )
         else:
             updated_items = reject_review_queue_item(
@@ -66,8 +73,14 @@ def run(argv: Sequence[str] | None = None) -> int:
                 item_number=args.item,
                 reviewer=args.reviewer,
                 notes=args.notes,
+                group_slug=args.group,
             )
         store.save(updated_items)
+        resolved_item_number = resolve_review_queue_item_number(
+            items=updated_items,
+            item_number=args.item,
+            group_slug=args.group,
+        )
     except (
         MessageReviewQueueStoreError,
         MessageReviewQueueStoreWriteError,
@@ -75,7 +88,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     ) as error:
         return _print_review_queue_error(error=error)
 
-    updated_item = updated_items[args.item - 1]
+    updated_item = updated_items[resolved_item_number - 1]
     routing_suffix = ""
     if updated_item.routing is not None:
         routing_suffix = (

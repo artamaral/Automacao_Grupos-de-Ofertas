@@ -97,6 +97,58 @@ def test_review_queue_export_cli_includes_group_routing_in_text(tmp_path) -> Non
     assert "Tom: acolhedor" in text_output
 
 
+def test_review_queue_export_cli_exports_approved_items_by_group(tmp_path) -> None:
+    queue_path = tmp_path / "review_queue.json"
+    output_dir = tmp_path / "approved_by_group"
+    beleza_draft = make_draft("Produto beleza")
+    mae_bebe_draft = make_draft("Produto mae e bebe")
+    JsonMessageReviewQueueStore(path=queue_path).save(
+        (
+            MessageReviewQueueItem(
+                draft=beleza_draft,
+                status="approved",
+                routing=MessageReviewRouting(
+                    group_slug="beleza-ofertas",
+                    group_name="Beleza Ofertas",
+                    destination_kind="group",
+                    destination_ref="grupo-beleza",
+                    message_tone="direto",
+                ),
+            ),
+            MessageReviewQueueItem(
+                draft=mae_bebe_draft,
+                status="approved",
+                routing=MessageReviewRouting(
+                    group_slug="mae-e-bebe-ofertas",
+                    group_name="Mae e Bebe Ofertas",
+                    destination_kind="group",
+                    destination_ref="grupo-mae-bebe",
+                    message_tone="acolhedor",
+                ),
+            ),
+        )
+    )
+
+    exit_code = run(
+        [
+            "--queue-json",
+            str(queue_path),
+            "--save-approved-messages-by-group-dir",
+            str(output_dir),
+        ]
+    )
+
+    beleza_json = JsonMessageDraftStore(path=output_dir / "beleza-ofertas.json").load()
+    mae_bebe_json = JsonMessageDraftStore(path=output_dir / "mae-e-bebe-ofertas.json").load()
+    beleza_text = (output_dir / "beleza-ofertas.txt").read_text(encoding="utf-8-sig")
+    mae_bebe_text = (output_dir / "mae-e-bebe-ofertas.txt").read_text(encoding="utf-8-sig")
+    assert exit_code == 0
+    assert beleza_json == (beleza_draft,)
+    assert mae_bebe_json == (mae_bebe_draft,)
+    assert "Produto beleza" in beleza_text
+    assert "Produto mae e bebe" in mae_bebe_text
+
+
 def test_review_queue_export_cli_requires_output_path(tmp_path) -> None:
     queue_path = tmp_path / "review_queue.json"
     JsonMessageReviewQueueStore(path=queue_path).save(())

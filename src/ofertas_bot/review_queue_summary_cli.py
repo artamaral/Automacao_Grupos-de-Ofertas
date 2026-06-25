@@ -9,11 +9,18 @@ from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     MessageReviewQueueStoreError,
     summarize_review_queue,
+    summarize_review_queue_by_group,
 )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Resume a fila local de revisão")
+    parser.add_argument(
+        "--by-group",
+        action="store_true",
+        default=False,
+        help="Mostra resumo adicional por grupo",
+    )
     parser.add_argument(
         "--queue-json",
         required=True,
@@ -27,7 +34,8 @@ def run(argv: Sequence[str] | None = None) -> int:
     store = JsonMessageReviewQueueStore(path=Path(args.queue_json))
 
     try:
-        summary = summarize_review_queue(store.load())
+        items = store.load()
+        summary = summarize_review_queue(items)
     except MessageReviewQueueStoreError as error:
         return _print_summary_error(error=error)
 
@@ -37,6 +45,14 @@ def run(argv: Sequence[str] | None = None) -> int:
     print(f"INFO | Rejeitadas: {summary['rejected']}")
     print(f"INFO | Roteadas: {summary['routed']}")
     print(f"INFO | Sem rota: {summary['unrouted']}")
+    if args.by_group:
+        for group_summary in summarize_review_queue_by_group(items):
+            print(
+                "INFO | group="
+                f"{group_summary['group_slug']} total={group_summary['total']} "
+                f"pending={group_summary['pending']} approved={group_summary['approved']} "
+                f"rejected={group_summary['rejected']}"
+            )
     print("INFO | Nenhum envio foi executado.")
     return 0
 

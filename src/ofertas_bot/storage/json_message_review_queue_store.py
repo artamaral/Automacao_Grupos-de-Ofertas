@@ -37,6 +37,14 @@ class MessageReviewQueueSummary(TypedDict):
     unrouted: int
 
 
+class MessageReviewQueueGroupSummary(TypedDict):
+    group_slug: str
+    total: int
+    pending: int
+    approved: int
+    rejected: int
+
+
 @dataclass(frozen=True)
 class MessageReviewRouting:
     group_slug: str
@@ -127,6 +135,21 @@ def approved_review_drafts(
     return tuple(item.draft for item in items if item.status == "approved")
 
 
+def filter_review_queue_items(
+    items: tuple[MessageReviewQueueItem, ...],
+    *,
+    group_slug: str | None = None,
+) -> tuple[MessageReviewQueueItem, ...]:
+    if group_slug is None:
+        return items
+    normalized_group_slug = group_slug.strip().lower()
+    return tuple(
+        item
+        for item in items
+        if item.routing is not None and item.routing.group_slug == normalized_group_slug
+    )
+
+
 def summarize_review_queue(
     items: tuple[MessageReviewQueueItem, ...],
 ) -> MessageReviewQueueSummary:
@@ -147,11 +170,31 @@ def summarize_review_queue(
     return summary
 
 
+def summarize_review_queue_by_group(
+    items: tuple[MessageReviewQueueItem, ...],
+) -> tuple[MessageReviewQueueGroupSummary, ...]:
+    grouped: dict[str, MessageReviewQueueGroupSummary] = {}
+    for item in items:
+        group_slug = item.routing.group_slug if item.routing is not None else "__sem_rota__"
+        if group_slug not in grouped:
+            grouped[group_slug] = {
+                "group_slug": group_slug,
+                "total": 0,
+                "pending": 0,
+                "approved": 0,
+                "rejected": 0,
+            }
+        grouped[group_slug]["total"] += 1
+        grouped[group_slug][item.status] += 1
+    return tuple(grouped[key] for key in sorted(grouped))
+
+
 def approve_review_queue_item(
     items: tuple[MessageReviewQueueItem, ...],
     item_number: int,
     reviewer: str,
     notes: str = "",
+    group_slug: str | None = None,
 ) -> tuple[MessageReviewQueueItem, ...]:
     return mark_review_queue_item(
         items=items,
@@ -159,6 +202,7 @@ def approve_review_queue_item(
         status="approved",
         reviewer=reviewer,
         notes=notes,
+        group_slug=group_slug,
     )
 
 
@@ -167,6 +211,7 @@ def reject_review_queue_item(
     item_number: int,
     reviewer: str,
     notes: str = "",
+    group_slug: str | None = None,
 ) -> tuple[MessageReviewQueueItem, ...]:
     return mark_review_queue_item(
         items=items,
@@ -174,6 +219,7 @@ def reject_review_queue_item(
         status="rejected",
         reviewer=reviewer,
         notes=notes,
+        group_slug=group_slug,
     )
 
 
@@ -183,14 +229,20 @@ def mark_review_queue_item(
     status: ReviewStatus,
     reviewer: str,
     notes: str = "",
+    group_slug: str | None = None,
 ) -> tuple[MessageReviewQueueItem, ...]:
-    if item_number < 1 or item_number > len(items):
+    resolved_item_number = resolve_review_queue_item_number(
+        items=items,
+        item_number=item_number,
+        group_slug=group_slug,
+    )
+    if resolved_item_number < 1 or resolved_item_number > len(items):
         msg = "Review queue item number is out of range"
         raise MessageReviewQueueUpdateError(msg)
 
     updated_items = list(items)
-    original = updated_items[item_number - 1]
-    updated_items[item_number - 1] = MessageReviewQueueItem(
+    original = updated_items[resolved_item_number - 1]
+    updated_items[resolved_item_number - 1] = MessageReviewQueueItem(
         draft=original.draft,
         status=status,
         reviewer=_clean_reviewer(reviewer),
@@ -198,6 +250,26 @@ def mark_review_queue_item(
         routing=original.routing,
     )
     return tuple(updated_items)
+
+
+def resolve_review_queue_item_number(
+    *,
+    items: tuple[MessageReviewQueueItem, ...],
+    item_number: int,
+    group_slug: str | None = None,
+) -> int:
+    if group_slug is None:
+        return item_number
+    filtered = filter_review_queue_items(items, group_slug=group_slug)
+    if item_number < 1 or item_number > len(filtered):
+        msg = "Review queue item number is out of range for group"
+        raise MessageReviewQueueUpdateError(msg)
+    target_item = filtered[item_number - 1]
+    for index, item in enumerate(items, start=1):
+        if item is target_item:
+            return index
+    msg = "Review queue item could not be resolved"
+    raise MessageReviewQueueUpdateError(msg)
 
 
 def message_review_queue_item_to_json(

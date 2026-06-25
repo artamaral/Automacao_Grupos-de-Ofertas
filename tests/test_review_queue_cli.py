@@ -90,3 +90,52 @@ def test_review_queue_cli_rejects_out_of_range_item(tmp_path) -> None:
 
     assert exit_code == 3
     assert store.load()[0].status == "pending"
+
+
+def test_review_queue_cli_marks_item_within_group(tmp_path) -> None:
+    queue_path = tmp_path / "review_queue.json"
+    store = JsonMessageReviewQueueStore(path=queue_path)
+    store.save(
+        (
+            MessageReviewQueueItem(
+                draft=make_draft(),
+                routing=MessageReviewRouting(
+                    group_slug="beleza-ofertas",
+                    group_name="Beleza Ofertas",
+                    destination_kind="group",
+                    destination_ref="grupo-beleza",
+                    message_tone="direto",
+                ),
+            ),
+            MessageReviewQueueItem(
+                draft=make_draft(),
+                routing=MessageReviewRouting(
+                    group_slug="auto-e-moto-ofertas",
+                    group_name="Auto e Moto Ofertas",
+                    destination_kind="group",
+                    destination_ref="grupo-auto",
+                    message_tone="direto",
+                ),
+            ),
+        )
+    )
+
+    exit_code = run(
+        [
+            "--queue-json",
+            str(queue_path),
+            "--group",
+            "auto-e-moto-ofertas",
+            "--item",
+            "1",
+            "--status",
+            "approved",
+            "--reviewer",
+            "Arthur",
+        ]
+    )
+
+    items = store.load()
+    assert exit_code == 0
+    assert items[0].status == "pending"
+    assert items[1].status == "approved"
