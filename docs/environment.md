@@ -36,7 +36,7 @@ Exemplo seguro para a sessao atual:
 $env:SHOPEE_GRAPHQL_URL="https://open-api.affiliate.shopee.com.br/graphql"
 ```
 
-A Open API de afiliados informada para a Shopee usa GraphQL. A query de lista de ofertas e `shopeeOfferV2`, e a mutacao `generateShortLink` deve ser usada para gerar links curtos rastreaveis.
+A Open API de afiliados validada para a Shopee usa GraphQL. A query de lista atualmente validada e `shopOfferV2`, e a mutacao `generateShortLink` deve ser usada para gerar links curtos rastreaveis.
 
 ## VariÃ¡veis gerais
 
@@ -57,6 +57,9 @@ A Open API de afiliados informada para a Shopee usa GraphQL. A query de lista de
 | `SHOPEE_SECRET_KEY` | Sim | Chave usada para assinatura. NÃ£o imprimir em logs. |
 | `SHOPEE_TRACKING_ID` | Nao | Identificador de rastreio de afiliado, quando aplicavel. |
 | `SHOPEE_GRAPHQL_URL` | Nao | Endpoint GraphQL da Open API de afiliados. Padrao: `https://open-api.affiliate.shopee.com.br/graphql`. |
+| `SHOPEE_OFFER_LIST_OPERATION` | Nao | `operationName` da query de listagem. Padrao atual validado: `ShopOfferList`. |
+| `SHOPEE_OFFER_LIST_ROOT_FIELD` | Nao | Campo-raiz esperado em `data`. Padrao atual validado: `shopOfferV2`. |
+| `SHOPEE_OFFER_LIST_QUERY_FILE` | Nao | Caminho local para um arquivo `.graphql` com a query de listagem a ser enviada. |
 | `SHOPEE_BASE_URL` | Nao | Legado REST. Nao usado no fluxo principal Shopee GraphQL. |
 | `SHOPEE_SEARCH_PATH` | Nao | Legado REST. Nao usado no fluxo principal Shopee GraphQL. |
 | `SHOPEE_SEARCH_PATH_CONFIRMED` | Nao | Legado REST. Nao e mais trava do fluxo principal GraphQL. |
@@ -65,10 +68,12 @@ Estado atual:
 
 - provider valida configuracao;
 - partner id da Shopee e validado como numerico antes da chamada real;
-- gateway GraphQL monta `POST` assinado para `shopeeOfferV2`;
+- gateway GraphQL monta `POST` assinado para `shopOfferV2`;
+- a query de listagem pode ser sobrescrita localmente por arquivo `.graphql`;
+- `operationName` e campo-raiz da resposta podem ser ajustados sem editar Python;
 - preview seguro mascara o header `Authorization`;
 - mock usa payload fake no formato `ShopeeOfferConnectionV2`, em paridade com o caminho real;
-- mapper GraphQL normaliza `nodes` para `Offer` sem inventar preco quando a API nao retornar preco;
+- mapper GraphQL normaliza `nodes` para `Offer` usando `shopName` quando `offerName` nao existir;
 - chamada real continua desativada por padrao via `ENABLE_REAL_HTTP=false`;
 - payload real ainda nao deve ser usado sem anonimizacao;
 - short links devem ser gerados pela mutacao `generateShortLink`.
@@ -141,6 +146,41 @@ Use esse comando para conferir se o ambiente estÃ¡ pronto ou bloqueado antes d
 ```
 
 Use esse comando para revisar metodo, URL GraphQL, header `Authorization` mascarado e variaveis nao sensiveis do body antes de uma chamada real controlada.
+
+### Montar a query da Shopee localmente
+
+Se a conta usar outro nome de operacao, outro campo-raiz ou uma query diferente,
+configure no `.env` local:
+
+```text
+SHOPEE_OFFER_LIST_OPERATION=ShopOfferList
+SHOPEE_OFFER_LIST_ROOT_FIELD=shopOfferV2
+SHOPEE_OFFER_LIST_QUERY_FILE=.data/shopee_offer_list.graphql
+```
+
+Exemplo de arquivo `.graphql` local:
+
+```graphql
+query ShopOfferList($keyword: String, $page: Int, $limit: Int) {
+  shopOfferV2(keyword: $keyword, page: $page, limit: $limit) {
+    nodes {
+      shopName
+      shopId
+      offerLink
+      originalLink
+      imageUrl
+      commissionRate
+      ratingStar
+    }
+    pageInfo {
+      page
+      limit
+      hasNextPage
+      scrollId
+    }
+  }
+}
+```
 
 ### Chamada real controlada da Shopee
 

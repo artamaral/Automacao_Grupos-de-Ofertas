@@ -19,8 +19,8 @@ POST https://open-api.affiliate.shopee.com.br/graphql
 Com:
 
 ```text
-operationName=ShopeeOfferList
-query=shopeeOfferV2
+operationName=ShopOfferList
+query=shopOfferV2
 ```
 
 A URL pode ser sobrescrita localmente por `SHOPEE_GRAPHQL_URL`, sem versionar
@@ -40,7 +40,7 @@ Antes de executar qualquer chamada real, conferir no ambiente oficial da Shopee:
 - metodo `POST`;
 - headers obrigatorios;
 - formato correto da assinatura GraphQL;
-- query `shopeeOfferV2`;
+- query `shopOfferV2`;
 - campos obrigatórios de paginação/limite;
 - formato esperado da resposta.
 

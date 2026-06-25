@@ -19,7 +19,7 @@ registrado apenas como legado/provisÃ³rio.
 - A trava `ENABLE_REAL_HTTP` existe e bloqueia chamadas reais por padrÃ£o.
 - A trava `ENABLE_REAL_PUBLISH` deve permanecer desligada.
 - O preview seguro do request GraphQL mascara o header `Authorization`.
-- O provider Shopee ja monta `POST` GraphQL assinado para `shopeeOfferV2`.
+- O provider Shopee ja monta `POST` GraphQL assinado para `shopOfferV2`.
 - O mapper GraphQL normaliza `nodes` para `Offer` sem inventar preco quando a API nao retornar preco de produto.
 - O mock usa payload fake no formato `ShopeeOfferConnectionV2`, mantendo paridade de desenvolvimento com o caminho real.
 - O fluxo de copy, compliance, elegibilidade de grupo e revisao aceita preco desconhecido (`0`) como consultar valor atualizado no link.
@@ -29,15 +29,15 @@ registrado apenas como legado/provisÃ³rio.
 - O cÃ³digo passou a validar que `SHOPEE_PARTNER_ID` precisa ser numÃ©rico.
 - O cÃ³digo passou a rejeitar payloads de erro da Shopee em vez de normalizar `0` ofertas silenciosamente.
 - Foi criada ferramenta para capturar resposta real jÃ¡ anonimizada em `tmp/`.
-- A Open API correta informada para ofertas usa GraphQL com a query
-  `shopeeOfferV2`.
+- A Open API correta validada em chamada real usa GraphQL com a query
+  `shopOfferV2`.
 
 ## Contrato GraphQL informado
 
 Query:
 
 ```text
-shopeeOfferV2
+shopOfferV2
 ```
 
 Endpoint informado:
@@ -92,26 +92,30 @@ Quando nÃ£o houver erro, `errors` pode nÃ£o ser retornado.
 Retorno:
 
 ```text
-ShopeeOfferConnectionV2!
+ShopOfferConnectionV2!
 ```
 
 ParÃ¢metros:
 
 | Campo | Tipo | DescriÃ§Ã£o |
 | --- | --- | --- |
-| `keyword` | `String` | Busca por nome da oferta. |
-| `sortType` | `Int` | `1` mais recentes, `2` maior comissÃ£o. |
-| `page` | `Int` | NÃºmero da pÃ¡gina. |
-| `limit` | `Int` | Quantidade por pÃ¡gina. |
+| `keyword` | `String` | Busca por nome da loja. |
+| `shopType` | `Int[]` | Filtra tipo de loja. `0` all, `1` official, `2` preferred, `3` cross border. |
+| `sortType` | `Int` | `1` mais recentes, `2` maior comissao, `3` popularidade. |
+| `sellerCommCoveRatio` | `String` | Proporcao de produtos da loja com seller commission. Ex.: `0.0123` para 1.23%. |
+| `page` | `Int` | Numero da pagina. Padrao: `1`. |
+| `limit` | `Int` | Quantidade por pagina. Padrao: `20`. |
+| `shopId` | `Int64` | Busca direta por id da loja. |
+| `isKeySeller` | `Boolean` | Filtro opcional para key seller. |
 
 Resposta:
 
 | Campo | Tipo | DescriÃ§Ã£o |
 | --- | --- | --- |
-| `nodes` | `[ShopeeOfferV2]!` | Lista de ofertas. |
+| `nodes` | `[ShopOfferV2]!` | Lista de lojas/ofertas de loja. |
 | `pageInfo` | `PageInfo!` | PaginaÃ§Ã£o. |
 
-Campos de `ShopeeOfferV2`:
+Campos de `ShopOfferV2`:
 
 | Campo | Tipo |
 | --- | --- |
@@ -119,12 +123,15 @@ Campos de `ShopeeOfferV2`:
 | `imageUrl` | `String` |
 | `offerLink` | `String` |
 | `originalLink` | `String` |
-| `offerName` | `String` |
-| `offerType` | `Int` |
-| `categoryId` | `Int64` |
-| `collectionId` | `Int64` |
+| `shopId` | `Int64` |
+| `shopName` | `String` |
 | `periodStartTime` | `Int` |
 | `periodEndTime` | `Int` |
+| `bannerInfo` | `BannerInfo` or `null` |
+| `ratingStar` | `String` |
+| `shopType` | `Int[]` |
+| `remainingBudget` | `Int` |
+| `sellerCommCoveRatio` | `String` |
 
 Campos de `PageInfo`:
 
@@ -133,6 +140,7 @@ Campos de `PageInfo`:
 | `page` | `Int` |
 | `limit` | `Int` |
 | `hasNextPage` | `Bool` |
+| `scrollId` | `String` or `null` |
 
 ### Erros GraphQL conhecidos
 
@@ -205,16 +213,25 @@ INFO | method=POST
 INFO | url=https://open-api.affiliate.shopee.com.br/graphql
 INFO | header.Authorization=<masked:126 chars>
 INFO | header.Content-Type=application/json
-INFO | body.operationName=ShopeeOfferList
-INFO | body.variables.keyword=maquiagem
+INFO | body.operationName=ShopOfferList
+INFO | body.variables.keyword=mae bebe
 INFO | body.variables.limit=1
 INFO | body.variables.page=1
-INFO | body.variables.sortType=1
 INFO | Nenhuma chamada HTTP foi executada.
 ```
 
 Proxima etapa: executar uma unica chamada real controlada com `--limit 1`,
 somente apos aprovacao humana explicita.
+
+### Resposta real validada para `shopOfferV2`
+
+Uma chamada real controlada com `keyword="mae bebe"` confirmou:
+
+- `data.shopOfferV2` como campo-raiz correto;
+- `shopName` no lugar de `offerName`;
+- `shopId` numerico e `originalLink` apontando para `/shop/<id>`;
+- `pageInfo.scrollId` presente e `hasNextPage=false` com `limit=20`;
+- ausencia de `errors` no envelope GraphQL.
 
 ### Endpoint sem query
 
@@ -318,7 +335,7 @@ INFO | PublicaÃ§Ã£o real continua fora do escopo deste status.
 
 5. Revisar o preview seguro do provider Shopee GraphQL antes de rodar chamada real.
 
-O provider ja monta um `POST` GraphQL para `shopeeOfferV2`, normaliza `nodes`
+O provider ja monta um `POST` GraphQL para `shopOfferV2`, normaliza `nodes`
 para `Offer` e usa `pageInfo.hasNextPage` para paginacao. O ponto pendente
 e validar esse contrato contra uma resposta real da conta aprovada.
 
@@ -362,7 +379,7 @@ A integraÃ§Ã£o Shopee sÃ³ deve sair de `pausado` quando:
 1. a conta/app Shopee estiver aprovada;
 2. o endpoint GraphQL real estiver confirmado no painel/documentaÃ§Ã£o oficial;
 3. autenticaÃ§Ã£o e headers estiverem compatÃ­veis com o contrato oficial;
-4. `ShopeeProvider`, gateway e mapper estiverem refatorados para `shopeeOfferV2`;
+4. `ShopeeProvider`, gateway e mapper estiverem refatorados para `shopOfferV2`;
 5. uma chamada real controlada com `--limit 1` retornar pelo menos uma resposta vÃ¡lida ou um payload vazio documentado como vÃ¡lido;
 6. a resposta real for anonimizada antes de virar fixture;
 7. `ruff` e `pytest` passarem sem erros;
