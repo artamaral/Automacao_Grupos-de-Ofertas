@@ -64,6 +64,9 @@ Regras:
 - Planejar evolução do config para suportar perfis ativos/inativos e prioridade.
 - Decidir quando perfis e grupos saem de arquivo versionado para banco/interface.
 - Definir observabilidade mínima do fluxo operacional.
+- Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
+  interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
+  idempotência e reconciliação posterior no fluxo local.
 
 ## Pontos em aberto
 
