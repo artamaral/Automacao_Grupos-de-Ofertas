@@ -5,6 +5,7 @@ from time import time
 from typing import Any
 
 from ofertas_bot.models import Marketplace, Offer
+from ofertas_bot.providers.gateway import execute_provider_request
 from ofertas_bot.providers.http import HttpRequest
 from ofertas_bot.providers.provider_settings import get_provider_graphql_urls
 from ofertas_bot.providers.real_http_guard import (
@@ -15,11 +16,14 @@ from ofertas_bot.providers.real_http_guard import (
 from ofertas_bot.providers.shopee_gateway import ShopeeGateway
 from ofertas_bot.providers.shopee_graphql import (
     SHOPEE_SORT_LATEST_DESC,
+    SHOPEE_PRODUCT_OFFER_LIST_OPERATION,
     ShopeeGraphqlGateway,
     ShopeeGraphqlOfferMapper,
     ShopeeGraphqlSigner,
     ShopeeOfferListGraphqlRequestBuilder,
     ShopeeShortLinkGraphqlRequestBuilder,
+    build_graphql_request,
+    build_product_offer_query,
     load_shopee_offer_list_query,
 )
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
@@ -81,6 +85,69 @@ class ShopeeProvider:
             keyword=keyword,
             limit=limit,
             timestamp=timestamp,
+        )
+
+    def fetch_offer_search_raw_response(self, offer_name: str, limit: int) -> dict[str, Any]:
+        self._validate_configuration()
+        if self.settings.enable_real_http:
+            self.validate_real_http_ready()
+
+        return self._execute_graphql_query(
+            query=self._build_shopee_offer_search_query(),
+            operation_name="ShopeeOfferList",
+            variables={
+                "keyword": offer_name,
+                "sortType": SHOPEE_SORT_LATEST_DESC,
+                "page": 1,
+                "limit": limit,
+            },
+        )
+
+    def fetch_product_match_raw_response(self, match_id: int, limit: int) -> dict[str, Any]:
+        self._validate_configuration()
+        if self.settings.enable_real_http:
+            self.validate_real_http_ready()
+
+        return self._execute_graphql_query(
+            query=build_product_offer_query(
+                list_type=4,
+                match_id=match_id,
+                page=1,
+                limit=limit,
+            ),
+            operation_name=SHOPEE_PRODUCT_OFFER_LIST_OPERATION,
+            variables={},
+        )
+
+    def normalize_custom_response(
+        self,
+        *,
+        response_data: dict[str, Any],
+        niche: str,
+        limit: int,
+        root_field: str,
+    ) -> list[Offer]:
+        gateway = self._get_graphql_gateway()
+        if root_field == gateway.offer_list_root_field:
+            return gateway.normalize_offer_list_response(
+                response_data=response_data,
+                niche=niche,
+                limit=limit,
+            )
+
+        custom_gateway = ShopeeGraphqlGateway(
+            offer_list_builder=gateway.offer_list_builder,
+            short_link_builder=gateway.short_link_builder,
+            mapper=ShopeeGraphqlOfferMapper(marketplace=Marketplace.SHOPEE),
+            offer_list_root_field=root_field,
+            transport=gateway.transport,
+            retry_policy=gateway.retry_policy,
+            sleeper=gateway.sleeper,
+        )
+        return custom_gateway.normalize_offer_list_response(
+            response_data=response_data,
+            niche=niche,
+            limit=limit,
         )
 
     def validate_real_http_ready(self) -> None:
@@ -151,6 +218,62 @@ class ShopeeProvider:
             offer_list_root_field=self.settings.shopee_offer_list_root_field,
             transport=transport,
         )
+
+    def _execute_graphql_query(
+        self,
+        *,
+        query: str,
+        operation_name: str,
+        variables: dict[str, Any],
+    ) -> dict[str, Any]:
+        gateway = self._get_graphql_gateway()
+        if gateway.transport is None:
+            raise NotImplementedError(
+                "Shopee GraphQL transport is not configured. "
+                "Use an injected fake transport or enable real HTTP after approval."
+            )
+
+        request = build_graphql_request(
+            graphql_url=gateway.offer_list_builder.graphql_url,
+            signer=gateway.offer_list_builder.signer,
+            timestamp=int(time()),
+            query=query,
+            operation_name=operation_name,
+            variables=variables,
+        )
+        return execute_provider_request(
+            request=request,
+            transport=gateway.transport,
+            http_client=gateway.http_client,
+            provider_name="Shopee",
+            retry_policy=gateway.retry_policy,
+            sleeper=gateway.sleeper,
+        )
+
+    def _build_shopee_offer_search_query(self) -> str:
+        return """
+query ShopeeOfferList($keyword: String, $sortType: Int, $page: Int, $limit: Int) {
+  shopeeOfferV2(keyword: $keyword, sortType: $sortType, page: $page, limit: $limit) {
+    nodes {
+      commissionRate
+      imageUrl
+      offerLink
+      originalLink
+      offerName
+      offerType
+      categoryId
+      collectionId
+      periodStartTime
+      periodEndTime
+    }
+    pageInfo {
+      page
+      limit
+      hasNextPage
+    }
+  }
+}
+""".strip()
 
     def _validate_configuration(self) -> None:
         missing = []

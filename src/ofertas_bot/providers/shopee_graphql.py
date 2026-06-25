@@ -15,6 +15,7 @@ from ofertas_bot.providers.retry import RetryPolicy, Sleeper
 from ofertas_bot.providers.transport import HttpTransport, encode_json_body
 
 SHOPEE_OFFER_LIST_OPERATION = "ShopeeOfferList"
+SHOPEE_PRODUCT_OFFER_LIST_OPERATION = "ProductOfferList"
 SHOPEE_GENERATE_SHORT_LINK_OPERATION = "GenerateShortLink"
 SHOPEE_SORT_LATEST_DESC = 1
 SHOPEE_SORT_HIGHEST_COMMISSION_DESC = 2
@@ -52,6 +53,34 @@ mutation GenerateShortLink($originUrl: String, $subIds: [String]) {
 """.strip()
 
 
+def build_product_offer_query(
+    *,
+    list_type: int,
+    match_id: int,
+    page: int,
+    limit: int,
+) -> str:
+    return f"""
+query {SHOPEE_PRODUCT_OFFER_LIST_OPERATION} {{
+  productOfferV2(listType: {list_type}, matchId: {match_id}, page: {page}, limit: {limit}) {{
+    nodes {{
+      itemId
+      shopId
+      productName
+      imageUrl
+      commissionRate
+      offerLink
+    }}
+    pageInfo {{
+      page
+      limit
+      hasNextPage
+    }}
+  }}
+}}
+""".strip()
+
+
 class ShopeeGraphqlPayloadError(ValueError):
     """Raised when Shopee GraphQL returns an error envelope or invalid shape."""
 
@@ -62,16 +91,21 @@ class ShopeeGraphqlOfferMapper:
         self._mapper = OfferMapper()
 
     def map_node(self, node: dict[str, Any], niche: str) -> Offer:
-        title = _optional_str(node.get("offerName")) or _optional_str(node.get("shopName")) or ""
+        title = (
+            _optional_str(node.get("offerName"))
+            or _optional_str(node.get("productName"))
+            or _optional_str(node.get("shopName"))
+            or ""
+        )
         payload = ExternalOfferPayload(
             marketplace=self.marketplace,
             title=title,
             url=str(node.get("offerLink", "")),
             image_url=_optional_str(node.get("imageUrl")),
-            price=0,
+            price=_optional_float(node.get("price")) or 0,
             old_price=None,
             commission_rate=_optional_float(node.get("commissionRate")) or 0,
-            sales_count=0,
+            sales_count=_optional_int(node.get("sales")) or 0,
             rating=_optional_float(node.get("ratingStar")),
             niche=niche,
             is_prime_or_free_shipping=False,
@@ -450,6 +484,25 @@ def encode_graphql_payload(body: dict[str, Any]) -> str:
     return encode_json_body(body).decode("utf-8")
 
 
+def build_graphql_request(
+    *,
+    graphql_url: str,
+    signer: ShopeeGraphqlSigner,
+    timestamp: int,
+    query: str,
+    operation_name: str,
+    variables: dict[str, Any],
+) -> HttpRequest:
+    return _build_graphql_request(
+        graphql_url=graphql_url,
+        signer=signer,
+        timestamp=timestamp,
+        query=query,
+        operation_name=operation_name,
+        variables=variables,
+    )
+
+
 def _filter_declared_graphql_variables(*, query: str, variables: dict[str, Any]) -> dict[str, Any]:
     declared_names = set(re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)\s*:", query))
     if not declared_names:
@@ -486,6 +539,12 @@ def _optional_float(value: Any) -> float | None:
     if value is None or value == "":
         return None
     return float(value)
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    return int(value)
 
 
 def _optional_str(value: Any) -> str | None:

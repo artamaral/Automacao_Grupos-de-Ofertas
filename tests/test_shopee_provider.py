@@ -4,6 +4,7 @@ from ofertas_bot.models import Marketplace
 from ofertas_bot.providers.http import HttpResponse
 from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvider
 from ofertas_bot.providers.shopee_graphql import (
+    SHOPEE_PRODUCT_OFFER_LIST_OPERATION,
     ShopeeGraphqlGateway,
     ShopeeGraphqlOfferMapper,
     ShopeeGraphqlSigner,
@@ -160,3 +161,58 @@ def test_shopee_provider_rejects_invalid_items_shape() -> None:
 
     with pytest.raises(ValueError, match="shopeeOfferV2"):
         provider.normalize_response(response_data={"data": {}}, niche="maquiagem", limit=1)
+
+
+def test_shopee_provider_fetches_offer_search_with_explicit_shopee_offer_query() -> None:
+    response = HttpResponse(
+        status_code=200,
+        data={"data": {"shopeeOfferV2": {"nodes": [], "pageInfo": {"page": 1, "limit": 1, "hasNextPage": False}}}},
+    )
+    transport = StaticHttpTransport(response=response)
+    signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")
+    gateway = ShopeeGraphqlGateway(
+        offer_list_builder=ShopeeOfferListGraphqlRequestBuilder(signer=signer),
+        short_link_builder=ShopeeShortLinkGraphqlRequestBuilder(signer=signer),
+        mapper=ShopeeGraphqlOfferMapper(marketplace=Marketplace.SHOPEE),
+        transport=transport,
+    )
+    provider = ShopeeProvider(
+        settings=Settings(shopee_partner_id="123", shopee_secret_key="abc"),
+        graphql_gateway=gateway,
+    )
+
+    payload = provider.fetch_offer_search_raw_response("Mom & Baby", limit=5)
+
+    assert payload["data"]["shopeeOfferV2"]["pageInfo"]["limit"] == 1
+    assert transport.requests[0].body is not None
+    assert transport.requests[0].body["operationName"] == "ShopeeOfferList"
+    assert "shopeeOfferV2" in transport.requests[0].body["query"]
+    assert transport.requests[0].body["variables"]["keyword"] == "Mom & Baby"
+
+
+def test_shopee_provider_fetches_product_match_with_inline_query() -> None:
+    response = HttpResponse(
+        status_code=200,
+        data={"data": {"productOfferV2": {"nodes": [], "pageInfo": {"page": 1, "limit": 3, "hasNextPage": False}}}},
+    )
+    transport = StaticHttpTransport(response=response)
+    signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")
+    gateway = ShopeeGraphqlGateway(
+        offer_list_builder=ShopeeOfferListGraphqlRequestBuilder(signer=signer),
+        short_link_builder=ShopeeShortLinkGraphqlRequestBuilder(signer=signer),
+        mapper=ShopeeGraphqlOfferMapper(marketplace=Marketplace.SHOPEE),
+        transport=transport,
+    )
+    provider = ShopeeProvider(
+        settings=Settings(shopee_partner_id="123", shopee_secret_key="abc"),
+        graphql_gateway=gateway,
+    )
+
+    payload = provider.fetch_product_match_raw_response(match_id=100632, limit=3)
+
+    assert payload["data"]["productOfferV2"]["pageInfo"]["limit"] == 3
+    assert transport.requests[0].body is not None
+    assert transport.requests[0].body["operationName"] == SHOPEE_PRODUCT_OFFER_LIST_OPERATION
+    assert "productOfferV2" in transport.requests[0].body["query"]
+    assert "matchId: 100632" in transport.requests[0].body["query"]
+    assert transport.requests[0].body["variables"] == {}
