@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ofertas_bot.storage.json_message_draft_store import message_draft_to_json
 from ofertas_bot.storage.json_publication_manifest_store import (
     JsonPublicationManifestStore,
     PublicationManifestItem,
@@ -71,6 +72,7 @@ def build_dispatch_artifact(
                 "status": item.status,
                 "created_at": item.created_at,
                 "text": item.draft.text,
+                "draft": message_draft_to_json(item.draft),
                 "offer": {
                     "marketplace": item.draft.offer.marketplace.value,
                     "niche": item.draft.offer.niche,

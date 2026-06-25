@@ -71,6 +71,10 @@ def test_dispatch_artifact_cli_groups_messages_by_target(tmp_path, capsys) -> No
     assert payload["targets"][1]["target"] == "grupo-beleza"
     assert payload["targets"][1]["message_count"] == 2
     assert payload["targets"][1]["messages"][0]["text"] == "Oferta em português com emoji ✨"
+    assert (
+        payload["targets"][1]["messages"][0]["draft"]["text"]
+        == "Oferta em português com emoji ✨"
+    )
     assert "Nenhum envio" in output
 
 

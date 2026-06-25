@@ -60,6 +60,7 @@ O fluxo usa `.data` por padrão:
 .data/approved_messages.txt
 .data/approved_messages_by_group/
 .data/dispatch_artifact.json
+.data/dispatch_report.json
 .data/publication_manifest.json
 .data/local_review_bundle.json
 ```
@@ -88,6 +89,7 @@ A etapa `finalize`:
 - cria manifesto local usando o destino roteado em cada item aprovado da fila;
 - valida manifesto;
 - gera artefato de disparo agrupado por destino, ainda sem envio real;
+- executa o artefato em dry-run e salva relatório por destino;
 - cria bundle local de auditoria;
 - executa doctor local;
 - para na primeira falha;
@@ -101,6 +103,9 @@ para uso posterior no disparo.
 O arquivo `.data/dispatch_artifact.json` consolida as mensagens prontas por
 `target`, servindo como contrato de entrada para um futuro disparador local ou
 automatizado.
+
+O arquivo `.data/dispatch_report.json` registra a simulação da rodada de
+disparo, por destino e por mensagem, sem qualquer envio real.
 
 ## Papel humano
 
