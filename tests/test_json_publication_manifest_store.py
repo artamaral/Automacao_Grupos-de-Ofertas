@@ -78,7 +78,9 @@ def test_create_publication_manifest_from_review_queue_uses_routed_targets() -> 
                 destination_ref="grupo-beleza",
                 message_tone="direto",
                 max_messages_per_run=2,
+                max_messages_per_hour=5,
                 min_interval_seconds=45,
+                quiet_periods=("22:00-08:00",),
             ),
         ),
     )
@@ -96,7 +98,9 @@ def test_create_publication_manifest_from_review_queue_uses_routed_targets() -> 
             created_at="2026-01-01T00:00:00+00:00",
             channel_adapter="whatsapp",
             max_messages_per_run=2,
+            max_messages_per_hour=5,
             min_interval_seconds=45,
+            quiet_periods=("22:00-08:00",),
         ),
     )
 

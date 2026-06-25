@@ -45,14 +45,18 @@ def test_group_profile_supports_multiple_destinations() -> None:
                 destination_ref="grupo-beleza",
                 channel_adapter="whatsapp",
                 max_messages_per_run=3,
+                max_messages_per_hour=10,
                 min_interval_seconds=45,
+                quiet_periods=("22:00-08:00",),
             ),
             GroupDestination(
                 destination_kind="channel",
                 destination_ref="canal-beleza",
                 channel_adapter="telegram",
                 max_messages_per_run=2,
+                max_messages_per_hour=6,
                 min_interval_seconds=60,
+                quiet_periods=("21:00-07:00",),
             ),
         ),
     )
@@ -61,7 +65,9 @@ def test_group_profile_supports_multiple_destinations() -> None:
     assert profile.destination_ref == "grupo-beleza"
     assert profile.channel_adapter == "whatsapp"
     assert profile.destinations[0].max_messages_per_run == 3
+    assert profile.destinations[0].max_messages_per_hour == 10
     assert profile.destinations[0].min_interval_seconds == 45
+    assert profile.destinations[0].quiet_periods == ("22:00-08:00",)
     assert profile.destinations[1].channel_adapter == "telegram"
 
 
@@ -178,14 +184,18 @@ destination_kind = "group"
 destination_ref = "grupo-beleza"
 channel_adapter = "whatsapp"
 max_messages_per_run = 3
+max_messages_per_hour = 10
 min_interval_seconds = 45
+quiet_periods = ["22:00-08:00"]
 
 [[profiles.destinations]]
 destination_kind = "channel"
 destination_ref = "canal-beleza"
 channel_adapter = "telegram"
 max_messages_per_run = 2
+max_messages_per_hour = 6
 min_interval_seconds = 60
+quiet_periods = ["21:00-07:00"]
 """.strip(),
         encoding="utf-8",
     )
@@ -197,5 +207,7 @@ min_interval_seconds = 60
     assert len(profile.destinations) == 2
     assert profile.destinations[0].destination_ref == "grupo-beleza"
     assert profile.destinations[0].max_messages_per_run == 3
+    assert profile.destinations[0].max_messages_per_hour == 10
     assert profile.destinations[1].destination_ref == "canal-beleza"
     assert profile.destinations[1].min_interval_seconds == 60
+    assert profile.destinations[1].quiet_periods == ("21:00-07:00",)

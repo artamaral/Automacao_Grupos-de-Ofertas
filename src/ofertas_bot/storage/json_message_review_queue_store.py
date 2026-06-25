@@ -54,7 +54,9 @@ class MessageReviewRouting:
     message_tone: str
     channel_adapter: str = "whatsapp"
     max_messages_per_run: int = 0
+    max_messages_per_hour: int = 0
     min_interval_seconds: int = 0
+    quiet_periods: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -132,7 +134,9 @@ def create_pending_review_queue(
                             message_tone=profile.message_tone,
                             max_messages_per_run=destination.max_messages_per_run
                             or profile.max_offers_per_run,
+                            max_messages_per_hour=destination.max_messages_per_hour,
                             min_interval_seconds=destination.min_interval_seconds,
+                            quiet_periods=destination.quiet_periods,
                         ),
                     )
                 )
@@ -330,7 +334,9 @@ def message_review_routing_to_json(
         "channel_adapter": routing.channel_adapter,
         "message_tone": routing.message_tone,
         "max_messages_per_run": routing.max_messages_per_run,
+        "max_messages_per_hour": routing.max_messages_per_hour,
         "min_interval_seconds": routing.min_interval_seconds,
+        "quiet_periods": list(routing.quiet_periods),
     }
 
 
@@ -352,7 +358,9 @@ def message_review_routing_from_json(
             channel_adapter=str(data["channel_adapter"]).strip().lower(),
             message_tone=str(data["message_tone"]).strip().lower(),
             max_messages_per_run=int(data.get("max_messages_per_run", 0)),
+            max_messages_per_hour=int(data.get("max_messages_per_hour", 0)),
             min_interval_seconds=int(data.get("min_interval_seconds", 0)),
+            quiet_periods=tuple(str(item) for item in data.get("quiet_periods", ())),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved message review queue routing is invalid"

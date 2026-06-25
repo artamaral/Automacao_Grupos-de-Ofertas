@@ -4,9 +4,10 @@ import argparse
 import json
 import sys
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from ofertas_bot.storage.json_message_draft_store import message_draft_to_json
 from ofertas_bot.storage.json_publication_manifest_store import (
@@ -14,6 +15,11 @@ from ofertas_bot.storage.json_publication_manifest_store import (
     PublicationManifestItem,
     PublicationManifestStoreError,
 )
+
+try:
+    SAO_PAULO_TZ = ZoneInfo("America/Sao_Paulo")
+except ZoneInfoNotFoundError:
+    SAO_PAULO_TZ = timezone(timedelta(hours=-3), name="America/Sao_Paulo")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -57,9 +63,12 @@ def run(argv: Sequence[str] | None = None) -> int:
 
 def build_dispatch_artifact(
     manifest: tuple[PublicationManifestItem, ...],
+    *,
+    now: datetime | None = None,
 ) -> dict[str, Any]:
     if not manifest:
         raise ValueError("Manifesto local vazio")
+    current_time = _project_now(now)
 
     grouped_items: dict[tuple[str, str], list[tuple[int, PublicationManifestItem]]] = {}
     for item_number, item in enumerate(manifest, start=1):
@@ -74,14 +83,26 @@ def build_dispatch_artifact(
             target=target,
             adapter_kind=adapter_kind,
             indexed_items=items,
+            now=current_time,
         )
         for (target, adapter_kind), items in sorted(grouped_items.items())
     ]
 
     return {
-        "generated_at": _utc_now_iso(),
+        "generated_at": current_time.isoformat(),
+        "timezone": "America/Sao_Paulo",
         "summary": {
             "total_targets": len(targets),
+            "total_available_messages": sum(
+                target["available_message_count"] for target in targets
+            ),
+            "total_selected_messages": sum(target["message_count"] for target in targets),
+            "total_skipped_messages": sum(
+                target["skipped_message_count"] for target in targets
+            ),
+            "total_blocked_targets": sum(
+                1 for target in targets if target["status"] == "blocked"
+            ),
             "total_messages": sum(target["message_count"] for target in targets),
         },
         "targets": targets,
@@ -97,48 +118,166 @@ def _build_target_entry(
     target: str,
     adapter_kind: str,
     indexed_items: list[tuple[int, PublicationManifestItem]],
+    now: datetime,
 ) -> dict[str, Any]:
     if not indexed_items:
         raise ValueError("Destino sem itens no manifesto")
     reference_item = indexed_items[0][1]
     max_messages_per_run = reference_item.max_messages_per_run
+    max_messages_per_hour = reference_item.max_messages_per_hour
     min_interval_seconds = reference_item.min_interval_seconds
-    selected_items = (
-        indexed_items[:max_messages_per_run]
-        if max_messages_per_run > 0
-        else list(indexed_items)
+    quiet_periods = reference_item.quiet_periods
+    effective_limit = _effective_message_limit(
+        max_messages_per_run=max_messages_per_run,
+        max_messages_per_hour=max_messages_per_hour,
     )
+    quiet_period_active = _is_quiet_period_active(now=now, quiet_periods=quiet_periods)
+    selected_items = []
+    if not quiet_period_active:
+        selected_items = (
+            indexed_items[:effective_limit]
+            if effective_limit > 0
+            else list(indexed_items)
+        )
+    skipped_message_count = len(indexed_items) - len(selected_items)
 
     messages = [
-        {
-            "manifest_item_number": manifest_item_number,
-            "status": item.status,
-            "created_at": item.created_at,
-            "planned_offset_seconds": (offset_index - 1) * min_interval_seconds,
-            "text": item.draft.text,
-            "draft": message_draft_to_json(item.draft),
-            "offer": {
-                "marketplace": item.draft.offer.marketplace.value,
-                "niche": item.draft.offer.niche,
-                "title": item.draft.offer.title,
-                "url": item.draft.offer.url,
-                "price": item.draft.offer.price,
-                "old_price": item.draft.offer.old_price,
-            },
-        }
+        _build_message_entry(
+            manifest_item_number=manifest_item_number,
+            item=item,
+            offset_index=offset_index,
+            min_interval_seconds=min_interval_seconds,
+            base_time=now,
+        )
         for offset_index, (manifest_item_number, item) in enumerate(selected_items, start=1)
     ]
 
     return {
         "target": target,
         "adapter_kind": adapter_kind,
-        "status": "ready",
+        "status": "blocked" if quiet_period_active else "ready",
         "available_message_count": len(indexed_items),
         "message_count": len(messages),
+        "selected_message_count": len(messages),
+        "skipped_message_count": skipped_message_count,
         "max_messages_per_run": max_messages_per_run,
+        "max_messages_per_hour": max_messages_per_hour,
         "min_interval_seconds": min_interval_seconds,
+        "quiet_periods": list(quiet_periods),
+        "quiet_period_active": quiet_period_active,
+        "blocked_reason": _build_blocked_reason(
+            quiet_period_active=quiet_period_active,
+        ),
+        "selection_reason": _build_selection_reason(
+            quiet_period_active=quiet_period_active,
+            available_message_count=len(indexed_items),
+            selected_message_count=len(messages),
+            max_messages_per_run=max_messages_per_run,
+            max_messages_per_hour=max_messages_per_hour,
+        ),
+        "first_planned_at": messages[0]["planned_at"] if messages else None,
+        "last_planned_at": messages[-1]["planned_at"] if messages else None,
         "messages": messages,
     }
+
+
+def _effective_message_limit(
+    *,
+    max_messages_per_run: int,
+    max_messages_per_hour: int,
+) -> int:
+    positive_limits = [
+        value for value in (max_messages_per_run, max_messages_per_hour) if value > 0
+    ]
+    if not positive_limits:
+        return 0
+    return min(positive_limits)
+
+
+def _is_quiet_period_active(*, now: datetime, quiet_periods: tuple[str, ...]) -> bool:
+    if not quiet_periods:
+        return False
+    current_time = now.timetz().replace(tzinfo=None)
+    for quiet_period in quiet_periods:
+        start, end = _parse_quiet_period(quiet_period)
+        if start < end and start <= current_time < end:
+            return True
+        if start > end and (current_time >= start or current_time < end):
+            return True
+    return False
+
+
+def _parse_quiet_period(value: str) -> tuple[time, time]:
+    start_value, end_value = value.split("-", maxsplit=1)
+    return time.fromisoformat(start_value), time.fromisoformat(end_value)
+
+
+def _build_blocked_reason(*, quiet_period_active: bool) -> str | None:
+    if quiet_period_active:
+        return "quiet_period_active"
+    return None
+
+
+def _build_selection_reason(
+    *,
+    quiet_period_active: bool,
+    available_message_count: int,
+    selected_message_count: int,
+    max_messages_per_run: int,
+    max_messages_per_hour: int,
+) -> str | None:
+    if quiet_period_active:
+        return "quiet_period_active"
+    if selected_message_count >= available_message_count:
+        return None
+    positive_limits = {
+        "max_messages_per_run": max_messages_per_run,
+        "max_messages_per_hour": max_messages_per_hour,
+    }
+    active_limits = [
+        label
+        for label, value in positive_limits.items()
+        if value > 0 and value == selected_message_count
+    ]
+    if not active_limits:
+        return "selection_limited"
+    return ",".join(sorted(active_limits))
+
+
+def _build_message_entry(
+    *,
+    manifest_item_number: int,
+    item: PublicationManifestItem,
+    offset_index: int,
+    min_interval_seconds: int,
+    base_time: datetime,
+) -> dict[str, Any]:
+    planned_offset_seconds = (offset_index - 1) * min_interval_seconds
+    planned_at = base_time + timedelta(seconds=planned_offset_seconds)
+    return {
+        "manifest_item_number": manifest_item_number,
+        "status": item.status,
+        "created_at": item.created_at,
+        "planned_offset_seconds": planned_offset_seconds,
+        "planned_at": planned_at.isoformat(),
+        "text": item.draft.text,
+        "draft": message_draft_to_json(item.draft),
+        "offer": {
+            "marketplace": item.draft.offer.marketplace.value,
+            "niche": item.draft.offer.niche,
+            "title": item.draft.offer.title,
+            "url": item.draft.offer.url,
+            "price": item.draft.offer.price,
+            "old_price": item.draft.offer.old_price,
+        },
+    }
+
+
+def _project_now(now: datetime | None = None) -> datetime:
+    if now is None:
+        return datetime.now(SAO_PAULO_TZ).replace(microsecond=0)
+    reference = now if now.tzinfo is not None else now.replace(tzinfo=SAO_PAULO_TZ)
+    return reference.astimezone(SAO_PAULO_TZ).replace(microsecond=0)
 
 
 def _print_dispatch_error(error: Exception) -> int:

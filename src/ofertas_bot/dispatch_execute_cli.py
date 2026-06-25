@@ -34,6 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Caminho local para salvar o relatório de dry-run",
     )
     parser.add_argument(
+        "--save-dispatch-report-text",
+        default=None,
+        help="Caminho opcional para salvar o relatório textual de dry-run",
+    )
+    parser.add_argument(
         "--adapter-kind",
         default=None,
         help="Sobrescreve o adaptador do artefato (console, whatsapp ou telegram)",
@@ -56,13 +61,21 @@ def run(argv: Sequence[str] | None = None) -> int:
             json.dumps(report, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        if args.save_dispatch_report_text:
+            text_path = Path(args.save_dispatch_report_text)
+            text_path.parent.mkdir(parents=True, exist_ok=True)
+            text_path.write_text(format_dispatch_report_text(report), encoding="utf-8")
     except (OSError, ValueError, MessageDraftStoreError, ChannelAdapterError) as error:
         return _print_dispatch_execute_error(error=error)
 
     print(f"INFO | Relatório de disparo salvo em {args.save_dispatch_report_json}")
+    if args.save_dispatch_report_text:
+        print(f"INFO | Relatório textual salvo em {args.save_dispatch_report_text}")
     print(f"INFO | Adaptador: {report['adapter_kind']}")
     print(f"INFO | Destinos processados: {report['summary']['total_targets']}")
     print(f"INFO | Mensagens simuladas: {report['summary']['total_messages']}")
+    print(f"INFO | Mensagens disponiveis: {report['summary']['total_available_messages']}")
+    print(f"INFO | Mensagens puladas: {report['summary']['total_skipped_messages']}")
     print("INFO | Nenhum envio real foi executado.")
     return 0
 
@@ -92,12 +105,26 @@ def execute_dispatch_artifact(
     return {
         "generated_at": _utc_now_iso(),
         "mode": "dry-run",
+        "source_generated_at": str(artifact.get("generated_at", "")),
+        "source_timezone": str(artifact.get("timezone", "")),
         "adapter_kind": adapter_kind_override or _summarize_adapter_kinds(adapter_kinds),
         "summary": {
             "total_targets": len(target_reports),
+            "total_available_messages": sum(
+                target["available_message_count"] for target in target_reports
+            ),
             "total_messages": total_messages,
+            "total_selected_messages": sum(
+                target["selected_message_count"] for target in target_reports
+            ),
+            "total_skipped_messages": sum(
+                target["skipped_message_count"] for target in target_reports
+            ),
             "total_sent": sum(target["sent_messages"] for target in target_reports),
             "total_dry_run": sum(target["dry_run_messages"] for target in target_reports),
+            "total_blocked_targets": sum(
+                1 for target in target_reports if target["status"] == "blocked"
+            ),
         },
         "targets": target_reports,
     }
@@ -120,7 +147,23 @@ def _execute_target(
     adapter = build_channel_adapter(adapter_kind)
 
     raw_messages = raw_target.get("messages")
-    if not isinstance(raw_messages, list) or not raw_messages:
+    if not isinstance(raw_messages, list):
+        raise ValueError(f"Destino com mensagens invalidas: {target}")
+
+    status = str(raw_target.get("status", "ready"))
+    quiet_period_active = bool(raw_target.get("quiet_period_active", False))
+    blocked_reason = raw_target.get("blocked_reason")
+    available_message_count = int(raw_target.get("available_message_count", len(raw_messages)))
+    selected_message_count = int(raw_target.get("selected_message_count", len(raw_messages)))
+    skipped_message_count = int(
+        raw_target.get(
+            "skipped_message_count",
+            max(available_message_count - selected_message_count, 0),
+        )
+    )
+    selection_reason = raw_target.get("selection_reason")
+
+    if not raw_messages and status != "blocked":
         raise ValueError(f"Destino sem mensagens: {target}")
 
     message_reports: list[dict[str, Any]] = []
@@ -135,10 +178,17 @@ def _execute_target(
 
     return {
         "target": target,
-        "status": "simulated",
+        "status": "blocked" if status == "blocked" else "simulated",
         "adapter_kind": adapter.kind,
+        "available_message_count": available_message_count,
+        "selected_message_count": selected_message_count,
+        "skipped_message_count": skipped_message_count,
         "max_messages_per_run": int(raw_target.get("max_messages_per_run", 0)),
+        "max_messages_per_hour": int(raw_target.get("max_messages_per_hour", 0)),
         "min_interval_seconds": int(raw_target.get("min_interval_seconds", 0)),
+        "quiet_period_active": quiet_period_active,
+        "blocked_reason": blocked_reason,
+        "selection_reason": selection_reason,
         "message_count": len(message_reports),
         "sent_messages": sum(1 for item in message_reports if item["sent"]),
         "dry_run_messages": sum(1 for item in message_reports if item["dry_run"]),
@@ -161,6 +211,7 @@ def _execute_message(
         "manifest_item_number": int(raw_message.get("manifest_item_number", 0)),
         "created_at": str(raw_message.get("created_at", "")),
         "planned_offset_seconds": int(raw_message.get("planned_offset_seconds", 0)),
+        "planned_at": str(raw_message.get("planned_at", "")),
         "status": str(raw_message.get("status", "")),
         "adapter_kind": result.adapter_kind,
         "delivery_label": result.delivery_label,
@@ -191,6 +242,60 @@ def _load_dispatch_artifact(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("Artefato de disparo deve ser um objeto")
     return payload
+
+
+def format_dispatch_report_text(report: dict[str, Any]) -> str:
+    summary = report.get("summary", {})
+    lines = [
+        "Relatorio de disparo",
+        f"generated_at={report.get('generated_at')}",
+        f"source_generated_at={report.get('source_generated_at')}",
+        f"source_timezone={report.get('source_timezone')}",
+        f"mode={report.get('mode')}",
+        f"adapter_kind={report.get('adapter_kind')}",
+        f"total_targets={summary.get('total_targets')}",
+        f"total_available_messages={summary.get('total_available_messages')}",
+        f"total_selected_messages={summary.get('total_selected_messages')}",
+        f"total_skipped_messages={summary.get('total_skipped_messages')}",
+        f"total_blocked_targets={summary.get('total_blocked_targets')}",
+        f"total_dry_run={summary.get('total_dry_run')}",
+    ]
+    targets = report.get("targets", [])
+    if isinstance(targets, list):
+        for target in targets:
+            if not isinstance(target, dict):
+                continue
+            lines.extend(
+                [
+                    "-" * 80,
+                    f"target={target.get('target')}",
+                    f"status={target.get('status')}",
+                    f"adapter_kind={target.get('adapter_kind')}",
+                    f"available_message_count={target.get('available_message_count')}",
+                    f"selected_message_count={target.get('selected_message_count')}",
+                    f"skipped_message_count={target.get('skipped_message_count')}",
+                    f"blocked_reason={target.get('blocked_reason')}",
+                    f"selection_reason={target.get('selection_reason')}",
+                    f"quiet_period_active={target.get('quiet_period_active')}",
+                    f"min_interval_seconds={target.get('min_interval_seconds')}",
+                ]
+            )
+            messages = target.get("messages", [])
+            if isinstance(messages, list):
+                for message in messages:
+                    if not isinstance(message, dict):
+                        continue
+                    offer = message.get("offer", {})
+                    title = offer.get("title") if isinstance(offer, dict) else None
+                    lines.append(
+                        "message="
+                        f"{message.get('manifest_item_number')} | "
+                        f"planned_at={message.get('planned_at')} | "
+                        f"offset={message.get('planned_offset_seconds')}s | "
+                        f"delivery={message.get('delivery_label')} | "
+                        f"title={title}"
+                    )
+    return "\n".join(lines) + "\n"
 
 
 def _summarize_adapter_kinds(adapter_kinds: set[str]) -> str:

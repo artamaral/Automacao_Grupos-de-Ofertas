@@ -34,7 +34,9 @@ class PublicationManifestItem:
     created_at: str
     channel_adapter: str = "whatsapp"
     max_messages_per_run: int = 0
+    max_messages_per_hour: int = 0
     min_interval_seconds: int = 0
+    quiet_periods: tuple[str, ...] = ()
 
 
 class JsonPublicationManifestStore:
@@ -91,7 +93,9 @@ def create_publication_manifest(
             created_at=created_at,
             channel_adapter=channel_adapter.strip().lower(),
             max_messages_per_run=0,
+            max_messages_per_hour=0,
             min_interval_seconds=0,
+            quiet_periods=(),
         )
         for draft in drafts
     )
@@ -119,7 +123,9 @@ def create_publication_manifest_from_review_queue(
             fallback_channel_adapter=clean_fallback_channel_adapter,
         )
         max_messages_per_run = _resolve_review_queue_max_messages_per_run(item=item)
+        max_messages_per_hour = _resolve_review_queue_max_messages_per_hour(item=item)
         min_interval_seconds = _resolve_review_queue_min_interval_seconds(item=item)
+        quiet_periods = _resolve_review_queue_quiet_periods(item=item)
         manifest.append(
             PublicationManifestItem(
                 draft=item.draft,
@@ -128,7 +134,9 @@ def create_publication_manifest_from_review_queue(
                 created_at=created_at,
                 channel_adapter=channel_adapter,
                 max_messages_per_run=max_messages_per_run,
+                max_messages_per_hour=max_messages_per_hour,
                 min_interval_seconds=min_interval_seconds,
+                quiet_periods=quiet_periods,
             )
         )
 
@@ -154,6 +162,8 @@ def validate_publication_manifest(
             issues.append(f"item {index} sem canal")
         if item.max_messages_per_run < 0:
             issues.append(f"item {index} com limite de mensagens invalido")
+        if item.max_messages_per_hour < 0:
+            issues.append(f"item {index} com limite por hora invalido")
         if item.min_interval_seconds < 0:
             issues.append(f"item {index} com intervalo invalido")
         if not item.draft.text.strip():
@@ -174,7 +184,9 @@ def publication_manifest_item_to_json(
         "created_at": item.created_at,
         "channel_adapter": item.channel_adapter,
         "max_messages_per_run": item.max_messages_per_run,
+        "max_messages_per_hour": item.max_messages_per_hour,
         "min_interval_seconds": item.min_interval_seconds,
+        "quiet_periods": list(item.quiet_periods),
     }
 
 
@@ -196,7 +208,9 @@ def publication_manifest_item_from_json(data: object) -> PublicationManifestItem
             created_at=str(data["created_at"]),
             channel_adapter=str(data.get("channel_adapter", "whatsapp")).strip().lower(),
             max_messages_per_run=int(data.get("max_messages_per_run", 0)),
+            max_messages_per_hour=int(data.get("max_messages_per_hour", 0)),
             min_interval_seconds=int(data.get("min_interval_seconds", 0)),
+            quiet_periods=tuple(str(item) for item in data.get("quiet_periods", ())),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved publication manifest item is invalid"
@@ -254,3 +268,21 @@ def _resolve_review_queue_min_interval_seconds(
     if item.routing is None:
         return 0
     return item.routing.min_interval_seconds
+
+
+def _resolve_review_queue_max_messages_per_hour(
+    *,
+    item: MessageReviewQueueItem,
+) -> int:
+    if item.routing is None:
+        return 0
+    return item.routing.max_messages_per_hour
+
+
+def _resolve_review_queue_quiet_periods(
+    *,
+    item: MessageReviewQueueItem,
+) -> tuple[str, ...]:
+    if item.routing is None:
+        return ()
+    return item.routing.quiet_periods

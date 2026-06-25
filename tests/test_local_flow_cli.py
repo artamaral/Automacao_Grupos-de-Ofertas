@@ -143,6 +143,8 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     assert str(tmp_path / "dispatch_artifact.json") in dispatch_calls[0]
     assert "--save-dispatch-report-json" in dispatch_execute_calls[0]
     assert str(tmp_path / "dispatch_report.json") in dispatch_execute_calls[0]
+    assert "--save-dispatch-report-text" in dispatch_execute_calls[0]
+    assert str(tmp_path / "dispatch_report.txt") in dispatch_execute_calls[0]
 
 
 def test_local_flow_prepare_prefers_profile_and_generates_review_plan(
@@ -243,6 +245,7 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
     assert paths.approved_messages_by_group_dir == Path(tmp_path / "approved_messages_by_group")
     assert paths.dispatch_artifact_json == Path(tmp_path / "dispatch_artifact.json")
     assert paths.dispatch_report_json == Path(tmp_path / "dispatch_report.json")
+    assert paths.dispatch_report_text == Path(tmp_path / "dispatch_report.txt")
     assert paths.manifest_json == Path(tmp_path / "publication_manifest.json")
     assert paths.bundle_json == Path(tmp_path / "local_review_bundle.json")
     assert paths.review_plan_json == Path(tmp_path / "review_plan.json")

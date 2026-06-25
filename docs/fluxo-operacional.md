@@ -61,6 +61,7 @@ O fluxo usa `.data` por padrão:
 .data/approved_messages_by_group/
 .data/dispatch_artifact.json
 .data/dispatch_report.json
+.data/dispatch_report.txt
 .data/publication_manifest.json
 .data/local_review_bundle.json
 ```
@@ -106,6 +107,10 @@ automatizado.
 
 O arquivo `.data/dispatch_report.json` registra a simulação da rodada de
 disparo, por destino e por mensagem, sem qualquer envio real.
+
+O arquivo `.data/dispatch_report.txt` resume a rodada em formato legível para
+operação e auditoria rápida, incluindo `planned_at` por mensagem em
+`America/Sao_Paulo`.
 
 No estado atual, o executor de disparo trabalha com adaptadores `dry-run` de
 canal. O adaptador de cada destino passa a ser definido no catálogo de grupos,
@@ -165,3 +170,17 @@ comando:
 ```powershell
 $env:PYTHONUTF8='1'
 ```
+
+## Timezone operacional
+
+O horario oficial do sistema deve ser tratado como `GMT-3`, usando
+`America/Sao_Paulo` como timezone de referencia para artefatos, janelas de
+silencio e auditoria local.
+
+No dispatch:
+
+- `generated_at` deve sair em `America/Sao_Paulo`;
+- `quiet_periods` devem ser avaliados em `America/Sao_Paulo`;
+- o relatorio deve mostrar quantas mensagens estavam disponiveis, quantas foram
+  selecionadas, quantas ficaram de fora e se houve bloqueio por quiet period ou
+  corte por limite operacional.

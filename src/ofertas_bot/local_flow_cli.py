@@ -75,6 +75,10 @@ class LocalFlowPaths:
         return self.data_dir / "dispatch_report.json"
 
     @property
+    def dispatch_report_text(self) -> Path:
+        return self.data_dir / "dispatch_report.txt"
+
+    @property
     def manifest_json(self) -> Path:
         return self.data_dir / "publication_manifest.json"
 
@@ -252,6 +256,8 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
             str(paths.dispatch_artifact_json),
             "--save-dispatch-report-json",
             str(paths.dispatch_report_json),
+            "--save-dispatch-report-text",
+            str(paths.dispatch_report_text),
         ]
     )
     if step_exit_code != 0:
@@ -291,6 +297,7 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
     print(f"INFO | Aprovadas por grupo: {paths.approved_messages_by_group_dir}")
     print(f"INFO | Artefato de disparo: {paths.dispatch_artifact_json}")
     print(f"INFO | Relatorio de disparo: {paths.dispatch_report_json}")
+    print(f"INFO | Relatorio textual: {paths.dispatch_report_text}")
     print(f"INFO | Bundle local: {paths.bundle_json}")
     print("INFO | Nenhum envio foi executado.")
     return 0

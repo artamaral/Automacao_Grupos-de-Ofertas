@@ -72,7 +72,9 @@ def test_publication_manifest_cli_creates_manifest_from_review_queue(tmp_path) -
                     destination_ref="grupo-auto-e-moto",
                     message_tone="pratico",
                     max_messages_per_run=2,
+                    max_messages_per_hour=5,
                     min_interval_seconds=45,
+                    quiet_periods=("22:00-08:00",),
                 ),
             ),
         )
@@ -93,4 +95,6 @@ def test_publication_manifest_cli_creates_manifest_from_review_queue(tmp_path) -
     assert manifest[0].target == "grupo-auto-e-moto"
     assert manifest[0].channel_adapter == "whatsapp"
     assert manifest[0].max_messages_per_run == 2
+    assert manifest[0].max_messages_per_hour == 5
     assert manifest[0].min_interval_seconds == 45
+    assert manifest[0].quiet_periods == ("22:00-08:00",)

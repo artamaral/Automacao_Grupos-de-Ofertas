@@ -3,6 +3,7 @@ from __future__ import annotations
 import tomllib
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import time
 from pathlib import Path
 
 from ofertas_bot.models import Marketplace
@@ -24,12 +25,15 @@ class GroupDestination:
     channel_adapter: str = "whatsapp"
     active: bool = True
     max_messages_per_run: int = 0
+    max_messages_per_hour: int = 0
     min_interval_seconds: int = 0
+    quiet_periods: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         normalized_destination_kind = self.destination_kind.strip().lower()
         normalized_destination_ref = _normalize_optional_text(self.destination_ref)
         normalized_channel_adapter = self.channel_adapter.strip().lower()
+        normalized_quiet_periods = _normalize_quiet_periods(self.quiet_periods)
 
         if not normalized_destination_kind:
             raise GroupProfileError("group destination destination_kind is required")
@@ -37,12 +41,15 @@ class GroupDestination:
             raise GroupProfileError("group destination channel_adapter is invalid")
         if self.max_messages_per_run < 0:
             raise GroupProfileError("group destination max_messages_per_run cannot be negative")
+        if self.max_messages_per_hour < 0:
+            raise GroupProfileError("group destination max_messages_per_hour cannot be negative")
         if self.min_interval_seconds < 0:
             raise GroupProfileError("group destination min_interval_seconds cannot be negative")
 
         object.__setattr__(self, "destination_kind", normalized_destination_kind)
         object.__setattr__(self, "destination_ref", normalized_destination_ref)
         object.__setattr__(self, "channel_adapter", normalized_channel_adapter)
+        object.__setattr__(self, "quiet_periods", normalized_quiet_periods)
 
 
 @dataclass(frozen=True)
@@ -77,6 +84,7 @@ class GroupProfile:
                     destination_ref=self.destination_ref,
                     channel_adapter=self.channel_adapter,
                     max_messages_per_run=self.max_offers_per_run,
+                    max_messages_per_hour=0,
                 ),
             )
 
@@ -227,7 +235,9 @@ def _destination_tuple(value: object) -> tuple[GroupDestination, ...]:
                 channel_adapter=str(item.get("channel_adapter", "whatsapp")),
                 active=bool(item.get("active", True)),
                 max_messages_per_run=_int_or_default(item.get("max_messages_per_run"), 0),
+                max_messages_per_hour=_int_or_default(item.get("max_messages_per_hour"), 0),
                 min_interval_seconds=_int_or_default(item.get("min_interval_seconds"), 0),
+                quiet_periods=_string_tuple(item.get("quiet_periods")),
             )
         )
     if not destinations:
@@ -245,6 +255,31 @@ def _normalize_optional_text(value: str | None) -> str | None:
 def _normalize_string_tuple(values: Iterable[str]) -> tuple[str, ...]:
     normalized = tuple(item.strip().lower() for item in values if item.strip())
     return tuple(dict.fromkeys(normalized))
+
+
+def _normalize_quiet_periods(values: Iterable[str]) -> tuple[str, ...]:
+    normalized_periods: list[str] = []
+    for item in values:
+        quiet_period = item.strip()
+        if not quiet_period:
+            continue
+        start, end = _parse_quiet_period(quiet_period)
+        normalized_periods.append(f"{start.strftime('%H:%M')}-{end.strftime('%H:%M')}")
+    return tuple(dict.fromkeys(normalized_periods))
+
+
+def _parse_quiet_period(value: str) -> tuple[time, time]:
+    parts = value.split("-", maxsplit=1)
+    if len(parts) != 2:
+        raise GroupProfileError("quiet period must use HH:MM-HH:MM format")
+    try:
+        start = time.fromisoformat(parts[0].strip())
+        end = time.fromisoformat(parts[1].strip())
+    except ValueError as error:
+        raise GroupProfileError("quiet period must use HH:MM-HH:MM format") from error
+    if start == end:
+        raise GroupProfileError("quiet period start and end cannot be equal")
+    return start, end
 
 
 def _optional_str(value: object) -> str | None:
