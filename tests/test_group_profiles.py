@@ -5,7 +5,9 @@ from ofertas_bot.group_profiles import (
     GroupProfile,
     GroupProfileCatalog,
     GroupProfileError,
+    load_group_profile_catalog,
 )
+from ofertas_bot.models import Marketplace
 
 
 def test_group_profile_normalizes_fields() -> None:
@@ -13,11 +15,19 @@ def test_group_profile_normalizes_fields() -> None:
         slug=" Maquiagem-VIP ",
         name=" Maquiagem VIP ",
         allowed_niches=(" Maquiagem ", " Beleza "),
+        destination_kind=" Group ",
+        destination_ref=" grupo-beleza ",
+        message_tone=" Direto ",
+        allowed_content_types=(" Product ", " Coupon "),
     )
 
     assert profile.slug == "maquiagem-vip"
     assert profile.name == "Maquiagem VIP"
     assert profile.allowed_niches == ("maquiagem", "beleza")
+    assert profile.destination_kind == "group"
+    assert profile.destination_ref == "grupo-beleza"
+    assert profile.message_tone == "direto"
+    assert profile.allowed_content_types == ("product", "coupon")
     assert profile.allows_niche("BELEZA")
 
 
@@ -73,7 +83,45 @@ def test_catalog_filters_active_profiles_by_niche() -> None:
 
 
 def test_default_group_profiles_have_expected_niches() -> None:
-    assert DEFAULT_GROUP_PROFILES.get("maquiagem-vip") is not None
-    assert DEFAULT_GROUP_PROFILES.profiles_for_niche("maquiagem")
-    assert DEFAULT_GROUP_PROFILES.profiles_for_niche("casa")
-    assert DEFAULT_GROUP_PROFILES.profiles_for_niche("pesca")
+    assert DEFAULT_GROUP_PROFILES.get("beleza-ofertas") is not None
+    assert DEFAULT_GROUP_PROFILES.profiles_for_niche("beleza")
+    assert DEFAULT_GROUP_PROFILES.profiles_for_niche("mae e bebe")
+    assert DEFAULT_GROUP_PROFILES.profiles_for_niche("auto e moto")
+
+
+def test_default_group_profiles_expose_destination_metadata() -> None:
+    profile = DEFAULT_GROUP_PROFILES.get("auto-e-moto-ofertas")
+
+    assert profile is not None
+    assert profile.destination_ref == "grupo-auto-e-moto"
+    assert profile.allows_marketplace(Marketplace.SHOPEE)
+    assert profile.allows_content_type("coupon")
+
+
+def test_load_group_profile_catalog_reads_config(tmp_path) -> None:
+    path = tmp_path / "group_profiles.toml"
+    path.write_text(
+        """
+[[profiles]]
+slug = "teste"
+name = "Grupo Teste"
+allowed_niches = ["beleza"]
+allowed_marketplaces = ["mock", "shopee"]
+destination_kind = "group"
+destination_ref = "grupo-teste"
+message_tone = "leve"
+allowed_content_types = ["product", "context"]
+max_offers_per_run = 2
+min_minutes_between_posts = 30
+active = true
+""".strip(),
+        encoding="utf-8",
+    )
+
+    catalog = load_group_profile_catalog(path)
+    profile = catalog.get("teste")
+
+    assert profile is not None
+    assert profile.allowed_marketplaces == (Marketplace.MOCK, Marketplace.SHOPEE)
+    assert profile.destination_ref == "grupo-teste"
+    assert profile.allowed_content_types == ("product", "context")

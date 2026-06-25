@@ -53,11 +53,18 @@ def run(argv: Sequence[str] | None = None) -> int:
 
 def _print_profile(profile: GroupProfile) -> None:
     niches = ",".join(profile.allowed_niches)
+    marketplaces = ",".join(item.value for item in profile.allowed_marketplaces)
+    content_types = ",".join(profile.allowed_content_types)
     print("-" * 80)
     print(f"INFO | group={profile.slug}")
     print(f"INFO | name={profile.name}")
     print(f"INFO | active={profile.active}")
     print(f"INFO | allowed_niches={niches}")
+    print(f"INFO | allowed_marketplaces={marketplaces}")
+    print(f"INFO | destination_kind={profile.destination_kind}")
+    print(f"INFO | destination_ref={profile.destination_ref}")
+    print(f"INFO | message_tone={profile.message_tone}")
+    print(f"INFO | allowed_content_types={content_types}")
     print(f"INFO | max_offers_per_run={profile.max_offers_per_run}")
     print(f"INFO | min_minutes_between_posts={profile.min_minutes_between_posts}")
 

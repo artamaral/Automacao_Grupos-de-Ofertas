@@ -1,0 +1,51 @@
+[[profiles]]
+slug = "beleza-ofertas"
+name = "Beleza Ofertas"
+allowed_niches = ["beleza"]
+allowed_marketplaces = ["mock", "shopee"]
+destination_kind = "group"
+destination_ref = "grupo-beleza"
+message_tone = "direto"
+allowed_content_types = ["product", "coupon", "context"]
+max_offers_per_run = 3
+min_minutes_between_posts = 120
+active = true
+
+[[profiles]]
+slug = "mae-e-bebe-ofertas"
+name = "Mae e Bebe Ofertas"
+allowed_niches = ["mae e bebe"]
+allowed_marketplaces = ["mock", "shopee"]
+destination_kind = "group"
+destination_ref = "grupo-mae-e-bebe"
+message_tone = "acolhedor"
+allowed_content_types = ["product", "coupon", "context"]
+max_offers_per_run = 3
+min_minutes_between_posts = 180
+active = true
+
+[[profiles]]
+slug = "auto-e-moto-ofertas"
+name = "Auto e Moto Ofertas"
+allowed_niches = ["auto e moto"]
+allowed_marketplaces = ["mock", "shopee"]
+destination_kind = "group"
+destination_ref = "grupo-auto-e-moto"
+message_tone = "pratico"
+allowed_content_types = ["product", "coupon", "context"]
+max_offers_per_run = 3
+min_minutes_between_posts = 180
+active = true
+
+[[profiles]]
+slug = "achadinhos-geral-ofertas"
+name = "Achadinhos Geral"
+allowed_niches = ["achadinhos geral", "beleza", "mae e bebe", "auto e moto"]
+allowed_marketplaces = ["mock", "shopee"]
+destination_kind = "group"
+destination_ref = "grupo-achadinhos-geral"
+message_tone = "leve"
+allowed_content_types = ["product", "coupon", "context"]
+max_offers_per_run = 5
+min_minutes_between_posts = 90
+active = true
