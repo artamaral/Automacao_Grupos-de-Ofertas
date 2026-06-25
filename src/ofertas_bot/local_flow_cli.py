@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ofertas_bot import (
+    dispatch_artifact_cli,
     harness,
     local_artifacts_doctor_cli,
     local_review_bundle_cli,
@@ -63,6 +64,10 @@ class LocalFlowPaths:
     @property
     def approved_messages_by_group_dir(self) -> Path:
         return self.data_dir / "approved_messages_by_group"
+
+    @property
+    def dispatch_artifact_json(self) -> Path:
+        return self.data_dir / "dispatch_artifact.json"
 
     @property
     def manifest_json(self) -> Path:
@@ -225,6 +230,17 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
     if step_exit_code != 0:
         return _print_finalize_step_error("validar manifesto", step_exit_code)
 
+    step_exit_code = dispatch_artifact_cli.run(
+        [
+            "--manifest-json",
+            str(paths.manifest_json),
+            "--save-dispatch-artifact-json",
+            str(paths.dispatch_artifact_json),
+        ]
+    )
+    if step_exit_code != 0:
+        return _print_finalize_step_error("gerar artefato de disparo", step_exit_code)
+
     step_exit_code = local_review_bundle_cli.run(
         [
             "--queue-json",
@@ -257,6 +273,7 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
 
     print("INFO | Etapa finalize concluída.")
     print(f"INFO | Aprovadas por grupo: {paths.approved_messages_by_group_dir}")
+    print(f"INFO | Artefato de disparo: {paths.dispatch_artifact_json}")
     print(f"INFO | Bundle local: {paths.bundle_json}")
     print("INFO | Nenhum envio foi executado.")
     return 0

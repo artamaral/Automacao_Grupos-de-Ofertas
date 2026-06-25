@@ -59,6 +59,7 @@ O fluxo usa `.data` por padrão:
 .data/approved_messages.json
 .data/approved_messages.txt
 .data/approved_messages_by_group/
+.data/dispatch_artifact.json
 .data/publication_manifest.json
 .data/local_review_bundle.json
 ```
@@ -86,6 +87,7 @@ A etapa `finalize`:
 - separa aprovadas por grupo em artefatos prontos para operacao;
 - cria manifesto local usando o destino roteado em cada item aprovado da fila;
 - valida manifesto;
+- gera artefato de disparo agrupado por destino, ainda sem envio real;
 - cria bundle local de auditoria;
 - executa doctor local;
 - para na primeira falha;
@@ -95,6 +97,10 @@ A etapa `finalize`:
 Dentro de `.data/approved_messages_by_group/`, cada grupo gera um par de arquivos
 `<group-slug>.json` e `<group-slug>.txt`, mantendo o destino da revisão já pronto
 para uso posterior no disparo.
+
+O arquivo `.data/dispatch_artifact.json` consolida as mensagens prontas por
+`target`, servindo como contrato de entrada para um futuro disparador local ou
+automatizado.
 
 ## Papel humano
 

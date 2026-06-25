@@ -13,6 +13,7 @@ def test_pyproject_registers_expected_cli_scripts() -> None:
         "ofertas-review-gate",
         "ofertas-review-list",
         "ofertas-review-summary",
+        "ofertas-dispatch-build",
         "ofertas-manifest-create",
         "ofertas-manifest-validate",
         "ofertas-manifest-inspect",
