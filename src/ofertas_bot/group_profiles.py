@@ -22,6 +22,9 @@ class GroupDestination:
     destination_kind: str = "group"
     destination_ref: str | None = None
     channel_adapter: str = "whatsapp"
+    active: bool = True
+    max_messages_per_run: int = 0
+    min_interval_seconds: int = 0
 
     def __post_init__(self) -> None:
         normalized_destination_kind = self.destination_kind.strip().lower()
@@ -32,6 +35,10 @@ class GroupDestination:
             raise GroupProfileError("group destination destination_kind is required")
         if normalized_channel_adapter not in VALID_CHANNEL_ADAPTERS:
             raise GroupProfileError("group destination channel_adapter is invalid")
+        if self.max_messages_per_run < 0:
+            raise GroupProfileError("group destination max_messages_per_run cannot be negative")
+        if self.min_interval_seconds < 0:
+            raise GroupProfileError("group destination min_interval_seconds cannot be negative")
 
         object.__setattr__(self, "destination_kind", normalized_destination_kind)
         object.__setattr__(self, "destination_ref", normalized_destination_ref)
@@ -69,6 +76,7 @@ class GroupProfile:
                     destination_kind=self.destination_kind,
                     destination_ref=self.destination_ref,
                     channel_adapter=self.channel_adapter,
+                    max_messages_per_run=self.max_offers_per_run,
                 ),
             )
 
@@ -217,6 +225,9 @@ def _destination_tuple(value: object) -> tuple[GroupDestination, ...]:
                 destination_kind=str(item.get("destination_kind", "group")),
                 destination_ref=_optional_str(item.get("destination_ref")),
                 channel_adapter=str(item.get("channel_adapter", "whatsapp")),
+                active=bool(item.get("active", True)),
+                max_messages_per_run=_int_or_default(item.get("max_messages_per_run"), 0),
+                min_interval_seconds=_int_or_default(item.get("min_interval_seconds"), 0),
             )
         )
     if not destinations:

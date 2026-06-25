@@ -44,11 +44,15 @@ def test_group_profile_supports_multiple_destinations() -> None:
                 destination_kind="group",
                 destination_ref="grupo-beleza",
                 channel_adapter="whatsapp",
+                max_messages_per_run=3,
+                min_interval_seconds=45,
             ),
             GroupDestination(
                 destination_kind="channel",
                 destination_ref="canal-beleza",
                 channel_adapter="telegram",
+                max_messages_per_run=2,
+                min_interval_seconds=60,
             ),
         ),
     )
@@ -56,6 +60,8 @@ def test_group_profile_supports_multiple_destinations() -> None:
     assert len(profile.destinations) == 2
     assert profile.destination_ref == "grupo-beleza"
     assert profile.channel_adapter == "whatsapp"
+    assert profile.destinations[0].max_messages_per_run == 3
+    assert profile.destinations[0].min_interval_seconds == 45
     assert profile.destinations[1].channel_adapter == "telegram"
 
 
@@ -171,11 +177,15 @@ allowed_niches = ["beleza"]
 destination_kind = "group"
 destination_ref = "grupo-beleza"
 channel_adapter = "whatsapp"
+max_messages_per_run = 3
+min_interval_seconds = 45
 
 [[profiles.destinations]]
 destination_kind = "channel"
 destination_ref = "canal-beleza"
 channel_adapter = "telegram"
+max_messages_per_run = 2
+min_interval_seconds = 60
 """.strip(),
         encoding="utf-8",
     )
@@ -186,4 +196,6 @@ channel_adapter = "telegram"
     assert profile is not None
     assert len(profile.destinations) == 2
     assert profile.destinations[0].destination_ref == "grupo-beleza"
+    assert profile.destinations[0].max_messages_per_run == 3
     assert profile.destinations[1].destination_ref == "canal-beleza"
+    assert profile.destinations[1].min_interval_seconds == 60

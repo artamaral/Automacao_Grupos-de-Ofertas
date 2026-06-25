@@ -16,12 +16,15 @@ def test_dispatch_execute_cli_generates_dry_run_report(tmp_path, capsys) -> None
                         "target": "grupo-auto",
                         "adapter_kind": "whatsapp",
                         "status": "ready",
+                        "max_messages_per_run": 1,
+                        "min_interval_seconds": 60,
                         "message_count": 1,
                         "messages": [
                             {
                                 "manifest_item_number": 1,
                                 "status": "ready",
                                 "created_at": "2026-06-25T00:00:00+00:00",
+                                "planned_offset_seconds": 0,
                                 "text": "Auto com comissão 🚗",
                                 "draft": {
                                     "offer": {
@@ -54,12 +57,15 @@ def test_dispatch_execute_cli_generates_dry_run_report(tmp_path, capsys) -> None
                         "target": "grupo-beleza",
                         "adapter_kind": "whatsapp",
                         "status": "ready",
+                        "max_messages_per_run": 2,
+                        "min_interval_seconds": 45,
                         "message_count": 2,
                         "messages": [
                             {
                                 "manifest_item_number": 2,
                                 "status": "ready",
                                 "created_at": "2026-06-25T00:00:00+00:00",
+                                "planned_offset_seconds": 0,
                                 "text": "Beleza com comissão ✨",
                                 "draft": {
                                     "offer": {
@@ -90,6 +96,7 @@ def test_dispatch_execute_cli_generates_dry_run_report(tmp_path, capsys) -> None
                                 "manifest_item_number": 3,
                                 "status": "ready",
                                 "created_at": "2026-06-25T00:00:00+00:00",
+                                "planned_offset_seconds": 45,
                                 "text": "Skincare com comissão 💄",
                                 "draft": {
                                     "offer": {
@@ -146,8 +153,10 @@ def test_dispatch_execute_cli_generates_dry_run_report(tmp_path, capsys) -> None
     assert payload["summary"]["total_dry_run"] == 3
     assert payload["targets"][1]["target"] == "grupo-beleza"
     assert payload["targets"][1]["adapter_kind"] == "whatsapp"
+    assert payload["targets"][1]["min_interval_seconds"] == 45
     assert payload["targets"][1]["dry_run_messages"] == 2
     assert payload["targets"][1]["messages"][0]["delivery_label"] == "whatsapp:grupo-beleza"
+    assert payload["targets"][1]["messages"][1]["planned_offset_seconds"] == 45
     assert payload["targets"][1]["messages"][0]["text"] == "Beleza com comissão ✨"
     assert "Nenhum envio real" in output
 
@@ -164,12 +173,15 @@ def test_dispatch_execute_cli_accepts_telegram_adapter(tmp_path) -> None:
                         "target": "canal-telegram",
                         "adapter_kind": "telegram",
                         "status": "ready",
+                        "max_messages_per_run": 1,
+                        "min_interval_seconds": 60,
                         "message_count": 1,
                         "messages": [
                             {
                                 "manifest_item_number": 1,
                                 "status": "ready",
                                 "created_at": "2026-06-25T00:00:00+00:00",
+                                "planned_offset_seconds": 0,
                                 "text": "Telegram com comissão 📣",
                                 "draft": {
                                     "offer": {

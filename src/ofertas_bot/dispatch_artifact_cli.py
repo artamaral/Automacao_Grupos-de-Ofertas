@@ -61,38 +61,21 @@ def build_dispatch_artifact(
     if not manifest:
         raise ValueError("Manifesto local vazio")
 
-    grouped_items: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    grouped_items: dict[tuple[str, str], list[tuple[int, PublicationManifestItem]]] = {}
     for item_number, item in enumerate(manifest, start=1):
         if item.status != "ready":
             raise ValueError("Manifesto possui item fora do status ready")
-
-        grouped_items.setdefault((item.target, item.channel_adapter), []).append(
-            {
-                "manifest_item_number": item_number,
-                "status": item.status,
-                "created_at": item.created_at,
-                "text": item.draft.text,
-                "draft": message_draft_to_json(item.draft),
-                "offer": {
-                    "marketplace": item.draft.offer.marketplace.value,
-                    "niche": item.draft.offer.niche,
-                    "title": item.draft.offer.title,
-                    "url": item.draft.offer.url,
-                    "price": item.draft.offer.price,
-                    "old_price": item.draft.offer.old_price,
-                },
-            }
-        )
+        grouped_items.setdefault(
+            (item.target, item.channel_adapter), []
+        ).append((item_number, item))
 
     targets = [
-        {
-            "target": target,
-            "adapter_kind": adapter_kind,
-            "status": "ready",
-            "message_count": len(messages),
-            "messages": messages,
-        }
-        for (target, adapter_kind), messages in sorted(grouped_items.items())
+        _build_target_entry(
+            target=target,
+            adapter_kind=adapter_kind,
+            indexed_items=items,
+        )
+        for (target, adapter_kind), items in sorted(grouped_items.items())
     ]
 
     return {
@@ -107,6 +90,55 @@ def build_dispatch_artifact(
 
 def _utc_now_iso() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+def _build_target_entry(
+    *,
+    target: str,
+    adapter_kind: str,
+    indexed_items: list[tuple[int, PublicationManifestItem]],
+) -> dict[str, Any]:
+    if not indexed_items:
+        raise ValueError("Destino sem itens no manifesto")
+    reference_item = indexed_items[0][1]
+    max_messages_per_run = reference_item.max_messages_per_run
+    min_interval_seconds = reference_item.min_interval_seconds
+    selected_items = (
+        indexed_items[:max_messages_per_run]
+        if max_messages_per_run > 0
+        else list(indexed_items)
+    )
+
+    messages = [
+        {
+            "manifest_item_number": manifest_item_number,
+            "status": item.status,
+            "created_at": item.created_at,
+            "planned_offset_seconds": (offset_index - 1) * min_interval_seconds,
+            "text": item.draft.text,
+            "draft": message_draft_to_json(item.draft),
+            "offer": {
+                "marketplace": item.draft.offer.marketplace.value,
+                "niche": item.draft.offer.niche,
+                "title": item.draft.offer.title,
+                "url": item.draft.offer.url,
+                "price": item.draft.offer.price,
+                "old_price": item.draft.offer.old_price,
+            },
+        }
+        for offset_index, (manifest_item_number, item) in enumerate(selected_items, start=1)
+    ]
+
+    return {
+        "target": target,
+        "adapter_kind": adapter_kind,
+        "status": "ready",
+        "available_message_count": len(indexed_items),
+        "message_count": len(messages),
+        "max_messages_per_run": max_messages_per_run,
+        "min_interval_seconds": min_interval_seconds,
+        "messages": messages,
+    }
 
 
 def _print_dispatch_error(error: Exception) -> int:

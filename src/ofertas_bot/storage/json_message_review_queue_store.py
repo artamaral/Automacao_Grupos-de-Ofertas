@@ -53,6 +53,8 @@ class MessageReviewRouting:
     destination_ref: str | None
     message_tone: str
     channel_adapter: str = "whatsapp"
+    max_messages_per_run: int = 0
+    min_interval_seconds: int = 0
 
 
 @dataclass(frozen=True)
@@ -116,6 +118,8 @@ def create_pending_review_queue(
             continue
         for profile in matching_profiles:
             for destination in profile.destinations:
+                if not destination.active:
+                    continue
                 items.append(
                     MessageReviewQueueItem(
                         draft=draft,
@@ -126,6 +130,9 @@ def create_pending_review_queue(
                             destination_ref=destination.destination_ref,
                             channel_adapter=destination.channel_adapter,
                             message_tone=profile.message_tone,
+                            max_messages_per_run=destination.max_messages_per_run
+                            or profile.max_offers_per_run,
+                            min_interval_seconds=destination.min_interval_seconds,
                         ),
                     )
                 )
@@ -322,6 +329,8 @@ def message_review_routing_to_json(
         "destination_ref": routing.destination_ref,
         "channel_adapter": routing.channel_adapter,
         "message_tone": routing.message_tone,
+        "max_messages_per_run": routing.max_messages_per_run,
+        "min_interval_seconds": routing.min_interval_seconds,
     }
 
 
@@ -342,6 +351,8 @@ def message_review_routing_from_json(
             destination_ref=_optional_str(data.get("destination_ref")),
             channel_adapter=str(data["channel_adapter"]).strip().lower(),
             message_tone=str(data["message_tone"]).strip().lower(),
+            max_messages_per_run=int(data.get("max_messages_per_run", 0)),
+            min_interval_seconds=int(data.get("min_interval_seconds", 0)),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved message review queue routing is invalid"

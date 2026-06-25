@@ -13,11 +13,17 @@ active = true
 destination_kind = "group"
 destination_ref = "grupo-beleza"
 channel_adapter = "whatsapp"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 45
 
 [[profiles.destinations]]
 destination_kind = "channel"
 destination_ref = "canal-beleza"
 channel_adapter = "telegram"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 60
 
 [[profiles]]
 slug = "mae-e-bebe-ofertas"
@@ -34,11 +40,17 @@ active = true
 destination_kind = "group"
 destination_ref = "grupo-mae-e-bebe"
 channel_adapter = "whatsapp"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 45
 
 [[profiles.destinations]]
 destination_kind = "channel"
 destination_ref = "canal-mae-e-bebe"
 channel_adapter = "telegram"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 60
 
 [[profiles]]
 slug = "auto-e-moto-ofertas"
@@ -55,11 +67,17 @@ active = true
 destination_kind = "group"
 destination_ref = "grupo-auto-e-moto"
 channel_adapter = "whatsapp"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 45
 
 [[profiles.destinations]]
 destination_kind = "channel"
 destination_ref = "canal-auto-e-moto"
 channel_adapter = "telegram"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 60
 
 [[profiles]]
 slug = "achadinhos-geral-ofertas"
@@ -76,8 +94,14 @@ active = true
 destination_kind = "group"
 destination_ref = "grupo-achadinhos-geral"
 channel_adapter = "whatsapp"
+active = true
+max_messages_per_run = 5
+min_interval_seconds = 45
 
 [[profiles.destinations]]
 destination_kind = "channel"
 destination_ref = "canal-achadinhos-geral"
 channel_adapter = "telegram"
+active = true
+max_messages_per_run = 5
+min_interval_seconds = 60

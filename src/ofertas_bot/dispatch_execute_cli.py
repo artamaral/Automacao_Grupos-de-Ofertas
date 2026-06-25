@@ -137,6 +137,8 @@ def _execute_target(
         "target": target,
         "status": "simulated",
         "adapter_kind": adapter.kind,
+        "max_messages_per_run": int(raw_target.get("max_messages_per_run", 0)),
+        "min_interval_seconds": int(raw_target.get("min_interval_seconds", 0)),
         "message_count": len(message_reports),
         "sent_messages": sum(1 for item in message_reports if item["sent"]),
         "dry_run_messages": sum(1 for item in message_reports if item["dry_run"]),
@@ -158,6 +160,7 @@ def _execute_message(
     return {
         "manifest_item_number": int(raw_message.get("manifest_item_number", 0)),
         "created_at": str(raw_message.get("created_at", "")),
+        "planned_offset_seconds": int(raw_message.get("planned_offset_seconds", 0)),
         "status": str(raw_message.get("status", "")),
         "adapter_kind": result.adapter_kind,
         "delivery_label": result.delivery_label,

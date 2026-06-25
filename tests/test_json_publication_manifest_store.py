@@ -49,6 +49,9 @@ def test_create_publication_manifest_marks_items_as_ready() -> None:
             target="grupo-maquiagem",
             status="ready",
             created_at="2026-01-01T00:00:00+00:00",
+            channel_adapter="whatsapp",
+            max_messages_per_run=0,
+            min_interval_seconds=0,
         ),
     )
 
@@ -74,6 +77,8 @@ def test_create_publication_manifest_from_review_queue_uses_routed_targets() -> 
                 destination_kind="group",
                 destination_ref="grupo-beleza",
                 message_tone="direto",
+                max_messages_per_run=2,
+                min_interval_seconds=45,
             ),
         ),
     )
@@ -89,6 +94,9 @@ def test_create_publication_manifest_from_review_queue_uses_routed_targets() -> 
             target="grupo-beleza",
             status="ready",
             created_at="2026-01-01T00:00:00+00:00",
+            channel_adapter="whatsapp",
+            max_messages_per_run=2,
+            min_interval_seconds=45,
         ),
     )
 
@@ -109,6 +117,7 @@ def test_create_publication_manifest_from_review_queue_uses_fallback_target() ->
     )
 
     assert manifest[0].target == "grupo-fallback"
+    assert manifest[0].channel_adapter == "whatsapp"
 
 
 def test_validate_publication_manifest_accepts_ready_manifest() -> None:

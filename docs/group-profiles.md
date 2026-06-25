@@ -16,6 +16,9 @@ Esse arquivo define, por grupo:
 - `destination_kind`
 - `destination_ref`
 - `channel_adapter`
+- `active`
+- `max_messages_per_run`
+- `min_interval_seconds`
 - `message_tone`
 - `allowed_content_types`
 - `max_offers_per_run`
@@ -27,6 +30,7 @@ Objetivo desta camada:
 - organizar destinos lógicos antes da API real;
 - separar macro-nicho de destino operacional;
 - declarar por qual canal o destino deve ser tratado no disparo;
+- declarar a cadência operacional fixa de cada destino;
 - registrar tom e tipos de conteúdo aceitos por grupo;
 - preparar a futura decisão de roteamento sem endurecer regra cedo demais.
 
@@ -53,9 +57,24 @@ allowed_niches = ["beleza"]
 destination_kind = "group"
 destination_ref = "grupo-beleza"
 channel_adapter = "whatsapp"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 45
 
 [[profiles.destinations]]
 destination_kind = "channel"
 destination_ref = "canal-beleza"
 channel_adapter = "telegram"
+active = true
+max_messages_per_run = 3
+min_interval_seconds = 60
 ```
+
+Os campos de pacing são operacionais:
+
+- `active`: liga ou desliga aquele destino sem remover o grupo;
+- `max_messages_per_run`: limita quantas mensagens daquele destino entram em uma rodada;
+- `min_interval_seconds`: define o espaçamento fixo planejado entre mensagens do mesmo destino.
+
+O projeto não usa aleatoriedade para "parecer humano". A cadência deve ser explícita,
+configurável e auditável.

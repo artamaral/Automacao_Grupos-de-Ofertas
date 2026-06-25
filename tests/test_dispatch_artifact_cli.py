@@ -37,18 +37,24 @@ def test_dispatch_artifact_cli_groups_messages_by_target(tmp_path, capsys) -> No
                 target="grupo-beleza",
                 status="ready",
                 created_at="2026-06-25T00:00:00+00:00",
+                max_messages_per_run=2,
+                min_interval_seconds=45,
             ),
             PublicationManifestItem(
                 draft=make_draft("Produto auto", niche="auto e moto"),
                 target="grupo-auto",
                 status="ready",
                 created_at="2026-06-25T00:00:00+00:00",
+                max_messages_per_run=1,
+                min_interval_seconds=60,
             ),
             PublicationManifestItem(
                 draft=make_draft("Produto beleza 2", niche="beleza"),
                 target="grupo-beleza",
                 status="ready",
                 created_at="2026-06-25T00:00:00+00:00",
+                max_messages_per_run=2,
+                min_interval_seconds=45,
             ),
         )
     )
@@ -69,9 +75,13 @@ def test_dispatch_artifact_cli_groups_messages_by_target(tmp_path, capsys) -> No
     assert payload["summary"]["total_messages"] == 3
     assert payload["targets"][0]["target"] == "grupo-auto"
     assert payload["targets"][0]["adapter_kind"] == "whatsapp"
+    assert payload["targets"][0]["max_messages_per_run"] == 1
+    assert payload["targets"][0]["min_interval_seconds"] == 60
     assert payload["targets"][1]["target"] == "grupo-beleza"
     assert payload["targets"][1]["adapter_kind"] == "whatsapp"
     assert payload["targets"][1]["message_count"] == 2
+    assert payload["targets"][1]["available_message_count"] == 2
+    assert payload["targets"][1]["messages"][1]["planned_offset_seconds"] == 45
     assert payload["targets"][1]["messages"][0]["text"] == "Oferta em português com emoji ✨"
     assert (
         payload["targets"][1]["messages"][0]["draft"]["text"]

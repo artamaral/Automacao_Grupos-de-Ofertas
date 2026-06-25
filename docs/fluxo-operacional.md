@@ -112,6 +112,14 @@ canal. O adaptador de cada destino passa a ser definido no catálogo de grupos,
 e os adaptadores `whatsapp`, `telegram` e `console` permanecem disponíveis para
 simulação e testes.
 
+Cada destino também pode declarar no config:
+
+- quantas mensagens entram em cada rodada;
+- o intervalo fixo planejado entre mensagens do mesmo destino.
+
+Essa cadência é operacional e auditável. O fluxo não usa intervalo aleatório
+para tentar parecer humano.
+
 ## Papel humano
 
 O humano não deve operar vários CLIs manualmente no fluxo principal.

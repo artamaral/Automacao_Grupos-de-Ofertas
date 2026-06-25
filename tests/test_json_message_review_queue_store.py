@@ -49,6 +49,8 @@ def test_create_pending_review_queue() -> None:
                         destination_kind="group",
                         destination_ref="grupo-teste-destino",
                         channel_adapter="whatsapp",
+                        max_messages_per_run=2,
+                        min_interval_seconds=45,
                     ),
                 ),
             ),
@@ -67,6 +69,8 @@ def test_create_pending_review_queue() -> None:
                 destination_ref="grupo-teste-destino",
                 channel_adapter="whatsapp",
                 message_tone="direto",
+                max_messages_per_run=2,
+                min_interval_seconds=45,
             ),
         ),
     )
@@ -87,11 +91,15 @@ def test_create_pending_review_queue_expands_multiple_destinations() -> None:
                         destination_kind="group",
                         destination_ref="grupo-whatsapp",
                         channel_adapter="whatsapp",
+                        max_messages_per_run=2,
+                        min_interval_seconds=45,
                     ),
                     GroupDestination(
                         destination_kind="channel",
                         destination_ref="canal-telegram",
                         channel_adapter="telegram",
+                        max_messages_per_run=1,
+                        min_interval_seconds=60,
                     ),
                 ),
             ),
@@ -104,9 +112,13 @@ def test_create_pending_review_queue_expands_multiple_destinations() -> None:
     assert items[0].routing is not None
     assert items[0].routing.destination_ref == "grupo-whatsapp"
     assert items[0].routing.channel_adapter == "whatsapp"
+    assert items[0].routing.max_messages_per_run == 2
+    assert items[0].routing.min_interval_seconds == 45
     assert items[1].routing is not None
     assert items[1].routing.destination_ref == "canal-telegram"
     assert items[1].routing.channel_adapter == "telegram"
+    assert items[1].routing.max_messages_per_run == 1
+    assert items[1].routing.min_interval_seconds == 60
 
 
 def test_json_message_review_queue_store_saves_and_loads_items(tmp_path) -> None:

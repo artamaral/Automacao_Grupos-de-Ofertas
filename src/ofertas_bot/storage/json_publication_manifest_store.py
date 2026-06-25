@@ -33,6 +33,8 @@ class PublicationManifestItem:
     status: PublicationManifestStatus
     created_at: str
     channel_adapter: str = "whatsapp"
+    max_messages_per_run: int = 0
+    min_interval_seconds: int = 0
 
 
 class JsonPublicationManifestStore:
@@ -88,6 +90,8 @@ def create_publication_manifest(
             status="ready",
             created_at=created_at,
             channel_adapter=channel_adapter.strip().lower(),
+            max_messages_per_run=0,
+            min_interval_seconds=0,
         )
         for draft in drafts
     )
@@ -114,6 +118,8 @@ def create_publication_manifest_from_review_queue(
             item=item,
             fallback_channel_adapter=clean_fallback_channel_adapter,
         )
+        max_messages_per_run = _resolve_review_queue_max_messages_per_run(item=item)
+        min_interval_seconds = _resolve_review_queue_min_interval_seconds(item=item)
         manifest.append(
             PublicationManifestItem(
                 draft=item.draft,
@@ -121,6 +127,8 @@ def create_publication_manifest_from_review_queue(
                 status="ready",
                 created_at=created_at,
                 channel_adapter=channel_adapter,
+                max_messages_per_run=max_messages_per_run,
+                min_interval_seconds=min_interval_seconds,
             )
         )
 
@@ -144,6 +152,10 @@ def validate_publication_manifest(
             issues.append(f"item {index} sem data de criação")
         if not item.channel_adapter.strip():
             issues.append(f"item {index} sem canal")
+        if item.max_messages_per_run < 0:
+            issues.append(f"item {index} com limite de mensagens invalido")
+        if item.min_interval_seconds < 0:
+            issues.append(f"item {index} com intervalo invalido")
         if not item.draft.text.strip():
             issues.append(f"item {index} sem mensagem")
         if not item.draft.offer.url.strip():
@@ -161,6 +173,8 @@ def publication_manifest_item_to_json(
         "status": item.status,
         "created_at": item.created_at,
         "channel_adapter": item.channel_adapter,
+        "max_messages_per_run": item.max_messages_per_run,
+        "min_interval_seconds": item.min_interval_seconds,
     }
 
 
@@ -181,6 +195,8 @@ def publication_manifest_item_from_json(data: object) -> PublicationManifestItem
             status=status,
             created_at=str(data["created_at"]),
             channel_adapter=str(data.get("channel_adapter", "whatsapp")).strip().lower(),
+            max_messages_per_run=int(data.get("max_messages_per_run", 0)),
+            min_interval_seconds=int(data.get("min_interval_seconds", 0)),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved publication manifest item is invalid"
@@ -220,3 +236,21 @@ def _resolve_review_queue_channel_adapter(
         return fallback_channel_adapter
     msg = "Publication manifest channel adapter is required for approved review queue items"
     raise PublicationManifestStoreError(msg)
+
+
+def _resolve_review_queue_max_messages_per_run(
+    *,
+    item: MessageReviewQueueItem,
+) -> int:
+    if item.routing is None:
+        return 0
+    return item.routing.max_messages_per_run
+
+
+def _resolve_review_queue_min_interval_seconds(
+    *,
+    item: MessageReviewQueueItem,
+) -> int:
+    if item.routing is None:
+        return 0
+    return item.routing.min_interval_seconds
