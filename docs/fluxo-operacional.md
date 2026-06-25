@@ -7,7 +7,7 @@ Este projeto deve ser operado por automação, agendador ou orquestrador. O obje
 Use o orquestrador local:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --niche maquiagem --marketplace mock --target grupo-maquiagem
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --profile beleza
 ```
 
 Fluxo recomendado para operação recorrente:
@@ -41,7 +41,7 @@ Após a aprovação/rejeição da fila por um processo humano ou interface exter
 Se o pacote foi instalado na venv, os atalhos equivalentes são:
 
 ```powershell
-ofertas-local-flow --stage prepare --niche maquiagem --marketplace mock --target grupo-maquiagem
+ofertas-local-flow --stage prepare --profile beleza
 ofertas-local-flow --stage finalize
 ```
 
@@ -54,6 +54,8 @@ O fluxo usa `.data` por padrão:
 .data/messages.json
 .data/messages.txt
 .data/review_queue.json
+.data/review_plan.json
+.data/review_plan.txt
 .data/approved_messages.json
 .data/approved_messages.txt
 .data/publication_manifest.json
@@ -70,6 +72,7 @@ A etapa `prepare`:
 - valida compliance;
 - salva artefatos locais;
 - cria fila de revisão pendente já roteada pelo catálogo de grupos quando houver correspondência;
+- gera `review_plan.json` e `review_plan.txt` com grupos elegíveis, bloqueios e mensagens previstas por grupo;
 - não envia nada;
 - não chama publicação real.
 
