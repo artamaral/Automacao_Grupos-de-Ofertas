@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import re
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -60,16 +62,17 @@ class ShopeeGraphqlOfferMapper:
         self._mapper = OfferMapper()
 
     def map_node(self, node: dict[str, Any], niche: str) -> Offer:
+        title = _optional_str(node.get("offerName")) or _optional_str(node.get("shopName")) or ""
         payload = ExternalOfferPayload(
             marketplace=self.marketplace,
-            title=str(node.get("offerName", "")),
+            title=title,
             url=str(node.get("offerLink", "")),
             image_url=_optional_str(node.get("imageUrl")),
             price=0,
             old_price=None,
             commission_rate=_optional_float(node.get("commissionRate")) or 0,
             sales_count=0,
-            rating=None,
+            rating=_optional_float(node.get("ratingStar")),
             niche=niche,
             is_prime_or_free_shipping=False,
             allow_unknown_price=True,
@@ -111,6 +114,8 @@ class ShopeeGraphqlSigner:
 class ShopeeOfferListGraphqlRequestBuilder:
     signer: ShopeeGraphqlSigner
     graphql_url: str = SHOPEE_GRAPHQL_URL
+    query: str = SHOPEE_OFFER_LIST_QUERY
+    operation_name: str = SHOPEE_OFFER_LIST_OPERATION
 
     def build(
         self,
@@ -125,8 +130,8 @@ class ShopeeOfferListGraphqlRequestBuilder:
             graphql_url=self.graphql_url,
             signer=self.signer,
             timestamp=timestamp,
-            query=SHOPEE_OFFER_LIST_QUERY,
-            operation_name=SHOPEE_OFFER_LIST_OPERATION,
+            query=self.query,
+            operation_name=self.operation_name,
             variables={
                 "keyword": keyword,
                 "sortType": sort_type,
@@ -160,6 +165,7 @@ class ShopeeGraphqlGateway:
     offer_list_builder: ShopeeOfferListGraphqlRequestBuilder
     short_link_builder: ShopeeShortLinkGraphqlRequestBuilder
     mapper: ShopeeGraphqlOfferMapper
+    offer_list_root_field: str = "shopeeOfferV2"
     http_client: ProviderHttpClient = field(default_factory=ProviderHttpClient)
     transport: HttpTransport | None = None
     retry_policy: RetryPolicy | None = None
@@ -259,12 +265,15 @@ class ShopeeGraphqlGateway:
                 sort_type=sort_type,
             )
             page_offers = self.normalize_offer_list_response(
-                response_data=response_data,
-                niche=niche,
-                limit=request_limit,
-            )
+            response_data=response_data,
+            niche=niche,
+            limit=request_limit,
+        )
             offers.extend(page_offers)
-            if not page_offers or not _has_next_page(response_data):
+            if not page_offers or not _has_next_page(
+                response_data,
+                root_field=self.offer_list_root_field,
+            ):
                 break
             page += 1
 
@@ -313,12 +322,19 @@ class ShopeeGraphqlGateway:
         limit: int,
     ) -> list[Offer]:
         validate_positive_limit(limit)
-        connection = extract_shopee_offer_connection(response_data)
+        connection = extract_shopee_offer_connection(
+            response_data,
+            root_field=self.offer_list_root_field,
+        )
         nodes = connection["nodes"]
         return [self.mapper.map_node(node=node, niche=niche) for node in nodes[:limit]]
 
 
-def extract_shopee_offer_connection(response_data: dict[str, Any]) -> dict[str, Any]:
+def extract_shopee_offer_connection(
+    response_data: dict[str, Any],
+    *,
+    root_field: str = "shopeeOfferV2",
+) -> dict[str, Any]:
     raise_if_graphql_errors(response_data)
 
     data = response_data.get("data")
@@ -326,22 +342,31 @@ def extract_shopee_offer_connection(response_data: dict[str, Any]) -> dict[str, 
         msg = "Shopee GraphQL response field 'data' must be an object"
         raise ShopeeGraphqlPayloadError(msg)
 
-    connection = data.get("shopeeOfferV2")
+    connection = data.get(root_field)
     if not isinstance(connection, dict):
-        msg = "Shopee GraphQL response field 'data.shopeeOfferV2' must be an object"
+        msg = f"Shopee GraphQL response field 'data.{root_field}' must be an object"
         raise ShopeeGraphqlPayloadError(msg)
 
     nodes = connection.get("nodes")
     if not isinstance(nodes, list):
-        msg = "Shopee GraphQL response field 'data.shopeeOfferV2.nodes' must be a list"
+        msg = f"Shopee GraphQL response field 'data.{root_field}.nodes' must be a list"
         raise ShopeeGraphqlPayloadError(msg)
 
     page_info = connection.get("pageInfo")
     if not isinstance(page_info, dict):
-        msg = "Shopee GraphQL response field 'data.shopeeOfferV2.pageInfo' must be an object"
+        msg = f"Shopee GraphQL response field 'data.{root_field}.pageInfo' must be an object"
         raise ShopeeGraphqlPayloadError(msg)
 
     return connection
+
+def load_shopee_offer_list_query(query_file: str | None) -> str:
+    if not query_file:
+        return SHOPEE_OFFER_LIST_QUERY
+
+    query = Path(query_file).read_text(encoding="utf-8").strip()
+    if not query:
+        return SHOPEE_OFFER_LIST_QUERY
+    return query
 
 
 def extract_shopee_short_link(response_data: dict[str, Any]) -> str:
@@ -402,10 +427,11 @@ def _build_graphql_request(
     operation_name: str,
     variables: dict[str, Any],
 ) -> HttpRequest:
+    filtered_variables = _filter_declared_graphql_variables(query=query, variables=variables)
     body = {
         "query": query,
         "operationName": operation_name,
-        "variables": variables,
+        "variables": filtered_variables,
     }
     payload = encode_graphql_payload(body)
     authorization = signer.sign_payload(payload=payload, timestamp=timestamp)
@@ -424,8 +450,15 @@ def encode_graphql_payload(body: dict[str, Any]) -> str:
     return encode_json_body(body).decode("utf-8")
 
 
-def _has_next_page(response_data: dict[str, Any]) -> bool:
-    connection = extract_shopee_offer_connection(response_data)
+def _filter_declared_graphql_variables(*, query: str, variables: dict[str, Any]) -> dict[str, Any]:
+    declared_names = set(re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)\s*:", query))
+    if not declared_names:
+        return {}
+    return {key: value for key, value in variables.items() if key in declared_names}
+
+
+def _has_next_page(response_data: dict[str, Any], *, root_field: str) -> bool:
+    connection = extract_shopee_offer_connection(response_data, root_field=root_field)
     return connection["pageInfo"].get("hasNextPage") is True
 
 

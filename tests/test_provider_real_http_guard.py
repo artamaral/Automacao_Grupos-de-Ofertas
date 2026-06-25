@@ -58,20 +58,18 @@ def test_shopee_provider_blocks_non_numeric_partner_id(monkeypatch) -> None:
         provider.validate_real_http_ready()
 
 
-def test_shopee_provider_blocks_out_of_range_partner_id(monkeypatch) -> None:
+def test_shopee_provider_allows_large_numeric_partner_id(monkeypatch) -> None:
     monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://api.shopee.test/graphql")
     provider = ShopeeProvider(settings=make_shopee_settings(shopee_partner_id="4294967296"))
 
-    with pytest.raises(RealHttpValidationError, match="partner id is out of range"):
-        provider.validate_real_http_ready()
+    provider.validate_real_http_ready()
 
 
-def test_shopee_provider_blocks_missing_tracking_id(monkeypatch) -> None:
+def test_shopee_provider_allows_missing_tracking_id(monkeypatch) -> None:
     monkeypatch.setenv("SHOPEE_GRAPHQL_URL", "https://api.shopee.test/graphql")
     provider = ShopeeProvider(settings=make_shopee_settings(shopee_tracking_id=""))
 
-    with pytest.raises(RealHttpValidationError, match="tracking id"):
-        provider.validate_real_http_ready()
+    provider.validate_real_http_ready()
 
 
 def test_amazon_provider_blocks_real_http_with_placeholder_base_url(monkeypatch) -> None:

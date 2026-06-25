@@ -3,6 +3,7 @@ import pytest
 from ofertas_bot.providers.shopee_graphql import (
     SHOPEE_GENERATE_SHORT_LINK_OPERATION,
     SHOPEE_OFFER_LIST_OPERATION,
+    ShopeeGraphqlOfferMapper,
     ShopeeGraphqlAuthorization,
     ShopeeGraphqlPayloadError,
     ShopeeGraphqlSigner,
@@ -10,6 +11,7 @@ from ofertas_bot.providers.shopee_graphql import (
     ShopeeShortLinkGraphqlRequestBuilder,
     encode_graphql_payload,
     extract_shopee_offer_connection,
+    load_shopee_offer_list_query,
     extract_shopee_short_link,
     raise_if_graphql_errors,
 )
@@ -90,6 +92,34 @@ def test_shopee_offer_list_builder_uses_post_json_graphql_request() -> None:
     }
 
 
+def test_shopee_offer_list_builder_allows_local_query_override(tmp_path, monkeypatch) -> None:
+    query_file = tmp_path / "offer_list.graphql"
+    query_file.write_text(
+        "query CustomOfferList($keyword: String, $limit: Int) { customOfferList(keyword: $keyword, limit: $limit) { nodes { offerName } pageInfo { page limit hasNextPage } } }",
+        encoding="utf-8",
+    )
+
+    request = ShopeeOfferListGraphqlRequestBuilder(
+        signer=make_signer(),
+        query=load_shopee_offer_list_query(str(query_file)),
+        operation_name="CustomOfferList",
+    ).build(
+        keyword="roupa",
+        sort_type=2,
+        page=1,
+        limit=10,
+        timestamp=1577836800,
+    )
+
+    assert request.body is not None
+    assert request.body["operationName"] == "CustomOfferList"
+    assert "customOfferList" in request.body["query"]
+    assert request.body["variables"] == {
+        "keyword": "roupa",
+        "limit": 10,
+    }
+
+
 def test_shopee_short_link_builder_uses_post_json_graphql_request() -> None:
     request = ShopeeShortLinkGraphqlRequestBuilder(
         signer=make_signer(),
@@ -139,6 +169,37 @@ def test_extract_shopee_offer_connection_accepts_graphql_response() -> None:
 
     assert connection["nodes"][0]["offerName"] == "Oferta Shopee"
     assert connection["pageInfo"]["hasNextPage"] is True
+
+
+def test_shopee_graphql_offer_mapper_uses_shop_name_when_offer_name_is_missing() -> None:
+    offer = ShopeeGraphqlOfferMapper().map_node(
+        node={
+            "commissionRate": "0.0123",
+            "imageUrl": "https://example.com/image.jpg",
+            "offerLink": "https://s.shopee.com.br/abc",
+            "shopName": "Loja Mae e Bebe",
+            "ratingStar": "4.9",
+        },
+        niche="mae bebe",
+    )
+
+    assert offer.title == "Loja Mae e Bebe"
+    assert offer.rating == 4.9
+
+
+def test_extract_shopee_offer_connection_allows_custom_root_field(monkeypatch) -> None:
+    response_data = {
+        "data": {
+            "customOfferList": {
+                "nodes": [{"offerName": "Oferta Custom"}],
+                "pageInfo": {"page": 1, "limit": 10, "hasNextPage": False},
+            }
+        }
+    }
+
+    connection = extract_shopee_offer_connection(response_data, root_field="customOfferList")
+
+    assert connection["nodes"][0]["offerName"] == "Oferta Custom"
 
 
 def test_extract_shopee_short_link_accepts_graphql_response() -> None:

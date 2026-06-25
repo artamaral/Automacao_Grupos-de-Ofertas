@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     shopee_partner_id: str | None = None
     shopee_secret_key: str | None = None
     shopee_tracking_id: str | None = None
+    shopee_offer_list_operation: str = "ShopeeOfferList"
+    shopee_offer_list_root_field: str = "shopeeOfferV2"
+    shopee_offer_list_query_file: str | None = None
 
     amazon_access_key: str | None = None
     amazon_secret_key: str | None = None

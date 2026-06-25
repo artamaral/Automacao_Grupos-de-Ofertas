@@ -20,12 +20,11 @@ from ofertas_bot.providers.shopee_graphql import (
     ShopeeGraphqlSigner,
     ShopeeOfferListGraphqlRequestBuilder,
     ShopeeShortLinkGraphqlRequestBuilder,
+    load_shopee_offer_list_query,
 )
 from ofertas_bot.providers.shopee_mapper import ShopeeOfferMapper
 from ofertas_bot.providers.transport import UrllibHttpTransport
 from ofertas_bot.settings import Settings
-
-MAX_SHOPEE_PARTNER_ID = 4_294_967_295
 
 
 class ShopeeConfigurationError(RuntimeError):
@@ -93,7 +92,6 @@ class ShopeeProvider:
                 base_url=graphql_urls.shopee,
                 required_config={
                     "Shopee app id": self.settings.shopee_partner_id,
-                    "Shopee tracking id": self.settings.shopee_tracking_id,
                     "Shopee API credential": self.settings.shopee_secret_key,
                 },
             )
@@ -134,9 +132,12 @@ class ShopeeProvider:
             api_secret=self.settings.shopee_secret_key or "",
         )
         graphql_url = get_provider_graphql_urls().shopee
+        offer_list_query = load_shopee_offer_list_query(self.settings.shopee_offer_list_query_file)
         offer_list_builder = ShopeeOfferListGraphqlRequestBuilder(
             signer=signer,
             graphql_url=graphql_url,
+            query=offer_list_query,
+            operation_name=self.settings.shopee_offer_list_operation,
         )
         short_link_builder = ShopeeShortLinkGraphqlRequestBuilder(
             signer=signer,
@@ -147,6 +148,7 @@ class ShopeeProvider:
             offer_list_builder=offer_list_builder,
             short_link_builder=short_link_builder,
             mapper=ShopeeGraphqlOfferMapper(marketplace=Marketplace.SHOPEE),
+            offer_list_root_field=self.settings.shopee_offer_list_root_field,
             transport=transport,
         )
 
@@ -170,9 +172,4 @@ class ShopeeProvider:
         partner_id = self.settings.shopee_partner_id or ""
         if not partner_id.isdecimal():
             msg = "Real HTTP for Shopee is blocked: Shopee partner id must be numeric"
-            raise RealHttpValidationError(msg)
-
-        numeric_partner_id = int(partner_id)
-        if numeric_partner_id > MAX_SHOPEE_PARTNER_ID:
-            msg = "Real HTTP for Shopee is blocked: Shopee partner id is out of range"
             raise RealHttpValidationError(msg)
