@@ -119,7 +119,7 @@ def test_collector_uses_descobridor_geral_for_shopee_profile() -> None:
         niche="mae e bebe",
         marketplace=Marketplace.SHOPEE,
         discovery_method="descobridor-geral",
-        shopee_offer_names=("Mom & Baby",),
+        shopee_offer_keyword="Mom & Baby",
     )
 
     batch = collector.collect_from_profile_with_inspection(profile=profile, limit=1)

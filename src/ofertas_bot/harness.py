@@ -310,10 +310,10 @@ def run(argv: Sequence[str] | None = None) -> int:
         )
         if profile.discovery_method:
             print(f"INFO | discovery_method={profile.discovery_method}")
-        if profile.shopee_offer_names:
+        if profile.shopee_offer_keyword:
             print(
-                "INFO | shopee_offer_names="
-                + ",".join(profile.shopee_offer_names)
+                "INFO | shopee_offer_keyword="
+                + profile.shopee_offer_keyword
             )
         if profile.shopee_product_match_ids:
             print(
@@ -759,6 +759,7 @@ def _build_collection_inspection_payload(
         "profile_slug": profile.slug if profile is not None else None,
         "subgroup_slug": subgroup_slug,
         "discovery_method": profile.discovery_method if profile is not None else None,
+        "shopee_offer_keyword": profile.shopee_offer_keyword if profile is not None else None,
         "shopee_offer_names": list(profile.shopee_offer_names) if profile is not None else [],
         "shopee_category_urls": list(profile.shopee_category_urls) if profile is not None else [],
         "shopee_product_match_ids": list(profile.shopee_product_match_ids) if profile is not None else [],

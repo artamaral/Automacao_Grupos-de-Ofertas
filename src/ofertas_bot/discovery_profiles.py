@@ -53,6 +53,7 @@ class DiscoveryProfile:
     categories: tuple[str, ...] = ()
     include_terms: tuple[str, ...] = ()
     exclude_terms: tuple[str, ...] = ()
+    shopee_offer_keyword: str | None = None
     shopee_offer_names: tuple[str, ...] = ()
     shopee_category_urls: tuple[str, ...] = ()
     shopee_product_match_ids: tuple[int, ...] = ()
@@ -86,7 +87,12 @@ class DiscoveryProfile:
         object.__setattr__(self, "categories", _normalize_string_list(self.categories))
         object.__setattr__(self, "include_terms", _normalize_string_list(self.include_terms))
         object.__setattr__(self, "exclude_terms", _normalize_string_list(self.exclude_terms))
-        object.__setattr__(self, "shopee_offer_names", _normalize_string_list(self.shopee_offer_names))
+        normalized_shopee_offer_keyword = _normalize_optional_text(self.shopee_offer_keyword)
+        normalized_shopee_offer_names = _normalize_preserved_string_list(self.shopee_offer_names)
+        if normalized_shopee_offer_keyword is None and normalized_shopee_offer_names:
+            normalized_shopee_offer_keyword = normalized_shopee_offer_names[0]
+        object.__setattr__(self, "shopee_offer_keyword", normalized_shopee_offer_keyword)
+        object.__setattr__(self, "shopee_offer_names", normalized_shopee_offer_names)
         object.__setattr__(self, "shopee_category_urls", _normalize_preserved_string_list(self.shopee_category_urls))
         object.__setattr__(self, "shopee_product_match_ids", _deduplicate_ints(self.shopee_product_match_ids))
         object.__setattr__(self, "shopee_product_category_ids", _deduplicate_ints(self.shopee_product_category_ids))
@@ -160,6 +166,13 @@ class DiscoveryProfile:
         normalized = method.strip().lower()
         return self.discovery_method == normalized if normalized else False
 
+    def shopee_offer_search_terms(self) -> tuple[str, ...]:
+        if self.shopee_offer_keyword:
+            return (self.shopee_offer_keyword,)
+        if self.shopee_offer_names:
+            return self.shopee_offer_names
+        return ()
+
 
 @dataclass(frozen=True)
 class DiscoveryProfileCatalog:
@@ -226,6 +239,7 @@ def _build_profile(item: object) -> DiscoveryProfile:
         categories=_string_tuple(item.get("categories")),
         include_terms=_string_tuple(item.get("include_terms")),
         exclude_terms=_string_tuple(item.get("exclude_terms")),
+        shopee_offer_keyword=_string_or_none(item.get("shopee_offer_keyword")),
         shopee_offer_names=_string_tuple(item.get("shopee_offer_names")),
         shopee_category_urls=_string_tuple(item.get("shopee_category_urls")),
         shopee_product_match_ids=_int_tuple(item.get("shopee_product_match_ids")),

@@ -95,7 +95,7 @@ class CollectorAgent:
         profile: DiscoveryProfile,
         limit: int,
     ) -> CollectedOfferBatch:
-        offer_names = profile.shopee_offer_names or (profile.search_term(),)
+        offer_names = profile.shopee_offer_search_terms() or (profile.search_term(),)
         offer_searches: list[dict[str, Any]] = []
         discovered_match_ids: list[int] = []
 

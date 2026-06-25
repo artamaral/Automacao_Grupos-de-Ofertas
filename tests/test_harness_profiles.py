@@ -23,7 +23,7 @@ creators = []
 categories = ["beleza"]
 include_terms = []
 exclude_terms = []
-shopee_offer_names = ["Beauty Deals"]
+shopee_offer_keyword = "Beauty Deals"
 shopee_product_match_ids = [123]
 subgroups = [
   { slug = "labios", label = "Labios", query = "batom gloss", categories = ["Maquiagem"] },
@@ -52,7 +52,7 @@ subgroups = [
     assert "INFO | Perfil de descoberta=maquiagem-promocoes" in captured.out
     assert "target=grupo-maquiagem" in captured.out
     assert "INFO | discovery_method=descobridor-geral" in captured.out
-    assert "INFO | shopee_offer_names=beauty deals" in captured.out
+    assert "INFO | shopee_offer_keyword=Beauty Deals" in captured.out
 
 
 def test_harness_collects_from_profile_subgroup(tmp_path: Path, capsys) -> None:
@@ -119,10 +119,8 @@ def test_harness_saves_collection_inspection_json(tmp_path: Path) -> None:
                 'target = "grupo-beleza"',
                 'query = "beleza skincare maquiagem"',
                 'discovery_method = "descobridor-geral"',
-                'shopee_offer_names = ["Beauty Deals"]',
-                'shopee_category_urls = ["https://shopee.com.br/Beauty-cat.1100"]',
+                'shopee_offer_keyword = "Beauty Deals"',
                 'shopee_product_match_ids = [123]',
-                'shopee_product_category_ids = [1100]',
             ]
         ),
         encoding="utf-8",
@@ -146,10 +144,10 @@ def test_harness_saves_collection_inspection_json(tmp_path: Path) -> None:
     assert payload["metadata"]["search_term"] == "beleza skincare maquiagem"
     assert payload["metadata"]["collected_offer_count"] == 2
     assert payload["metadata"]["discovery_method"] == "descobridor-geral"
-    assert payload["metadata"]["shopee_offer_names"] == ["beauty deals"]
-    assert payload["metadata"]["shopee_category_urls"] == ["https://shopee.com.br/Beauty-cat.1100"]
+    assert payload["metadata"]["shopee_offer_keyword"] == "Beauty Deals"
+    assert payload["metadata"]["shopee_offer_names"] == []
     assert payload["metadata"]["shopee_product_match_ids"] == [123]
-    assert payload["metadata"]["shopee_product_category_ids"] == [1100]
+    assert payload["metadata"]["shopee_product_category_ids"] == []
     assert payload["provider_snapshot"]["supports_raw_response"] is True
     assert payload["provider_snapshot"]["offer_node_count"] == 2
     assert payload["provider_snapshot"]["page_info"]["hasNextPage"] is False

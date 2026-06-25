@@ -34,21 +34,21 @@ O objetivo do metodo e simplificar a vida do operador.
 Em vez de o usuario lembrar manualmente quais queries chamar e em que ordem, o
 profile do nicho passa a declarar:
 
-- quais offer names conhecidos representam o nicho na Shopee;
-- quais URLs publicas de categoria ajudam a orientar a curadoria;
-- quais ids internos ja foram descobertos e validados;
+- qual termo exato deve entrar em `keyword` na `shopeeOfferV2`;
+- opcionalmente, quais ids internos ja foram descobertos e validados;
 - qual metodo de descoberta aquele nicho deve usar.
 
 ## Sequencia validada ate aqui
 
 ### Etapa 1 - descoberta da campanha/categoria
 
-Usar `shopeeOfferV2` com um `offer name` conhecido do nicho.
+Usar `shopeeOfferV2` com o termo exato configurado para o parametro
+`keyword`.
 
 Exemplo validado:
 
 - nicho: `mae e bebe`
-- offer name: `Mom & Baby`
+- keyword: `Mom & Baby`
 
 Essa etapa tende a devolver:
 
@@ -115,10 +115,8 @@ Campos usados por este metodo:
 | Campo | Uso |
 | --- | --- |
 | `discovery_method` | Nome do metodo operacional do nicho. |
-| `shopee_offer_names` | Offer names conhecidos para a etapa `shopeeOfferV2`. |
-| `shopee_category_urls` | URLs publicas de apoio para curadoria e mapeamento. |
-| `shopee_product_match_ids` | Match ids internos ja validados para `productOfferV2`. |
-| `shopee_product_category_ids` | Category ids publicos/operacionais conhecidos. |
+| `shopee_offer_keyword` | Campo principal. Valor exato enviado como `keyword` para `shopeeOfferV2`. |
+| `shopee_product_match_ids` | Opcional. Fallback manual caso o match id ja seja conhecido. |
 
 Exemplo resumido:
 
@@ -129,11 +127,15 @@ name = "Mae e Bebe"
 niche = "mae e bebe"
 marketplace = "mock"
 discovery_method = "descobridor-geral"
-shopee_offer_names = ["Mom & Baby"]
-shopee_category_urls = ["https://shopee.com.br/Baby-Kids-Fashion-cat.11059973"]
-shopee_product_match_ids = [100632]
-shopee_product_category_ids = [11059973]
+shopee_offer_keyword = "Mom & Baby"
 ```
+
+Regra pratica:
+
+- para um teste novo, tente primeiro apenas `shopee_offer_keyword`;
+- so adicione `shopee_product_match_ids` se precisar de override ou fallback;
+- `shopee_category_urls` e `shopee_product_category_ids` nao fazem parte do
+  caminho minimo do metodo.
 
 ## Por que esse nome
 

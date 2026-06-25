@@ -27,10 +27,8 @@ creators = ["creator a"]
 categories = ["beleza"]
 include_terms = ["batom"]
 exclude_terms = ["fantasia"]
-shopee_offer_names = ["Beauty Deals"]
-shopee_category_urls = ["https://shopee.com.br/Beauty-cat.1100"]
+shopee_offer_keyword = "Beauty Deals"
 shopee_product_match_ids = [123, 123]
-shopee_product_category_ids = [1100]
 subgroups = [
   { slug = "labios", label = "Labios", query = "batom gloss", categories = ["Maquiagem"] },
 ]
@@ -49,10 +47,9 @@ subgroups = [
     assert profile.search_term() == "batom maybelline"
     assert profile.discovery_method == "descobridor-geral"
     assert profile.brands == ("maybelline",)
-    assert profile.shopee_offer_names == ("beauty deals",)
-    assert profile.shopee_category_urls == ("https://shopee.com.br/Beauty-cat.1100",)
+    assert profile.shopee_offer_keyword == "Beauty Deals"
+    assert profile.shopee_offer_search_terms() == ("Beauty Deals",)
     assert profile.shopee_product_match_ids == (123,)
-    assert profile.shopee_product_category_ids == (1100,)
     assert profile.get_subgroup("labios") is not None
     assert profile.get_subgroup("labios").query == "batom gloss"
 
