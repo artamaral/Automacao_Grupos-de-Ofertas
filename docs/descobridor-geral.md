@@ -6,8 +6,9 @@ na Shopee a partir de um nicho configurado.
 Ele nasce da validacao pratica feita contra a API real da Shopee e deve ser
 lido como um metodo de descoberta em duas etapas:
 
-1. encontrar a campanha, vitrine ou categoria afiliada do nicho;
-2. usar o identificador retornado para buscar os itens associados.
+1. chamar `shopeeOfferV2(keyword: ...)`;
+2. usar `categoryId` retornado por `shopeeOfferV2` em
+   `productOfferV2(listType: 4, matchId: categoryId, ...)`.
 
 ## Escopo atual
 
@@ -40,7 +41,7 @@ profile do nicho passa a declarar:
 
 ## Sequencia validada ate aqui
 
-### Etapa 1 - descoberta da campanha/categoria
+### Etapa 1 - `shopeeOfferV2`
 
 Usar `shopeeOfferV2` com o termo exato configurado para o parametro
 `keyword`.
@@ -50,7 +51,7 @@ Exemplo validado:
 - nicho: `mae e bebe`
 - keyword: `Mom & Baby`
 
-Essa etapa tende a devolver:
+Campos relevantes observados nessa etapa:
 
 - `offerName`
 - `offerType`
@@ -61,10 +62,10 @@ Essa etapa tende a devolver:
 Leitura operacional:
 
 - `shopeeOfferV2` nao e uma boa busca aberta por nicho;
-- ela funciona melhor quando recebe o nome da oferta/campanha conhecido;
-- o resultado serve como ponte para a etapa seguinte.
+- ela funciona melhor quando recebe um valor exato no parametro `keyword`;
+- o resultado serve como ponte para a etapa seguinte via `categoryId`.
 
-### Etapa 2 - descoberta dos itens
+### Etapa 2 - `productOfferV2`
 
 Usar `productOfferV2` com:
 
@@ -111,7 +112,8 @@ Nas validacoes reais feitas com o caminho de categoria do `descobridor-geral`
 - `500` itens observados no total;
 - parada por `hasNextPage = false`.
 
-Isso deve ser tratado como teto observado desses cenarios de categoria, e nao
+Isso deve ser tratado como teto observado desse uso de
+`productOfferV2(listType: 4, matchId: categoryId)`, e nao
 como limite global da `productOfferV2`.
 
 Em validacao real separada, usando:
@@ -129,7 +131,7 @@ a mesma `productOfferV2` retornou:
 
 Portanto, a leitura correta passa a ser:
 
-- `500` e um teto observado no caminho por categoria ja testado;
+- `500` e um teto observado no uso de `productOfferV2(listType: 4, matchId: categoryId)` ja testado;
 - nao existe evidencia atual de teto global em `500` para a query inteira;
 - o teto teorico operacional continua sendo `2500` quando a rota permitir.
 
@@ -145,8 +147,8 @@ exata entre chamadas.
 Isso significa:
 
 - duas execucoes podem retornar itens diferentes;
-- a categoria comercial da Shopee pode misturar itens muito aderentes com
-  alguns ruidosos;
+- o resultado de `productOfferV2(listType: 4, matchId: categoryId)` pode
+  misturar itens muito aderentes com alguns ruidosos;
 - o resultado precisa de filtro posterior por relevancia do nicho.
 
 Portanto, a avaliacao correta do metodo deve olhar:
@@ -169,9 +171,9 @@ Campos usados por este metodo:
 
 | Campo | Uso |
 | --- | --- |
-| `discovery_method` | Nome do metodo operacional do nicho. |
+| `discovery_method` | Nome interno do metodo operacional do projeto. Nao e nome de campo da API. |
 | `shopee_offer_keyword` | Campo principal. Valor exato enviado como `keyword` para `shopeeOfferV2`. |
-| `shopee_product_match_ids` | Opcional. Fallback manual caso o match id ja seja conhecido. |
+| `shopee_product_match_ids` | Opcional. Fallback manual caso `matchId` ja seja conhecido. |
 
 Exemplo resumido:
 
@@ -191,6 +193,18 @@ Regra pratica:
 - so adicione `shopee_product_match_ids` se precisar de override ou fallback;
 - `shopee_category_urls` e `shopee_product_category_ids` nao fazem parte do
   caminho minimo do metodo.
+
+## Regra de nomenclatura
+
+Nesta documentacao:
+
+- nomes de query devem aparecer exatamente como na API: `shopeeOfferV2`,
+  `shopOfferV2`, `productOfferV2`, `listItemFeeds`, `getItemFeedData`;
+- nomes de parametro devem aparecer exatamente como na API: `keyword`,
+  `listType`, `matchId`, `sortType`, `page`, `limit`, `itemId`, `shopId`,
+  `productCatId`, `isAMSOffer`, `isKeySeller`;
+- nomes internos do projeto devem ser tratados explicitamente como nomes
+  internos, por exemplo `descobridor-geral`.
 
 ## Por que esse nome
 

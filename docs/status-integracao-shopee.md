@@ -210,8 +210,8 @@ productOfferV2
 Objetivo:
 
 - buscar itens/ofertas por nome de produto;
-- navegar listas por categoria, loja ou colecao;
-- ordenar por relevancia, vendidos, preco ou comissao.
+- navegar listas por `listType` e `matchId`;
+- ordenar por `sortType`.
 
 ParÃ¢metros:
 
@@ -282,6 +282,8 @@ Decisao operacional atual:
 - o builder do projeto passa a solicitar todos esses campos na query;
 - CSVs e artefatos de inspecao dessa query nao devem reduzir o contrato sem
   motivo explicito.
+- nomes internos de cenarios, perfis ou metodos do projeto nao devem substituir
+  os nomes da API na documentacao tecnica.
 
 ## Contrato adicional documentado: `listItemFeeds`
 

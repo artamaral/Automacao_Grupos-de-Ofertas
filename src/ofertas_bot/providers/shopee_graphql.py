@@ -55,22 +55,35 @@ mutation GenerateShortLink($originUrl: String, $subIds: [String]) {
 
 def build_product_offer_query(
     *,
-    list_type: int,
+    list_type: int | None,
     match_id: int | None,
     page: int,
     limit: int,
+    keyword: str | None = None,
     sort_type: int | None = None,
+    item_id: int | None = None,
+    shop_id: int | None = None,
+    product_cat_id: int | None = None,
+    is_ams_offer: bool | None = None,
     is_key_seller: bool | None = None,
 ) -> str:
-    args = [
-        f"listType: {list_type}",
-        f"page: {page}",
-        f"limit: {limit}",
-    ]
+    args = [f"page: {page}", f"limit: {limit}"]
+    if list_type is not None:
+        args.insert(0, f"listType: {list_type}")
     if match_id is not None:
-        args.insert(1, f"matchId: {match_id}")
+        args.append(f"matchId: {match_id}")
+    if keyword is not None:
+        args.append(f'keyword: "{_escape_graphql_string(keyword)}"')
     if sort_type is not None:
         args.append(f"sortType: {sort_type}")
+    if item_id is not None:
+        args.append(f"itemId: {item_id}")
+    if shop_id is not None:
+        args.append(f"shopId: {shop_id}")
+    if product_cat_id is not None:
+        args.append(f"productCatId: {product_cat_id}")
+    if is_ams_offer is not None:
+        args.append(f"isAMSOffer: {'true' if is_ams_offer else 'false'}")
     if is_key_seller is not None:
         args.append(f"isKeySeller: {'true' if is_key_seller else 'false'}")
     query_args = ", ".join(args)
@@ -587,3 +600,7 @@ def _optional_str(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _escape_graphql_string(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"')

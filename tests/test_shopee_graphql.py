@@ -9,6 +9,7 @@ from ofertas_bot.providers.shopee_graphql import (
     ShopeeGraphqlSigner,
     ShopeeOfferListGraphqlRequestBuilder,
     ShopeeShortLinkGraphqlRequestBuilder,
+    build_product_offer_query,
     encode_graphql_payload,
     extract_shopee_offer_connection,
     load_shopee_offer_list_query,
@@ -231,3 +232,42 @@ def test_raise_if_graphql_errors_uses_error_extensions() -> None:
 
     with pytest.raises(ShopeeGraphqlPayloadError, match="code=10020"):
         raise_if_graphql_errors(response_data)
+
+
+def test_build_product_offer_query_omits_list_type_when_not_provided() -> None:
+    query = build_product_offer_query(
+        list_type=None,
+        match_id=None,
+        page=1,
+        limit=50,
+        keyword="mae e bebe",
+    )
+
+    assert "productOfferV2(page: 1, limit: 50, keyword: \"mae e bebe\")" in query
+    assert "listType:" not in query
+
+
+def test_build_product_offer_query_includes_optional_filters() -> None:
+    query = build_product_offer_query(
+        list_type=1,
+        match_id=100632,
+        page=2,
+        limit=50,
+        keyword="Mom & Baby",
+        sort_type=2,
+        item_id=123,
+        shop_id=456,
+        product_cat_id=789,
+        is_ams_offer=True,
+        is_key_seller=True,
+    )
+
+    assert "listType: 1" in query
+    assert "matchId: 100632" in query
+    assert 'keyword: "Mom & Baby"' in query
+    assert "sortType: 2" in query
+    assert "itemId: 123" in query
+    assert "shopId: 456" in query
+    assert "productCatId: 789" in query
+    assert "isAMSOffer: true" in query
+    assert "isKeySeller: true" in query

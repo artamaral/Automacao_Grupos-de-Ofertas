@@ -113,6 +113,30 @@ class ShopeeProvider:
         sort_type: int | None = None,
         is_key_seller: bool | None = None,
     ) -> dict[str, Any]:
+        return self.fetch_product_offer_raw_response(
+            limit=limit,
+            page=page,
+            list_type=list_type,
+            match_id=match_id,
+            sort_type=sort_type,
+            is_key_seller=is_key_seller,
+        )
+
+    def fetch_product_offer_raw_response(
+        self,
+        *,
+        limit: int,
+        page: int = 1,
+        list_type: int | None = None,
+        match_id: int | None = None,
+        keyword: str | None = None,
+        sort_type: int | None = None,
+        item_id: int | None = None,
+        shop_id: int | None = None,
+        product_cat_id: int | None = None,
+        is_ams_offer: bool | None = None,
+        is_key_seller: bool | None = None,
+    ) -> dict[str, Any]:
         self._validate_configuration()
         if self.settings.enable_real_http:
             self.validate_real_http_ready()
@@ -123,7 +147,12 @@ class ShopeeProvider:
                 match_id=match_id,
                 page=page,
                 limit=limit,
+                keyword=keyword,
                 sort_type=sort_type,
+                item_id=item_id,
+                shop_id=shop_id,
+                product_cat_id=product_cat_id,
+                is_ams_offer=is_ams_offer,
                 is_key_seller=is_key_seller,
             ),
             operation_name=SHOPEE_PRODUCT_OFFER_LIST_OPERATION,
