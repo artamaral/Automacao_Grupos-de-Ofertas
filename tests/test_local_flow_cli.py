@@ -141,6 +141,8 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     assert str(tmp_path / "approved_messages_by_group") in export_calls[0]
     assert "--save-dispatch-artifact-json" in dispatch_calls[0]
     assert str(tmp_path / "dispatch_artifact.json") in dispatch_calls[0]
+    assert "--adapter-kind" in dispatch_execute_calls[0]
+    assert "whatsapp" in dispatch_execute_calls[0]
     assert "--save-dispatch-report-json" in dispatch_execute_calls[0]
     assert str(tmp_path / "dispatch_report.json") in dispatch_execute_calls[0]
 

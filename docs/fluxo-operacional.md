@@ -107,6 +107,10 @@ automatizado.
 O arquivo `.data/dispatch_report.json` registra a simulação da rodada de
 disparo, por destino e por mensagem, sem qualquer envio real.
 
+No estado atual, o executor de disparo trabalha com adaptadores `dry-run` de
+canal. O fluxo local usa `whatsapp` por padrão, e os adaptadores `telegram` e
+`console` permanecem disponíveis para simulação e testes.
+
 ## Papel humano
 
 O humano não deve operar vários CLIs manualmente no fluxo principal.

@@ -8,7 +8,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ofertas_bot.agents.publisher import DryRunPublisher
+from ofertas_bot.channel_adapters import (
+    BaseDryRunChannelAdapter,
+    ChannelAdapterError,
+    build_channel_adapter,
+)
 from ofertas_bot.storage.json_message_draft_store import (
     MessageDraftStoreError,
     message_draft_from_json,
@@ -29,6 +33,12 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Caminho local para salvar o relatório de dry-run",
     )
+    parser.add_argument(
+        "--adapter-kind",
+        choices=("console", "whatsapp", "telegram"),
+        default="whatsapp",
+        help="Adaptador de canal usado na simulacao do disparo",
+    )
     return parser
 
 
@@ -37,40 +47,48 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     try:
         artifact = _load_dispatch_artifact(Path(args.dispatch_artifact_json))
-        report = execute_dispatch_artifact(artifact)
+        report = execute_dispatch_artifact(
+            artifact,
+            adapter=build_channel_adapter(args.adapter_kind),
+        )
         output_path = Path(args.save_dispatch_report_json)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(
             json.dumps(report, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-    except (OSError, ValueError, MessageDraftStoreError) as error:
+    except (OSError, ValueError, MessageDraftStoreError, ChannelAdapterError) as error:
         return _print_dispatch_execute_error(error=error)
 
     print(f"INFO | Relatório de disparo salvo em {args.save_dispatch_report_json}")
+    print(f"INFO | Adaptador: {report['adapter_kind']}")
     print(f"INFO | Destinos processados: {report['summary']['total_targets']}")
     print(f"INFO | Mensagens simuladas: {report['summary']['total_messages']}")
     print("INFO | Nenhum envio real foi executado.")
     return 0
 
 
-def execute_dispatch_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
+def execute_dispatch_artifact(
+    artifact: dict[str, Any],
+    *,
+    adapter: BaseDryRunChannelAdapter,
+) -> dict[str, Any]:
     targets = artifact.get("targets")
     if not isinstance(targets, list) or not targets:
         raise ValueError("Artefato de disparo vazio ou invalido")
 
-    publisher = DryRunPublisher()
     target_reports: list[dict[str, Any]] = []
     total_messages = 0
 
     for raw_target in targets:
-        target_report = _execute_target(publisher=publisher, raw_target=raw_target)
+        target_report = _execute_target(adapter=adapter, raw_target=raw_target)
         total_messages += target_report["message_count"]
         target_reports.append(target_report)
 
     return {
         "generated_at": _utc_now_iso(),
         "mode": "dry-run",
+        "adapter_kind": adapter.kind,
         "summary": {
             "total_targets": len(target_reports),
             "total_messages": total_messages,
@@ -83,7 +101,7 @@ def execute_dispatch_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
 
 def _execute_target(
     *,
-    publisher: DryRunPublisher,
+    adapter: BaseDryRunChannelAdapter,
     raw_target: object,
 ) -> dict[str, Any]:
     if not isinstance(raw_target, dict):
@@ -101,7 +119,7 @@ def _execute_target(
     for raw_message in raw_messages:
         message_reports.append(
             _execute_message(
-                publisher=publisher,
+                adapter=adapter,
                 target=target,
                 raw_message=raw_message,
             )
@@ -110,6 +128,7 @@ def _execute_target(
     return {
         "target": target,
         "status": "simulated",
+        "adapter_kind": adapter.kind,
         "message_count": len(message_reports),
         "sent_messages": sum(1 for item in message_reports if item["sent"]),
         "dry_run_messages": sum(1 for item in message_reports if item["dry_run"]),
@@ -119,7 +138,7 @@ def _execute_target(
 
 def _execute_message(
     *,
-    publisher: DryRunPublisher,
+    adapter: BaseDryRunChannelAdapter,
     target: str,
     raw_message: object,
 ) -> dict[str, Any]:
@@ -127,11 +146,13 @@ def _execute_message(
         raise ValueError("Mensagem do artefato deve ser um objeto")
 
     draft = message_draft_from_json(raw_message.get("draft"))
-    result = publisher.publish(draft=draft, target=target)
+    result = adapter.publish(draft=draft, target=target)
     return {
         "manifest_item_number": int(raw_message.get("manifest_item_number", 0)),
         "created_at": str(raw_message.get("created_at", "")),
         "status": str(raw_message.get("status", "")),
+        "adapter_kind": result.adapter_kind,
+        "delivery_label": result.delivery_label,
         "sent": result.sent,
         "dry_run": result.dry_run,
         "target": result.target,

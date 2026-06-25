@@ -252,6 +252,8 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
             str(paths.dispatch_artifact_json),
             "--save-dispatch-report-json",
             str(paths.dispatch_report_json),
+            "--adapter-kind",
+            "whatsapp",
         ]
     )
     if step_exit_code != 0:
