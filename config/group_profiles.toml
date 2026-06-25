@@ -3,53 +3,81 @@ slug = "beleza-ofertas"
 name = "Beleza Ofertas"
 allowed_niches = ["beleza"]
 allowed_marketplaces = ["mock", "shopee"]
-destination_kind = "group"
-destination_ref = "grupo-beleza"
-channel_adapter = "whatsapp"
 message_tone = "direto"
 allowed_content_types = ["product", "coupon", "context"]
 max_offers_per_run = 3
 min_minutes_between_posts = 120
 active = true
 
+[[profiles.destinations]]
+destination_kind = "group"
+destination_ref = "grupo-beleza"
+channel_adapter = "whatsapp"
+
+[[profiles.destinations]]
+destination_kind = "channel"
+destination_ref = "canal-beleza"
+channel_adapter = "telegram"
+
 [[profiles]]
 slug = "mae-e-bebe-ofertas"
 name = "Mae e Bebe Ofertas"
 allowed_niches = ["mae e bebe"]
 allowed_marketplaces = ["mock", "shopee"]
-destination_kind = "group"
-destination_ref = "grupo-mae-e-bebe"
-channel_adapter = "whatsapp"
 message_tone = "acolhedor"
 allowed_content_types = ["product", "coupon", "context"]
 max_offers_per_run = 3
 min_minutes_between_posts = 180
 active = true
 
+[[profiles.destinations]]
+destination_kind = "group"
+destination_ref = "grupo-mae-e-bebe"
+channel_adapter = "whatsapp"
+
+[[profiles.destinations]]
+destination_kind = "channel"
+destination_ref = "canal-mae-e-bebe"
+channel_adapter = "telegram"
+
 [[profiles]]
 slug = "auto-e-moto-ofertas"
 name = "Auto e Moto Ofertas"
 allowed_niches = ["auto e moto"]
 allowed_marketplaces = ["mock", "shopee"]
-destination_kind = "group"
-destination_ref = "grupo-auto-e-moto"
-channel_adapter = "whatsapp"
 message_tone = "pratico"
 allowed_content_types = ["product", "coupon", "context"]
 max_offers_per_run = 3
 min_minutes_between_posts = 180
 active = true
 
+[[profiles.destinations]]
+destination_kind = "group"
+destination_ref = "grupo-auto-e-moto"
+channel_adapter = "whatsapp"
+
+[[profiles.destinations]]
+destination_kind = "channel"
+destination_ref = "canal-auto-e-moto"
+channel_adapter = "telegram"
+
 [[profiles]]
 slug = "achadinhos-geral-ofertas"
 name = "Achadinhos Geral"
 allowed_niches = ["achadinhos geral", "beleza", "mae e bebe", "auto e moto"]
 allowed_marketplaces = ["mock", "shopee"]
-destination_kind = "group"
-destination_ref = "grupo-achadinhos-geral"
-channel_adapter = "whatsapp"
 message_tone = "leve"
 allowed_content_types = ["product", "coupon", "context"]
 max_offers_per_run = 5
 min_minutes_between_posts = 90
 active = true
+
+[[profiles.destinations]]
+destination_kind = "group"
+destination_ref = "grupo-achadinhos-geral"
+channel_adapter = "whatsapp"
+
+[[profiles.destinations]]
+destination_kind = "channel"
+destination_ref = "canal-achadinhos-geral"
+channel_adapter = "telegram"
