@@ -8,40 +8,49 @@ Este documento existe para impedir que uma chamada real seja feita sem revisão 
 
 ## Estado atual no código
 
-O builder atual monta o request da Shopee com:
+O fluxo principal atual da Shopee usa GraphQL.
+
+O provider monta um request:
 
 ```text
-/api/v2/product/search_item
+POST https://open-api.affiliate.shopee.com.br/graphql
 ```
 
-Esse caminho é usado para:
+Com:
 
-- montar a URL final do request;
-- compor a base de assinatura;
-- gerar o preview seguro no harness;
-- executar a coleta real controlada quando a guarda permitir.
+```text
+operationName=ShopeeOfferList
+query=shopeeOfferV2
+```
+
+A URL pode ser sobrescrita localmente por `SHOPEE_GRAPHQL_URL`, sem versionar
+segredos ou credenciais.
+
+O caminho REST `/api/v2/product/search_item` permanece documentado apenas como
+legado/provisorio e nao e o fluxo principal atual.
 
 ## Status de verificação
 
-Status atual: **provisório e pendente de confirmação manual**.
+Status atual: **GraphQL implementado e pendente de validacao com chamada real controlada**.
 
 Antes de executar qualquer chamada real, conferir no ambiente oficial da Shopee:
 
 - host/base URL correta para a conta e região;
-- caminho exato do endpoint de busca/listagem de produtos;
-- método HTTP esperado;
-- parâmetros obrigatórios;
-- formato correto da assinatura;
+- endpoint GraphQL correto;
+- metodo `POST`;
+- headers obrigatorios;
+- formato correto da assinatura GraphQL;
+- query `shopeeOfferV2`;
 - campos obrigatórios de paginação/limite;
 - formato esperado da resposta.
 
 ## Regra de segurança
 
-Se o endpoint oficial for diferente do caminho atual, não executar a chamada real.
+Se o endpoint oficial ou o contrato GraphQL forem diferentes do codigo atual, nao executar a chamada real.
 
 A ordem correta nesse caso é:
 
-1. ajustar o builder;
+1. ajustar o builder GraphQL;
 2. ajustar os testes de assinatura/request;
 3. ajustar o preview seguro;
 4. rodar `ruff` e `pytest`;
@@ -60,16 +69,16 @@ Conferir principalmente:
 
 - `method`;
 - `url`;
-- caminho depois do host;
-- `page_size`;
-- parâmetros mascarados;
+- `body.operationName`;
+- `body.variables.limit`;
+- header `Authorization` mascarado;
 - ausência de valores sensíveis no terminal.
 
 ## O que não fazer
 
 Não fazer:
 
-- chamada real se o endpoint ainda não foi confirmado;
+- chamada real se o endpoint GraphQL ainda nao foi confirmado;
 - tentativa repetida em caso de erro HTTP;
 - commit de payload bruto;
 - commit de print contendo valores sensíveis;

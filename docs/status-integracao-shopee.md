@@ -185,6 +185,37 @@ Uso esperado:
 
 ## EvidÃªncias observadas
 
+### Status seguro e preview GraphQL em 2026-06-25
+
+Com credenciais configuradas somente no `.env` local, o status seguro foi
+aprovado sem expor `partner_id`, `tracking_id` ou `secret_key`:
+
+```text
+INFO | enable_real_http=true
+INFO | enable_real_publish=false
+INFO | default_dry_run=true
+INFO | graphql_url=https://open-api.affiliate.shopee.com.br/graphql
+INFO | Ambiente pronto para chamada real controlada
+```
+
+O preview seguro do provider Shopee tambem foi aprovado sem executar HTTP real:
+
+```text
+INFO | method=POST
+INFO | url=https://open-api.affiliate.shopee.com.br/graphql
+INFO | header.Authorization=<masked:126 chars>
+INFO | header.Content-Type=application/json
+INFO | body.operationName=ShopeeOfferList
+INFO | body.variables.keyword=maquiagem
+INFO | body.variables.limit=1
+INFO | body.variables.page=1
+INFO | body.variables.sortType=1
+INFO | Nenhuma chamada HTTP foi executada.
+```
+
+Proxima etapa: executar uma unica chamada real controlada com `--limit 1`,
+somente apos aprovacao humana explicita.
+
 ### Endpoint sem query
 
 Resposta observada ao acessar o endpoint sem parÃ¢metros:
