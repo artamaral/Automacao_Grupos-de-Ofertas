@@ -1,4 +1,4 @@
-from ofertas_bot.providers.payload_anonymizer import anonymize_payload
+from ofertas_bot.providers.payload_anonymizer import anonymize_payload, redact_sensitive_payload
 
 
 def test_anonymize_payload_redacts_sensitive_fields() -> None:
@@ -29,3 +29,25 @@ def test_anonymize_payload_redacts_sensitive_fields() -> None:
     assert anonymized["items"][0]["product_name"] == "Produto anonimizado"
     assert anonymized["items"][0]["shop_name"] == "<redacted>"
     assert anonymized["items"][0]["price"] == 49.9
+
+
+def test_redact_sensitive_payload_preserves_public_fields() -> None:
+    raw_payload = {
+        "sign": "abc123",
+        "offerLink": "https://marketplace.example/item/123",
+        "imageUrl": "https://marketplace.example/image.jpg",
+        "shopId": 123456,
+        "shopName": "Loja real",
+        "seller_id": "seller-123",
+        "ratingStar": "4.9",
+    }
+
+    redacted = redact_sensitive_payload(raw_payload)
+
+    assert redacted["sign"] == "<redacted>"
+    assert redacted["offerLink"] == "https://marketplace.example/item/123"
+    assert redacted["imageUrl"] == "https://marketplace.example/image.jpg"
+    assert redacted["shopId"] == 123456
+    assert redacted["shopName"] == "Loja real"
+    assert redacted["seller_id"] == "<redacted>"
+    assert redacted["ratingStar"] == "4.9"

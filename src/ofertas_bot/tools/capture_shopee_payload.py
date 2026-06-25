@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from ofertas_bot.providers.payload_anonymizer import anonymize_payload
+from ofertas_bot.providers.payload_anonymizer import anonymize_payload, redact_sensitive_payload
 from ofertas_bot.providers.real_http_guard import RealHttpValidationError
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.settings import get_settings
@@ -27,6 +27,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_OUTPUT_PATH,
         help="Arquivo de saÃ­da dentro de tmp/",
     )
+    parser.add_argument(
+        "--mode",
+        choices=("anonymized", "public"),
+        default="anonymized",
+        help="Modo de saida: anonimizado completo ou publico com apenas segredos mascarados",
+    )
     return parser
 
 
@@ -43,11 +49,16 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(f"DETALHE | {error}", file=sys.stderr)
         return 3
 
-    anonymized_payload = anonymize_payload(response_data)
-    _write_json(output_path=output_path, payload=anonymized_payload)
+    safe_payload = (
+        anonymize_payload(response_data)
+        if args.mode == "anonymized"
+        else redact_sensitive_payload(response_data)
+    )
+    _write_json(output_path=output_path, payload=safe_payload)
 
-    print("INFO | Resposta real anonimizada salva")
+    print("INFO | Resposta real salva")
     print(f"INFO | output={output_path.as_posix()}")
+    print(f"INFO | mode={args.mode}")
     print("INFO | Nenhum payload bruto foi salvo automaticamente.")
     print("INFO | Nenhuma publicaÃ§Ã£o foi executada.")
     return 0
