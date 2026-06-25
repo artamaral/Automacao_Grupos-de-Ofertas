@@ -51,6 +51,7 @@ def test_publication_manifest_cli_creates_ready_manifest(tmp_path, capsys) -> No
     assert len(manifest) == 1
     assert manifest[0].draft == draft
     assert manifest[0].target == "grupo-maquiagem"
+    assert manifest[0].channel_adapter == "whatsapp"
     assert manifest[0].status == "ready"
     assert "Nenhum envio" in output
 
@@ -88,3 +89,4 @@ def test_publication_manifest_cli_creates_manifest_from_review_queue(tmp_path) -
     assert exit_code == 0
     assert len(manifest) == 1
     assert manifest[0].target == "grupo-auto-e-moto"
+    assert manifest[0].channel_adapter == "whatsapp"

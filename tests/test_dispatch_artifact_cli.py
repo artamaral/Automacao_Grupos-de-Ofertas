@@ -68,7 +68,9 @@ def test_dispatch_artifact_cli_groups_messages_by_target(tmp_path, capsys) -> No
     assert payload["summary"]["total_targets"] == 2
     assert payload["summary"]["total_messages"] == 3
     assert payload["targets"][0]["target"] == "grupo-auto"
+    assert payload["targets"][0]["adapter_kind"] == "whatsapp"
     assert payload["targets"][1]["target"] == "grupo-beleza"
+    assert payload["targets"][1]["adapter_kind"] == "whatsapp"
     assert payload["targets"][1]["message_count"] == 2
     assert payload["targets"][1]["messages"][0]["text"] == "Oferta em português com emoji ✨"
     assert (

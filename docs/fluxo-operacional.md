@@ -101,15 +101,16 @@ Dentro de `.data/approved_messages_by_group/`, cada grupo gera um par de arquivo
 para uso posterior no disparo.
 
 O arquivo `.data/dispatch_artifact.json` consolida as mensagens prontas por
-`target`, servindo como contrato de entrada para um futuro disparador local ou
+`target`, junto com o `adapter_kind` configurado por grupo, servindo como contrato de entrada para um futuro disparador local ou
 automatizado.
 
 O arquivo `.data/dispatch_report.json` registra a simulação da rodada de
 disparo, por destino e por mensagem, sem qualquer envio real.
 
 No estado atual, o executor de disparo trabalha com adaptadores `dry-run` de
-canal. O fluxo local usa `whatsapp` por padrão, e os adaptadores `telegram` e
-`console` permanecem disponíveis para simulação e testes.
+canal. O adaptador de cada destino passa a ser definido no catálogo de grupos,
+e os adaptadores `whatsapp`, `telegram` e `console` permanecem disponíveis para
+simulação e testes.
 
 ## Papel humano
 

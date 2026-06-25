@@ -14,6 +14,7 @@ Esse arquivo define, por grupo:
 - `allowed_marketplaces`
 - `destination_kind`
 - `destination_ref`
+- `channel_adapter`
 - `message_tone`
 - `allowed_content_types`
 - `max_offers_per_run`
@@ -24,6 +25,7 @@ Objetivo desta camada:
 
 - organizar destinos lógicos antes da API real;
 - separar macro-nicho de destino operacional;
+- declarar por qual canal o destino deve ser tratado no disparo;
 - registrar tom e tipos de conteúdo aceitos por grupo;
 - preparar a futura decisão de roteamento sem endurecer regra cedo demais.
 

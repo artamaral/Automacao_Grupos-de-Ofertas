@@ -52,6 +52,7 @@ class MessageReviewRouting:
     destination_kind: str
     destination_ref: str | None
     message_tone: str
+    channel_adapter: str = "whatsapp"
 
 
 @dataclass(frozen=True)
@@ -122,6 +123,7 @@ def create_pending_review_queue(
                         group_name=profile.name,
                         destination_kind=profile.destination_kind,
                         destination_ref=profile.destination_ref,
+                        channel_adapter=profile.channel_adapter,
                         message_tone=profile.message_tone,
                     ),
                 )
@@ -317,6 +319,7 @@ def message_review_routing_to_json(
         "group_name": routing.group_name,
         "destination_kind": routing.destination_kind,
         "destination_ref": routing.destination_ref,
+        "channel_adapter": routing.channel_adapter,
         "message_tone": routing.message_tone,
     }
 
@@ -336,6 +339,7 @@ def message_review_routing_from_json(
             group_name=str(data["group_name"]).strip(),
             destination_kind=str(data["destination_kind"]).strip().lower(),
             destination_ref=_optional_str(data.get("destination_ref")),
+            channel_adapter=str(data["channel_adapter"]).strip().lower(),
             message_tone=str(data["message_tone"]).strip().lower(),
         )
     except (KeyError, TypeError, ValueError) as error:

@@ -32,6 +32,7 @@ class PublicationManifestItem:
     target: str
     status: PublicationManifestStatus
     created_at: str
+    channel_adapter: str = "whatsapp"
 
 
 class JsonPublicationManifestStore:
@@ -73,6 +74,7 @@ def create_publication_manifest(
     drafts: tuple[MessageDraft, ...],
     target: str,
     created_at: str,
+    channel_adapter: str = "whatsapp",
 ) -> tuple[PublicationManifestItem, ...]:
     clean_target = target.strip()
     if not clean_target:
@@ -85,6 +87,7 @@ def create_publication_manifest(
             target=clean_target,
             status="ready",
             created_at=created_at,
+            channel_adapter=channel_adapter.strip().lower(),
         )
         for draft in drafts
     )
@@ -94,8 +97,10 @@ def create_publication_manifest_from_review_queue(
     items: tuple[MessageReviewQueueItem, ...],
     created_at: str,
     fallback_target: str | None = None,
+    fallback_channel_adapter: str = "whatsapp",
 ) -> tuple[PublicationManifestItem, ...]:
     clean_fallback_target = _clean_optional_target(fallback_target)
+    clean_fallback_channel_adapter = fallback_channel_adapter.strip().lower()
     manifest: list[PublicationManifestItem] = []
 
     for item in items:
@@ -105,12 +110,17 @@ def create_publication_manifest_from_review_queue(
             item=item,
             fallback_target=clean_fallback_target,
         )
+        channel_adapter = _resolve_review_queue_channel_adapter(
+            item=item,
+            fallback_channel_adapter=clean_fallback_channel_adapter,
+        )
         manifest.append(
             PublicationManifestItem(
                 draft=item.draft,
                 target=target,
                 status="ready",
                 created_at=created_at,
+                channel_adapter=channel_adapter,
             )
         )
 
@@ -132,6 +142,8 @@ def validate_publication_manifest(
             issues.append(f"item {index} sem alvo")
         if not item.created_at.strip():
             issues.append(f"item {index} sem data de criação")
+        if not item.channel_adapter.strip():
+            issues.append(f"item {index} sem canal")
         if not item.draft.text.strip():
             issues.append(f"item {index} sem mensagem")
         if not item.draft.offer.url.strip():
@@ -148,6 +160,7 @@ def publication_manifest_item_to_json(
         "target": item.target,
         "status": item.status,
         "created_at": item.created_at,
+        "channel_adapter": item.channel_adapter,
     }
 
 
@@ -167,6 +180,7 @@ def publication_manifest_item_from_json(data: object) -> PublicationManifestItem
             target=str(data["target"]),
             status=status,
             created_at=str(data["created_at"]),
+            channel_adapter=str(data.get("channel_adapter", "whatsapp")).strip().lower(),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved publication manifest item is invalid"
@@ -192,4 +206,17 @@ def _resolve_review_queue_target(
     if fallback_target is not None:
         return fallback_target
     msg = "Publication manifest target is required for approved review queue items"
+    raise PublicationManifestStoreError(msg)
+
+
+def _resolve_review_queue_channel_adapter(
+    *,
+    item: MessageReviewQueueItem,
+    fallback_channel_adapter: str,
+) -> str:
+    if item.routing is not None and item.routing.channel_adapter:
+        return item.routing.channel_adapter
+    if fallback_channel_adapter:
+        return fallback_channel_adapter
+    msg = "Publication manifest channel adapter is required for approved review queue items"
     raise PublicationManifestStoreError(msg)

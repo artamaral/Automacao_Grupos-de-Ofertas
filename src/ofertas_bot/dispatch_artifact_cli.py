@@ -61,12 +61,12 @@ def build_dispatch_artifact(
     if not manifest:
         raise ValueError("Manifesto local vazio")
 
-    grouped_items: dict[str, list[dict[str, Any]]] = {}
+    grouped_items: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for item_number, item in enumerate(manifest, start=1):
         if item.status != "ready":
             raise ValueError("Manifesto possui item fora do status ready")
 
-        grouped_items.setdefault(item.target, []).append(
+        grouped_items.setdefault((item.target, item.channel_adapter), []).append(
             {
                 "manifest_item_number": item_number,
                 "status": item.status,
@@ -87,11 +87,12 @@ def build_dispatch_artifact(
     targets = [
         {
             "target": target,
+            "adapter_kind": adapter_kind,
             "status": "ready",
             "message_count": len(messages),
             "messages": messages,
         }
-        for target, messages in sorted(grouped_items.items())
+        for (target, adapter_kind), messages in sorted(grouped_items.items())
     ]
 
     return {

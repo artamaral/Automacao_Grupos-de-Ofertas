@@ -14,6 +14,7 @@ def test_dispatch_execute_cli_generates_dry_run_report(tmp_path, capsys) -> None
                 "targets": [
                     {
                         "target": "grupo-auto",
+                        "adapter_kind": "whatsapp",
                         "status": "ready",
                         "message_count": 1,
                         "messages": [
@@ -51,6 +52,7 @@ def test_dispatch_execute_cli_generates_dry_run_report(tmp_path, capsys) -> None
                     },
                     {
                         "target": "grupo-beleza",
+                        "adapter_kind": "whatsapp",
                         "status": "ready",
                         "message_count": 2,
                         "messages": [
@@ -160,6 +162,7 @@ def test_dispatch_execute_cli_accepts_telegram_adapter(tmp_path) -> None:
                 "targets": [
                     {
                         "target": "canal-telegram",
+                        "adapter_kind": "telegram",
                         "status": "ready",
                         "message_count": 1,
                         "messages": [

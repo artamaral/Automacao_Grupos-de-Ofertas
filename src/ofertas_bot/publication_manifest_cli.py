@@ -45,6 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Caminho local para salvar o manifesto",
     )
+    parser.add_argument(
+        "--adapter-kind",
+        choices=("console", "whatsapp", "telegram"),
+        default="whatsapp",
+        help="Canal planejado para os itens do manifesto",
+    )
     return parser
 
 
@@ -59,6 +65,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             manifest = create_publication_manifest_from_review_queue(
                 items=queue_items,
                 fallback_target=args.target,
+                fallback_channel_adapter=args.adapter_kind,
                 created_at=_utc_now_iso(),
             )
         else:
@@ -67,6 +74,7 @@ def run(argv: Sequence[str] | None = None) -> int:
                 drafts=drafts,
                 target=str(args.target),
                 created_at=_utc_now_iso(),
+                channel_adapter=args.adapter_kind,
             )
         JsonPublicationManifestStore(
             path=Path(args.save_publication_manifest_json)

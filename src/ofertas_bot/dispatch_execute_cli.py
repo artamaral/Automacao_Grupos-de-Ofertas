@@ -35,9 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--adapter-kind",
-        choices=("console", "whatsapp", "telegram"),
-        default="whatsapp",
-        help="Adaptador de canal usado na simulacao do disparo",
+        default=None,
+        help="Sobrescreve o adaptador do artefato (console, whatsapp ou telegram)",
     )
     return parser
 
@@ -49,7 +48,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         artifact = _load_dispatch_artifact(Path(args.dispatch_artifact_json))
         report = execute_dispatch_artifact(
             artifact,
-            adapter=build_channel_adapter(args.adapter_kind),
+            adapter_kind_override=args.adapter_kind,
         )
         output_path = Path(args.save_dispatch_report_json)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -71,7 +70,7 @@ def run(argv: Sequence[str] | None = None) -> int:
 def execute_dispatch_artifact(
     artifact: dict[str, Any],
     *,
-    adapter: BaseDryRunChannelAdapter,
+    adapter_kind_override: str | None = None,
 ) -> dict[str, Any]:
     targets = artifact.get("targets")
     if not isinstance(targets, list) or not targets:
@@ -79,16 +78,21 @@ def execute_dispatch_artifact(
 
     target_reports: list[dict[str, Any]] = []
     total_messages = 0
+    adapter_kinds: set[str] = set()
 
     for raw_target in targets:
-        target_report = _execute_target(adapter=adapter, raw_target=raw_target)
+        target_report = _execute_target(
+            raw_target=raw_target,
+            adapter_kind_override=adapter_kind_override,
+        )
         total_messages += target_report["message_count"]
+        adapter_kinds.add(str(target_report["adapter_kind"]))
         target_reports.append(target_report)
 
     return {
         "generated_at": _utc_now_iso(),
         "mode": "dry-run",
-        "adapter_kind": adapter.kind,
+        "adapter_kind": adapter_kind_override or _summarize_adapter_kinds(adapter_kinds),
         "summary": {
             "total_targets": len(target_reports),
             "total_messages": total_messages,
@@ -101,8 +105,8 @@ def execute_dispatch_artifact(
 
 def _execute_target(
     *,
-    adapter: BaseDryRunChannelAdapter,
     raw_target: object,
+    adapter_kind_override: str | None = None,
 ) -> dict[str, Any]:
     if not isinstance(raw_target, dict):
         raise ValueError("Destino do artefato deve ser um objeto")
@@ -110,6 +114,10 @@ def _execute_target(
     target = str(raw_target.get("target", "")).strip()
     if not target:
         raise ValueError("Destino do artefato sem target")
+    adapter_kind = str(raw_target.get("adapter_kind", "")).strip().lower()
+    if adapter_kind_override is not None:
+        adapter_kind = adapter_kind_override.strip().lower()
+    adapter = build_channel_adapter(adapter_kind)
 
     raw_messages = raw_target.get("messages")
     if not isinstance(raw_messages, list) or not raw_messages:
@@ -180,6 +188,14 @@ def _load_dispatch_artifact(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("Artefato de disparo deve ser um objeto")
     return payload
+
+
+def _summarize_adapter_kinds(adapter_kinds: set[str]) -> str:
+    if not adapter_kinds:
+        raise ValueError("Artefato de disparo sem adaptadores")
+    if len(adapter_kinds) == 1:
+        return next(iter(adapter_kinds))
+    return "mixed"
 
 
 def _utc_now_iso() -> str:

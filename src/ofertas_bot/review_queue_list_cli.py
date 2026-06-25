@@ -60,9 +60,11 @@ def _format_review_queue_item(item_number: int, item: MessageReviewQueueItem) ->
     group_slug = routing.group_slug if routing is not None else "-"
     destination_ref = routing.destination_ref if routing is not None else "-"
     destination_kind = routing.destination_kind if routing is not None else "-"
+    channel_adapter = routing.channel_adapter if routing is not None else "-"
     return (
         f"ITEM | {item_number} | status={item.status} | "
         f"group={group_slug} | destination_kind={destination_kind} | "
+        f"channel={channel_adapter} | "
         f"destination_ref={destination_ref} | "
         f"marketplace={offer.marketplace.value} | niche={offer.niche} | "
         f"price=R$ {offer.price:.2f} | title={offer.title} | "

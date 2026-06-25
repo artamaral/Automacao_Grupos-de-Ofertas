@@ -204,6 +204,7 @@ def _format_review_queue_item_for_export(
                 f"Grupo: {routing.group_name}",
                 f"Group slug: {routing.group_slug}",
                 f"Destino: {routing.destination_kind}:{routing.destination_ref or '-'}",
+                f"Canal: {routing.channel_adapter}",
                 f"Tom: {routing.message_tone}",
             ]
         )

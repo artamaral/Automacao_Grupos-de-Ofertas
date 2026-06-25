@@ -7,6 +7,8 @@ from pathlib import Path
 
 from ofertas_bot.models import Marketplace
 
+VALID_CHANNEL_ADAPTERS = ("console", "whatsapp", "telegram")
+
 
 class GroupProfileError(ValueError):
     """Raised when a group profile is invalid."""
@@ -23,6 +25,7 @@ class GroupProfile:
     allowed_marketplaces: tuple[Marketplace, ...] = (Marketplace.MOCK,)
     destination_kind: str = "group"
     destination_ref: str | None = None
+    channel_adapter: str = "whatsapp"
     message_tone: str = "direto"
     allowed_content_types: tuple[str, ...] = ("product", "coupon", "context")
     max_offers_per_run: int = 3
@@ -37,6 +40,7 @@ class GroupProfile:
         )
         normalized_destination_kind = self.destination_kind.strip().lower()
         normalized_destination_ref = _normalize_optional_text(self.destination_ref)
+        normalized_channel_adapter = self.channel_adapter.strip().lower()
         normalized_message_tone = self.message_tone.strip().lower()
         normalized_content_types = _normalize_string_tuple(self.allowed_content_types)
 
@@ -50,6 +54,8 @@ class GroupProfile:
             raise GroupProfileError("group profile requires at least one marketplace")
         if not normalized_destination_kind:
             raise GroupProfileError("group profile destination_kind is required")
+        if normalized_channel_adapter not in VALID_CHANNEL_ADAPTERS:
+            raise GroupProfileError("group profile channel_adapter is invalid")
         if not normalized_message_tone:
             raise GroupProfileError("group profile message_tone is required")
         if not normalized_content_types:
@@ -64,6 +70,7 @@ class GroupProfile:
         object.__setattr__(self, "allowed_niches", normalized_niches)
         object.__setattr__(self, "destination_kind", normalized_destination_kind)
         object.__setattr__(self, "destination_ref", normalized_destination_ref)
+        object.__setattr__(self, "channel_adapter", normalized_channel_adapter)
         object.__setattr__(self, "message_tone", normalized_message_tone)
         object.__setattr__(self, "allowed_content_types", normalized_content_types)
 
@@ -136,6 +143,7 @@ def _build_group_profile(item: object) -> GroupProfile:
         allowed_marketplaces=_marketplace_tuple(item.get("allowed_marketplaces")),
         destination_kind=str(item.get("destination_kind", "group")),
         destination_ref=_optional_str(item.get("destination_ref")),
+        channel_adapter=str(item.get("channel_adapter", "whatsapp")),
         message_tone=str(item.get("message_tone", "direto")),
         allowed_content_types=_string_tuple(item.get("allowed_content_types"))
         or ("product", "coupon", "context"),

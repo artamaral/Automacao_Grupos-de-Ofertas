@@ -17,6 +17,7 @@ def test_group_profile_normalizes_fields() -> None:
         allowed_niches=(" Maquiagem ", " Beleza "),
         destination_kind=" Group ",
         destination_ref=" grupo-beleza ",
+        channel_adapter=" Telegram ",
         message_tone=" Direto ",
         allowed_content_types=(" Product ", " Coupon "),
     )
@@ -26,6 +27,7 @@ def test_group_profile_normalizes_fields() -> None:
     assert profile.allowed_niches == ("maquiagem", "beleza")
     assert profile.destination_kind == "group"
     assert profile.destination_ref == "grupo-beleza"
+    assert profile.channel_adapter == "telegram"
     assert profile.message_tone == "direto"
     assert profile.allowed_content_types == ("product", "coupon")
     assert profile.allows_niche("BELEZA")
@@ -94,6 +96,7 @@ def test_default_group_profiles_expose_destination_metadata() -> None:
 
     assert profile is not None
     assert profile.destination_ref == "grupo-auto-e-moto"
+    assert profile.channel_adapter == "whatsapp"
     assert profile.allows_marketplace(Marketplace.SHOPEE)
     assert profile.allows_content_type("coupon")
 
@@ -109,6 +112,7 @@ allowed_niches = ["beleza"]
 allowed_marketplaces = ["mock", "shopee"]
 destination_kind = "group"
 destination_ref = "grupo-teste"
+channel_adapter = "telegram"
 message_tone = "leve"
 allowed_content_types = ["product", "context"]
 max_offers_per_run = 2
@@ -124,4 +128,5 @@ active = true
     assert profile is not None
     assert profile.allowed_marketplaces == (Marketplace.MOCK, Marketplace.SHOPEE)
     assert profile.destination_ref == "grupo-teste"
+    assert profile.channel_adapter == "telegram"
     assert profile.allowed_content_types == ("product", "context")
