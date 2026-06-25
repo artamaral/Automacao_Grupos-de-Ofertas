@@ -4,6 +4,7 @@ from ofertas_bot.agents.collector import CollectorAgent
 from ofertas_bot.discovery_profiles import DiscoveryProfile
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.amazon import AmazonConfigurationError
+from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
 from ofertas_bot.settings import Settings
 
@@ -60,7 +61,10 @@ def test_collector_raises_controlled_error_for_shopee_without_credentials() -> N
 
 def test_collector_uses_descobridor_geral_for_shopee_profile() -> None:
     class FakeShopeeProvider:
+        seen_offer_limits: list[int] = []
+
         def fetch_offer_search_raw_response(self, offer_name: str, limit: int) -> dict[str, object]:
+            self.seen_offer_limits.append(limit)
             return {
                 "data": {
                     "shopeeOfferV2": {
@@ -70,7 +74,13 @@ def test_collector_uses_descobridor_geral_for_shopee_profile() -> None:
                 }
             }
 
-        def fetch_product_match_raw_response(self, match_id: int, limit: int) -> dict[str, object]:
+        def fetch_product_match_raw_response(
+            self,
+            match_id: int,
+            limit: int,
+            *,
+            page: int = 1,
+        ) -> dict[str, object]:
             return {
                 "data": {
                     "productOfferV2": {
@@ -82,7 +92,7 @@ def test_collector_uses_descobridor_geral_for_shopee_profile() -> None:
                                 "commissionRate": "0.25",
                             }
                         ],
-                        "pageInfo": {"page": 1, "limit": limit, "hasNextPage": False},
+                        "pageInfo": {"page": page, "limit": limit, "hasNextPage": False},
                     }
                 }
             }
@@ -129,3 +139,228 @@ def test_collector_uses_descobridor_geral_for_shopee_profile() -> None:
     assert batch.raw_response is not None
     assert batch.raw_response["discovery_method"] == "descobridor-geral"
     assert batch.raw_response["selected_match_ids"] == [100632]
+    assert batch.raw_response["offer_search_limit"] == 50
+    assert collector._shopee_provider.seen_offer_limits == [1]
+
+
+def test_collector_descobridor_geral_caps_offer_search_limit_at_50() -> None:
+    class FakeShopeeProvider:
+        seen_offer_limits: list[int] = []
+
+        def fetch_offer_search_raw_response(self, offer_name: str, limit: int) -> dict[str, object]:
+            self.seen_offer_limits.append(limit)
+            return {
+                "data": {
+                    "shopeeOfferV2": {
+                        "nodes": [{"categoryId": 100632, "offerName": offer_name}],
+                        "pageInfo": {"page": 1, "limit": limit, "hasNextPage": False},
+                    }
+                }
+            }
+
+        def fetch_product_match_raw_response(
+            self,
+            match_id: int | None,
+            limit: int,
+            *,
+            page: int = 1,
+            list_type: int = 4,
+            sort_type: int | None = None,
+            is_key_seller: bool | None = None,
+        ) -> dict[str, object]:
+            return {
+                "data": {
+                    "productOfferV2": {
+                        "nodes": [],
+                        "pageInfo": {"page": page, "limit": limit, "hasNextPage": False},
+                    }
+                }
+            }
+
+        def normalize_custom_response(
+            self,
+            *,
+            response_data: dict[str, object],
+            niche: str,
+            limit: int,
+            root_field: str,
+        ) -> list[Offer]:
+            return []
+
+    collector = CollectorAgent(settings=Settings())
+    object.__setattr__(collector, "_shopee_provider", FakeShopeeProvider())
+    profile = DiscoveryProfile(
+        slug="pets",
+        name="Pets",
+        niche="pets",
+        marketplace=Marketplace.SHOPEE,
+        discovery_method="descobridor-geral",
+        shopee_offer_keyword="Pets",
+    )
+
+    batch = collector.collect_from_profile_with_inspection(profile=profile, limit=3000)
+
+    assert batch.raw_response is not None
+    assert batch.raw_response["offer_search_limit"] == 50
+    assert collector._shopee_provider.seen_offer_limits == [50]
+
+
+def test_collector_descobridor_geral_paginates_until_has_next_page_is_false() -> None:
+    class FakeShopeeProvider:
+        def fetch_offer_search_raw_response(self, offer_name: str, limit: int) -> dict[str, object]:
+            return {
+                "data": {
+                    "shopeeOfferV2": {
+                        "nodes": [{"categoryId": 100632, "offerName": offer_name}],
+                        "pageInfo": {"page": 1, "limit": limit, "hasNextPage": False},
+                    }
+                }
+            }
+
+        def fetch_product_match_raw_response(
+            self,
+            match_id: int,
+            limit: int,
+            *,
+            page: int = 1,
+        ) -> dict[str, object]:
+            has_next = page < 3
+            return {
+                "data": {
+                    "productOfferV2": {
+                        "nodes": [
+                            {
+                                "productName": f"Produto pagina {page}",
+                                "offerLink": f"https://s.shopee.com.br/item-{page}",
+                                "imageUrl": "https://example.com/item.jpg",
+                                "commissionRate": "0.25",
+                            }
+                        ],
+                        "pageInfo": {"page": page, "limit": limit, "hasNextPage": has_next},
+                    }
+                }
+            }
+
+        def normalize_custom_response(
+            self,
+            *,
+            response_data: dict[str, object],
+            niche: str,
+            limit: int,
+            root_field: str,
+        ) -> list[Offer]:
+            node = response_data["data"]["productOfferV2"]["nodes"][0]
+            return [
+                Offer(
+                    marketplace=Marketplace.SHOPEE,
+                    title=str(node["productName"]),
+                    url=str(node["offerLink"]),
+                    image_url=str(node["imageUrl"]),
+                    price=0,
+                    old_price=None,
+                    commission_rate=0.25,
+                    sales_count=0,
+                    rating=None,
+                    niche=niche,
+                )
+            ]
+
+    collector = CollectorAgent(settings=Settings())
+    object.__setattr__(collector, "_shopee_provider", FakeShopeeProvider())
+    profile = DiscoveryProfile(
+        slug="mae-e-bebe",
+        name="Mae e Bebe",
+        niche="mae e bebe",
+        marketplace=Marketplace.SHOPEE,
+        discovery_method="descobridor-geral",
+        shopee_offer_keyword="Mom & Baby",
+    )
+
+    batch = collector.collect_from_profile_with_inspection(profile=profile, limit=10)
+
+    assert [offer.title for offer in batch.offers] == [
+        "Produto pagina 1",
+        "Produto pagina 2",
+        "Produto pagina 3",
+    ]
+    assert batch.raw_response is not None
+    assert batch.raw_response["product_searches"][0]["pages"][-1]["hasNextPage"] is False
+
+
+def test_collector_descobridor_geral_stops_on_page_not_found() -> None:
+    class FakeShopeeProvider:
+        def fetch_offer_search_raw_response(self, offer_name: str, limit: int) -> dict[str, object]:
+            return {
+                "data": {
+                    "shopeeOfferV2": {
+                        "nodes": [{"categoryId": 100632, "offerName": offer_name}],
+                        "pageInfo": {"page": 1, "limit": limit, "hasNextPage": False},
+                    }
+                }
+            }
+
+        def fetch_product_match_raw_response(
+            self,
+            match_id: int,
+            limit: int,
+            *,
+            page: int = 1,
+        ) -> dict[str, object]:
+            if page == 2:
+                raise ShopeeGraphqlPayloadError("error [10010]: page not found")
+            return {
+                "data": {
+                    "productOfferV2": {
+                        "nodes": [
+                            {
+                                "productName": "Primeira pagina",
+                                "offerLink": "https://s.shopee.com.br/item-1",
+                                "imageUrl": "https://example.com/item.jpg",
+                                "commissionRate": "0.25",
+                            }
+                        ],
+                        "pageInfo": {"page": page, "limit": limit, "hasNextPage": True},
+                    }
+                }
+            }
+
+        def normalize_custom_response(
+            self,
+            *,
+            response_data: dict[str, object],
+            niche: str,
+            limit: int,
+            root_field: str,
+        ) -> list[Offer]:
+            node = response_data["data"]["productOfferV2"]["nodes"][0]
+            return [
+                Offer(
+                    marketplace=Marketplace.SHOPEE,
+                    title=str(node["productName"]),
+                    url=str(node["offerLink"]),
+                    image_url=str(node["imageUrl"]),
+                    price=0,
+                    old_price=None,
+                    commission_rate=0.25,
+                    sales_count=0,
+                    rating=None,
+                    niche=niche,
+                )
+            ]
+
+    collector = CollectorAgent(settings=Settings())
+    object.__setattr__(collector, "_shopee_provider", FakeShopeeProvider())
+    profile = DiscoveryProfile(
+        slug="mae-e-bebe",
+        name="Mae e Bebe",
+        niche="mae e bebe",
+        marketplace=Marketplace.SHOPEE,
+        discovery_method="descobridor-geral",
+        shopee_offer_keyword="Mom & Baby",
+    )
+
+    batch = collector.collect_from_profile_with_inspection(profile=profile, limit=10)
+
+    assert [offer.title for offer in batch.offers] == ["Primeira pagina"]
+    assert batch.raw_response is not None
+    assert batch.raw_response["product_searches"][0]["pages"][-1]["stopped_by"] == "page_not_found"

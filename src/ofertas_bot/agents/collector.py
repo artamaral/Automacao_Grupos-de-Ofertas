@@ -7,8 +7,13 @@ from ofertas_bot.discovery_profiles import DiscoveryProfile
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.amazon import AmazonProvider
 from ofertas_bot.providers.mock import MockOfferProvider
+from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.settings import Settings, get_settings
+
+SHOPEE_GENERAL_DISCOVERER_PAGE_SIZE = 50
+SHOPEE_GENERAL_DISCOVERER_MAX_PAGES = 50
+SHOPEE_GENERAL_DISCOVERER_OFFER_SEARCH_LIMIT = 50
 
 
 @dataclass(frozen=True)
@@ -100,7 +105,10 @@ class CollectorAgent:
         discovered_match_ids: list[int] = []
 
         for offer_name in offer_names:
-            response_data = self._shopee_provider.fetch_offer_search_raw_response(offer_name, limit)
+            response_data = self._shopee_provider.fetch_offer_search_raw_response(
+                offer_name,
+                min(limit, SHOPEE_GENERAL_DISCOVERER_OFFER_SEARCH_LIMIT),
+            )
             offer_searches.append(
                 {
                     "offer_name": offer_name,
@@ -116,39 +124,83 @@ class CollectorAgent:
         collected_offers: list[Offer] = []
         product_searches: list[dict[str, Any]] = []
         for match_id in candidate_match_ids:
-            response_data = self._shopee_provider.fetch_product_match_raw_response(
+            match_search = self._collect_all_product_pages_for_match_id(
+                profile=profile,
                 match_id=match_id,
-                limit=limit,
             )
-            product_searches.append(
-                {
-                    "match_id": match_id,
-                    "response": response_data,
-                }
-            )
-            offers = self._shopee_provider.normalize_custom_response(
-                response_data=response_data,
-                niche=profile.niche,
-                limit=limit,
-                root_field="productOfferV2",
-            )
-            collected_offers.extend(offers)
-            collected_offers = _deduplicate_offers(collected_offers)[:limit]
-            if len(collected_offers) >= limit:
-                break
+            product_searches.append(match_search["raw"])
+            collected_offers.extend(match_search["offers"])
+            collected_offers = _deduplicate_offers(collected_offers)
 
-        filtered = profile.apply_offer_filters(collected_offers[:limit])
+        filtered = profile.apply_offer_filters(collected_offers)
         return CollectedOfferBatch(
-            offers=filtered,
+            offers=filtered[:limit],
             raw_response={
                 "discovery_method": "descobridor-geral",
                 "marketplace": Marketplace.SHOPEE.value,
                 "niche": profile.niche,
                 "offer_searches": offer_searches,
                 "selected_match_ids": list(candidate_match_ids),
+                "offer_search_limit": SHOPEE_GENERAL_DISCOVERER_OFFER_SEARCH_LIMIT,
+                "page_size": SHOPEE_GENERAL_DISCOVERER_PAGE_SIZE,
+                "max_pages": SHOPEE_GENERAL_DISCOVERER_MAX_PAGES,
                 "product_searches": product_searches,
             },
         )
+
+    def _collect_all_product_pages_for_match_id(
+        self,
+        *,
+        profile: DiscoveryProfile,
+        match_id: int,
+    ) -> dict[str, Any]:
+        offers: list[Offer] = []
+        pages: list[dict[str, Any]] = []
+
+        for page in range(1, SHOPEE_GENERAL_DISCOVERER_MAX_PAGES + 1):
+            try:
+                response_data = self._shopee_provider.fetch_product_match_raw_response(
+                    match_id=match_id,
+                    limit=SHOPEE_GENERAL_DISCOVERER_PAGE_SIZE,
+                    page=page,
+                )
+            except ShopeeGraphqlPayloadError as error:
+                if _is_page_not_found_error(error):
+                    pages.append(
+                        {
+                            "page": page,
+                            "stopped_by": "page_not_found",
+                        }
+                    )
+                    break
+                raise
+
+            page_offers = self._shopee_provider.normalize_custom_response(
+                response_data=response_data,
+                niche=profile.niche,
+                limit=SHOPEE_GENERAL_DISCOVERER_PAGE_SIZE,
+                root_field="productOfferV2",
+            )
+            offers.extend(page_offers)
+
+            page_info = _extract_page_info(response_data, root_field="productOfferV2")
+            pages.append(
+                {
+                    "page": page,
+                    "node_count": len(page_offers),
+                    "hasNextPage": page_info.get("hasNextPage"),
+                }
+            )
+            if page_info.get("hasNextPage") is not True:
+                break
+
+        return {
+            "offers": offers,
+            "raw": {
+                "match_id": match_id,
+                "pages": pages,
+            },
+        }
 
 
 def _extract_category_match_ids(response_data: dict[str, Any]) -> list[int]:
@@ -181,3 +233,19 @@ def _deduplicate_offers(offers: list[Offer]) -> list[Offer]:
         seen_urls.add(offer.url)
         deduplicated.append(offer)
     return deduplicated
+
+
+def _extract_page_info(response_data: dict[str, Any], *, root_field: str) -> dict[str, Any]:
+    data = response_data.get("data")
+    if not isinstance(data, dict):
+        return {}
+    connection = data.get(root_field)
+    if not isinstance(connection, dict):
+        return {}
+    page_info = connection.get("pageInfo")
+    return page_info if isinstance(page_info, dict) else {}
+
+
+def _is_page_not_found_error(error: Exception) -> bool:
+    message = str(error).strip().lower()
+    return "page not found" in message

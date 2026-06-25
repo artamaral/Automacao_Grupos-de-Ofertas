@@ -56,25 +56,60 @@ mutation GenerateShortLink($originUrl: String, $subIds: [String]) {
 def build_product_offer_query(
     *,
     list_type: int,
-    match_id: int,
+    match_id: int | None,
     page: int,
     limit: int,
+    sort_type: int | None = None,
+    is_key_seller: bool | None = None,
 ) -> str:
+    args = [
+        f"listType: {list_type}",
+        f"page: {page}",
+        f"limit: {limit}",
+    ]
+    if match_id is not None:
+        args.insert(1, f"matchId: {match_id}")
+    if sort_type is not None:
+        args.append(f"sortType: {sort_type}")
+    if is_key_seller is not None:
+        args.append(f"isKeySeller: {'true' if is_key_seller else 'false'}")
+    query_args = ", ".join(args)
+
     return f"""
 query {SHOPEE_PRODUCT_OFFER_LIST_OPERATION} {{
-  productOfferV2(listType: {list_type}, matchId: {match_id}, page: {page}, limit: {limit}) {{
+  productOfferV2({query_args}) {{
     nodes {{
       itemId
+      commissionRate
+      appExistRate
+      appNewRate
+      webExistRate
+      webNewRate
+      commission
+      price
+      sales
       shopId
       productName
       imageUrl
-      commissionRate
+      shopName
+      productLink
       offerLink
+      periodEndTime
+      periodStartTime
+      priceMin
+      priceMax
+      productCatIds
+      ratingStar
+      priceDiscountRate
+      shopType
+      sellerCommissionRate
+      shopeeCommissionRate
     }}
     pageInfo {{
       page
       limit
       hasNextPage
+      scrollId
     }}
   }}
 }}

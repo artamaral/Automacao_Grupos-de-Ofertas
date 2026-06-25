@@ -216,3 +216,37 @@ def test_shopee_provider_fetches_product_match_with_inline_query() -> None:
     assert "productOfferV2" in transport.requests[0].body["query"]
     assert "matchId: 100632" in transport.requests[0].body["query"]
     assert transport.requests[0].body["variables"] == {}
+
+
+def test_shopee_provider_fetches_product_match_with_optional_filters() -> None:
+    response = HttpResponse(
+        status_code=200,
+        data={"data": {"productOfferV2": {"nodes": [], "pageInfo": {"page": 1, "limit": 50, "hasNextPage": False}}}},
+    )
+    transport = StaticHttpTransport(response=response)
+    signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")
+    gateway = ShopeeGraphqlGateway(
+        offer_list_builder=ShopeeOfferListGraphqlRequestBuilder(signer=signer),
+        short_link_builder=ShopeeShortLinkGraphqlRequestBuilder(signer=signer),
+        mapper=ShopeeGraphqlOfferMapper(marketplace=Marketplace.SHOPEE),
+        transport=transport,
+    )
+    provider = ShopeeProvider(
+        settings=Settings(shopee_partner_id="123", shopee_secret_key="abc"),
+        graphql_gateway=gateway,
+    )
+
+    payload = provider.fetch_product_match_raw_response(
+        match_id=None,
+        limit=50,
+        list_type=1,
+        sort_type=2,
+        is_key_seller=True,
+    )
+
+    assert payload["data"]["productOfferV2"]["pageInfo"]["limit"] == 50
+    assert transport.requests[0].body is not None
+    assert "listType: 1" in transport.requests[0].body["query"]
+    assert "sortType: 2" in transport.requests[0].body["query"]
+    assert "isKeySeller: true" in transport.requests[0].body["query"]
+    assert "matchId:" not in transport.requests[0].body["query"]

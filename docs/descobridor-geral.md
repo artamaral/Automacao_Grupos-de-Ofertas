@@ -81,6 +81,61 @@ Leitura operacional:
 - o conjunto retornado e dinamico;
 - a resposta nao deve ser tratada como catalogo fixo nem como comparacao
   deterministica entre duas execucoes.
+- a coleta deve continuar pagina por pagina ate `hasNextPage = false`;
+- se a API responder algo equivalente a `page not found`, isso deve ser tratado
+  como parada segura daquela lista.
+
+### Regra de cobertura
+
+Para o `descobridor-geral`, a regra operacional passa a ser:
+
+- na etapa `shopeeOfferV2`, usar no maximo `50` registros por chamada;
+- sempre tentar varrer a lista inteira;
+- usar `50` itens por pagina;
+- aceitar ate `50` paginas por match id como teto operacional;
+- portanto, o teto planejado e de `2500` itens por match id;
+- ainda assim, a parada real deve acontecer por `hasNextPage = false` ou por
+  `page not found`.
+
+Isso existe para garantir que a descoberta nao fique restrita a primeira pagina
+quando o nicho tiver lista longa.
+
+### Teto observado ate aqui
+
+Nas validacoes reais feitas com o caminho de categoria do `descobridor-geral`
+(`productOfferV2` com `listType = 4` e `matchId = categoryId`), os nichos
+`mae-e-bebe` e `pets` encerraram em:
+
+- `10` paginas;
+- `50` itens por pagina;
+- `500` itens observados no total;
+- parada por `hasNextPage = false`.
+
+Isso deve ser tratado como teto observado desses cenarios de categoria, e nao
+como limite global da `productOfferV2`.
+
+Em validacao real separada, usando:
+
+- `listType = 1`
+- `sortType = 2`
+- `isKeySeller = true`
+
+a mesma `productOfferV2` retornou:
+
+- `40` paginas;
+- `1959` itens observados no total;
+- ultima pagina com `9` itens;
+- parada por `hasNextPage = false`.
+
+Portanto, a leitura correta passa a ser:
+
+- `500` e um teto observado no caminho por categoria ja testado;
+- nao existe evidencia atual de teto global em `500` para a query inteira;
+- o teto teorico operacional continua sendo `2500` quando a rota permitir.
+
+Tambem fica definido que o `limit` operacional final do fluxo nao deve ser
+reaproveitado como `limit` da etapa `shopeeOfferV2`, porque essa etapa aceita
+no maximo `50`.
 
 ## Interpretacao do resultado
 

@@ -103,17 +103,28 @@ class ShopeeProvider:
             },
         )
 
-    def fetch_product_match_raw_response(self, match_id: int, limit: int) -> dict[str, Any]:
+    def fetch_product_match_raw_response(
+        self,
+        match_id: int | None,
+        limit: int,
+        *,
+        page: int = 1,
+        list_type: int = 4,
+        sort_type: int | None = None,
+        is_key_seller: bool | None = None,
+    ) -> dict[str, Any]:
         self._validate_configuration()
         if self.settings.enable_real_http:
             self.validate_real_http_ready()
 
         return self._execute_graphql_query(
             query=build_product_offer_query(
-                list_type=4,
+                list_type=list_type,
                 match_id=match_id,
-                page=1,
+                page=page,
                 limit=limit,
+                sort_type=sort_type,
+                is_key_seller=is_key_seller,
             ),
             operation_name=SHOPEE_PRODUCT_OFFER_LIST_OPERATION,
             variables={},

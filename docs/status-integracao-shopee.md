@@ -236,6 +236,53 @@ ObservaÃ§Ã£o operacional:
 - qualquer troca do provider principal para `productOfferV2` exige preview,
   chamada controlada e captura de resposta real antes de consolidar.
 
+Campos de resposta obrigatorios de `ProductOfferV2`:
+
+| Campo | Tipo | Observacao |
+| --- | --- | --- |
+| `itemId` | `Int64` | item id |
+| `commissionRate` | `String` | taxa geral de comissao |
+| `appExistRate` | `String` | taxa para usuario recorrente no app |
+| `appNewRate` | `String` | taxa para usuario novo no app |
+| `webExistRate` | `String` | taxa para usuario recorrente no web |
+| `webNewRate` | `String` | taxa para usuario novo no web |
+| `commission` | `String` | valor da comissao |
+| `price` | `String` | preco do produto |
+| `sales` | `Int64` | quantidade de vendas |
+| `imageUrl` | `String` | url da imagem |
+| `productName` | `String` | nome do produto |
+| `shopName` | `String` | nome da loja |
+| `productLink` | `String` | link do produto |
+| `offerLink` | `String` | link de afiliado/oferta |
+| `periodEndTime` | `Int64` | fim da oferta |
+| `periodStartTime` | `Int64` | inicio da oferta |
+| `priceMin` | `String` | preco minimo |
+| `priceMax` | `String` | preco maximo |
+| `productCatIds` | `[Int!]` | categorias l1-l3 |
+| `ratingStar` | `String` | nota do produto |
+| `priceDiscountRate` | `Int` | desconto de 0 a 100 |
+| `shopId` | `Int64` | id da loja |
+| `shopType` | `[Int!]` | tipo da loja |
+| `sellerCommissionRate` | `String` | seller commission rate |
+| `shopeeCommissionRate` | `String` | shopee commission rate |
+
+Campos de `PageInfo` para `productOfferV2`:
+
+| Campo | Tipo | Observacao |
+| --- | --- | --- |
+| `page` | `Int` | numero da pagina |
+| `limit` | `Int` | quantidade por pagina |
+| `hasNextPage` | `Boolean` | indica proxima pagina |
+| `scrollId` | `String` | cursor opcional com expiraÃ§Ã£o curta |
+
+Decisao operacional atual:
+
+- quando a equipe exportar ou auditar `productOfferV2`, deve preservar todos os
+  campos acima;
+- o builder do projeto passa a solicitar todos esses campos na query;
+- CSVs e artefatos de inspecao dessa query nao devem reduzir o contrato sem
+  motivo explicito.
+
 ## Contrato adicional documentado: `listItemFeeds`
 
 Este contrato fica registrado como discovery de feeds disponiveis para download
