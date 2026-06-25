@@ -31,6 +31,11 @@ registrado apenas como legado/provisÃ³rio.
 - Foi criada ferramenta para capturar resposta real jÃ¡ anonimizada em `tmp/`.
 - A Open API correta validada em chamada real usa GraphQL com a query
   `shopOfferV2`.
+- A documentacao operacional agora distingue tres contratos: `shopOfferV2`
+  para lojas, `shopeeOfferV2` para oferta/listagem antiga e `productOfferV2`
+  para itens/produtos.
+- O fluxo de feed em lote tambem fica registrado com `listItemFeeds` para
+  descoberta de feeds e `getItemFeedData` para download paginado dos dados.
 
 ## Contrato GraphQL informado
 
@@ -190,6 +195,106 @@ Uso esperado:
 - gerar `subIds` internos para rastrear grupo, campanha, execuÃ§Ã£o e origem;
 - salvar `shortLink` junto da oferta selecionada;
 - usar `shortLink` nas mensagens aprovadas.
+
+## Contrato adicional documentado: `productOfferV2`
+
+Este contrato fica registrado como busca por item/produto, separado do fluxo
+de loja validado em `shopOfferV2`.
+
+Query:
+
+```text
+productOfferV2
+```
+
+Objetivo:
+
+- buscar itens/ofertas por nome de produto;
+- navegar listas por categoria, loja ou colecao;
+- ordenar por relevancia, vendidos, preco ou comissao.
+
+ParÃ¢metros:
+
+| Campo | Tipo | DescriÃ§Ã£o |
+| --- | --- | --- |
+| `listType` | `Int` | Tipo da lista. `0` all, `1` highest commission, `2` top performing, `3` landing category, `4` detail category, `5` detail shop, `6` detail collection. Padrao: `0`. |
+| `matchId` | `Int64` | Categoria para `LANDING_CATEGORY` e `DETAIL_CATEGORY`; loja para `DETAIL_SHOP`; colecao para `DETAIL_COLLECTION`. |
+| `keyword` | `String` | Busca por nome do produto. |
+| `sortType` | `Int` | `1` relevance, `2` sold desc, `3` price desc, `4` price asc, `5` commission desc. |
+| `page` | `Int` | Numero da pagina. Padrao: `1`. |
+| `limit` | `Int` | Quantidade por pagina. Padrao: `20`. |
+| `itemId` | `Int64` | Id do item. |
+| `shopId` | `Int64` | Id da loja. |
+| `productCatId` | `Int` | Id da categoria do produto. |
+| `isAMSOffer` | `Boolean` | Filtro de AMS offer. |
+| `isKeySeller` | `Boolean` | Filtro opcional para key seller. |
+
+ObservaÃ§Ã£o operacional:
+
+- `productOfferV2` ainda nao foi validada por chamada real neste projeto;
+- o contrato atual validado em execucao continua sendo `shopOfferV2`;
+- qualquer troca do provider principal para `productOfferV2` exige preview,
+  chamada controlada e captura de resposta real antes de consolidar.
+
+## Contrato adicional documentado: `listItemFeeds`
+
+Este contrato fica registrado como discovery de feeds disponiveis para download
+em massa, antes da chamada de dados paginados.
+
+Query:
+
+```text
+listItemFeeds
+```
+
+Objetivo:
+
+- descobrir feeds disponiveis antes do download;
+- listar metadados como id, data, total de registros e modo do feed;
+- preparar a chamada seguinte de `getItemFeedData`.
+
+ParÃ¢metros:
+
+| Campo | Tipo | DescriÃ§Ã£o |
+| --- | --- | --- |
+| `feedMode` | `FeedMode` | Filtro opcional por `FULL` ou `DELTA`. Sem valor, retorna todos os feeds disponiveis. |
+
+ObservaÃ§Ã£o operacional:
+
+- usar `listItemFeeds` antes de `getItemFeedData`;
+- o retorno esperado inclui metadados suficientes para montar o `datafeedId`;
+- este contrato ainda nao foi validado por chamada real neste projeto.
+
+## Contrato adicional documentado: `getItemFeedData`
+
+Este contrato fica registrado como download paginado dos dados reais do feed.
+
+Query:
+
+```text
+getItemFeedData
+```
+
+Objetivo:
+
+- baixar registros reais de produto a partir de um feed descoberto;
+- suportar FULL sync com dataset completo;
+- suportar DELTA sync com mudancas incrementais por item.
+
+ParÃ¢metros:
+
+| Campo | Tipo | DescriÃ§Ã£o |
+| --- | --- | --- |
+| `datafeedId` | `String` | Obrigatorio. Id composto vindo de `listItemFeeds`, no formato `{datafeedId}_{feedMode}_{grassDate}`. |
+| `offset` | `Int` | Offset da pagina, com inicio em `0`. Padrao: `0`. |
+| `limit` | `Int` | Quantidade de registros por pagina. Padrao: `500`. Maximo: `500`. |
+
+ObservaÃ§Ã£o operacional:
+
+- `getItemFeedData` depende de `datafeedId` retornado por `listItemFeeds`;
+- em modo `DELTA`, cada linha pode trazer `updateType` com `NEW`, `UPDATE`
+  ou `DELETE`;
+- este contrato ainda nao foi validado por chamada real neste projeto.
 
 ## EvidÃªncias observadas
 

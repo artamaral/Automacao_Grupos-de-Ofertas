@@ -23,6 +23,15 @@ operationName=ShopOfferList
 query=shopOfferV2
 ```
 
+Outros contratos documentados para referencia:
+
+```text
+query=shopeeOfferV2
+query=productOfferV2
+query=listItemFeeds
+query=getItemFeedData
+```
+
 A URL pode ser sobrescrita localmente por `SHOPEE_GRAPHQL_URL`, sem versionar
 segredos ou credenciais.
 
@@ -41,6 +50,7 @@ Antes de executar qualquer chamada real, conferir no ambiente oficial da Shopee:
 - headers obrigatorios;
 - formato correto da assinatura GraphQL;
 - query `shopOfferV2`;
+- diferenciar se a chamada desejada e de loja (`shopOfferV2`), oferta antiga (`shopeeOfferV2`), produto (`productOfferV2`) ou feed em lote (`listItemFeeds` / `getItemFeedData`);
 - campos obrigatórios de paginação/limite;
 - formato esperado da resposta.
 

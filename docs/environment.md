@@ -36,7 +36,7 @@ Exemplo seguro para a sessao atual:
 $env:SHOPEE_GRAPHQL_URL="https://open-api.affiliate.shopee.com.br/graphql"
 ```
 
-A Open API de afiliados validada para a Shopee usa GraphQL. A query de lista atualmente validada e `shopOfferV2`, e a mutacao `generateShortLink` deve ser usada para gerar links curtos rastreaveis.
+A Open API de afiliados validada para a Shopee usa GraphQL. O contrato hoje validado em chamada real e `shopOfferV2`. Alem dele, mantemos registrados `shopeeOfferV2` como fluxo antigo de ofertas, `productOfferV2` como contrato de busca por produto e o fluxo de feed em lote com `listItemFeeds` + `getItemFeedData`.
 
 ## VariÃ¡veis gerais
 
@@ -77,6 +77,14 @@ Estado atual:
 - chamada real continua desativada por padrao via `ENABLE_REAL_HTTP=false`;
 - payload real ainda nao deve ser usado sem anonimizacao;
 - short links devem ser gerados pela mutacao `generateShortLink`.
+
+Contratos conhecidos da Shopee neste projeto:
+
+- `shopOfferV2`: busca por loja/oferta de loja, contrato validado em chamada real.
+- `shopeeOfferV2`: busca antiga por oferta, mantida como referencia historica.
+- `productOfferV2`: busca por item/produto, documentada mas ainda nao validada em chamada real.
+- `listItemFeeds`: discovery de feeds disponiveis para download em massa.
+- `getItemFeedData`: download paginado do conteudo real do feed.
 
 ## Amazon
 
