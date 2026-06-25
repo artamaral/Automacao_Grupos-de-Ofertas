@@ -43,4 +43,6 @@ def test_review_queue_summary_cli_prints_status_counts(tmp_path, capsys) -> None
     assert "Pendentes: 1" in output
     assert "Aprovadas: 1" in output
     assert "Rejeitadas: 1" in output
+    assert "Roteadas: 0" in output
+    assert "Sem rota: 3" in output
     assert "Nenhum envio" in output

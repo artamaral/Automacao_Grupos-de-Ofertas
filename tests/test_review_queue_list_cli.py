@@ -3,6 +3,7 @@ from ofertas_bot.review_queue_list_cli import run
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     MessageReviewQueueItem,
+    MessageReviewRouting,
 )
 
 
@@ -35,6 +36,13 @@ def test_review_queue_list_cli_prints_items(tmp_path, capsys) -> None:
                 status="approved",
                 reviewer="Arthur",
                 notes="ok",
+                routing=MessageReviewRouting(
+                    group_slug="beleza-ofertas",
+                    group_name="Beleza Ofertas",
+                    destination_kind="group",
+                    destination_ref="grupo-beleza",
+                    message_tone="consultivo",
+                ),
             ),
         )
     )
@@ -48,6 +56,8 @@ def test_review_queue_list_cli_prints_items(tmp_path, capsys) -> None:
     assert "Produto pendente" in output
     assert "Produto aprovado" in output
     assert "reviewer=Arthur" in output
+    assert "group=beleza-ofertas" in output
+    assert "destination_ref=grupo-beleza" in output
     assert "Nenhum envio" in output
 
 

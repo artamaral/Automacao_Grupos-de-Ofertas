@@ -19,6 +19,9 @@ Fluxo recomendado para operação recorrente:
 O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
 e está documentado em [`docs/discovery-profiles.md`](discovery-profiles.md).
 
+Os grupos de destino devem ser mantidos em [`config/group_profiles.toml`](../config/group_profiles.toml)
+e estão descritos em [`docs/group-profiles.md`](group-profiles.md).
+
 Quando a meta for aprender com a saída da coleta, o caminho recomendado é salvar
 também a inspeção estruturada:
 
@@ -66,7 +69,7 @@ A etapa `prepare`:
 - gera mensagens;
 - valida compliance;
 - salva artefatos locais;
-- cria fila de revisão pendente;
+- cria fila de revisão pendente já roteada pelo catálogo de grupos quando houver correspondência;
 - não envia nada;
 - não chama publicação real.
 
@@ -109,6 +112,9 @@ ofertas-review-gate
 ofertas-manifest-validate
 ofertas-local-doctor
 ```
+
+Na revisão humana, o item deve ser avaliado já com o contexto de `group`, `destination_ref`
+e tom configurado no catálogo operacional, para reduzir decisão solta fora da configuração.
 
 ## Validação de desenvolvimento
 

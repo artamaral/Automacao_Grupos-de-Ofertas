@@ -1,10 +1,12 @@
 import pytest
 
+from ofertas_bot.group_profiles import GroupProfile, GroupProfileCatalog
 from ofertas_bot.models import Marketplace, MessageDraft, Offer
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     MessageReviewQueueItem,
     MessageReviewQueueUpdateError,
+    MessageReviewRouting,
     approve_review_queue_item,
     approved_review_drafts,
     create_pending_review_queue,
@@ -34,10 +36,34 @@ def make_draft(title: str = "Produto teste") -> MessageDraft:
 
 def test_create_pending_review_queue() -> None:
     draft = make_draft()
+    catalog = GroupProfileCatalog.from_iterable(
+        (
+            GroupProfile(
+                slug="grupo-teste",
+                name="Grupo Teste",
+                allowed_niches=("teste",),
+                allowed_marketplaces=(Marketplace.AMAZON,),
+                destination_kind="group",
+                destination_ref="grupo-teste-destino",
+                message_tone="direto",
+            ),
+        )
+    )
 
-    items = create_pending_review_queue((draft,))
+    items = create_pending_review_queue((draft,), group_catalog=catalog)
 
-    assert items == (MessageReviewQueueItem(draft=draft),)
+    assert items == (
+        MessageReviewQueueItem(
+            draft=draft,
+            routing=MessageReviewRouting(
+                group_slug="grupo-teste",
+                group_name="Grupo Teste",
+                destination_kind="group",
+                destination_ref="grupo-teste-destino",
+                message_tone="direto",
+            ),
+        ),
+    )
 
 
 def test_json_message_review_queue_store_saves_and_loads_items(tmp_path) -> None:
@@ -89,6 +115,8 @@ def test_summarize_review_queue_counts_statuses() -> None:
         "pending": 2,
         "approved": 1,
         "rejected": 1,
+        "routed": 0,
+        "unrouted": 4,
     }
 
 
@@ -121,6 +149,24 @@ def test_reject_review_queue_item_marks_item_as_rejected() -> None:
     assert updated_items[0].status == "rejected"
     assert updated_items[0].reviewer == "Arthur"
     assert updated_items[0].notes == "fora do grupo"
+
+
+def test_create_pending_review_queue_keeps_unrouted_item_when_no_group_matches() -> None:
+    draft = make_draft()
+    catalog = GroupProfileCatalog.from_iterable(
+        (
+            GroupProfile(
+                slug="grupo-beleza",
+                name="Grupo Beleza",
+                allowed_niches=("beleza",),
+                allowed_marketplaces=(Marketplace.MOCK,),
+            ),
+        )
+    )
+
+    items = create_pending_review_queue((draft,), group_catalog=catalog)
+
+    assert items == (MessageReviewQueueItem(draft=draft),)
 
 
 def test_review_queue_item_update_rejects_out_of_range_item_number() -> None:

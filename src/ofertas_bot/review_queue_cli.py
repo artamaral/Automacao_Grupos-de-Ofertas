@@ -75,9 +75,16 @@ def run(argv: Sequence[str] | None = None) -> int:
     ) as error:
         return _print_review_queue_error(error=error)
 
+    updated_item = updated_items[args.item - 1]
+    routing_suffix = ""
+    if updated_item.routing is not None:
+        routing_suffix = (
+            f" | group={updated_item.routing.group_slug}"
+            f" | destination_ref={updated_item.routing.destination_ref or '-'}"
+        )
     print(
         f"INFO | Item {args.item} da fila marcado como {args.status} "
-        f"por {args.reviewer.strip()}"
+        f"por {args.reviewer.strip()}{routing_suffix}"
     )
     print("INFO | Nenhum envio foi executado.")
     return 0

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, TypedDict, cast
 
+from ofertas_bot.group_profiles import DEFAULT_GROUP_PROFILES, GroupProfileCatalog
 from ofertas_bot.models import MessageDraft
 from ofertas_bot.storage.json_message_draft_store import (
     message_draft_from_json,
@@ -32,6 +33,17 @@ class MessageReviewQueueSummary(TypedDict):
     pending: int
     approved: int
     rejected: int
+    routed: int
+    unrouted: int
+
+
+@dataclass(frozen=True)
+class MessageReviewRouting:
+    group_slug: str
+    group_name: str
+    destination_kind: str
+    destination_ref: str | None
+    message_tone: str
 
 
 @dataclass(frozen=True)
@@ -40,6 +52,7 @@ class MessageReviewQueueItem:
     status: ReviewStatus = "pending"
     reviewer: str | None = None
     notes: str = ""
+    routing: MessageReviewRouting | None = None
 
 
 class JsonMessageReviewQueueStore:
@@ -79,8 +92,33 @@ class JsonMessageReviewQueueStore:
 
 def create_pending_review_queue(
     drafts: tuple[MessageDraft, ...],
+    group_catalog: GroupProfileCatalog = DEFAULT_GROUP_PROFILES,
 ) -> tuple[MessageReviewQueueItem, ...]:
-    return tuple(MessageReviewQueueItem(draft=draft) for draft in drafts)
+    items: list[MessageReviewQueueItem] = []
+    for draft in drafts:
+        matching_profiles = tuple(
+            profile
+            for profile in group_catalog.active_profiles()
+            if profile.allows_niche(draft.offer.niche)
+            and profile.allows_marketplace(draft.offer.marketplace)
+        )
+        if not matching_profiles:
+            items.append(MessageReviewQueueItem(draft=draft))
+            continue
+        for profile in matching_profiles:
+            items.append(
+                MessageReviewQueueItem(
+                    draft=draft,
+                    routing=MessageReviewRouting(
+                        group_slug=profile.slug,
+                        group_name=profile.name,
+                        destination_kind=profile.destination_kind,
+                        destination_ref=profile.destination_ref,
+                        message_tone=profile.message_tone,
+                    ),
+                )
+            )
+    return tuple(items)
 
 
 def approved_review_drafts(
@@ -97,9 +135,15 @@ def summarize_review_queue(
         "pending": 0,
         "approved": 0,
         "rejected": 0,
+        "routed": 0,
+        "unrouted": 0,
     }
     for item in items:
         summary[item.status] += 1
+        if item.routing is None:
+            summary["unrouted"] += 1
+        else:
+            summary["routed"] += 1
     return summary
 
 
@@ -151,6 +195,7 @@ def mark_review_queue_item(
         status=status,
         reviewer=_clean_reviewer(reviewer),
         notes=notes.strip(),
+        routing=original.routing,
     )
     return tuple(updated_items)
 
@@ -163,6 +208,7 @@ def message_review_queue_item_to_json(
         "status": item.status,
         "reviewer": item.reviewer,
         "notes": item.notes,
+        "routing": message_review_routing_to_json(item.routing),
     }
 
 
@@ -182,9 +228,46 @@ def message_review_queue_item_from_json(data: object) -> MessageReviewQueueItem:
             status=status,
             reviewer=_optional_str(data.get("reviewer")),
             notes=str(data.get("notes", "")),
+            routing=message_review_routing_from_json(data.get("routing")),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved message review queue item is invalid"
+        raise MessageReviewQueueStoreError(msg) from error
+
+
+def message_review_routing_to_json(
+    routing: MessageReviewRouting | None,
+) -> dict[str, Any] | None:
+    if routing is None:
+        return None
+    return {
+        "group_slug": routing.group_slug,
+        "group_name": routing.group_name,
+        "destination_kind": routing.destination_kind,
+        "destination_ref": routing.destination_ref,
+        "message_tone": routing.message_tone,
+    }
+
+
+def message_review_routing_from_json(
+    data: object,
+) -> MessageReviewRouting | None:
+    if data is None:
+        return None
+    if not isinstance(data, dict):
+        msg = "Saved message review queue routing must be an object"
+        raise MessageReviewQueueStoreError(msg)
+
+    try:
+        return MessageReviewRouting(
+            group_slug=str(data["group_slug"]).strip().lower(),
+            group_name=str(data["group_name"]).strip(),
+            destination_kind=str(data["destination_kind"]).strip().lower(),
+            destination_ref=_optional_str(data.get("destination_ref")),
+            message_tone=str(data["message_tone"]).strip().lower(),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        msg = "Saved message review queue routing is invalid"
         raise MessageReviewQueueStoreError(msg) from error
 
 

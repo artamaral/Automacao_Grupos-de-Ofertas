@@ -35,6 +35,8 @@ def run(argv: Sequence[str] | None = None) -> int:
     print(f"INFO | Pendentes: {summary['pending']}")
     print(f"INFO | Aprovadas: {summary['approved']}")
     print(f"INFO | Rejeitadas: {summary['rejected']}")
+    print(f"INFO | Roteadas: {summary['routed']}")
+    print(f"INFO | Sem rota: {summary['unrouted']}")
     print("INFO | Nenhum envio foi executado.")
     return 0
 

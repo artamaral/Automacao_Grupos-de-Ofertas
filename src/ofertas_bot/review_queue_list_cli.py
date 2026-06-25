@@ -47,8 +47,14 @@ def _format_review_queue_item(item_number: int, item: MessageReviewQueueItem) ->
     offer = item.draft.offer
     reviewer = item.reviewer or "-"
     notes = item.notes or "-"
+    routing = item.routing
+    group_slug = routing.group_slug if routing is not None else "-"
+    destination_ref = routing.destination_ref if routing is not None else "-"
+    destination_kind = routing.destination_kind if routing is not None else "-"
     return (
         f"ITEM | {item_number} | status={item.status} | "
+        f"group={group_slug} | destination_kind={destination_kind} | "
+        f"destination_ref={destination_ref} | "
         f"marketplace={offer.marketplace.value} | niche={offer.niche} | "
         f"price=R$ {offer.price:.2f} | title={offer.title} | "
         f"reviewer={reviewer} | notes={notes}"

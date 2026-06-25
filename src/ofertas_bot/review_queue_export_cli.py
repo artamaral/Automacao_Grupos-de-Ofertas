@@ -8,10 +8,10 @@ from pathlib import Path
 from ofertas_bot.storage.json_message_draft_store import (
     JsonMessageDraftStore,
     MessageDraftStoreWriteError,
-    format_message_drafts_for_review,
 )
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
+    MessageReviewQueueItem,
     MessageReviewQueueStoreError,
     approved_review_drafts,
     summarize_review_queue,
@@ -69,7 +69,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             save_path = Path(args.save_approved_messages_text)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             save_path.write_text(
-                format_message_drafts_for_review(approved_drafts),
+                format_review_queue_items_for_export(queue_items),
                 encoding=REVIEW_TEXT_ENCODING,
             )
             print(f"INFO | Revisão aprovada salva em {save_path}")
@@ -107,6 +107,53 @@ def _print_export_error(error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print("AÇÃO | Verifique caminhos e formato da fila.", file=sys.stderr)
     return 3
+
+
+def format_review_queue_items_for_export(
+    items: tuple[MessageReviewQueueItem, ...],
+) -> str:
+    approved_items = [item for item in items if item.status == "approved"]
+    if not approved_items:
+        return "Nenhuma mensagem aprovada para revisao.\n"
+
+    blocks = [
+        _format_review_queue_item_for_export(index=index, item=item)
+        for index, item in enumerate(approved_items, start=1)
+    ]
+    return "\n\n".join(blocks) + "\n"
+
+
+def _format_review_queue_item_for_export(
+    *,
+    index: int,
+    item: MessageReviewQueueItem,
+) -> str:
+    offer = item.draft.offer
+    routing = item.routing
+    price_line = (
+        f"Preco: R$ {offer.price:.2f}"
+        if offer.price > 0
+        else "Preco: consulte o valor atualizado no link da oferta"
+    )
+    lines = [
+        f"# Mensagem {index}",
+        f"Marketplace: {offer.marketplace.value}",
+        f"Nicho: {offer.niche}",
+        f"Oferta: {offer.title}",
+        price_line,
+        f"Link: {offer.url}",
+    ]
+    if routing is not None:
+        lines.extend(
+            [
+                f"Grupo: {routing.group_name}",
+                f"Group slug: {routing.group_slug}",
+                f"Destino: {routing.destination_kind}:{routing.destination_ref or '-'}",
+                f"Tom: {routing.message_tone}",
+            ]
+        )
+    lines.extend(["", item.draft.text])
+    return "\n".join(lines)
 
 
 def main() -> None:
