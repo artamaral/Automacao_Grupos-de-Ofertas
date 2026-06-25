@@ -72,6 +72,23 @@ Roupas femininas:
 """
 
 [[profiles]]
+slug = "pets"
+name = "Pets"
+niche = "pets"
+marketplace = "shopee"
+discovery_method = "descobridor-geral"
+target = "grupo-pets"
+limit = 2
+keywords = []
+brands = []
+creators = []
+categories = ["pets"]
+include_terms = []
+exclude_terms = []
+shopee_offer_keyword = "Pets"
+subgroups = []
+
+[[profiles]]
 slug = "mae-e-bebe"
 name = "Mae e Bebe"
 niche = "mae e bebe"
