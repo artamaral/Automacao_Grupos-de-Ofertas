@@ -52,6 +52,21 @@ Para reduzir interrupções durante o desenvolvimento assistido:
 - Quando vários testes validarem o mesmo bloco de mudanças, solicitar uma única rodada de `ruff` e `pytest` ao final do bloco.
 - Se uma etapa falhar por lint ou teste, corrigir a falha antes de iniciar nova funcionalidade.
 
+### Regra para testes e chamadas de API
+
+Para evitar confusão na leitura dos resultados:
+
+- Em testes de API, executar exatamente os parâmetros, filtros, keywords e campos solicitados pelo usuário.
+- Não inferir nem acrescentar `keyword`, `listType`, `matchId`, `sortType`, `shopId`, `itemId`, `productCatId`, `isAMSOffer`, `isKeySeller` ou qualquer outro parâmetro sem pedido explícito do usuário.
+- Não trocar nomes da API por apelidos internos ao descrever query, parâmetro, campo ou resultado.
+- Quando houver necessidade de paginação, deixar explícito que a mesma query foi repetida mudando apenas `page`.
+- Sempre separar com clareza:
+  - o que foi pedido pelo usuário;
+  - o que foi realmente enviado na query;
+  - o que voltou na resposta.
+- Se a informação fornecida pelo usuário for insuficiente para montar a chamada com segurança, parar e solicitar os dados faltantes ao usuário antes de executar.
+- Se for útil sugerir um cenário alternativo de teste, apresentar isso como sugestão separada, nunca misturada com a execução principal pedida pelo usuário.
+
 Comandos locais recomendados após mudanças no GitHub:
 
 ```powershell
