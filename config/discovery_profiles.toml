@@ -105,34 +105,34 @@ name = "Auto e Moto"
 niche = "auto e moto"
 marketplace = "mock"
 discovery_method = "descobridor-geral"
-query = "carro moto acessorios automotivos"
+query = "acessorios automotivos carro"
 target = "grupo-auto-e-moto"
 limit = 2
-keywords = ["carro", "moto", "acessorios"]
+keywords = ["acessorio carro", "suporte celular carro", "carregador veicular", "camera veicular", "multimidia automotiva"]
 brands = []
 creators = []
 categories = ["auto e moto"]
 include_terms = []
-exclude_terms = []
+exclude_terms = ["bicicleta", "hot wheels", "controle remoto", "sucata", "pneu usado", "usado"]
 shopee_category_urls = [
   "https://shopee.com.br/Motorcycles-cat.11059990",
   "https://shopee.com.br/Automobiles-cat.11059972",
 ]
+shopee_product_match_ids = [11059972, 11059990]
 shopee_product_category_ids = [11059990, 11059972]
 subgroups = [
-  { slug = "limpeza", label = "Limpeza Veicular", query = "limpeza veicular cera shampoo automotivo pretinho", categories = ["Limpeza Veicular"] },
-  { slug = "acessorios-internos", label = "Acessorios Internos", query = "acessorios internos automoveis suporte banco tapete", categories = ["Acessórios Internos para Automóveis"] },
-  { slug = "acessorios-externos", label = "Acessorios Externos", query = "acessorios externos automoveis pelicula antena capa", categories = ["Acessórios Externos para Automóveis"] },
-  { slug = "ferramentas", label = "Ferramentas Veiculares", query = "ferramentas veiculares macaco chave compressor", categories = ["Ferramentas Veiculares"] },
-  { slug = "pecas-auto", label = "Pecas Auto", query = "pecas reposicao automoveis lampada retrovisor filtro", categories = ["Peças de Reposição para Automóveis"] },
-  { slug = "pneus-e-rodas", label = "Pneus e Rodas", query = "pneus rodas calibrador", categories = ["Pneus e Rodas"] },
-  { slug = "seguranca", label = "Seguranca Veicular", query = "seguranca veicular camera alarme sensor", categories = ["Segurança Veicular"] },
-  { slug = "moto", label = "Moto", query = "acessorios motocicletas pecas moto capacete", categories = ["Peças de Reposição para Motocicletas", "Acessórios para Motocicletas"] },
+  { slug = "organizacao", label = "Organizacao e Interior", query = "organizador carro retrovisor auxiliar acessorio interior carro", categories = ["Acessórios Internos para Automóveis"] },
+  { slug = "energia-e-conectividade", label = "Energia e Conectividade", query = "suporte celular carro carregador veicular bluetooth carro", categories = ["Acessórios Internos para Automóveis"] },
+  { slug = "seguranca-e-monitoramento", label = "Seguranca e Monitoramento", query = "camera veicular dash cam sensor estacionamento", categories = ["Segurança Veicular"] },
+  { slug = "pneus-e-pressao", label = "Pneus e Pressao", query = "compressor ar portatil calibrador pneu medidor pressao pneu", categories = ["Pneus e Rodas"] },
+  { slug = "multimidia", label = "Multimidia", query = "multimidia automotiva radio carro central multimidia", categories = ["Acessórios Internos para Automóveis"] },
+  { slug = "limpeza-e-estetica", label = "Limpeza e Estetica", query = "aspirador carro limpeza automotiva polimento automotivo", categories = ["Limpeza Veicular"] },
 ]
 notes = """
-Lista visível observada manualmente na Shopee para automotivo.
-Esta referência é parcial e não exaustiva; existem subcategorias adicionais
-que não foram mapeadas neste momento.
+Referência operacional inicial para automotivo na Shopee.
+Este recorte está focado em carro e acessórios de uso automotivo, usando
+`matchId` de automóveis e motocicletas apenas como ponto de partida de
+descoberta. A curadoria final continua filtrando o que não serve para o nicho.
 
 - Pneus e Rodas
 - Acessórios Internos para Automóveis
