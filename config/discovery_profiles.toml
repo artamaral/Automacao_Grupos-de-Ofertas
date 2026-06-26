@@ -72,23 +72,6 @@ Roupas femininas:
 """
 
 [[profiles]]
-slug = "pets"
-name = "Pets"
-niche = "pets"
-marketplace = "shopee"
-discovery_method = "descobridor-geral"
-target = "grupo-pets"
-limit = 2
-keywords = []
-brands = []
-creators = []
-categories = ["pets"]
-include_terms = []
-exclude_terms = []
-shopee_offer_keyword = "Pets"
-subgroups = []
-
-[[profiles]]
 slug = "mae-e-bebe"
 name = "Mae e Bebe"
 niche = "mae e bebe"
@@ -103,7 +86,10 @@ creators = []
 categories = ["mae e bebe"]
 include_terms = []
 exclude_terms = []
-shopee_offer_keyword = "Mom & Baby"
+shopee_offer_names = ["Mom & Baby"]
+shopee_category_urls = ["https://shopee.com.br/Baby-Kids-Fashion-cat.11059973"]
+shopee_product_match_ids = [100632]
+shopee_product_category_ids = [11059973]
 subgroups = [
   { slug = "fraldas", label = "Fraldas", query = "fraldas penicos lencos umedecidos", categories = ["Fraldas e Penicos"] },
   { slug = "enxoval", label = "Enxoval e Bercario", query = "bercario enxoval bebe quarto infantil", categories = ["Berçário"] },
@@ -149,7 +135,11 @@ creators = []
 categories = ["auto e moto"]
 include_terms = []
 exclude_terms = []
-shopee_offer_keyword = "Motorcycles"
+shopee_category_urls = [
+  "https://shopee.com.br/Motorcycles-cat.11059990",
+  "https://shopee.com.br/Automobiles-cat.11059972",
+]
+shopee_product_category_ids = [11059990, 11059972]
 subgroups = [
   { slug = "limpeza", label = "Limpeza Veicular", query = "limpeza veicular cera shampoo automotivo pretinho", categories = ["Limpeza Veicular"] },
   { slug = "acessorios-internos", label = "Acessorios Internos", query = "acessorios internos automoveis suporte banco tapete", categories = ["Acessórios Internos para Automóveis"] },
@@ -204,3 +194,27 @@ Nicho amplo e transversal. Não há uma lista única de categorias visíveis
 registrada aqui porque ele pode reaproveitar itens de múltiplas áreas da
 Shopee. O detalhamento deve ser refinado conforme a operação avançar.
 """
+
+[[profiles]]
+slug = "pets"
+name = "Pets"
+niche = "pets"
+marketplace = "shopee"
+discovery_method = "descobridor-geral"
+query = "pets"
+target = "grupo-pets"
+limit = 2
+
+keywords = ["pet", "cachorro", "gato"]
+brands = []
+creators = []
+categories = ["pets"]
+include_terms = []
+exclude_terms = []
+
+shopee_offer_names = ["Pets"]
+shopee_category_urls = ["https://shopee.com.br/Pet-Supplies-cat.11059995"]
+shopee_product_match_ids = []
+shopee_product_category_ids = [11059995]
+
+subgroups = []
