@@ -82,6 +82,14 @@ Também fica registrada a decisão arquitetural:
 - depois da coleta, o sistema deve classificar a oferta e só então decidir seu
   roteamento.
 
+Nova decisão operacional desta etapa:
+
+- o `Scorer` continua rankeando a base elegível;
+- o `Copywriter GPT` não deve receber automaticamente todos os itens pontuados;
+- entre score e copy deve existir um gate de seleção configurável;
+- esse gate deve concentrar regras temporais, bandas por nicho/subnicho,
+  diversidade por similaridade e refresh final de preço/comissão.
+
 ## 3. Geração de mensagens
 
 ### O que já existe
@@ -108,6 +116,75 @@ O que falta para este eixo:
 ### Decisão
 
 A próxima implementação deve consolidar a geração de mensagens como etapa operacional clara e reaproveitável, sem criar novos formatos paralelos.
+
+Fronteira registrada para GPT:
+
+- GPT não escolhe a oferta;
+- GPT não aplica banda;
+- GPT não decide similaridade;
+- GPT não resolve staleness de preço/comissão;
+- GPT recebe apenas `CopyBrief` de itens já aprovados pela seleção.
+
+## Regras de seleção antes do copy
+
+As próximas implementações do fluxo principal devem tratar a seleção como camada
+própria de negócio, com config explícito.
+
+### 1. Janela temporal
+
+- persistir `selected_at` por oferta;
+- aplicar `cooldown` simples como regra temporária;
+- depois do vencimento, a oferta volta a ficar elegível;
+- manter essa regra em config, e não hardcoded.
+
+Config esperado:
+
+- `selection.cooldown_hours_default`
+
+### 2. Banda por nicho e subnicho
+
+- a rodada não deve distribuir volume igual entre subnichos por padrão;
+- cada nicho/subnicho deve ter uma banda percentual do total da rodada;
+- a calibração deve usar histograma de vendas por nicho/subnicho;
+- a banda limita volume máximo, mas não obriga preencher cota com item fraco.
+
+Config esperado:
+
+- `selection.band_allocation`
+
+### 3. Similaridade e diversidade
+
+- usar regra de similaridade por descrição normalizada + vendedor;
+- manter o melhor item do cluster e suprimir os demais na rodada;
+- registrar essa supressão como motivo operacional próprio;
+- não usar essa supressão como rejeição definitiva para calibragem de score.
+
+Config esperado:
+
+- `selection.similarity`
+
+### 4. Refresh final antes do copy
+
+- todo item selecionado deve ter preço e comissão rechecados via API;
+- se algum item mudar, a lista precisa ser reordenada e reavaliada;
+- repetir o ciclo até a saída estabilizar ou atingir o limite configurado;
+- bloquear ida para copy quando a lista continuar stale além do limite.
+
+Config esperado:
+
+- `selection.refresh_before_copy`
+
+### Registro obrigatório
+
+Independentemente da implementação concreta, essa camada deve registrar:
+
+- `selected_at`
+- `cooldown_until`
+- `selection_reason`
+- `similarity_status`
+- `refresh_iteration`
+- `fields_changed`
+- `stability_reached`
 
 ## O que fica congelado por enquanto
 

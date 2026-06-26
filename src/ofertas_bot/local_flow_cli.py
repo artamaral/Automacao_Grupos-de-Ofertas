@@ -47,6 +47,10 @@ class LocalFlowPaths:
         return self.data_dir / "messages.json"
 
     @property
+    def copy_briefs_json(self) -> Path:
+        return self.data_dir / "copy_briefs.json"
+
+    @property
     def messages_text(self) -> Path:
         return self.data_dir / "messages.txt"
 
@@ -399,6 +403,8 @@ def _build_prepare_harness_args(
             str(paths.offers_json),
             "--save-messages-json",
             str(paths.messages_json),
+            "--save-copy-briefs-json",
+            str(paths.copy_briefs_json),
             "--save-messages-text",
             str(paths.messages_text),
             "--save-review-queue-json",

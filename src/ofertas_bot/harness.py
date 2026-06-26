@@ -12,6 +12,7 @@ from ofertas_bot.agents.compliance import ComplianceAgent
 from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
+from ofertas_bot.copy_brief import build_copy_briefs
 from ofertas_bot.discovery_profiles import (
     DiscoveryProfile,
     DiscoveryProfileError,
@@ -31,6 +32,10 @@ from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_collection_inspection_store import (
     CollectionInspectionStoreWriteError,
     JsonCollectionInspectionStore,
+)
+from ofertas_bot.storage.json_copy_brief_store import (
+    CopyBriefStoreWriteError,
+    JsonCopyBriefStore,
 )
 from ofertas_bot.storage.json_message_draft_store import (
     JsonMessageDraftStore,
@@ -113,6 +118,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--save-messages-json",
         default=None,
         help="Caminho local para salvar mensagens aprovadas em JSON",
+    )
+    parser.add_argument(
+        "--save-copy-briefs-json",
+        default=None,
+        help="Caminho local para salvar briefs estruturados para copywriter GPT",
     )
     parser.add_argument(
         "--save-messages-text",
@@ -320,6 +330,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(f"INFO | Ofertas normalizadas salvas em {save_path}")
 
     scored_offers = scorer.score(offers)
+    copy_briefs = build_copy_briefs(scored_offers)
     approved_drafts: list[MessageDraft] = []
 
     print(
@@ -375,6 +386,16 @@ def run(argv: Sequence[str] | None = None) -> int:
         except MessageDraftStoreWriteError as error:
             return _print_save_messages_json_error(error=error)
         print(f"INFO | Mensagens aprovadas salvas em {save_path}")
+
+    if args.save_copy_briefs_json:
+        save_path = Path(args.save_copy_briefs_json)
+        if _is_root_output_path(save_path):
+            _print_save_json_root_warning(save_path)
+        try:
+            JsonCopyBriefStore(path=save_path).save(copy_briefs)
+        except CopyBriefStoreWriteError as error:
+            return _print_save_copy_briefs_json_error(error=error)
+        print(f"INFO | Briefs de copy salvos em {save_path}")
 
     if args.save_messages_text:
         save_path = Path(args.save_messages_text)
@@ -732,6 +753,16 @@ def _print_save_messages_json_error(error: Exception) -> int:
     return 3
 
 
+def _print_save_copy_briefs_json_error(error: Exception) -> int:
+    print("ERRO | Nao foi possivel salvar o JSON de briefs de copy", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "ACAO | Verifique se o caminho e um arquivo valido e se ha permissao de escrita.",
+        file=sys.stderr,
+    )
+    return 3
+
+
 def _print_save_messages_text_error(error: Exception) -> int:
     print("ERRO | Não foi possível salvar o texto de revisão", file=sys.stderr)
     print(f"DETALHE | {error}", file=sys.stderr)
@@ -799,8 +830,12 @@ def _build_collection_inspection_payload(
         "shopee_offer_keyword": profile.shopee_offer_keyword if profile is not None else None,
         "shopee_offer_names": list(profile.shopee_offer_names) if profile is not None else [],
         "shopee_category_urls": list(profile.shopee_category_urls) if profile is not None else [],
-        "shopee_product_match_ids": list(profile.shopee_product_match_ids) if profile is not None else [],
-        "shopee_product_category_ids": list(profile.shopee_product_category_ids) if profile is not None else [],
+        "shopee_product_match_ids": list(profile.shopee_product_match_ids)
+        if profile is not None
+        else [],
+        "shopee_product_category_ids": list(profile.shopee_product_category_ids)
+        if profile is not None
+        else [],
     }
     provider_snapshot = _build_provider_snapshot(marketplace=marketplace, raw_response=raw_response)
     return {

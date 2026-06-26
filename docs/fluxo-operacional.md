@@ -58,6 +58,7 @@ O fluxo usa `.data` por padrão:
 
 ```text
 .data/offers.json
+.data/copy_briefs.json
 .data/messages.json
 .data/messages.txt
 .data/review_queue.json
@@ -79,6 +80,9 @@ A etapa `prepare`:
 
 - carrega a base de ofertas em modo seguro;
 - pontua ofertas;
+- aplica gate de selecao antes do copy;
+- rechecagem final de preco e comissao dos itens selecionados;
+- salva `copy_briefs.json` como contrato estruturado entre scorer e copywriter;
 - gera mensagens;
 - valida compliance;
 - salva artefatos locais;
@@ -100,6 +104,56 @@ Regra operacional atual:
 A regra atual de pontuacao esta documentada em [`docs/scoring.md`](scoring.md).
 Ela cobre apenas qualidade comercial basica da oferta; aderencia fina ao grupo,
 subnicho e cupom continuam como camadas futuras de decisao.
+
+O arquivo `.data/copy_briefs.json` deve ser tratado como a entrada operacional
+do futuro copywriter com GPT. Ele deriva de `ScoredOffer` e contem apenas fatos
+permitidos da oferta, `score`, motivos do score, disclosures obrigatorios,
+restricoes de copy e alegacoes proibidas. O GPT deve redigir dentro desse
+contrato, sem inventar preco, disponibilidade, prazo, beneficio ou urgencia.
+
+Antes de gerar `.data/copy_briefs.json`, o fluxo deve passar por uma camada de
+selecao operacional. O scorer pode rankear uma base ampla, mas o copywriter nao
+deve receber todos os itens pontuados. Apenas itens aprovados pelo gate devem
+virar brief de copy.
+
+### Gate de selecao
+
+O gate entre `Scorer` e `Copywriter` deve aplicar quatro blocos de regra:
+
+1. recorrencia temporal:
+   toda oferta selecionada grava `selected_at` e entra em `cooldown`; depois de
+   estourar a janela configurada, ela volta a ser elegivel;
+2. banda por nicho e subnicho:
+   a rodada deve respeitar percentuais configurados por nicho/subnicho, com
+   base em histograma de vendas e nao em divisao uniforme;
+3. similaridade e diversidade:
+   itens muito parecidos devem disputar entre si antes do copy, para evitar
+   repeticao excessiva de descricao e vendedor;
+4. refresh final:
+   todo item selecionado deve ter preco e comissao rechecados via API; se
+   algum item mudar, a lista precisa ser reordenada e revalidada ate estabilizar.
+
+Dentro de cada subnicho, a regra de corte deve ser:
+
+- primeiro filtrar os itens elegiveis;
+- depois ordenar os elegiveis por `score` desc;
+- por fim aplicar a cota do subnicho.
+
+Isso significa que item nao elegivel nao pode ocupar slot da cota, mesmo com
+score maior que outro item elegivel do mesmo subnicho.
+
+O config dessa camada nao deve ficar espalhado em flags soltas. A direcao
+registrada e manter essas decisoes em um bloco de config proprio de selecao,
+com itens como:
+
+- `selection.cooldown_hours_default`
+- `selection.band_allocation`
+- `selection.similarity`
+- `selection.refresh_before_copy`
+
+Enquanto a implementacao nao existir, `copy_briefs.json` deve ser lido como
+contrato alvo da etapa, nao como prova de que todas essas travas ja estao
+ativas no codigo.
 
 ## Etapa finalize
 

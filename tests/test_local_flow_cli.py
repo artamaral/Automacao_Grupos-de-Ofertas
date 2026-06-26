@@ -71,6 +71,7 @@ def test_local_flow_prepare_uses_default_paths(tmp_path, monkeypatch, capsys) ->
     assert calls
     assert str(tmp_path / "review_queue.json") in calls[0]
     assert str(tmp_path / "messages.json") in calls[0]
+    assert str(tmp_path / "copy_briefs.json") in calls[0]
     assert str(tmp_path / "messages.txt") in calls[0]
     assert (tmp_path / "review_plan.json").exists()
     assert (tmp_path / "review_plan.txt").exists()
@@ -252,6 +253,7 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
     paths = local_flow_cli.LocalFlowPaths(data_dir=tmp_path)
 
     assert paths.offers_json == Path(tmp_path / "offers.json")
+    assert paths.copy_briefs_json == Path(tmp_path / "copy_briefs.json")
     assert paths.review_queue_json == Path(tmp_path / "review_queue.json")
     assert paths.approved_messages_json == Path(tmp_path / "approved_messages.json")
     assert paths.approved_messages_by_group_dir == Path(tmp_path / "approved_messages_by_group")
@@ -267,7 +269,10 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
 def test_local_flow_prepare_forwards_catalog_file(tmp_path, monkeypatch) -> None:
     calls: list[list[str]] = []
     catalog_path = tmp_path / "catalog.csv"
-    catalog_path.write_text("productName,offerLink\nProduto,https://example.com/item\n", encoding="utf-8")
+    catalog_path.write_text(
+        "productName,offerLink\nProduto,https://example.com/item\n",
+        encoding="utf-8",
+    )
 
     def fake_harness_run(argv: list[str]) -> int:
         calls.append(argv)

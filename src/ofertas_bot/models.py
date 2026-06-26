@@ -48,6 +48,17 @@ class ScoredOffer:
 
 
 @dataclass(frozen=True)
+class CopyBrief:
+    content_type: str
+    offer: Offer
+    score: float
+    score_reasons: tuple[str, ...]
+    required_disclosures: tuple[str, ...]
+    copy_constraints: tuple[str, ...]
+    forbidden_claims: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class MessageDraft:
     offer: Offer
     text: str

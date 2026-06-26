@@ -24,6 +24,295 @@ Saida:
 - `score` numerico;
 - `reasons` com os motivos exibiveis para revisao humana e copy.
 
+Contrato posterior:
+
+- a saida do scorer deve alimentar um `CopyBrief` antes da geracao de texto;
+- o `CopyBrief` transforma `ScoredOffer` em entrada factual para copywriter GPT;
+- GPT nao deve receber responsabilidade de decidir score ou inventar motivo;
+- GPT deve apenas redigir a partir dos fatos, motivos e restricoes do brief.
+- antes do `CopyBrief`, precisa existir uma camada de selecao operacional;
+- o scorer pode rankear toda a base elegivel, mas o copywriter nao deve receber
+  automaticamente todos os itens pontuados.
+
+## Gate entre score e copy
+
+Entre `Scorer` e `Copywriter` deve existir um gate explicito de selecao:
+
+```text
+Catalogo curado ou provider
+  -> Collector
+  -> Scorer
+  -> SelectionGate
+  -> CopyBrief
+  -> Copywriter GPT
+  -> Compliance
+```
+
+Responsabilidades do `SelectionGate`:
+
+- decidir quais itens do ranking avancam para copy;
+- registrar por que cada item foi selecionado, adiado ou bloqueado;
+- aplicar regras temporais para evitar reciclagem infinita do mesmo item;
+- aplicar bandas de distribuicao por nicho e subnicho;
+- controlar deduplicacao de itens muito parecidos;
+- garantir rechecagem final de preco e comissao antes do `CopyBrief`.
+
+Contrato esperado de saida:
+
+- `SelectedOffer` ou estrutura equivalente;
+- `offer`;
+- `score`;
+- `reasons` do scorer;
+- `selection_reason`;
+- `selected_at`;
+- `cooldown_until`;
+- `selection_bucket` por nicho/subnicho;
+- `refresh_status` da rechecagem final de preco/comissao.
+
+### Regra de corte dentro do subnicho
+
+A cota do subnicho deve ser aplicada apenas sobre itens elegiveis.
+
+Ordem correta:
+
+1. filtrar itens elegiveis do subnicho;
+2. ordenar apenas os elegiveis por `score` desc;
+3. selecionar os `N` primeiros da cota do subnicho;
+4. ignorar itens nao elegiveis, mesmo que tenham score maior.
+
+Exemplo registrado:
+
+```text
+subnicho: mamadeiras
+cota: 2 itens
+
+item | score | elegivel
+1    | 20    | nao
+2    | 19    | sim
+3    | 18    | nao
+4    | 17    | sim
+```
+
+Saida correta:
+
+- item `2`
+- item `4`
+
+Leitura operacional:
+
+- elegibilidade vem antes do corte por score;
+- score ranqueia apenas dentro do conjunto que ja passou nas travas do gate.
+
+## Regras operacionais da selecao
+
+### 1. Recorrencia temporal
+
+Ja fica registrada a decisao de que a data de selecao deve ser persistida.
+
+Objetivo:
+
+- impedir que a mesma oferta seja passada indefinidamente para frente;
+- permitir que uma oferta volte a competir depois de um intervalo controlado.
+
+Regra temporaria inicial:
+
+- toda oferta selecionada deve gravar `selected_at`;
+- a oferta entra em `cooldown` por uma janela simples configuravel;
+- depois de estourar essa janela, a oferta volta a ser elegivel para selecao;
+- a janela inicial deve ser unica e simples, sem diferenciar nicho, ate existir
+  historico suficiente.
+
+Config esperado:
+
+- `selection.cooldown_hours_default`
+
+Melhoria sugerida:
+
+- depois, evoluir para `cooldown` por nicho, grupo ou tipo de oferta;
+- manter tambem `last_sent_at` separado de `selected_at`, para nao misturar
+  selecao interna com envio real.
+
+### 2. Banda por nicho e subnicho
+
+Nao deve existir distribuicao uniforme cega entre nichos e subnichos.
+
+Motivo:
+
+- alguns subnichos performam pior que outros;
+- enviar o mesmo volume para todos distorce a rodada e ocupa espaco com itens
+  de menor probabilidade operacional.
+
+Decisao registrada:
+
+- a selecao deve usar bandas por nicho e subnicho;
+- essas bandas devem viver em config;
+- a banda deve ser definida como percentual do total da rodada;
+- a calibragem inicial deve vir de um histograma de vendas por nicho/subnicho,
+  nao de intuicao.
+
+Config esperado:
+
+- `selection.band_allocation.<niche>.default_share_pct`
+- `selection.band_allocation.<niche>.subniches.<subniche>.share_pct`
+
+Regras praticas:
+
+- a soma dos percentuais ativos de uma rodada deve fechar em `100`;
+- quando um subnicho nao preencher sua propria banda, o saldo pode voltar para
+  um pool redistribuivel do mesmo nicho;
+- a banda limita o volume maximo, mas nao obriga preencher cota com item fraco.
+
+Melhoria sugerida:
+
+- manter junto no config a origem analitica da banda:
+  `histogram_source`, `measured_at` e `sample_size`;
+- recalibrar bandas por janela observada, nao por um snapshot isolado.
+
+### 3. Similaridade e diversidade
+
+Existe risco de a lista final ficar tomada por itens iguais ou quase iguais.
+
+Problema operacional:
+
+- muitos itens diferem pouco em titulo, kit, cor ou anuncio;
+- isso reduz diversidade e impede giro de oportunidades.
+
+Decisao registrada:
+
+- a selecao deve aplicar uma regra de similaridade antes do copy;
+- a regra deve considerar pelo menos descricao e vendedor;
+- quando um item for bloqueado por similaridade, isso deve ser registrado como
+  motivo especifico, e nao como queda silenciosa do score.
+
+Config esperado:
+
+- `selection.similarity.enabled`
+- `selection.similarity.title_normalization`
+- `selection.similarity.same_seller_bias`
+- `selection.similarity.max_similar_items_per_cluster`
+- `selection.similarity.cluster_cooldown_hours`
+
+Regra operacional inicial sugerida:
+
+- agrupar por titulo normalizado + vendedor normalizado;
+- manter o melhor item do grupo por score;
+- bloquear os demais como `similarity_suppressed`;
+- itens bloqueados por similaridade nao devem ser tratados como rejeicao
+  definitiva, porque podem voltar a ser uteis numa rodada futura.
+
+Melhoria sugerida:
+
+- separar `rejected_by_human` de `suppressed_by_similarity`;
+- isso evita contaminar a proxima calibragem do score com bloqueios que foram
+  apenas de diversidade da rodada.
+
+### 4. Rechecagem final de preco e comissao
+
+Como a lista de entrada pode envelhecer, o score nao deve ser considerado final
+sem uma rechecagem operacional de preco e comissao.
+
+Decisao registrada:
+
+- todo item selecionado deve ter preco e comissao rechecados via API no final;
+- se pelo menos um item mudar, a lista de score precisa ser recalculada;
+- esse ciclo deve continuar ate que a lista de saida do score nao tenha mais
+  itens desatualizados.
+
+Leitura pratica:
+
+- o copywriter GPT so deve receber itens ja rechecados;
+- `CopyBrief` nao deve nascer de item com preco/comissao stale;
+- a rodada precisa registrar quantas iteracoes de refresh foram necessarias.
+
+Config esperado:
+
+- `selection.refresh_before_copy.enabled`
+- `selection.refresh_before_copy.max_iterations`
+- `selection.refresh_before_copy.fields = ["price", "commission_rate"]`
+- `selection.refresh_before_copy.stop_when_stable = true`
+
+Registro obrigatorio:
+
+- `refresh_iteration`;
+- `fields_changed`;
+- `stale_items_count`;
+- `rescored_at`;
+- `stability_reached`.
+
+Melhoria sugerida:
+
+- registrar tambem `price_delta_pct` e `commission_delta_pct` por item;
+- se a lista nao estabilizar dentro do limite, bloquear a rodada para copy em
+  vez de seguir com dado sabidamente velho.
+
+## Proposta inicial de cota por subnicho para mae-e-bebe
+
+Estudo usado nesta decisao:
+
+- histograma de vendas por subnicho no catalogo `4.8+`;
+- `score_medio_simples` por subnicho;
+- `score_ponderado_por_vendas` por subnicho;
+- piso inicial de volume em `vendas_totais >= 1000`.
+
+Artefatos de apoio desta rodada:
+
+- `tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv`
+- `tmp/mae-e-bebe-score-test-taxonomy/tabela_proposta_decisao_subnichos.csv`
+- `tmp/mae-e-bebe-score-test-taxonomy/subnichos_por_faixa_score_medio.csv`
+- `tmp/mae-e-bebe-score-test-taxonomy/histograma_score_x_vendas.csv`
+
+Decisao operacional inicial:
+
+- rodada base de `20` itens para copywriter;
+- apenas subnichos que passam no piso de volume entram na banda principal;
+- aplicar teto inicial de `2` itens por subnicho para evitar concentracao;
+- dentro de cada subnicho, escolher os itens elegiveis de maior score.
+
+Distribuicao inicial proposta:
+
+| Subnicho | Itens para copy | Motivo operacional |
+| --- | ---: | --- |
+| `amamentacao-extracao-leite` | `2` | maior massa de vendas do recorte |
+| `roupas-body` | `2` | volume muito forte com score alto |
+| `quarto-monitoramento` | `2` | massa relevante com boa base ativa |
+| `higiene-saude-unhas` | `2` | volume forte e score ponderado alto |
+| `higiene-saude-aspiradores-nasais` | `1` | bom equilibrio de massa e score |
+| `passeio-canguru-ergonomico` | `1` | volume consistente no grupo principal |
+| `roupas-geral` | `1` | score alto com vendas relevantes |
+| `enxoval-kits` | `1` | bom equilibrio entre volume e score |
+| `alimentacao-mamadeiras` | `1` | massa forte no recorte elegivel |
+| `oral-mordedores-chupetas` | `1` | volume forte com boa leitura comercial |
+| `alimentacao-copos-treinamento` | `1` | subnicho grande com score suficiente |
+| `maternidade-bolsas-mochilas` | `1` | volume alto, merece presenca fixa |
+| `troca-trocadores-portateis` | `1` | boa tracao no recorte principal |
+| `brinquedos-montessori` | `1` | ajuda diversidade sem cair para cauda fraca |
+| `passeio-carrinhos` | `1` | volume relevante no nicho |
+| `banho-banheiras` | `1` | massa boa com score estavel |
+
+Total da rodada base:
+
+- `20` itens
+
+Subnichos que ficam fora da banda principal nesta fase:
+
+- subnichos abaixo do piso de volume;
+- subnichos com score alto mas massa observada ainda pequena;
+- subnichos que podem entrar depois como exploracao, nao como cota fixa.
+
+Primeiros candidatos de reposicao ou exploracao:
+
+- `alimentacao-cadeiras`
+- `amamentacao-almofadas`
+- `quarto-sono-mosquiteiros`
+- `alimentacao-pratos-talheres`
+
+Leitura pratica desta decisao:
+
+- a banda principal tenta equilibrar massa de vendas com diversidade;
+- nao segue distribuicao puramente proporcional, para evitar esmagar a rodada em
+  poucos subnichos gigantes;
+- tambem nao usa divisao uniforme, para evitar desperdiçar slots em cauda fraca.
+
 ## Principios
 
 - O score atual mede qualidade comercial basica da oferta.
