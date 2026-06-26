@@ -110,6 +110,47 @@ Leitura operacional de preco:
 - itens sem `shopType` continuam relevantes, mas em geral competem com
   `shopType 2` sem mostrar a mesma forca comercial.
 
+## Validacao comparativa nos catalogos 4.8+
+
+Com a regra atual aceita provisoriamente, foi rodado o mesmo teste de ranking
+`top 10 por subnicho` sobre os catalogos operacionais validados `4.8+` dos tres
+nichos atuais.
+
+Recorte usado:
+
+- `mae-e-bebe`: `39` subnichos, `360` itens no recorte final de top 10;
+- `auto-e-moto`: `10` subnichos, `100` itens no recorte final de top 10;
+- `feminino`: `31` subnichos, `310` itens no recorte final de top 10.
+
+Breakdown por `shopType` dentro desse recorte:
+
+- `mae-e-bebe`: `shopType 2 = 258 itens (71,67%)`,
+  `sem shopType = 81 itens (22,5%)`,
+  `shopType 1 = 21 itens (5,83%)`;
+- `auto-e-moto`: `shopType 2 = 73 itens (73%)`,
+  `sem shopType = 16 itens (16%)`,
+  `shopType 1 = 11 itens (11%)`;
+- `feminino`: `shopType 2 = 176 itens (56,77%)`,
+  `sem shopType = 116 itens (37,42%)`,
+  `shopType 1 = 18 itens (5,81%)`.
+
+Leitura operacional desta validacao:
+
+- `shopType 2` aparece como tipo dominante nos tops por subnicho dos tres
+  nichos testados;
+- `shopType 1` continua forte como sinal de confianca, mas nao domina volume no
+  topo do ranking;
+- itens sem `shopType` continuam aparecendo com frequencia relevante,
+  principalmente em `feminino`, entao nao devem ser descartados;
+- a majoracao de `shopType 2` continua coerente como regra inicial, porque ela
+  conversa nao so com `mae-e-bebe`, mas tambem com os outros nichos testados.
+
+Artefatos gerados nesta rodada:
+
+- `tmp/mae-e-bebe-score-test-taxonomy/top10_por_subnicho.csv`
+- `tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv`
+- `tmp/feminino-score-test-taxonomy/top10_por_subnicho.csv`
+
 ## O que ainda nao entra no score
 
 Fica fora por enquanto:
