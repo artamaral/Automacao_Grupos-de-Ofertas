@@ -3,10 +3,11 @@ from ofertas_bot.tools.shopee_catalog_builder import (
     _build_clean_items,
     _build_deduplicated_items,
     _classify_subniches,
+    _iter_collection_sources,
     _matches_negative_terms,
     _merge_items,
 )
-from ofertas_bot.shopee_catalog_profiles import ShopeeCatalogSubniche
+from ofertas_bot.shopee_catalog_profiles import ShopeeCatalogProfile, ShopeeCatalogSubniche
 
 
 def test_merge_items_combines_source_hits_without_duplication() -> None:
@@ -61,8 +62,6 @@ def test_classify_subniches_matches_keywords_and_respects_negative_terms() -> No
 
 
 def test_build_catalog_summary_counts_raw_deduplicated_and_clean(tmp_path) -> None:
-    from ofertas_bot.shopee_catalog_profiles import ShopeeCatalogProfile
-
     profile = ShopeeCatalogProfile(
         slug="mae-e-bebe",
         name="Mae e Bebe",
@@ -117,3 +116,19 @@ def test_build_catalog_summary_counts_raw_deduplicated_and_clean(tmp_path) -> No
     assert summary["summary"]["raw_row_count"] == 3
     assert summary["summary"]["deduplicated_item_count"] == 2
     assert summary["summary"]["clean_item_count"] == 1
+
+
+def test_iter_collection_sources_ignores_start_match_ids() -> None:
+    profile = ShopeeCatalogProfile(
+        slug="mae-e-bebe",
+        name="Mae e Bebe",
+        start_match_ids=(100632,),
+        keyword_terms=("bebê", "mamadeira"),
+        shop_ids=(123,),
+    )
+
+    assert _iter_collection_sources(profile) == [
+        ("keyword", "bebê", {"keyword": "bebê"}),
+        ("keyword", "mamadeira", {"keyword": "mamadeira"}),
+        ("shopId", "123", {"shop_id": 123}),
+    ]

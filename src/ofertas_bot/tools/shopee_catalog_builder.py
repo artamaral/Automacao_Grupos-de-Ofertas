@@ -73,7 +73,7 @@ class SourceRun:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Constroi catalogo consolidado Shopee a partir de matchId, keyword e shopId"
+        description="Constroi catalogo consolidado Shopee a partir de keyword e shopId"
     )
     parser.add_argument("--profile", required=True, help="Slug do catalog profile")
     parser.add_argument(
@@ -122,67 +122,18 @@ def run(argv: Sequence[str] | None = None) -> int:
     print(f"INFO | profile={profile.slug}")
     print(f"INFO | run_id={run_id}")
     print(f"INFO | output_dir={run_dir}")
-
-    for match_id in profile.start_match_ids:
-        items, source_run = _collect_product_offer_pages(
-            provider=provider,
-            source_type="matchId",
-            source_value=str(match_id),
-            params={"match_id": match_id, "list_type": 4},
-            page_size=args.page_size,
-            max_pages=args.max_pages,
-        )
-        source_runs.append(source_run)
-        raw_source_rows.extend(items)
-        _merge_items(merged_items, items)
-        _persist_catalog_run(
-            profile=profile,
-            run_id=run_id,
-            raw_source_rows=raw_source_rows,
-            merged_items=merged_items,
-            source_runs=source_runs,
-            raw_csv_path=raw_csv_path,
-            raw_json_path=raw_json_path,
-            deduplicated_csv_path=deduplicated_csv_path,
-            deduplicated_json_path=deduplicated_json_path,
-            clean_csv_path=clean_csv_path,
-            clean_json_path=clean_json_path,
-            summary_path=summary_path,
+    if profile.start_match_ids:
+        print(
+            "INFO | reference_match_ids="
+            + ",".join(str(item) for item in profile.start_match_ids)
         )
 
-    for keyword in profile.keyword_terms:
+    for source_type, source_value, params in _iter_collection_sources(profile):
         items, source_run = _collect_product_offer_pages(
             provider=provider,
-            source_type="keyword",
-            source_value=keyword,
-            params={"keyword": keyword},
-            page_size=args.page_size,
-            max_pages=args.max_pages,
-        )
-        source_runs.append(source_run)
-        raw_source_rows.extend(items)
-        _merge_items(merged_items, items)
-        _persist_catalog_run(
-            profile=profile,
-            run_id=run_id,
-            raw_source_rows=raw_source_rows,
-            merged_items=merged_items,
-            source_runs=source_runs,
-            raw_csv_path=raw_csv_path,
-            raw_json_path=raw_json_path,
-            deduplicated_csv_path=deduplicated_csv_path,
-            deduplicated_json_path=deduplicated_json_path,
-            clean_csv_path=clean_csv_path,
-            clean_json_path=clean_json_path,
-            summary_path=summary_path,
-        )
-
-    for shop_id in profile.shop_ids:
-        items, source_run = _collect_product_offer_pages(
-            provider=provider,
-            source_type="shopId",
-            source_value=str(shop_id),
-            params={"shop_id": shop_id},
+            source_type=source_type,
+            source_value=source_value,
+            params=params,
             page_size=args.page_size,
             max_pages=args.max_pages,
         )
@@ -229,6 +180,17 @@ def _load_profile(path: Path, slug: str) -> ShopeeCatalogProfile:
     if profile is None:
         raise ShopeeCatalogProfileError(f"catalog profile nao encontrado: {slug}")
     return profile
+
+
+def _iter_collection_sources(
+    profile: ShopeeCatalogProfile,
+) -> list[tuple[str, str, dict[str, Any]]]:
+    sources: list[tuple[str, str, dict[str, Any]]] = []
+    for keyword in profile.keyword_terms:
+        sources.append(("keyword", keyword, {"keyword": keyword}))
+    for shop_id in profile.shop_ids:
+        sources.append(("shopId", str(shop_id), {"shop_id": shop_id}))
+    return sources
 
 
 def _collect_product_offer_pages(

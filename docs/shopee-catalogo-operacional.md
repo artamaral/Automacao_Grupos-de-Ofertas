@@ -8,19 +8,19 @@ Shopee para nicho e subnicho, pensando no fluxo futuro com `n8n`.
 Sair do modelo de tentativa unica por query e passar para um modelo de
 construcao progressiva de catalogo:
 
-1. iniciar por `matchId`, quando existir;
-2. complementar com chamadas por `keyword`;
+1. registrar `matchId` de referencia, quando existir;
+2. coletar com chamadas por `keyword`;
 3. complementar com chamadas por `shopId` ou por listas de lojas conhecidas;
 4. fazer merge dos retornos;
 5. remover itens por lista de termos negativos;
-6. classificar o resultado em nicho e subnicho.
+6. classificar o resultado em nicho e subnicho;
+7. no futuro, confrontar o catalogo com os `matchId` registrados.
 
 ## Regra de chamada
 
 Para este fluxo, os parametros usados devem ser sempre tratados pelo nome da
 API:
 
-- `matchId`
 - `keyword`
 - `shopId`
 - `page`
@@ -95,7 +95,9 @@ subniches = [
 
 Leitura dos campos:
 
-- `start_match_ids`: ponto de partida por `productOfferV2(matchId: ...)`
+- `start_match_ids`: lista de referencia registrada no config. No estado atual,
+  o builder nao faz query por `matchId`; esse campo fica reservado para
+  confronto e filtro posterior do catalogo
 - `keyword_terms`: chamadas adicionais por `productOfferV2(keyword: ...)`, uma
   query por termo
 - `negative_terms`: termos que eliminam item do catalogo consolidado
@@ -107,7 +109,7 @@ Leitura dos campos:
 
 O fluxo de merge deve funcionar assim:
 
-1. coletar itens vindos de `matchId`
+1. registrar os `matchId` de referencia no profile
 2. coletar itens vindos de `keyword`, uma chamada por termo
 3. coletar itens vindos de `shopId`
 4. juntar tudo por chave unica `shopId:itemId`
@@ -118,10 +120,10 @@ O fluxo de merge deve funcionar assim:
    campos textuais usados na classificacao
 9. salvar o conjunto limpo (`clean`)
 10. marcar origem de cada item:
-   - veio de `matchId`
    - veio de `keyword`
    - veio de `shopId`
    - veio de mais de uma origem
+11. deixar o confronto com `matchId` como etapa posterior de validacao
 
 ## Persistencia pensada para n8n
 
@@ -160,11 +162,30 @@ Sugestao de estrutura:
 Leitura desses arquivos:
 
 - `raw_catalog.*`: todas as linhas coletadas, incluindo repeticoes entre
-  `matchId`, `keyword` e `shopId`
+  `keyword` e `shopId`
 - `deduplicated_catalog.*`: merge por `shopId:itemId`, sem remover ainda por
   `negative_terms`
 - `clean_catalog.*`: catalogo final, sem duplicacoes e sem itens bloqueados por
   `negative_terms`
+
+Campos importantes nos artefatos:
+
+- `source_type`: tipo da origem da linha coletada. No estado atual, os valores
+  esperados sao `keyword` e `shopId`
+- `source_value`: valor usado na origem daquela linha, por exemplo a palavra da
+  busca ou o `shopId`
+- `source_hits`: lista consolidada das origens que trouxeram o mesmo
+  `shopId:itemId` depois do merge. No estado atual, esse campo nao registra
+  `matchId`, porque o builder nao faz mais coleta por `matchId`
+
+Regra atual de `matchId`:
+
+- `start_match_ids` continua existindo no config
+- o builder nao executa query por `matchId`
+- esses valores aparecem apenas como referencia em `run_summary.json` e no log
+  `INFO | reference_match_ids=...`
+- o uso planejado de `matchId` passa a ser confronto posterior para validar ou
+  negar itens fora da referencia esperada
 
 ## Logs de execucao
 
@@ -175,6 +196,7 @@ Padrao atual:
 - `INFO | profile=...`
 - `INFO | run_id=...`
 - `INFO | output_dir=...`
+- `INFO | reference_match_ids=...`
 - `INFO | source_start type=<source_type> value=<source_value>`
 - `INFO | source=<source_type>:<source_value> page=<page> node_count=<n> hasNextPage=<bool>`
 - `INFO | source_done type=<source_type> value=<source_value> rows=<n> unique=<n> pages=<n> stop=<reason>`
@@ -211,7 +233,7 @@ Para construcao de catalogo Shopee:
 
 - `config/discovery_profiles.toml` continua util para descoberta e fluxo atual;
 - `config/shopee_catalog_profiles.toml` passa a ser a fonte de verdade para a
-  futura construcao de catalogo por `matchId`, `keyword`, `shopId` e termos
-  negativos;
+  futura construcao de catalogo por `keyword`, `shopId` e termos negativos,
+  mantendo `matchId` apenas como referencia registrada no profile;
 - o executor deve produzir sempre artefatos `raw`, `deduplicated` e `clean`,
   orientados a `n8n`.
