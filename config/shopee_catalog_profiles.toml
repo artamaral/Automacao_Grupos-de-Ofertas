@@ -1,0 +1,115 @@
+[[profiles]]
+slug = "mae-e-bebe"
+name = "Mae e Bebe"
+start_match_ids = [100632]
+keyword_terms = [
+  "bebê",
+  "enxoval bebê",
+  "mamadeira",
+  "chupeta",
+  "esterilizador mamadeira",
+  "aquecedor mamadeira",
+  "cadeira alimentação bebê",
+  "babador",
+  "prato bebê",
+  "colher bebê",
+  "copo treinamento",
+  "bolsa maternidade",
+  "mochila maternidade",
+  "carrinho bebê",
+  "bebê conforto",
+  "canguru bebê",
+  "sling bebê",
+  "banheira bebê",
+  "termômetro bebê",
+  "aspirador nasal bebê",
+  "cortador unha bebê",
+  "fralda reutilizável",
+  "trocador portátil",
+  "organizador berço",
+  "mosquiteiro bebê",
+  "babá eletrônica",
+  "monitor bebê",
+  "tapete atividade bebê",
+  "mordedor bebê",
+  "brinquedo montessori bebê",
+  "roupa bebê",
+  "body bebê",
+  "macacão bebê",
+  "almofada amamentação",
+  "bomba tira leite",
+  "coletor leite materno",
+  "organizador leite materno",
+]
+negative_terms = [
+  "pet",
+  "boneca adulta",
+  "medicamento",
+  "fórmula",
+  "suplemento",
+  "emagrecedor",
+  "masculino",
+  "barba",
+  "calvície",
+  "adulto",
+  "erótico",
+  "injeção",
+  "hormônio",
+]
+shop_ids = []
+shop_names = []
+subniches = [
+  { slug = "alimentacao", name = "Alimentacao", keyword_terms = ["mamadeira", "chupeta", "esterilizador mamadeira", "aquecedor mamadeira", "cadeira alimentação bebê", "babador", "prato bebê", "colher bebê", "copo treinamento"], negative_terms = ["fórmula", "medicamento"] },
+  { slug = "maternidade", name = "Maternidade", keyword_terms = ["bolsa maternidade", "mochila maternidade", "almofada amamentação", "bomba tira leite", "coletor leite materno", "organizador leite materno"], negative_terms = [] },
+  { slug = "passeio", name = "Passeio", keyword_terms = ["carrinho bebê", "bebê conforto", "canguru bebê", "sling bebê"], negative_terms = [] },
+  { slug = "banho-e-cuidados", name = "Banho e Cuidados", keyword_terms = ["banheira bebê", "termômetro bebê", "aspirador nasal bebê", "cortador unha bebê"], negative_terms = ["medicamento", "injeção", "hormônio"] },
+  { slug = "fraldas-e-troca", name = "Fraldas e Troca", keyword_terms = ["fralda reutilizável", "trocador portátil"], negative_terms = [] },
+  { slug = "quarto-e-monitoramento", name = "Quarto e Monitoramento", keyword_terms = ["organizador berço", "mosquiteiro bebê", "babá eletrônica", "monitor bebê"], negative_terms = [] },
+  { slug = "brinquedos-e-desenvolvimento", name = "Brinquedos e Desenvolvimento", keyword_terms = ["tapete atividade bebê", "mordedor bebê", "brinquedo montessori bebê"], negative_terms = [] },
+  { slug = "roupas", name = "Roupas", keyword_terms = ["roupa bebê", "body bebê", "macacão bebê"], negative_terms = ["masculino", "adulto", "erótico"] },
+  { slug = "enxoval", name = "Enxoval", keyword_terms = ["enxoval bebê"], negative_terms = [] },
+]
+
+[[profiles]]
+slug = "pets"
+name = "Pets"
+start_match_ids = [100631]
+keyword_terms = [
+  "pets",
+  "cachorro",
+  "gato",
+  "aquario",
+]
+negative_terms = [
+  "bebe",
+  "maternidade",
+]
+shop_ids = []
+shop_names = []
+subniches = [
+  { slug = "caes", name = "Caes", keyword_terms = ["cachorro", "caes", "canino"], negative_terms = [] },
+  { slug = "gatos", name = "Gatos", keyword_terms = ["gato", "gatos", "felino"], negative_terms = [] },
+  { slug = "aquario", name = "Aquario", keyword_terms = ["aquario", "peixe", "beteira"], negative_terms = [] },
+]
+
+[[profiles]]
+slug = "auto-e-moto"
+name = "Auto e Moto"
+start_match_ids = []
+keyword_terms = [
+  "carro",
+  "moto",
+  "automotivo",
+  "motocicleta",
+]
+negative_terms = [
+  "bebe",
+  "infantil",
+]
+shop_ids = []
+shop_names = []
+subniches = [
+  { slug = "limpeza", name = "Limpeza Veicular", keyword_terms = ["limpeza automotiva", "shampoo automotivo", "cera"], negative_terms = [] },
+  { slug = "acessorios", name = "Acessorios", keyword_terms = ["acessorio automotivo", "suporte celular carro", "tapete carro"], negative_terms = [] },
+  { slug = "moto", name = "Moto", keyword_terms = ["moto", "motocicleta", "capacete"], negative_terms = [] },
+]
