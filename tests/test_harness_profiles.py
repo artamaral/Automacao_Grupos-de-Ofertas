@@ -181,3 +181,37 @@ def test_harness_profile_reports_missing_slug(tmp_path: Path, capsys) -> None:
     captured = capsys.readouterr()
     assert exit_code == 3
     assert "ERRO | Perfil de descoberta não encontrado" in captured.err
+
+def test_harness_uses_catalog_file_as_collector_input(tmp_path: Path, capsys) -> None:
+    catalog_path = tmp_path / "catalog.csv"
+    catalog_path.write_text(
+        "\n".join(
+            [
+                "productName,offerLink,imageUrl,price,priceMax,commissionRate,sales,ratingStar",
+                "Produto catalogado,https://example.com/produto,https://example.com/produto.jpg,49.9,79.9,0.1,12,4.7",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    output_path = tmp_path / "offers.json"
+
+    exit_code = harness.run(
+        [
+            "--niche",
+            "mae e bebe",
+            "--marketplace",
+            "shopee",
+            "--catalog-file",
+            str(catalog_path),
+            "--save-json",
+            str(output_path),
+        ]
+    )
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert payload[0]["title"] == "Produto catalogado"
+    assert payload[0]["marketplace"] == "shopee"
+    assert payload[0]["niche"] == "mae e bebe"
+    assert f"INFO | catalog_file={catalog_path}" in captured.out

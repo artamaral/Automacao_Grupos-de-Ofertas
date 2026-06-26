@@ -16,6 +16,13 @@ Fluxo recomendado para operação recorrente:
 .\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino
 ```
 
+Quando a rodada usar um catalogo curado local como entrada operacional do
+`Collector`, o caminho recomendado passa a ser:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino --catalog-file .\.data\catalogos\feminino.csv
+```
+
 O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
 e está documentado em [`docs/discovery-profiles.md`](discovery-profiles.md).
 
@@ -87,6 +94,8 @@ Regra operacional atual:
   comissao, frete e prazo podem mudar ao longo do tempo;
 - por isso, o fluxo principal deve tratar o catalogo curado como entrada do
   `Collector`, e nao como etapa automatica recorrente dentro do `prepare`.
+- o arquivo passado em `--catalog-file` pode ser `json` com `Offer`
+  normalizada ou `csv` derivado do catalogo limpo da Shopee.
 
 ## Etapa finalize
 

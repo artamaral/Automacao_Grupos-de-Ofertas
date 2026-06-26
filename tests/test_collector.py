@@ -1,6 +1,8 @@
+import json
+
 import pytest
 
-from ofertas_bot.agents.collector import CollectorAgent
+from ofertas_bot.agents.collector import CatalogSourceError, CollectorAgent
 from ofertas_bot.discovery_profiles import DiscoveryProfile
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.amazon import AmazonConfigurationError
@@ -56,6 +58,86 @@ def test_collector_raises_controlled_error_for_shopee_without_credentials() -> N
             marketplace=Marketplace.SHOPEE,
             niche="maquiagem",
             limit=1,
+        )
+
+
+def test_collector_loads_offers_from_normalized_catalog_json(tmp_path) -> None:
+    catalog_path = tmp_path / "catalog.json"
+    catalog_path.write_text(
+        json.dumps(
+            [
+                {
+                    "marketplace": "mock",
+                    "title": "Bolsa maternidade",
+                    "url": "https://example.com/bolsa",
+                    "image_url": "https://example.com/bolsa.jpg",
+                    "price": 99.9,
+                    "old_price": 129.9,
+                    "commission_rate": 0.12,
+                    "sales_count": 10,
+                    "rating": 4.8,
+                    "niche": "origem",
+                    "is_prime_or_free_shipping": False,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    collector = CollectorAgent(settings=Settings())
+
+    offers = collector.collect_from_catalog_file(
+        path=catalog_path,
+        niche="mae e bebe",
+        marketplace=Marketplace.SHOPEE,
+        limit=10,
+    )
+
+    assert len(offers) == 1
+    assert offers[0].marketplace == Marketplace.SHOPEE
+    assert offers[0].title == "Bolsa maternidade"
+    assert offers[0].niche == "mae e bebe"
+    assert offers[0].url == "https://example.com/bolsa"
+
+
+def test_collector_loads_offers_from_builder_csv_and_deduplicates(tmp_path) -> None:
+    catalog_path = tmp_path / "catalog.csv"
+    catalog_path.write_text(
+        "\n".join(
+            [
+                "productName,offerLink,productLink,imageUrl,price,priceMax,commissionRate,sales,ratingStar",
+                "Carrinho bebe,https://example.com/item-1,https://example.com/product-1,https://example.com/item-1.jpg,100,140,0.15,25,4.9",
+                "Carrinho bebe duplicado,https://example.com/item-1,https://example.com/product-1b,https://example.com/item-1b.jpg,100,140,0.15,25,4.9",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    collector = CollectorAgent(settings=Settings())
+
+    offers = collector.collect_from_catalog_file(
+        path=catalog_path,
+        niche="mae e bebe",
+        marketplace=Marketplace.SHOPEE,
+        limit=10,
+    )
+
+    assert len(offers) == 1
+    assert offers[0].title == "Carrinho bebe"
+    assert offers[0].old_price == 140.0
+    assert offers[0].commission_rate == 0.15
+    assert offers[0].sales_count == 25
+
+
+def test_collector_rejects_catalog_without_supported_format(tmp_path) -> None:
+    catalog_path = tmp_path / "catalog.txt"
+    catalog_path.write_text("invalid", encoding="utf-8")
+    collector = CollectorAgent(settings=Settings())
+
+    with pytest.raises(CatalogSourceError):
+        collector.collect_from_catalog_file(
+            path=catalog_path,
+            niche="mae e bebe",
+            marketplace=Marketplace.SHOPEE,
+            limit=10,
         )
 
 

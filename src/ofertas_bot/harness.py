@@ -7,7 +7,7 @@ from pathlib import Path
 from time import time
 from typing import Any
 
-from ofertas_bot.agents.collector import CollectorAgent
+from ofertas_bot.agents.collector import CatalogSourceError, CollectorAgent
 from ofertas_bot.agents.compliance import ComplianceAgent
 from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.agents.publisher import DryRunPublisher
@@ -142,6 +142,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Mostra o request da Shopee com campos sensíveis mascarados e sem enviar",
     )
+    parser.add_argument(
+        "--catalog-file",
+        default=None,
+        help="Arquivo local de catalogo curado usado como entrada do Collector",
+    )
     return parser
 
 
@@ -226,6 +231,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     compliance = ComplianceAgent(settings=settings)
     publisher = DryRunPublisher()
     raw_response: dict[str, object] | None = None
+    catalog_source_path = Path(args.catalog_file) if args.catalog_file else None
 
     try:
         if args.save_inspection_json:
@@ -235,16 +241,30 @@ def run(argv: Sequence[str] | None = None) -> int:
                     niche=niche,
                     limit=limit,
                     query=search_term,
+                    catalog_source_path=catalog_source_path,
                 )
             else:
-                batch = collector.collect_from_profile_with_inspection(profile=profile, limit=limit)
+                batch = collector.collect_from_profile_with_inspection(
+                    profile=profile,
+                    limit=limit,
+                    catalog_source_path=catalog_source_path,
+                )
             offers = batch.offers
             raw_response = batch.raw_response
         else:
             if profile is None:
-                offers = collector.collect(marketplace=marketplace, niche=niche, limit=limit)
+                offers = collector.collect_with_inspection(
+                    marketplace=marketplace,
+                    niche=niche,
+                    limit=limit,
+                    catalog_source_path=catalog_source_path,
+                ).offers
             else:
-                offers = collector.collect_from_profile(profile=profile, limit=limit)
+                offers = collector.collect_from_profile_with_inspection(
+                    profile=profile,
+                    limit=limit,
+                    catalog_source_path=catalog_source_path,
+                ).offers
     except ShopeeConfigurationError as error:
         return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
     except AmazonConfigurationError as error:
@@ -263,6 +283,8 @@ def run(argv: Sequence[str] | None = None) -> int:
         return _print_provider_http_error(marketplace=marketplace, error=error)
     except HttpTransportError as error:
         return _print_transport_error(marketplace=marketplace, error=error)
+    except CatalogSourceError as error:
+        return _print_catalog_source_error(error=error)
 
     if args.save_inspection_json:
         save_path = Path(args.save_inspection_json)
@@ -278,6 +300,7 @@ def run(argv: Sequence[str] | None = None) -> int:
                     target=target,
                     profile=profile,
                     subgroup_slug=args.subgroup,
+                    catalog_source_path=catalog_source_path,
                     offers=offers,
                     raw_response=raw_response,
                 )
@@ -320,6 +343,8 @@ def run(argv: Sequence[str] | None = None) -> int:
                 "INFO | shopee_product_match_ids="
                 + ",".join(str(item) for item in profile.shopee_product_match_ids)
             )
+    if catalog_source_path is not None:
+        print(f"INFO | catalog_file={catalog_source_path}")
 
     for index, scored in enumerate(scored_offers, start=1):
         draft = copywriter.create_message(scored)
@@ -737,6 +762,16 @@ def _print_save_inspection_json_error(error: Exception) -> int:
     return 3
 
 
+def _print_catalog_source_error(error: Exception) -> int:
+    print("ERRO | Fonte de catalogo invalida", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "ACAO | Revise o arquivo informado em --catalog-file antes de executar novamente.",
+        file=sys.stderr,
+    )
+    return 3
+
+
 def _build_collection_inspection_payload(
     *,
     marketplace: Marketplace,
@@ -746,6 +781,7 @@ def _build_collection_inspection_payload(
     target: str,
     profile: DiscoveryProfile | None,
     subgroup_slug: str | None,
+    catalog_source_path: Path | None,
     offers: list[Any],
     raw_response: dict[str, object] | None,
 ) -> dict[str, Any]:
@@ -755,6 +791,7 @@ def _build_collection_inspection_payload(
         "search_term": search_term,
         "target": target,
         "limit": limit,
+        "catalog_file": str(catalog_source_path) if catalog_source_path is not None else None,
         "collected_offer_count": len(offers),
         "profile_slug": profile.slug if profile is not None else None,
         "subgroup_slug": subgroup_slug,

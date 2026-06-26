@@ -154,6 +154,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=".data",
         help="Diretório local padrão dos artefatos",
     )
+    parser.add_argument(
+        "--catalog-file",
+        default=None,
+        help="Arquivo local de catalogo curado usado como entrada da etapa prepare",
+    )
     return parser
 
 
@@ -357,6 +362,8 @@ def _build_prepare_harness_args(
     context: PrepareContext,
 ) -> list[str]:
     command = ["--dry-run"]
+    if args.catalog_file:
+        command.extend(["--catalog-file", str(args.catalog_file)])
     if context.profile is not None:
         command.extend(
             [

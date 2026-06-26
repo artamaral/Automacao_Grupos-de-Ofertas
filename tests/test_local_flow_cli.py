@@ -262,3 +262,33 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
     assert paths.bundle_json == Path(tmp_path / "local_review_bundle.json")
     assert paths.review_plan_json == Path(tmp_path / "review_plan.json")
     assert paths.review_plan_text == Path(tmp_path / "review_plan.txt")
+
+
+def test_local_flow_prepare_forwards_catalog_file(tmp_path, monkeypatch) -> None:
+    calls: list[list[str]] = []
+    catalog_path = tmp_path / "catalog.csv"
+    catalog_path.write_text("productName,offerLink\nProduto,https://example.com/item\n", encoding="utf-8")
+
+    def fake_harness_run(argv: list[str]) -> int:
+        calls.append(argv)
+        _seed_prepare_outputs(tmp_path)
+        return 0
+
+    monkeypatch.setattr(local_flow_cli.harness, "run", fake_harness_run)
+
+    exit_code = local_flow_cli.run(
+        [
+            "--stage",
+            "prepare",
+            "--target",
+            "grupo-maquiagem",
+            "--catalog-file",
+            str(catalog_path),
+            "--data-dir",
+            str(tmp_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert "--catalog-file" in calls[0]
+    assert str(catalog_path) in calls[0]
