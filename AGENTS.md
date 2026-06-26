@@ -85,13 +85,23 @@ O harness dry-run pode ser rodado como validação operacional adicional, sem su
 
 ### 1. Collector Agent
 
-Responsável por buscar produtos em marketplaces.
+Responsavel por carregar a base de ofertas que entra no pipeline principal.
+
+Decisao operacional atual:
+
+- a geracao de catalogo amplo, longa e exploratoria fica fora do fluxo
+  automatizado principal;
+- quando houver catalogo curado e salvo em arquivo, esse catalogo passa a ser a
+  entrada operacional do `Collector`;
+- chamadas exploratorias de marketplace continuam existindo como etapa separada
+  de descoberta, nao como parte obrigatoria do pipeline diario.
 
 Entradas:
 
-- marketplace: `shopee`, `amazon` ou `mock`
+- arquivo de catalogo curado ou outra fonte controlada equivalente
+- marketplace de referencia: `shopee`, `amazon` ou `mock`
 - nicho
-- limite de produtos
+- limite de produtos, quando aplicavel
 
 Saída:
 
@@ -161,6 +171,12 @@ Fluxo:
 
 ```text
 Collector -> Scorer -> Copywriter -> Compliance -> Publisher
+```
+
+No estado atual, esse fluxo deve ser lido assim:
+
+```text
+Catalogo curado -> Collector -> Scorer -> Copywriter -> Compliance -> Publisher
 ```
 
 ## Commits

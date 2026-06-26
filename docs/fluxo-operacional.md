@@ -70,7 +70,7 @@ O fluxo usa `.data` por padrão:
 
 A etapa `prepare`:
 
-- coleta ofertas em modo seguro;
+- carrega a base de ofertas em modo seguro;
 - pontua ofertas;
 - gera mensagens;
 - valida compliance;
@@ -79,6 +79,14 @@ A etapa `prepare`:
 - gera `review_plan.json` e `review_plan.txt` com grupos elegíveis, bloqueios e mensagens previstas por grupo;
 - não envia nada;
 - não chama publicação real.
+
+Regra operacional atual:
+
+- a construcao ampla do catalogo de marketplace fica fora do fluxo principal;
+- esse catalogo pode exigir revisao manual posterior, porque score, preco,
+  comissao, frete e prazo podem mudar ao longo do tempo;
+- por isso, o fluxo principal deve tratar o catalogo curado como entrada do
+  `Collector`, e nao como etapa automatica recorrente dentro do `prepare`.
 
 ## Etapa finalize
 

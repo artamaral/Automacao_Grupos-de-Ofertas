@@ -3,6 +3,10 @@
 Este documento define como organizar a construcao de catalogo de produtos da
 Shopee para nicho e subnicho, pensando no fluxo futuro com `n8n`.
 
+Importante: esse processo de construcao de catalogo nao faz parte do pipeline
+automatizado principal de ofertas e mensagens. Ele e uma etapa separada de
+descoberta e curadoria.
+
 ## Objetivo
 
 Sair do modelo de tentativa unica por query e passar para um modelo de
@@ -15,6 +19,15 @@ construcao progressiva de catalogo:
 5. remover itens por lista de termos negativos;
 6. classificar o resultado em nicho e subnicho;
 7. no futuro, confrontar o catalogo com os `matchId` registrados.
+
+Decisao operacional atual:
+
+- a geracao desse catalogo fica fora do processo automatizado principal;
+- depois da descoberta, os itens ainda podem exigir revisao, porque preco,
+  prazo, comissao e score efetivo podem mudar;
+- por isso, o catalogo deve ser tratado como insumo curado para o fluxo
+  `Collector -> Scorer -> Copywriter -> Compliance -> Publisher`, e nao como
+  etapa automatica diaria desse mesmo pipeline.
 
 ## Regra de chamada
 

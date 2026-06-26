@@ -611,13 +611,23 @@ O comando principal atual é o orquestrador local:
 
 A etapa `prepare`:
 
-- coleta ofertas em modo seguro;
+- carrega ofertas em modo seguro a partir da base operacional disponivel;
 - pontua as ofertas;
 - gera mensagens;
 - valida compliance;
 - salva ofertas, mensagens e fila de revisão em `.data`;
 - não envia nada;
 - não chama publicação real.
+
+Decisao operacional atual para catalogo:
+
+- a geracao ampla de catalogo nao faz parte do fluxo automatizado principal;
+- essa geracao pode ser longa e exige revisao posterior de score efetivo,
+  porque preco, prazo, comissao e outras condicoes podem mudar;
+- por isso, o pipeline principal nao deve depender de reexecutar descoberta
+  completa a cada rodada;
+- o `Collector` do fluxo principal deve passar a consumir o catalogo curado
+  como entrada operacional.
 
 Depois da revisão humana ou de uma interface externa alterar a fila para
 `approved` ou `rejected`, a etapa final consolida os artefatos:
