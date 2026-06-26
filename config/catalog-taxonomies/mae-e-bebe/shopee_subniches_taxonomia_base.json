@@ -1,0 +1,286 @@
+{
+  "version": "2026-06-26-v2",
+  "purpose": "Fonte oficial para mapear palavras-chave de source_hits e fallback por productName para subniches do catálogo Shopee Mãe e Bebê.",
+  "governance": {
+    "new_subniches_allowed": false,
+    "new_keywords_allowed": true,
+    "new_keywords_rule": "Novas palavras-chave só podem ser adicionadas se apontarem para um subniche já existente em allowed_subniches. A limpeza não deve criar mapeamentos temporários fora deste arquivo.",
+    "unknown_keyword_behavior": "Não criar subniche novo. Registrar em unmapped_source_keywords e classificar como bebe-geral quando nenhuma regra fechada casar."
+  },
+  "allowed_subniches": [
+    "alimentacao-aquecedores",
+    "alimentacao-babadores",
+    "alimentacao-cadeiras",
+    "alimentacao-copos-treinamento",
+    "alimentacao-esterilizadores",
+    "alimentacao-mamadeiras",
+    "alimentacao-pratos-talheres",
+    "amamentacao-almofadas",
+    "amamentacao-armazenamento-leite",
+    "amamentacao-extracao-leite",
+    "banho-banheiras",
+    "bebe-geral",
+    "brinquedos-e-desenvolvimento",
+    "brinquedos-montessori",
+    "brinquedos-tapetes-atividade",
+    "desfralde",
+    "enxoval-kits",
+    "festas-lembrancinhas",
+    "higiene-saude-aspiradores-nasais",
+    "higiene-saude-cuidados",
+    "higiene-saude-termometros",
+    "higiene-saude-unhas",
+    "maternidade-bolsas-mochilas",
+    "oral-mordedores-chupetas",
+    "passeio-bebe-conforto",
+    "passeio-canguru-ergonomico",
+    "passeio-carrinhos",
+    "passeio-sling-wrap",
+    "quarto-monitoramento",
+    "quarto-organizacao-berco",
+    "quarto-sono",
+    "quarto-sono-mosquiteiros",
+    "roupas-body",
+    "roupas-geral",
+    "roupas-macacao",
+    "seguranca-infantil",
+    "troca-fraldas-descartaveis",
+    "troca-fraldas-reutilizaveis",
+    "troca-trocadores-portateis"
+  ],
+  "source_keyword_to_subniche": {
+    "almofada amamentação": "amamentacao-almofadas",
+    "aquecedor mamadeira": "alimentacao-aquecedores",
+    "aspirador nasal bebê": "higiene-saude-aspiradores-nasais",
+    "babador": "alimentacao-babadores",
+    "babá eletrônica": "quarto-monitoramento",
+    "banheira bebê": "banho-banheiras",
+    "bebê conforto": "passeio-bebe-conforto",
+    "body bebê": "roupas-body",
+    "bolsa maternidade": "maternidade-bolsas-mochilas",
+    "bomba tira leite": "amamentacao-extracao-leite",
+    "brinquedo montessori bebê": "brinquedos-montessori",
+    "cadeira alimentação bebê": "alimentacao-cadeiras",
+    "canguru bebê": "passeio-canguru-ergonomico",
+    "carrinho bebê": "passeio-carrinhos",
+    "chupeta": "oral-mordedores-chupetas",
+    "coletor leite materno": "amamentacao-extracao-leite",
+    "colher bebê": "alimentacao-pratos-talheres",
+    "copo treinamento": "alimentacao-copos-treinamento",
+    "cortador unha bebê": "higiene-saude-unhas",
+    "enxoval bebê": "enxoval-kits",
+    "esterilizador mamadeira": "alimentacao-esterilizadores",
+    "fralda reutilizável": "troca-fraldas-reutilizaveis",
+    "macacão bebê": "roupas-macacao",
+    "mamadeira": "alimentacao-mamadeiras",
+    "mochila maternidade": "maternidade-bolsas-mochilas",
+    "monitor bebê": "quarto-monitoramento",
+    "mordedor bebê": "oral-mordedores-chupetas",
+    "mosquiteiro bebê": "quarto-sono-mosquiteiros",
+    "organizador berço": "quarto-organizacao-berco",
+    "organizador leite materno": "amamentacao-armazenamento-leite",
+    "prato bebê": "alimentacao-pratos-talheres",
+    "roupa bebê": "roupas-geral",
+    "sling bebê": "passeio-sling-wrap",
+    "tapete atividade bebê": "brinquedos-tapetes-atividade",
+    "termômetro bebê": "higiene-saude-termometros",
+    "trocador portátil": "troca-trocadores-portateis"
+  },
+  "generic_source_hits": [
+    "bebê",
+    "bebe",
+    "matchid:100632"
+  ],
+  "generic_default_subniche": "bebe-geral",
+  "fallback_product_name_rules": [
+    {
+      "subniche": "festas-lembrancinhas",
+      "keywords": [
+        "lembrancinha",
+        "chá de bebê",
+        "cha de bebe",
+        "chá revelação",
+        "cha revelacao",
+        "mini pezinhos",
+        "sabonete perfumado"
+      ],
+      "pattern_regex": "lembran[cç]inha|ch[aá]\\s*de\\s*beb[eê]|ch[aá]\\s*revela[cç][aã]o|mini\\s*pezinhos?|sabonetes?\\s*perfumados?|raquetes?.*lembran",
+      "order": 1
+    },
+    {
+      "subniche": "brinquedos-e-desenvolvimento",
+      "keywords": [
+        "brinquedo",
+        "blocos de montar",
+        "didático",
+        "educativo",
+        "pedagógico",
+        "tangram",
+        "pinos de encaixe",
+        "torre de hanói",
+        "formas geométricas",
+        "empilha",
+        "mola maluca"
+      ],
+      "pattern_regex": "brinqued|blocos?\\s*de\\s*montar|did[aá]tic|educativ|pedag[oó]gic|tangram|pinos?\\s*de\\s*encaixe|torre\\s*de\\s*han[oó]i|formas?\\s*geom[eé]tric|empilha|mola\\s*maluca",
+      "order": 2
+    },
+    {
+      "subniche": "maternidade-bolsas-mochilas",
+      "keywords": [
+        "maternidade",
+        "saquinho",
+        "saco organizador",
+        "organizador mala",
+        "necessere"
+      ],
+      "pattern_regex": "maternidade|saquinhos?|saco\\s*organizador|organizadores?\\s*mala|necessere",
+      "order": 3
+    },
+    {
+      "subniche": "troca-fraldas-descartaveis",
+      "keywords": [
+        "fralda",
+        "babysec",
+        "lovecare"
+      ],
+      "pattern_regex": "fraldas?|babysec|lovecare",
+      "order": 4
+    },
+    {
+      "subniche": "roupas-geral",
+      "keywords": [
+        "tênis",
+        "tenis",
+        "meia",
+        "sapato",
+        "sapatinho",
+        "sandália"
+      ],
+      "pattern_regex": "\\b(t[eê]nis|tenis|meia|sapat|sand[aá]lia)\\b",
+      "order": 5
+    },
+    {
+      "subniche": "alimentacao-pratos-talheres",
+      "keywords": [
+        "refeição",
+        "introdução alimentar",
+        "caneca",
+        "garrafa",
+        "garrafinha",
+        "copo",
+        "bebedouro",
+        "pratinho",
+        "alimentação"
+      ],
+      "pattern_regex": "refei[cç][aã]o|introdu[cç][aã]o\\s*alimentar|caneca|garrafa|garrafinha|copo|bebedouro|pratinho|alimenta[cç][aã]o",
+      "order": 6
+    },
+    {
+      "subniche": "seguranca-infantil",
+      "keywords": [
+        "segurança",
+        "antiqueda",
+        "triciclo",
+        "motoca",
+        "moto",
+        "motinha",
+        "cadeirinha carro",
+        "cinto",
+        "proteção para piscina",
+        "prendedor assento",
+        "assento trava"
+      ],
+      "pattern_regex": "seguran[cç]a|antiqueda|triciclo|motoca|moto\\b|motinha|cadeirinha\\s*carro|cinto|prote[cç][aã]o\\s*para\\s*piscina|prendedor\\s*assento|assento\\s*trava",
+      "order": 7
+    },
+    {
+      "subniche": "quarto-sono",
+      "keywords": [
+        "colchão",
+        "colchao",
+        "naninha",
+        "paninho de dormir"
+      ],
+      "pattern_regex": "colch[aã]o|naninha|paninho\\s*de\\s*dormir",
+      "order": 8
+    },
+    {
+      "subniche": "higiene-saude-cuidados",
+      "keywords": [
+        "eucalipto",
+        "repelente",
+        "colic",
+        "cólica",
+        "colica",
+        "refluxo",
+        "kit de higiene",
+        "cuidados do bebê",
+        "bolsa para cólica"
+      ],
+      "pattern_regex": "eucalipto|repelente|colic|c[oó]lica|refluxo|kit\\s*de\\s*higiene|cuidados?\\s*do\\s*beb[eê]|bolsa\\s*para\\s*c[oó]lica",
+      "order": 9
+    },
+    {
+      "subniche": "alimentacao-mamadeiras",
+      "keywords": [
+        "piscina com bomba de encher",
+        "garrafinha com canudo"
+      ],
+      "pattern_regex": "piscina.*bomba\\s*de\\s*encher|garrafinha.*canudo",
+      "order": 10
+    },
+    {
+      "subniche": "desfralde",
+      "keywords": [
+        "desfralde",
+        "troninho",
+        "pinico",
+        "privadinha"
+      ],
+      "pattern_regex": "desfralde|troninho|pinico|privadinha",
+      "order": 11
+    }
+  ],
+  "historical_subniche_counts": {
+    "alimentacao-aquecedores": 142,
+    "alimentacao-babadores": 951,
+    "alimentacao-cadeiras": 1088,
+    "alimentacao-copos-treinamento": 1027,
+    "alimentacao-esterilizadores": 129,
+    "alimentacao-mamadeiras": 1007,
+    "alimentacao-pratos-talheres": 1815,
+    "amamentacao-almofadas": 1148,
+    "amamentacao-armazenamento-leite": 4,
+    "amamentacao-extracao-leite": 1204,
+    "banho-banheiras": 1062,
+    "bebe-geral": 319,
+    "brinquedos-e-desenvolvimento": 108,
+    "brinquedos-montessori": 1195,
+    "brinquedos-tapetes-atividade": 83,
+    "desfralde": 1,
+    "enxoval-kits": 1265,
+    "festas-lembrancinhas": 57,
+    "higiene-saude-aspiradores-nasais": 841,
+    "higiene-saude-cuidados": 4,
+    "higiene-saude-termometros": 594,
+    "higiene-saude-unhas": 698,
+    "maternidade-bolsas-mochilas": 2112,
+    "oral-mordedores-chupetas": 871,
+    "passeio-bebe-conforto": 1032,
+    "passeio-canguru-ergonomico": 818,
+    "passeio-carrinhos": 978,
+    "passeio-sling-wrap": 310,
+    "quarto-monitoramento": 1109,
+    "quarto-organizacao-berco": 71,
+    "quarto-sono": 5,
+    "quarto-sono-mosquiteiros": 1349,
+    "roupas-body": 1056,
+    "roupas-geral": 1162,
+    "roupas-macacao": 794,
+    "seguranca-infantil": 15,
+    "troca-fraldas-descartaveis": 26,
+    "troca-fraldas-reutilizaveis": 531,
+    "troca-trocadores-portateis": 1055
+  }
+}

@@ -1,0 +1,40 @@
+subniche,historical_rows,source_hits_keywords,productName_fallback_keywords,generic_source_hits_default,new_keywords_allowed,new_subniche_allowed,notes
+alimentacao-aquecedores,142,aquecedor mamadeira,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+alimentacao-babadores,951,babador,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+alimentacao-cadeiras,1088,cadeira alimentação bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+alimentacao-copos-treinamento,1027,copo treinamento,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+alimentacao-esterilizadores,129,esterilizador mamadeira,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+alimentacao-mamadeiras,1007,mamadeira,piscina com bomba de encher | garrafinha com canudo,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits; fallback permitido somente quando source_hits é genérico ou vazio
+alimentacao-pratos-talheres,1815,colher bebê | prato bebê,refeição | introdução alimentar | caneca | garrafa | garrafinha | copo | bebedouro | pratinho | alimentação,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits; fallback permitido somente quando source_hits é genérico ou vazio
+amamentacao-almofadas,1148,almofada amamentação,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+amamentacao-armazenamento-leite,4,organizador leite materno,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+amamentacao-extracao-leite,1204,bomba tira leite | coletor leite materno,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+banho-banheiras,1062,banheira bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+bebe-geral,319,,,bebê | bebe | matchid:100632,"sim, somente apontando para este subniche existente",nao,subniche padrão quando source_hits é genérico/vazio e nenhum fallback por productName casa
+brinquedos-e-desenvolvimento,108,,brinquedo | blocos de montar | didático | educativo | pedagógico | tangram | pinos de encaixe | torre de hanói | formas geométricas | empilha | mola maluca,,"sim, somente apontando para este subniche existente",nao,fallback permitido somente quando source_hits é genérico ou vazio
+brinquedos-montessori,1195,brinquedo montessori bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+brinquedos-tapetes-atividade,83,tapete atividade bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+desfralde,1,,desfralde | troninho | pinico | privadinha,,"sim, somente apontando para este subniche existente",nao,fallback permitido somente quando source_hits é genérico ou vazio
+enxoval-kits,1265,enxoval bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+festas-lembrancinhas,57,,lembrancinha | chá de bebê | cha de bebe | chá revelação | cha revelacao | mini pezinhos | sabonete perfumado,,"sim, somente apontando para este subniche existente",nao,fallback permitido somente quando source_hits é genérico ou vazio
+higiene-saude-aspiradores-nasais,841,aspirador nasal bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+higiene-saude-cuidados,4,,eucalipto | repelente | colic | cólica | colica | refluxo | kit de higiene | cuidados do bebê | bolsa para cólica,,"sim, somente apontando para este subniche existente",nao,fallback permitido somente quando source_hits é genérico ou vazio
+higiene-saude-termometros,594,termômetro bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+higiene-saude-unhas,698,cortador unha bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+maternidade-bolsas-mochilas,2112,bolsa maternidade | mochila maternidade,maternidade | saquinho | saco organizador | organizador mala | necessere,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits; fallback permitido somente quando source_hits é genérico ou vazio
+oral-mordedores-chupetas,871,chupeta | mordedor bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+passeio-bebe-conforto,1032,bebê conforto,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+passeio-canguru-ergonomico,818,canguru bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+passeio-carrinhos,978,carrinho bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+passeio-sling-wrap,310,sling bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+quarto-monitoramento,1109,babá eletrônica | monitor bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+quarto-organizacao-berco,71,organizador berço,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+quarto-sono,5,,colchão | colchao | naninha | paninho de dormir,,"sim, somente apontando para este subniche existente",nao,fallback permitido somente quando source_hits é genérico ou vazio
+quarto-sono-mosquiteiros,1349,mosquiteiro bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+roupas-body,1056,body bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+roupas-geral,1162,roupa bebê,tênis | tenis | meia | sapato | sapatinho | sandália,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits; fallback permitido somente quando source_hits é genérico ou vazio
+roupas-macacao,794,macacão bebê,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+seguranca-infantil,15,,segurança | antiqueda | triciclo | motoca | moto | motinha | cadeirinha carro | cinto | proteção para piscina | prendedor assento | assento trava,,"sim, somente apontando para este subniche existente",nao,fallback permitido somente quando source_hits é genérico ou vazio
+troca-fraldas-descartaveis,26,,fralda | babysec | lovecare,,"sim, somente apontando para este subniche existente",nao,fallback permitido somente quando source_hits é genérico ou vazio
+troca-fraldas-reutilizaveis,531,fralda reutilizável,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
+troca-trocadores-portateis,1055,trocador portátil,,,"sim, somente apontando para este subniche existente",nao,classificação direta por source_hits
