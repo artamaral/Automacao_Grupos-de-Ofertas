@@ -7,13 +7,13 @@ Este projeto deve ser operado por automação, agendador ou orquestrador. O obje
 Use o orquestrador local:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --profile beleza
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --profile feminino
 ```
 
 Fluxo recomendado para operação recorrente:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino
 ```
 
 O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
@@ -26,7 +26,7 @@ Quando a meta for aprender com a saída da coleta, o caminho recomendado é salv
 também a inspeção estruturada:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza --save-inspection-json .\tmp\beleza-inspection.json
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino --save-inspection-json .\tmp\feminino-inspection.json
 ```
 
 Esse artefato deve ser usado para observar a saída real por `profile` antes de
@@ -41,7 +41,7 @@ Após a aprovação/rejeição da fila por um processo humano ou interface exter
 Se o pacote foi instalado na venv, os atalhos equivalentes são:
 
 ```powershell
-ofertas-local-flow --stage prepare --profile beleza
+ofertas-local-flow --stage prepare --profile feminino
 ofertas-local-flow --stage finalize
 ```
 

@@ -21,7 +21,7 @@ Cada perfil concentra a entrada de negócio para a coleta:
 
 O perfil também deve ser pensado como ponte para a identidade operacional do
 nicho. Hoje o projeto já possui a decisão de manter contas de email separadas
-para `beleza`, `mãe e bebê`, `auto e moto` e `achadinhos geral`. Mesmo antes de
+para `feminino`, `mãe e bebê`, `auto e moto` e `achadinhos geral`. Mesmo antes de
 existirem campos explícitos para isso no arquivo, essa separação serve apenas
 como contexto operacional documentado. As contas ainda não fazem parte da lógica
 de descoberta e não devem dirigir os filtros atuais dos perfis.
@@ -29,7 +29,7 @@ de descoberta e não devem dirigir os filtros atuais dos perfis.
 Exemplo de uso no harness:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino
 ```
 
 Exemplo com subgroup:
@@ -41,18 +41,18 @@ Exemplo com subgroup:
 Exemplo com inspeção estruturada da coleta:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza --save-inspection-json .\tmp\beleza-inspection.json
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino --save-inspection-json .\tmp\feminino-inspection.json
 ```
 
 Também é possível apontar outro arquivo:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile beleza --profiles-file .\config\discovery_profiles.toml
+.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino --profiles-file .\config\discovery_profiles.toml
 ```
 
 Os perfis versionados atuais representam os grandes nichos operacionais:
 
-- `beleza`
+- `feminino`
 - `mae-e-bebe`
 - `auto-e-moto`
 - `achadinhos-geral`

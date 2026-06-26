@@ -10,65 +10,44 @@
 # virarem contrato rígido de coleta.
 
 [[profiles]]
-slug = "beleza"
-name = "Beleza"
-niche = "beleza"
+slug = "feminino"
+name = "Feminino"
+niche = "feminino"
 marketplace = "mock"
-query = "beleza skincare maquiagem"
+query = "feminino maquiagem skincare moda"
 target = "grupo-beleza"
 limit = 2
-keywords = ["skincare", "maquiagem", "cabelo"]
+keywords = ["maquiagem", "skincare", "cabelo", "moda feminina", "acessorios femininos"]
 brands = ["maybelline", "ruby rose", "loreal"]
 creators = []
-categories = ["beleza"]
+categories = ["feminino"]
 include_terms = []
-exclude_terms = ["infantil", "fantasia"]
+exclude_terms = ["medicamento", "emagrecedor", "produto intimo adulto", "masculino", "adulto", "pet"]
 subgroups = [
-  { slug = "maquiagem", label = "Maquiagem", query = "maquiagem batom base corretivo", categories = ["Maquiagem"] },
-  { slug = "skincare", label = "Skincare", query = "cuidados com a pele skincare serum hidratante", categories = ["Cuidados com a Pele"] },
-  { slug = "cabelo", label = "Cabelo", query = "cuidados com o cabelo shampoo mascara finalizador", categories = ["Cuidados com o Cabelo"] },
-  { slug = "corpo-e-banho", label = "Corpo e Banho", query = "banho cuidados com o corpo hidratante sabonete", categories = ["Banho e Cuidados com o Corpo"] },
-  { slug = "unhas-e-beleza", label = "Unhas e Utensilios", query = "unhas utensilios de beleza manicure pedicure", categories = ["Utensílios de Beleza", "Cuidados com as Mãos, Pés e Unhas"] },
-  { slug = "perfumaria", label = "Perfumaria", query = "perfumes fragrancias body splash", categories = ["Perfumes e Fragrâncias"] },
+  { slug = "maquiagem", label = "Maquiagem", query = "maquiagem base corretivo batom gloss rimel delineador blush", categories = ["Maquiagem"] },
+  { slug = "skincare", label = "Skincare", query = "skincare serum facial protetor solar facial hidratante facial limpeza facial mascara facial", categories = ["Cuidados com a Pele"] },
+  { slug = "cabelo", label = "Cabelo", query = "escova secadora chapinha babyliss modelador de cabelo secador cabelo oleo capilar creme cabelo cronograma capilar", categories = ["Cuidados com o Cabelo"] },
+  { slug = "unhas", label = "Unhas", query = "unhas gel cabine unha esmalte gel lixa eletrica unha", categories = ["Utensílios de Beleza", "Cuidados com as Mãos, Pés e Unhas"] },
+  { slug = "acessorios", label = "Acessorios Femininos", query = "necessaire organizador maquiagem bolsa feminina carteira feminina oculos feminino", categories = ["Acessórios"] },
+  { slug = "moda", label = "Moda Feminina", query = "roupa feminina vestidos blusas cropped calca saia conjunto lingerie moda fitness moda praia", categories = ["Moda Feminina"] },
 ]
 notes = """
-Lista visível observada manualmente na Shopee para beleza e moda feminina,
-considerando que esse universo pode estar sob a área de mulher no site.
-Esta referência é parcial e não exaustiva.
+Referência operacional inicial para feminino na Shopee.
+Este universo reúne beleza, acessórios e moda feminina, mas continua sendo uma
+referência parcial e não exaustiva.
 
-Beleza:
+Frentes principais consideradas neste nicho:
 - Maquiagem
-- Cuidados com o Cabelo
-- Perfumes e Fragrâncias
-- Banho e Cuidados com o Corpo
-- Cuidados com a Pele
-- Utensílios de Beleza
-- Cuidados com as Mãos, Pés e Unhas
-- Cuidados Masculinos
-- Pacotes e Conjuntos de Beleza
-- Outros
+- Skincare
+- Cabelo
+- Unhas
+- Acessórios femininos
+- Moda feminina
 
-Roupas femininas:
-- Vestidos
-- Blusas
-- Saias
-- Shorts
-- Jeans
-- Calças e Leggings
-- Conjuntos
-- Lingerie e Roupa Íntima
-- Traje para dormir e Pijamas
-- Macacões, Macaquinhos e Jardineiras
-- Jaquetas, Casacos e Coletes
-- Moletons e Suéteres
-- Agasalhos e Cardigans
-- Roupas de Maternidade
-- Meias
-- Roupas Tradicionais
-- Fantasias e Cosplay
-- Vestidos de Casamento
-- Tecidos
-- Outros
+Observação operacional:
+- o nome do nicho passa a ser feminino;
+- o destino operacional atual ainda permanece como grupo-beleza até a eventual
+  renomeação completa do fluxo de grupos.
 """
 
 [[profiles]]
@@ -186,7 +165,7 @@ subgroups = [
   { slug = "casa", label = "Casa", query = "organizacao casa cozinha utilidades", categories = [] },
   { slug = "eletronicos", label = "Eletronicos", query = "fone caixa som carregador smart", categories = [] },
   { slug = "moda", label = "Moda", query = "roupas acessorios bolsa", categories = [] },
-  { slug = "beleza", label = "Beleza", query = "beleza maquiagem skincare", categories = [] },
+  { slug = "feminino", label = "Feminino", query = "feminino maquiagem skincare moda", categories = [] },
   { slug = "infantil", label = "Infantil", query = "infantil brinquedos bebe", categories = [] },
 ]
 notes = """

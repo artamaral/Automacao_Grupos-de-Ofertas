@@ -152,7 +152,7 @@ Decisão registrada:
 
 Contas atualmente reservadas:
 
-1. beleza
+1. feminino
 2. mãe e bebê
 3. auto e moto
 4. achadinhos geral
