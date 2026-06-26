@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-06-26T15:23:50",
+  "input_file": "/mnt/data/clean_catalog.csv",
+  "catalog_profile_slug": "feminino",
+  "catalog_profile_name": "Feminino",
+  "input_rows": 176101,
+  "allowed_subniches_count": 32,
+  "source_keywords_discovered": 134,
+  "source_keywords_mapped": 134,
+  "unmapped_discovered_keywords": [],
+  "output_files": {
+    "taxonomy_json": "/mnt/data/shopee_feminino_subniches_taxonomia_base.json",
+    "taxonomy_md": "/mnt/data/shopee_feminino_subniches_taxonomia_base.md",
+    "keywords_csv": "/mnt/data/shopee_feminino_subniches_palavras_chave.csv",
+    "keywords_long_csv": "/mnt/data/shopee_feminino_subniches_palavras_chave_long.csv"
+  }
+}
