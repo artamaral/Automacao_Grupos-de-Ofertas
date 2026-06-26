@@ -113,7 +113,7 @@ brands = []
 creators = []
 categories = ["auto e moto"]
 include_terms = []
-exclude_terms = ["bicicleta", "hot wheels", "controle remoto", "sucata", "pneu usado", "usado"]
+exclude_terms = ["bicicleta", "caminhão brinquedo", "hot wheels", "controle remoto", "peça usada", "sucata", "óleo motor duvidoso", "aditivo milagroso"]
 shopee_category_urls = [
   "https://shopee.com.br/Motorcycles-cat.11059990",
   "https://shopee.com.br/Automobiles-cat.11059972",
