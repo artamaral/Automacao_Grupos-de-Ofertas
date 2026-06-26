@@ -412,7 +412,7 @@ def _offer_from_catalog_item(
         image_url=_catalog_optional_str(item.get("imageUrl")),
         price=price,
         old_price=old_price,
-        commission_rate=_catalog_float(item.get("commissionRate"), default=0.0),
+        commission_rate=_catalog_commission_rate(item),
         sales_count=_catalog_int(item.get("sales"), default=0),
         rating=_catalog_optional_float(item.get("ratingStar")),
         niche=niche,
@@ -484,3 +484,11 @@ def _catalog_shop_type(value: object) -> int | None:
         first_value = inner.split(",", maxsplit=1)[0].strip()
         return int(first_value)
     return int(float(text))
+
+
+def _catalog_commission_rate(item: dict[str, object]) -> float:
+    seller_rate = _catalog_optional_float(item.get("sellerCommissionRate"))
+    shopee_rate = _catalog_optional_float(item.get("shopeeCommissionRate"))
+    if seller_rate is not None or shopee_rate is not None:
+        return (seller_rate or 0.0) + (shopee_rate or 0.0)
+    return _catalog_float(item.get("commissionRate"), default=0.0)

@@ -38,7 +38,7 @@ Saida:
 
 | Componente | Regra | Pontos | Motivo |
 | --- | --- | --- | --- |
-| Desconto | entra a partir de 20% | `min(desconto, 60) * 1.2` | `desconto de X%` |
+| Desconto | entra a partir de 20% | `min(desconto, 40) * 0.5` | `desconto de X%` |
 | Comissao | entra quando maior que zero | `commission_rate * 100` | `comissao de X%` |
 | Vendas | entra a partir de 100 vendas | `min(vendas / 100, 20)` | `X vendas` |
 | Avaliacao | entra a partir de 4.5 | `10` | `avaliacao X.X` |
@@ -48,10 +48,16 @@ Saida:
 Observacoes:
 
 - desconto tem teto para evitar que um percentual muito alto domine sozinho;
+- desconto foi reduzido porque o percentual sozinho pode ser enganoso: uma loja
+  pode subir o preco de referencia para exibir desconto maior sem necessariamente
+  oferecer melhor oportunidade real;
 - vendas tem teto para evitar que produtos muito vendidos bloqueiem achados
   novos com bons sinais;
 - comissao ainda nao tem teto porque o projeto precisa observar mais dados
   reais antes de definir se isso prejudica a curadoria;
+- no catalogo curado Shopee, `commission_rate` deve ser lida pela soma de
+  `sellerCommissionRate + shopeeCommissionRate`; o campo `commissionRate`
+  fica apenas como fallback quando essas duas parcelas nao vierem preenchidas;
 - frete depende de normalizacao confiavel do provider. Catalogos CSV da Shopee
   podem nao trazer esse sinal no modelo `Offer` atual.
 - tipo de loja hoje usa a leitura operacional do `shopType` do catalogo:

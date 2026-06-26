@@ -68,7 +68,7 @@ def test_scorer_explains_each_active_component() -> None:
 
     scored = ScorerAgent().score([offer])[0]
 
-    assert scored.score == 63.5
+    assert scored.score == 42.5
     assert scored.reasons == [
         "desconto de 30%",
         "comissao de 7%",
@@ -102,7 +102,7 @@ def test_scorer_caps_discount_and_sales_points() -> None:
 
     scored = ScorerAgent().score([offer])[0]
 
-    assert scored.score == 92
+    assert scored.score == 40
     assert scored.reasons == ["desconto de 90%", "10000 vendas"]
 
 

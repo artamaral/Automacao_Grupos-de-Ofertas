@@ -106,9 +106,9 @@ def test_collector_loads_offers_from_builder_csv_and_deduplicates(tmp_path) -> N
     catalog_path.write_text(
         "\n".join(
             [
-                "productName,offerLink,productLink,imageUrl,price,priceMax,commissionRate,sales,ratingStar,shopType",
-                "Carrinho bebe,https://example.com/item-1,https://example.com/product-1,https://example.com/item-1.jpg,100,140,0.15,25,4.9,[4]",
-                "Carrinho bebe duplicado,https://example.com/item-1,https://example.com/product-1b,https://example.com/item-1b.jpg,100,140,0.15,25,4.9,[]",
+                "productName,offerLink,productLink,imageUrl,price,priceMax,commissionRate,sales,ratingStar,shopType,sellerCommissionRate,shopeeCommissionRate",
+                "Carrinho bebe,https://example.com/item-1,https://example.com/product-1,https://example.com/item-1.jpg,100,140,0.99,25,4.9,[4],0.12,0.03",
+                "Carrinho bebe duplicado,https://example.com/item-1,https://example.com/product-1b,https://example.com/item-1b.jpg,100,140,0.88,25,4.9,[],0.10,0.03",
             ]
         ),
         encoding="utf-8",
