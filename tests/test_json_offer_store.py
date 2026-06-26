@@ -24,6 +24,7 @@ def make_offer() -> Offer:
         rating=4.8,
         niche="maquiagem",
         is_prime_or_free_shipping=True,
+        shop_type_code=1,
     )
 
 
@@ -42,6 +43,7 @@ def test_offer_to_json_keeps_safe_serializable_fields() -> None:
         "rating": 4.8,
         "niche": "maquiagem",
         "is_prime_or_free_shipping": True,
+        "shop_type_code": 1,
     }
 
 

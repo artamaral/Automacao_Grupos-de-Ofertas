@@ -345,4 +345,5 @@ def _replace_offer_niche(*, offer: Offer, niche: str) -> Offer:
         rating=offer.rating,
         niche=niche,
         is_prime_or_free_shipping=offer.is_prime_or_free_shipping,
+        shop_type_code=offer.shop_type_code,
     )

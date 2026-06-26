@@ -23,6 +23,7 @@ class ShopeeOfferMapper:
             sales_count=int(item.get("sales_count") or 0),
             rating=self._optional_float(item.get("rating")),
             is_prime_or_free_shipping=bool(item.get("is_free_shipping", False)),
+            shop_type_code=self._optional_int(item.get("shop_type")),
         )
         return self._mapper.map_external_offer(payload)
 
@@ -36,3 +37,8 @@ class ShopeeOfferMapper:
             return None
         text = str(value).strip()
         return text or None
+
+    def _optional_int(self, value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        return int(value)

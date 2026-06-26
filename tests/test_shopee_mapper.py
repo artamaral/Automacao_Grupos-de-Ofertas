@@ -16,6 +16,7 @@ def test_shopee_mapper_normalizes_item_payload() -> None:
         "sales_count": "1200",
         "rating": "4.8",
         "is_free_shipping": True,
+        "shop_type": "4",
     }
 
     offer = ShopeeOfferMapper().map_item(item=item, niche="maquiagem")
@@ -30,6 +31,7 @@ def test_shopee_mapper_normalizes_item_payload() -> None:
     assert offer.rating == 4.8
     assert offer.niche == "maquiagem"
     assert offer.is_prime_or_free_shipping is True
+    assert offer.shop_type_code == 4
 
 
 def test_shopee_mapper_rejects_item_without_title() -> None:

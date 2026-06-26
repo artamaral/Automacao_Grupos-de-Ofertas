@@ -97,6 +97,10 @@ Regra operacional atual:
 - o arquivo passado em `--catalog-file` pode ser `json` com `Offer`
   normalizada ou `csv` derivado do catalogo limpo da Shopee.
 
+A regra atual de pontuacao esta documentada em [`docs/scoring.md`](scoring.md).
+Ela cobre apenas qualidade comercial basica da oferta; aderencia fina ao grupo,
+subnicho e cupom continuam como camadas futuras de decisao.
+
 ## Etapa finalize
 
 A etapa `finalize`:

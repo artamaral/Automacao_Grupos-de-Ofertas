@@ -22,6 +22,7 @@ class ExternalOfferPayload:
     sales_count: int = 0
     rating: float | None = None
     is_prime_or_free_shipping: bool = False
+    shop_type_code: int | None = None
     allow_unknown_price: bool = False
 
 
@@ -40,6 +41,7 @@ class OfferMapper:
             rating=payload.rating,
             niche=payload.niche.strip(),
             is_prime_or_free_shipping=payload.is_prime_or_free_shipping,
+            shop_type_code=payload.shop_type_code,
         )
 
     def _validate(self, payload: ExternalOfferPayload) -> None:
@@ -65,6 +67,9 @@ class OfferMapper:
 
         if payload.rating is not None and not 0 <= payload.rating <= 5:
             errors.append("rating")
+
+        if payload.shop_type_code is not None and payload.shop_type_code < 0:
+            errors.append("shop_type_code")
 
         if not payload.niche.strip():
             errors.append("niche")

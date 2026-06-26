@@ -63,6 +63,7 @@ def offer_to_json(offer: Offer) -> dict[str, Any]:
         "rating": offer.rating,
         "niche": offer.niche,
         "is_prime_or_free_shipping": offer.is_prime_or_free_shipping,
+        "shop_type_code": offer.shop_type_code,
     }
 
 
@@ -84,6 +85,7 @@ def offer_from_json(data: object) -> Offer:
             rating=_optional_float(data.get("rating")),
             niche=str(data["niche"]),
             is_prime_or_free_shipping=bool(data.get("is_prime_or_free_shipping", False)),
+            shop_type_code=_optional_int(data.get("shop_type_code")),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved offer item is invalid"
@@ -100,3 +102,9 @@ def _optional_str(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _optional_int(value: object) -> int | None:
+    if value is None:
+        return None
+    return int(value)

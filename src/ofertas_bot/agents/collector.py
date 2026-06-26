@@ -10,8 +10,8 @@ from ofertas_bot.discovery_profiles import DiscoveryProfile
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.amazon import AmazonProvider
 from ofertas_bot.providers.mock import MockOfferProvider
-from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.shopee import ShopeeProvider
+from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_offer_store import OfferStoreError, offer_from_json
 
@@ -392,6 +392,7 @@ def _offer_from_catalog_item(
             rating=offer.rating,
             niche=niche,
             is_prime_or_free_shipping=offer.is_prime_or_free_shipping,
+            shop_type_code=offer.shop_type_code,
         )
 
     title = _required_catalog_str(item, "productName")
@@ -416,11 +417,20 @@ def _offer_from_catalog_item(
         rating=_catalog_optional_float(item.get("ratingStar")),
         niche=niche,
         is_prime_or_free_shipping=False,
+        shop_type_code=_catalog_shop_type(item.get("shopType")),
     )
 
 
 def _looks_like_normalized_offer(item: dict[str, object]) -> bool:
-    required_keys = {"marketplace", "title", "url", "price", "commission_rate", "sales_count", "niche"}
+    required_keys = {
+        "marketplace",
+        "title",
+        "url",
+        "price",
+        "commission_rate",
+        "sales_count",
+        "niche",
+    }
     return required_keys.issubset(item.keys())
 
 
@@ -461,3 +471,16 @@ def _catalog_int(value: object, *, default: int) -> int:
     if value in (None, ""):
         return default
     return int(float(value))
+
+
+def _catalog_shop_type(value: object) -> int | None:
+    if value in (None, "", "[]"):
+        return None
+    text = str(value).strip()
+    if text.startswith("[") and text.endswith("]"):
+        inner = text[1:-1].strip()
+        if not inner:
+            return None
+        first_value = inner.split(",", maxsplit=1)[0].strip()
+        return int(first_value)
+    return int(float(text))

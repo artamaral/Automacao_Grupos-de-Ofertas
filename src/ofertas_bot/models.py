@@ -25,6 +25,7 @@ class Offer:
     rating: float | None
     niche: str
     is_prime_or_free_shipping: bool = False
+    shop_type_code: int | None = None
 
     @property
     def discount_percent(self) -> float:

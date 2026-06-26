@@ -6,8 +6,8 @@ from ofertas_bot.agents.collector import CatalogSourceError, CollectorAgent
 from ofertas_bot.discovery_profiles import DiscoveryProfile
 from ofertas_bot.models import Marketplace, Offer
 from ofertas_bot.providers.amazon import AmazonConfigurationError
-from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.shopee import ShopeeConfigurationError
+from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.settings import Settings
 
 
@@ -78,6 +78,7 @@ def test_collector_loads_offers_from_normalized_catalog_json(tmp_path) -> None:
                     "rating": 4.8,
                     "niche": "origem",
                     "is_prime_or_free_shipping": False,
+                    "shop_type_code": 1,
                 }
             ]
         ),
@@ -97,6 +98,7 @@ def test_collector_loads_offers_from_normalized_catalog_json(tmp_path) -> None:
     assert offers[0].title == "Bolsa maternidade"
     assert offers[0].niche == "mae e bebe"
     assert offers[0].url == "https://example.com/bolsa"
+    assert offers[0].shop_type_code == 1
 
 
 def test_collector_loads_offers_from_builder_csv_and_deduplicates(tmp_path) -> None:
@@ -104,9 +106,9 @@ def test_collector_loads_offers_from_builder_csv_and_deduplicates(tmp_path) -> N
     catalog_path.write_text(
         "\n".join(
             [
-                "productName,offerLink,productLink,imageUrl,price,priceMax,commissionRate,sales,ratingStar",
-                "Carrinho bebe,https://example.com/item-1,https://example.com/product-1,https://example.com/item-1.jpg,100,140,0.15,25,4.9",
-                "Carrinho bebe duplicado,https://example.com/item-1,https://example.com/product-1b,https://example.com/item-1b.jpg,100,140,0.15,25,4.9",
+                "productName,offerLink,productLink,imageUrl,price,priceMax,commissionRate,sales,ratingStar,shopType",
+                "Carrinho bebe,https://example.com/item-1,https://example.com/product-1,https://example.com/item-1.jpg,100,140,0.15,25,4.9,[4]",
+                "Carrinho bebe duplicado,https://example.com/item-1,https://example.com/product-1b,https://example.com/item-1b.jpg,100,140,0.15,25,4.9,[]",
             ]
         ),
         encoding="utf-8",
@@ -125,6 +127,7 @@ def test_collector_loads_offers_from_builder_csv_and_deduplicates(tmp_path) -> N
     assert offers[0].old_price == 140.0
     assert offers[0].commission_rate == 0.15
     assert offers[0].sales_count == 25
+    assert offers[0].shop_type_code == 4
 
 
 def test_collector_rejects_catalog_without_supported_format(tmp_path) -> None:

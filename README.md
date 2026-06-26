@@ -125,6 +125,7 @@ $env:PYTHONUTF8='1'
 - [`docs/fluxo-operacional.md`](docs/fluxo-operacional.md): fluxo operacional local simplificado.
 - [`docs/environment.md`](docs/environment.md): variáveis de ambiente e execução local segura.
 - [`docs/provider-fake-flow.md`](docs/provider-fake-flow.md): fluxo fake/injetável dos providers.
+- [`docs/scoring.md`](docs/scoring.md): regra operacional atual do scorer.
 - [`docs/production-checklist.md`](docs/production-checklist.md): checklist antes de chamadas reais ou publicação real.
 - [`docs/status-implantacao.md`](docs/status-implantacao.md): status atual da implantação e backlog.
 - [`docs/status-integracao-shopee.md`](docs/status-integracao-shopee.md): ponto de retomada da integração Shopee.
