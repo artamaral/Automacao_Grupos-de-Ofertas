@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from enum import StrEnum
+from urllib.parse import urlsplit, urlunsplit
 
 
 class Marketplace(StrEnum):
@@ -30,6 +32,12 @@ class Offer:
             return 0.0
         return round(((self.old_price - self.price) / self.old_price) * 100, 2)
 
+    @property
+    def stable_key(self) -> str:
+        normalized_url = _normalize_offer_url(self.url)
+        raw_key = f"{self.marketplace.value}|{normalized_url}"
+        return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
 
 @dataclass(frozen=True)
 class ScoredOffer:
@@ -56,3 +64,11 @@ class PublishResult:
     dry_run: bool
     target: str
     message: str
+
+
+def _normalize_offer_url(value: str) -> str:
+    parts = urlsplit(value.strip())
+    scheme = parts.scheme.lower()
+    netloc = parts.netloc.lower()
+    path = parts.path.rstrip("/")
+    return urlunsplit((scheme, netloc, path, "", ""))
