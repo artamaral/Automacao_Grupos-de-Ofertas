@@ -40,6 +40,9 @@ Regras:
 - Definir regra de coleta incremental e frequência por nicho.
 - Criar rotina de inspeção da saída real para entender cobertura, ruído e
   sinais disponíveis antes de endurecer regras de decisão.
+- Refinar keywords e taxonomia de `auto-e-moto` após a primeira limpeza real,
+  porque a rodada atual ainda concentrou muitos itens em subnichos genéricos
+  e deixou volume alto de `unmapped_source_keywords` para revisão posterior.
 
 ## Scoring e decisão
 

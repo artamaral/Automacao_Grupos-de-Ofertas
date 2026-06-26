@@ -358,6 +358,52 @@ source_keywords_norm
 unmapped_source_keywords
 ```
 
+Leitura obrigatória das contagens principais:
+
+```text
+original_rows
+```
+
+Total de linhas lidas do CSV de entrada antes de qualquer filtro.
+
+```text
+removed_quality_rows
+```
+
+Total de linhas removidas pelos filtros fixos de qualidade do harness, como
+imagem inválida, preço inválido, comissão inválida, nota abaixo de `4.5` ou
+ausência de `shopId/itemId`.
+
+```text
+removed_safe_duplicate_rows
+```
+
+Total de linhas removidas por duplicata segura de identificador real do
+produto. Valor `0` não significa ausência de limpeza; significa apenas que a
+execução não removeu linhas por essa regra específica.
+
+```text
+clean_rows
+```
+
+Total final de linhas aprovadas para o catálogo limpo depois dos filtros de
+qualidade e das regras automáticas de deduplicação segura.
+
+Exemplo real de leitura:
+
+```text
+original_rows = 107217
+removed_quality_rows = 73573
+removed_safe_duplicate_rows = 0
+clean_rows = 33644
+```
+
+Interpretação correta desse exemplo:
+
+- houve limpeza forte de qualidade, porque `73573` linhas saíram do conjunto;
+- não houve remoção por duplicata segura nesta rodada;
+- o catálogo final entregue para processamento ficou com `33644` linhas.
+
 ---
 
 ## Parsing obrigatório de `source_hits`
