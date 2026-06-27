@@ -111,6 +111,18 @@ permitidos da oferta, `score`, motivos do score, disclosures obrigatorios,
 restricoes de copy e alegacoes proibidas. O GPT deve redigir dentro desse
 contrato, sem inventar preco, disponibilidade, prazo, beneficio ou urgencia.
 
+Decisao operacional atual para Shopee:
+
+- a mensagem base pode ser gerada por template estatico;
+- esse template deve ser preenchido diretamente com os campos estruturados do
+  brief, sem apoio de assistente;
+- o template oficial atual fica em
+  [`config/message_templates/mae-e-bebe.txt`](../config/message_templates/mae-e-bebe.txt);
+- a URL global de cupom fica em
+  [`config/coupon_urls.toml`](../config/coupon_urls.toml);
+- o preview visual validado desta etapa fica em
+  [`tmp/mae-e-bebe-message-preview.html`](../tmp/mae-e-bebe-message-preview.html).
+
 Antes de gerar `.data/copy_briefs.json`, o fluxo deve passar por uma camada de
 selecao operacional. O scorer pode rankear uma base ampla, mas o copywriter nao
 deve receber todos os itens pontuados. Apenas itens aprovados pelo gate devem
