@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ofertas_bot.models import CopyBrief
+from ofertas_bot.models import CopyBrief, RefreshChangedItem
 from ofertas_bot.storage.json_offer_store import offer_from_json, offer_to_json
 
 
@@ -79,6 +79,19 @@ def copy_brief_to_json(brief: CopyBrief) -> dict[str, Any]:
         "required_disclosures": list(brief.required_disclosures),
         "copy_constraints": list(brief.copy_constraints),
         "forbidden_claims": list(brief.forbidden_claims),
+        "refresh": {
+            "iterations": brief.refresh_iterations,
+            "stability_reached": brief.refresh_stability_reached,
+            "changed_items": [
+                {
+                    "item_id": item.item_id,
+                    "title": item.title,
+                    "refresh_iteration": item.refresh_iteration,
+                    "changed_fields": list(item.changed_fields),
+                }
+                for item in brief.refresh_changed_items
+            ],
+        },
     }
 
 
@@ -92,6 +105,10 @@ def copy_brief_from_json(data: object) -> CopyBrief:
         if not isinstance(selection, dict):
             msg = "Saved copy brief selection must be an object"
             raise CopyBriefStoreError(msg)
+        refresh = data.get("refresh", {})
+        if not isinstance(refresh, dict):
+            msg = "Saved copy brief refresh must be an object"
+            raise CopyBriefStoreError(msg)
         return CopyBrief(
             content_type=str(data["content_type"]),
             offer=offer_from_json(data["offer"]),
@@ -102,7 +119,27 @@ def copy_brief_from_json(data: object) -> CopyBrief:
             ),
             copy_constraints=tuple(str(item) for item in data.get("copy_constraints", ())),
             forbidden_claims=tuple(str(item) for item in data.get("forbidden_claims", ())),
+            refresh_iterations=int(refresh.get("iterations", 0)),
+            refresh_stability_reached=bool(refresh.get("stability_reached", True)),
+            refresh_changed_items=tuple(
+                RefreshChangedItem(
+                    item_id=_optional_int(item.get("item_id")),
+                    title=str(item.get("title", "")),
+                    refresh_iteration=int(item.get("refresh_iteration", 0)),
+                    changed_fields=tuple(
+                        str(field) for field in item.get("changed_fields", ())
+                    ),
+                )
+                for item in refresh.get("changed_items", ())
+                if isinstance(item, dict)
+            ),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved copy brief item is invalid"
         raise CopyBriefStoreError(msg) from error
+
+
+def _optional_int(value: object) -> int | None:
+    if value is None:
+        return None
+    return int(value)

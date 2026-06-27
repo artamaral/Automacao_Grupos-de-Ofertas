@@ -338,6 +338,9 @@ def run(argv: Sequence[str] | None = None) -> int:
         catalog_source_path=catalog_source_path,
     )
     selected_scored_offers = selection_result.scored_offers
+    refresh_iterations = 0
+    refresh_stability_reached = True
+    refresh_changed_items = ()
     if (
         marketplace is Marketplace.SHOPEE
         and settings.enable_real_http
@@ -366,6 +369,9 @@ def run(argv: Sequence[str] | None = None) -> int:
         scored_offers = refresh_result.scored_offers
         selection_result = refresh_result.selection_result
         selected_scored_offers = selection_result.scored_offers
+        refresh_iterations = refresh_result.iterations
+        refresh_stability_reached = refresh_result.stability_reached
+        refresh_changed_items = refresh_result.changed_items
         print(
             "INFO | Refresh de preco/comissao executado: "
             f"iteracoes={refresh_result.iterations} "
@@ -376,7 +382,12 @@ def run(argv: Sequence[str] | None = None) -> int:
             return _print_selection_refresh_error(
                 stale_items_count=refresh_result.stale_items_count,
             )
-    copy_briefs = build_copy_briefs(selected_scored_offers)
+    copy_briefs = build_copy_briefs(
+        selected_scored_offers,
+        refresh_iterations=refresh_iterations,
+        refresh_stability_reached=refresh_stability_reached,
+        refresh_changed_items=refresh_changed_items,
+    )
     approved_drafts: list[MessageDraft] = []
 
     print(

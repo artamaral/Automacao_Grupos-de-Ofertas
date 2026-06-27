@@ -1,7 +1,7 @@
 import json
 
 from ofertas_bot.copy_brief import build_copy_brief
-from ofertas_bot.models import Marketplace, Offer, ScoredOffer
+from ofertas_bot.models import Marketplace, Offer, RefreshChangedItem, ScoredOffer
 from ofertas_bot.storage.json_copy_brief_store import JsonCopyBriefStore
 
 
@@ -28,7 +28,19 @@ def make_scored_offer() -> ScoredOffer:
 
 def test_json_copy_brief_store_saves_gpt_ready_contract(tmp_path) -> None:
     path = tmp_path / "copy_briefs.json"
-    brief = build_copy_brief(make_scored_offer())
+    brief = build_copy_brief(
+        make_scored_offer(),
+        refresh_iterations=2,
+        refresh_stability_reached=True,
+        refresh_changed_items=(
+            RefreshChangedItem(
+                item_id=123,
+                title="Produto teste",
+                refresh_iteration=1,
+                changed_fields=("price", "commission_rate"),
+            ),
+        ),
+    )
 
     JsonCopyBriefStore(path=path).save((brief,))
 
@@ -44,11 +56,35 @@ def test_json_copy_brief_store_saves_gpt_ready_contract(tmp_path) -> None:
     assert payload[0]["required_disclosures"]
     assert payload[0]["copy_constraints"]
     assert payload[0]["forbidden_claims"]
+    assert payload[0]["refresh"] == {
+        "iterations": 2,
+        "stability_reached": True,
+        "changed_items": [
+            {
+                "item_id": 123,
+                "title": "Produto teste",
+                "refresh_iteration": 1,
+                "changed_fields": ["price", "commission_rate"],
+            }
+        ],
+    }
 
 
 def test_json_copy_brief_store_loads_saved_briefs(tmp_path) -> None:
     path = tmp_path / "copy_briefs.json"
-    brief = build_copy_brief(make_scored_offer())
+    brief = build_copy_brief(
+        make_scored_offer(),
+        refresh_iterations=2,
+        refresh_stability_reached=False,
+        refresh_changed_items=(
+            RefreshChangedItem(
+                item_id=123,
+                title="Produto teste",
+                refresh_iteration=1,
+                changed_fields=("price",),
+            ),
+        ),
+    )
     JsonCopyBriefStore(path=path).save((brief,))
 
     loaded = JsonCopyBriefStore(path=path).load()
@@ -57,3 +93,7 @@ def test_json_copy_brief_store_loads_saved_briefs(tmp_path) -> None:
     assert loaded[0].offer.title == "Produto teste"
     assert loaded[0].score == 43
     assert loaded[0].score_reasons == ("desconto de 50%", "1000 vendas", "loja star")
+    assert loaded[0].refresh_iterations == 2
+    assert loaded[0].refresh_stability_reached is False
+    assert loaded[0].refresh_changed_items[0].item_id == 123
+    assert loaded[0].refresh_changed_items[0].changed_fields == ("price",)

@@ -49,6 +49,14 @@ class ScoredOffer:
 
 
 @dataclass(frozen=True)
+class RefreshChangedItem:
+    item_id: int | None
+    title: str
+    refresh_iteration: int
+    changed_fields: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class CopyBrief:
     content_type: str
     offer: Offer
@@ -57,6 +65,9 @@ class CopyBrief:
     required_disclosures: tuple[str, ...]
     copy_constraints: tuple[str, ...]
     forbidden_claims: tuple[str, ...]
+    refresh_iterations: int = 0
+    refresh_stability_reached: bool = True
+    refresh_changed_items: tuple[RefreshChangedItem, ...] = ()
 
 
 @dataclass(frozen=True)

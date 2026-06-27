@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ofertas_bot.models import CopyBrief, ScoredOffer
+from ofertas_bot.models import CopyBrief, RefreshChangedItem, ScoredOffer
 
 PRODUCT_OFFER_CONTENT_TYPE = "product_offer"
 
@@ -26,7 +26,13 @@ DEFAULT_FORBIDDEN_CLAIMS = (
 )
 
 
-def build_copy_brief(scored_offer: ScoredOffer) -> CopyBrief:
+def build_copy_brief(
+    scored_offer: ScoredOffer,
+    *,
+    refresh_iterations: int = 0,
+    refresh_stability_reached: bool = True,
+    refresh_changed_items: tuple[RefreshChangedItem, ...] = (),
+) -> CopyBrief:
     return CopyBrief(
         content_type=PRODUCT_OFFER_CONTENT_TYPE,
         offer=scored_offer.offer,
@@ -35,8 +41,25 @@ def build_copy_brief(scored_offer: ScoredOffer) -> CopyBrief:
         required_disclosures=DEFAULT_REQUIRED_DISCLOSURES,
         copy_constraints=DEFAULT_COPY_CONSTRAINTS,
         forbidden_claims=DEFAULT_FORBIDDEN_CLAIMS,
+        refresh_iterations=refresh_iterations,
+        refresh_stability_reached=refresh_stability_reached,
+        refresh_changed_items=refresh_changed_items,
     )
 
 
-def build_copy_briefs(scored_offers: list[ScoredOffer]) -> tuple[CopyBrief, ...]:
-    return tuple(build_copy_brief(scored_offer) for scored_offer in scored_offers)
+def build_copy_briefs(
+    scored_offers: list[ScoredOffer],
+    *,
+    refresh_iterations: int = 0,
+    refresh_stability_reached: bool = True,
+    refresh_changed_items: tuple[RefreshChangedItem, ...] = (),
+) -> tuple[CopyBrief, ...]:
+    return tuple(
+        build_copy_brief(
+            scored_offer,
+            refresh_iterations=refresh_iterations,
+            refresh_stability_reached=refresh_stability_reached,
+            refresh_changed_items=refresh_changed_items,
+        )
+        for scored_offer in scored_offers
+    )

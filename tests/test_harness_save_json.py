@@ -94,6 +94,11 @@ def test_harness_saves_copy_briefs_when_requested(tmp_path) -> None:
     assert payload[0]["selection"]["reasons"]
     assert payload[0]["required_disclosures"]
     assert payload[0]["copy_constraints"]
+    assert payload[0]["refresh"] == {
+        "iterations": 0,
+        "stability_reached": True,
+        "changed_items": [],
+    }
 
 
 def test_harness_applies_default_selection_policy_before_saving_copy_briefs(tmp_path) -> None:

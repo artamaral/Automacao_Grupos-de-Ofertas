@@ -39,3 +39,6 @@ def test_build_copy_brief_preserves_scorer_decision_and_offer_facts() -> None:
     assert any("afiliado" in item for item in brief.required_disclosures)
     assert any("Nao alterar preco" in item for item in brief.copy_constraints)
     assert "preco garantido" in brief.forbidden_claims
+    assert brief.refresh_iterations == 0
+    assert brief.refresh_stability_reached is True
+    assert brief.refresh_changed_items == ()

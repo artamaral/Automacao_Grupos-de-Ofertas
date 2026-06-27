@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from ofertas_bot.agents.scorer import ScorerAgent
-from ofertas_bot.models import Offer, ScoredOffer
+from ofertas_bot.models import Offer, RefreshChangedItem, ScoredOffer
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.selection import SelectionResult, apply_default_selection_policy
 
@@ -23,6 +23,7 @@ class SelectionRefreshResult:
     iterations: int
     stability_reached: bool
     stale_items_count: int
+    changed_items: tuple[RefreshChangedItem, ...] = ()
 
 
 def stabilize_selected_shopee_offers(
@@ -35,6 +36,7 @@ def stabilize_selected_shopee_offers(
     max_iterations: int = 5,
 ) -> SelectionRefreshResult:
     current_offers = list(offers)
+    changed_items: list[RefreshChangedItem] = []
 
     for iteration in range(1, max_iterations + 1):
         scored_offers = scorer.score(current_offers)
@@ -47,6 +49,15 @@ def stabilize_selected_shopee_offers(
             selected_scored_offers=selection_result.scored_offers,
             shopee_provider=shopee_provider,
         )
+        changed_items.extend(
+            RefreshChangedItem(
+                item_id=change.offer.item_id,
+                title=change.offer.title,
+                refresh_iteration=iteration,
+                changed_fields=change.changed_fields,
+            )
+            for change in refresh_changes
+        )
         if not refresh_changes:
             return SelectionRefreshResult(
                 offers=current_offers,
@@ -55,6 +66,7 @@ def stabilize_selected_shopee_offers(
                 iterations=iteration,
                 stability_reached=True,
                 stale_items_count=0,
+                changed_items=tuple(changed_items),
             )
         current_offers = _apply_refresh_changes(current_offers, refresh_changes)
 
@@ -75,6 +87,7 @@ def stabilize_selected_shopee_offers(
         iterations=max_iterations,
         stability_reached=False,
         stale_items_count=len(refresh_changes),
+        changed_items=tuple(changed_items),
     )
 
 
