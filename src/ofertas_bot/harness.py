@@ -28,6 +28,7 @@ from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvide
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.transport import HttpTransportError
+from ofertas_bot.selection import apply_default_selection_policy
 from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_collection_inspection_store import (
     CollectionInspectionStoreWriteError,
@@ -330,13 +331,24 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(f"INFO | Ofertas normalizadas salvas em {save_path}")
 
     scored_offers = scorer.score(offers)
-    copy_briefs = build_copy_briefs(scored_offers)
+    selection_result = apply_default_selection_policy(
+        scored_offers,
+        niche=niche,
+        catalog_source_path=catalog_source_path,
+    )
+    selected_scored_offers = selection_result.scored_offers
+    copy_briefs = build_copy_briefs(selected_scored_offers)
     approved_drafts: list[MessageDraft] = []
 
     print(
         f"INFO | Encontradas {len(scored_offers)} ofertas "
         f"para nicho={niche} marketplace={marketplace}"
     )
+    if selection_result.applied_default_policy:
+        print(
+            "INFO | Politica padrao de selecao aplicada: "
+            f"{selection_result.selected_count}/{selection_result.quota_count} itens para copy"
+        )
     if profile is not None:
         print(
             f"INFO | Perfil de descoberta={profile.slug} "
@@ -357,7 +369,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     if catalog_source_path is not None:
         print(f"INFO | catalog_file={catalog_source_path}")
 
-    for index, scored in enumerate(scored_offers, start=1):
+    for index, scored in enumerate(selected_scored_offers, start=1):
         draft = copywriter.create_message(scored)
         result = compliance.validate(draft=draft, dry_run=dry_run)
 

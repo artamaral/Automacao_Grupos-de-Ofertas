@@ -116,6 +116,16 @@ selecao operacional. O scorer pode rankear uma base ampla, mas o copywriter nao
 deve receber todos os itens pontuados. Apenas itens aprovados pelo gate devem
 virar brief de copy.
 
+Regra de comportamento padrao do harness:
+
+- se existir politica default registrada para o nicho e nenhum parametro extra
+  sobrescrever a selecao, essa politica deve ser aplicada automaticamente;
+- o harness nao deve inventar filtros paralelos fora do contrato documentado;
+- na ausencia de parametro especifico, a saida padrao para copy deve ser sempre
+  a selecao deterministica definida para o nicho.
+- na rodada padrao de `mae-e-bebe`, itens sem venda podem entrar, mas nunca
+  ultrapassar `4` itens no total.
+
 ### Gate de selecao
 
 O gate entre `Scorer` e `Copywriter` deve aplicar quatro blocos de regra:
@@ -199,6 +209,12 @@ Cada destino também pode declarar no config:
 
 Essa cadência é operacional e auditável. O fluxo não usa intervalo aleatório
 para tentar parecer humano.
+
+Cadencia operacional registrada para a rodada atual:
+
+- `20` mensagens por execucao;
+- minimo de `5` execucoes por dia;
+- alvo operacional de `100` mensagens por dia.
 
 ## Papel humano
 

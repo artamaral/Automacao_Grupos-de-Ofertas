@@ -103,6 +103,30 @@ Leitura operacional:
 - elegibilidade vem antes do corte por score;
 - score ranqueia apenas dentro do conjunto que ja passou nas travas do gate.
 
+### Regra de itens sem venda
+
+Itens sem venda continuam elegiveis. Eles nao devem ser removidos por regra
+cega, porque podem representar oportunidade negligenciada por outros
+competidores.
+
+Ao mesmo tempo, eles nao podem dominar a rodada.
+
+Decisao registrada para a saida padrao de `mae-e-bebe`:
+
+- itens com `sales = 0` podem entrar normalmente se estiverem bem rankeados;
+- a selecao nao deve forcar preenchimento com itens sem venda;
+- se a selecao natural produzir ate `4` itens sem venda, a regra segue sem
+  interferencia;
+- se a selecao natural ultrapassar `4` itens sem venda, os excedentes devem ser
+  pulados;
+- ao pular um excedente sem venda, o gate deve tentar preencher a cota com o
+  proximo item elegivel do mesmo subnicho;
+- se nao existir substituto elegivel naquele subnicho, o slot pode ficar vazio.
+
+Config esperado:
+
+- `selection.max_zero_sales_items_per_round`
+
 ## Regras operacionais da selecao
 
 ### 1. Recorrencia temporal
@@ -264,9 +288,12 @@ Artefatos de apoio desta rodada:
 Decisao operacional inicial:
 
 - rodada base de `20` itens para copywriter;
+- itens sem venda podem entrar, mas nunca ultrapassar `4` itens na rodada;
 - apenas subnichos que passam no piso de volume entram na banda principal;
 - aplicar teto inicial de `2` itens por subnicho para evitar concentracao;
 - dentro de cada subnicho, escolher os itens elegiveis de maior score.
+- se nenhum parametro extra de selecao for informado, esta deve ser a saida
+  padrao do harness para `mae e bebe`.
 
 Distribuicao inicial proposta:
 
@@ -293,6 +320,12 @@ Total da rodada base:
 
 - `20` itens
 
+Cadencia operacional registrada:
+
+- `20` itens por execucao;
+- minimo de `5` execucoes por dia;
+- alvo operacional de `100` mensagens por dia.
+
 Subnichos que ficam fora da banda principal nesta fase:
 
 - subnichos abaixo do piso de volume;
@@ -312,6 +345,10 @@ Leitura pratica desta decisao:
 - nao segue distribuicao puramente proporcional, para evitar esmagar a rodada em
   poucos subnichos gigantes;
 - tambem nao usa divisao uniforme, para evitar desperdiçar slots em cauda fraca.
+- itens sem venda continuam entrando como exploracao, mas com teto global de
+  `4` por rodada para nao contaminar a distribuicao principal.
+- o harness nao deve sugerir ou aplicar criterio alternativo fora deste contrato
+  quando nao houver parametro explicito do operador.
 
 ## Principios
 

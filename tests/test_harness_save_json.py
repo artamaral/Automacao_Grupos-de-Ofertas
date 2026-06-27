@@ -94,3 +94,101 @@ def test_harness_saves_copy_briefs_when_requested(tmp_path) -> None:
     assert payload[0]["selection"]["reasons"]
     assert payload[0]["required_disclosures"]
     assert payload[0]["copy_constraints"]
+
+
+def test_harness_applies_default_selection_policy_before_saving_copy_briefs(tmp_path) -> None:
+    catalog_path = tmp_path / "catalog.csv"
+    output_path = tmp_path / "copy_briefs.json"
+    catalog_path.write_text(
+        "\n".join(
+            [
+                "productName,offerLink,productLink,price,priceMax,sales,ratingStar,shopType,sellerCommissionRate,shopeeCommissionRate,subniches",
+                'Item A,https://example.com/a,,100,,10,5,[2],0.20,0.00,["mamadeiras"]',
+                'Item B,https://example.com/b,,100,,10,5,[2],0.10,0.00,["mamadeiras"]',
+                'Item C,https://example.com/c,,100,,10,5,[2],0.05,0.00,["mamadeiras"]',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from ofertas_bot import selection
+
+    original = selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE
+    selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {"mae e bebe": {"mamadeiras": 2}}
+    try:
+        exit_code = harness.run(
+            [
+                "--marketplace",
+                "shopee",
+                "--niche",
+                "mae e bebe",
+                "--limit",
+                "10",
+                "--catalog-file",
+                str(catalog_path),
+                "--save-copy-briefs-json",
+                str(output_path),
+            ]
+        )
+    finally:
+        selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = original
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert len(payload) == 2
+    assert [item["facts"]["title"] for item in payload] == ["Item A", "Item B"]
+
+
+def test_harness_limits_zero_sales_items_in_default_selection_policy(tmp_path) -> None:
+    catalog_path = tmp_path / "catalog.csv"
+    output_path = tmp_path / "copy_briefs.json"
+    catalog_path.write_text(
+        "\n".join(
+            [
+                "productName,offerLink,productLink,price,priceMax,sales,ratingStar,shopType,sellerCommissionRate,shopeeCommissionRate,subniches",
+                'Zero A,https://example.com/a,,100,,0,5,[2],0.20,0.00,["mamadeiras"]',
+                'Zero B,https://example.com/b,,100,,0,5,[2],0.19,0.00,["mamadeiras"]',
+                'Zero C,https://example.com/c,,100,,0,5,[2],0.18,0.00,["mamadeiras"]',
+                'Zero D,https://example.com/d,,100,,0,5,[2],0.17,0.00,["mamadeiras"]',
+                'Zero E,https://example.com/e,,100,,0,5,[2],0.16,0.00,["mamadeiras"]',
+                'Com Venda,https://example.com/f,,100,,5,5,[2],0.15,0.00,["mamadeiras"]',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from ofertas_bot import selection
+
+    original_quotas = selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE
+    original_limits = selection.DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE
+    selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {"mae e bebe": {"mamadeiras": 5}}
+    selection.DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE = {"mae e bebe": 4}
+    try:
+        exit_code = harness.run(
+            [
+                "--marketplace",
+                "shopee",
+                "--niche",
+                "mae e bebe",
+                "--limit",
+                "10",
+                "--catalog-file",
+                str(catalog_path),
+                "--save-copy-briefs-json",
+                str(output_path),
+            ]
+        )
+    finally:
+        selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = original_quotas
+        selection.DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE = original_limits
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert len(payload) == 5
+    assert [item["facts"]["title"] for item in payload] == [
+        "Zero A",
+        "Zero B",
+        "Zero C",
+        "Zero D",
+        "Com Venda",
+    ]
