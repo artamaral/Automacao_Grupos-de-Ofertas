@@ -187,6 +187,32 @@ Regra operacional:
 - o pipeline que consome `catalog_file` tambem deve reaplicar os filtros do
   `profile`, para que `offers.json`, score e copy nunca avancem com itens que
   ja deveriam ter sido limpos na descoberta.
+- quando `negative_terms` ou `exclude_terms` mudarem, o catalogo curado ja salvo
+  em `catalogs/clean/<profile>/clean_catalog_rating_4_8_plus.csv` deve ser
+  refeito ou re-limpo antes da proxima rodada operacional.
+
+## Do descobrimento ate a copy
+
+Para o caminho operacional da Shopee, a sequencia correta e:
+
+1. `shopee_catalog_builder` descobre e grava `raw_catalog.*`,
+   `deduplicated_catalog.*` e `clean_catalog.*`.
+2. O catalogo curado publicado em `catalogs/clean/<profile>/clean_catalog_rating_4_8_plus.csv`
+   deve refletir a saida limpa, sem itens bloqueados.
+3. O `DiscoveryProfile` aponta esse arquivo em `catalog_file`.
+4. No `prepare`, o `Collector` carrega esse `catalog_file` e reaplica
+   `exclude_terms` do `profile` antes de gravar `.data/<profile>/offers.json`.
+5. O `Scorer` trabalha sobre `.data/<profile>/offers.json`.
+6. A selecao escolhe os elegiveis e gera `.data/<profile>/copy_briefs.json`.
+7. O template estatico da Shopee usa `copy_briefs.json` para produzir
+   `messages.json`, `messages.txt` e `messages_preview.html`.
+
+Consequencia pratica:
+
+- a copy nao consome `clean_catalog_rating_4_8_plus.csv` diretamente;
+- a copy consome a saida do `Collector`, isto e, `.data/<profile>/offers.json`;
+- por isso a limpeza precisa existir nos dois pontos: no catalogo curado salvo e
+  no carregamento operacional do `catalog_file`.
 
 Campos importantes nos artefatos:
 

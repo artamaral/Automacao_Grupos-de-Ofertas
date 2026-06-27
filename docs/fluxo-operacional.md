@@ -116,6 +116,20 @@ Regra operacional atual:
 - o arquivo passado em `--catalog-file` pode ser `json` com `Offer`
   normalizada ou `csv` derivado do catalogo limpo da Shopee.
 
+No caminho atual da Shopee, a copy recebe apenas a cadeia:
+
+```text
+clean_catalog_rating_4_8_plus.csv -> Collector -> .data/<profile>/offers.json -> Scorer -> Selecao -> copy_briefs.json -> messages.json/html
+```
+
+Regra de manutencao:
+
+- se a lista de termos bloqueados mudar, o catalogo curado salvo em
+  `catalogs/clean/<profile>/clean_catalog_rating_4_8_plus.csv` deve ser refeito
+  ou re-limpo antes da proxima rodada;
+- mesmo assim, o `Collector` deve reaplicar os filtros do `profile` ao carregar
+  `catalog_file`, para impedir que um catalogo antigo siga para score e copy.
+
 A regra atual de pontuacao esta documentada em [`docs/scoring.md`](scoring.md).
 Ela cobre apenas qualidade comercial basica da oferta; aderencia fina ao grupo,
 subnicho e cupom continuam como camadas futuras de decisao.
