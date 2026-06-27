@@ -55,6 +55,10 @@ class LocalFlowPaths:
         return self.data_dir / "messages.txt"
 
     @property
+    def messages_preview_html(self) -> Path:
+        return self.data_dir / "messages_preview.html"
+
+    @property
     def review_queue_json(self) -> Path:
         return self.data_dir / "review_queue.json"
 
@@ -407,6 +411,8 @@ def _build_prepare_harness_args(
             str(paths.copy_briefs_json),
             "--save-messages-text",
             str(paths.messages_text),
+            "--save-messages-preview-html",
+            str(paths.messages_preview_html),
             "--save-review-queue-json",
             str(paths.review_queue_json),
         ]

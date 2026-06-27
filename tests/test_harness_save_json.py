@@ -101,6 +101,29 @@ def test_harness_saves_copy_briefs_when_requested(tmp_path) -> None:
     }
 
 
+def test_harness_saves_messages_preview_html_when_requested(tmp_path) -> None:
+    output_path = tmp_path / "messages_preview.html"
+
+    exit_code = harness.run(
+        [
+            "--marketplace",
+            "mock",
+            "--niche",
+            "maquiagem",
+            "--limit",
+            "1",
+            "--save-messages-preview-html",
+            str(output_path),
+        ]
+    )
+
+    html = output_path.read_text(encoding="utf-8")
+    assert exit_code == 0
+    assert "<!DOCTYPE html>" in html
+    assert "Preview HTML gerado automaticamente a partir da rodada." in html
+    assert "🛍️" in html
+
+
 def test_harness_applies_default_selection_policy_before_saving_copy_briefs(tmp_path) -> None:
     catalog_path = tmp_path / "catalog.csv"
     output_path = tmp_path / "copy_briefs.json"

@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 from __future__ import annotations
 
 import argparse
@@ -18,6 +19,7 @@ from ofertas_bot.discovery_profiles import (
     DiscoveryProfileError,
     load_discovery_profile_catalog,
 )
+from ofertas_bot.message_template_renderer import render_message_preview_html
 from ofertas_bot.models import Marketplace, MessageDraft
 from ofertas_bot.providers.amazon import AmazonConfigurationError, AmazonProvider
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
@@ -130,6 +132,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--save-messages-text",
         default=None,
         help="Caminho local para salvar mensagens aprovadas em texto",
+    )
+    parser.add_argument(
+        "--save-messages-preview-html",
+        default=None,
+        help="Caminho local para salvar preview HTML das mensagens aprovadas",
     )
     parser.add_argument(
         "--save-review-queue-json",
@@ -472,6 +479,23 @@ def run(argv: Sequence[str] | None = None) -> int:
         except OSError as error:
             return _print_save_messages_text_error(error=error)
         print(f"INFO | Revisão de mensagens salva em {save_path}")
+
+    if args.save_messages_preview_html:
+        save_path = Path(args.save_messages_preview_html)
+        if _is_root_output_path(save_path):
+            _print_save_json_root_warning(save_path)
+        try:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.write_text(
+                render_message_preview_html(
+                    approved_drafts_tuple,
+                    title=target,
+                ),
+                encoding="utf-8",
+            )
+        except OSError as error:
+            return _print_save_messages_preview_html_error(error=error)
+        print(f"INFO | Preview HTML das mensagens salvo em {save_path}")
 
     if args.save_review_queue_json:
         save_path = Path(args.save_review_queue_json)
@@ -844,6 +868,16 @@ def _print_save_messages_text_error(error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_save_messages_preview_html_error(error: Exception) -> int:
+    print("ERRO | Nao foi possivel salvar o preview HTML de mensagens", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "ACAO | Verifique se o caminho e um arquivo valido e se ha permissao de escrita.",
         file=sys.stderr,
     )
     return 3

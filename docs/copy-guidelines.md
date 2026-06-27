@@ -24,7 +24,8 @@ Leitura pratica:
 
 Arquivos de referencia:
 
-- template Shopee: [`config/message_templates/mae-e-bebe.txt`](../config/message_templates/mae-e-bebe.txt)
+- template Shopee padrao: [`config/message_templates/shopee.txt`](../config/message_templates/shopee.txt)
+- template legado do nicho `mae-e-bebe`: [`config/message_templates/mae-e-bebe.txt`](../config/message_templates/mae-e-bebe.txt)
 - cupom global: [`config/coupon_urls.toml`](../config/coupon_urls.toml)
 - preview HTML validado: [`tmp/mae-e-bebe-message-preview.html`](../tmp/mae-e-bebe-message-preview.html)
 
@@ -47,6 +48,8 @@ Template registrado para Shopee:
 ✅ Link do produto:
 {{facts.url}}
 
+Aviso: link de afiliado; podemos receber comissão pela compra. Preço e disponibilidade podem mudar.
+
 (anúncio)
 ```
 
@@ -66,6 +69,13 @@ Validacao operacional desta etapa:
   `tmp/mae-e-bebe-copy-briefs-default.json`;
 - foi gerado um mock HTML local para conferencia visual da mensagem final;
 - a leitura visual foi aprovada como referencia inicial do formato Shopee.
+
+Regra obrigatoria:
+
+- o disclosure de afiliado faz parte do proprio template Shopee;
+- `(anúncio)` sozinho nao substitui a exigencia de compliance;
+- qualquer template estatico novo deve continuar trazendo aviso explicito de
+  afiliado/comissao no corpo da mensagem.
 
 ## Linha de preço
 

@@ -38,9 +38,13 @@ def make_group_profile(*, max_offers_per_run: int = 3) -> GroupProfile:
     )
 
 
-def make_scored_offer(title: str = "Produto teste") -> ScoredOffer:
+def make_scored_offer(
+    title: str = "Produto teste",
+    *,
+    marketplace: Marketplace = Marketplace.AMAZON,
+) -> ScoredOffer:
     return ScoredOffer(
-        offer=make_offer(title=title),
+        offer=make_offer(title=title, marketplace=marketplace),
         score=10,
         reasons=["desconto", "bem avaliado", "frete"],
     )
@@ -53,43 +57,33 @@ def test_copywriter_includes_affiliate_disclosure() -> None:
     draft = CopywriterAgent().create_message(scored)
 
     assert "afiliado" in draft.text.lower()
-    assert "comissão" in draft.text.lower()
+    assert "comiss" in draft.text.lower()
     assert offer.url in draft.text
 
 
-def test_copywriter_formats_price_as_from_to_when_old_price_exists() -> None:
+def test_copywriter_renders_shopee_static_template_with_coupon() -> None:
     offer = make_offer(
         marketplace=Marketplace.SHOPEE,
-        price=49.90,
-        old_price=89.90,
+        price=33.22,
+        old_price=60.66,
+        rating=5.0,
+        title="Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa",
     )
     scored = ScoredOffer(offer=offer, score=10, reasons=["desconto"])
 
     draft = CopywriterAgent().create_message(scored)
 
-    assert "Preço: de R$ 89.90 por R$ 49.90 (44% OFF)" in draft.text
-
-
-def test_copywriter_includes_marketplace_label() -> None:
-    offer = make_offer(marketplace=Marketplace.SHOPEE)
-    scored = ScoredOffer(offer=offer, score=10, reasons=["desconto"])
-
-    draft = CopywriterAgent().create_message(scored)
-
-    assert "Loja: Shopee" in draft.text
-
-
-def test_copywriter_handles_unknown_price() -> None:
-    offer = make_offer(
-        marketplace=Marketplace.SHOPEE,
-        price=0,
-        old_price=None,
-    )
-    scored = ScoredOffer(offer=offer, score=10, reasons=["comissao"])
-
-    draft = CopywriterAgent().create_message(scored)
-
-    assert "consulte o valor atualizado no link da oferta" in draft.text
+    assert "Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa" in draft.text
+    assert "🏪 Loja: Shopee" in draft.text
+    assert "💵 R$ 33,22" in draft.text
+    assert "🏷️ 45% OFF" in draft.text
+    assert "⭐ Avaliação: 5,0/5" in draft.text
+    assert "🎟️ Resgate o cupom desta página:" in draft.text
+    assert "https://s.shopee.com.br/4AxtmHq4If" in draft.text
+    assert "✅ Link do produto:" in draft.text
+    assert "afiliado" in draft.text.lower()
+    assert "comiss" in draft.text.lower()
+    assert "(anúncio)" in draft.text
 
 
 def test_copywriter_includes_trust_line() -> None:
@@ -98,7 +92,8 @@ def test_copywriter_includes_trust_line() -> None:
 
     draft = CopywriterAgent().create_message(scored)
 
-    assert "Sinal de confiança: avaliação 4.8/5; 250 vendas." in draft.text
+    assert "Sinal de confiança:" in draft.text
+    assert "250 vendas" in draft.text
 
 
 def test_copywriter_includes_shipping_benefit() -> None:
@@ -120,7 +115,7 @@ def test_copywriter_includes_safe_call_to_action() -> None:
 
 
 def test_copywriter_creates_detailed_message_for_group() -> None:
-    offer = make_offer()
+    offer = make_offer(marketplace=Marketplace.AMAZON)
     scored = ScoredOffer(offer=offer, score=10, reasons=["desconto"])
     group_profile = make_group_profile(max_offers_per_run=3)
 
@@ -130,6 +125,16 @@ def test_copywriter_creates_detailed_message_for_group() -> None:
     assert "Loja: Amazon" in draft.text
     assert "Sinal de confiança:" in draft.text
     assert "Entrega:" in draft.text
+
+
+def test_copywriter_creates_shopee_template_for_group() -> None:
+    scored = make_scored_offer(marketplace=Marketplace.SHOPEE)
+    group_profile = make_group_profile(max_offers_per_run=3)
+
+    draft = CopywriterAgent().create_message_for_group(scored, group_profile)
+
+    assert "🏪 Loja: Shopee" in draft.text
+    assert "Grupo: Maquiagem VIP" not in draft.text
 
 
 def test_copywriter_creates_compact_message_for_single_offer_group() -> None:

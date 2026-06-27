@@ -73,6 +73,7 @@ def test_local_flow_prepare_uses_default_paths(tmp_path, monkeypatch, capsys) ->
     assert str(tmp_path / "messages.json") in calls[0]
     assert str(tmp_path / "copy_briefs.json") in calls[0]
     assert str(tmp_path / "messages.txt") in calls[0]
+    assert str(tmp_path / "messages_preview.html") in calls[0]
     assert (tmp_path / "review_plan.json").exists()
     assert (tmp_path / "review_plan.txt").exists()
     assert "Etapa prepare concluída" in output
@@ -255,6 +256,7 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
     assert paths.offers_json == Path(tmp_path / "offers.json")
     assert paths.copy_briefs_json == Path(tmp_path / "copy_briefs.json")
     assert paths.review_queue_json == Path(tmp_path / "review_queue.json")
+    assert paths.messages_preview_html == Path(tmp_path / "messages_preview.html")
     assert paths.approved_messages_json == Path(tmp_path / "approved_messages.json")
     assert paths.approved_messages_by_group_dir == Path(tmp_path / "approved_messages_by_group")
     assert paths.dispatch_artifact_json == Path(tmp_path / "dispatch_artifact.json")

@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from ofertas_bot.group_plan import GroupPlan
 from ofertas_bot.group_profiles import GroupProfile
+from ofertas_bot.message_template_renderer import render_shopee_message_template
 from ofertas_bot.models import Marketplace, MessageDraft, Offer, ScoredOffer
 
 MARKETPLACE_LABELS = {
@@ -59,6 +60,9 @@ class CopywriterAgent:
         group_profile: GroupProfile | None,
     ) -> MessageDraft:
         offer = scored_offer.offer
+        if offer.marketplace is Marketplace.SHOPEE:
+            text = render_shopee_message_template(scored_offer)
+            return MessageDraft(offer=offer, text=text)
         if group_profile and group_profile.max_offers_per_run <= 1:
             text = self._create_compact_text(scored_offer, group_profile)
         else:

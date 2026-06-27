@@ -61,6 +61,7 @@ O fluxo usa `.data` por padrão:
 .data/copy_briefs.json
 .data/messages.json
 .data/messages.txt
+.data/messages_preview.html
 .data/review_queue.json
 .data/review_plan.json
 .data/review_plan.txt
@@ -86,6 +87,7 @@ A etapa `prepare`:
 - gera mensagens;
 - valida compliance;
 - salva artefatos locais;
+- renderiza automaticamente `messages_preview.html` com a previa visual da rodada;
 - cria fila de revisão pendente já roteada pelo catálogo de grupos quando houver correspondência;
 - gera `review_plan.json` e `review_plan.txt` com grupos elegíveis, bloqueios e mensagens previstas por grupo;
 - não envia nada;
@@ -116,12 +118,22 @@ Decisao operacional atual para Shopee:
 - a mensagem base pode ser gerada por template estatico;
 - esse template deve ser preenchido diretamente com os campos estruturados do
   brief, sem apoio de assistente;
-- o template oficial atual fica em
+- o template oficial atual da Shopee fica em
+  [`config/message_templates/shopee.txt`](../config/message_templates/shopee.txt);
+- o template pode ter override por nicho, como em
   [`config/message_templates/mae-e-bebe.txt`](../config/message_templates/mae-e-bebe.txt);
 - a URL global de cupom fica em
   [`config/coupon_urls.toml`](../config/coupon_urls.toml);
 - o preview visual validado desta etapa fica em
   [`tmp/mae-e-bebe-message-preview.html`](../tmp/mae-e-bebe-message-preview.html).
+
+Regra complementar desta etapa:
+
+- o preview HTML da rodada deixa de ser um mock manual e passa a ser artefato
+  automatico do `prepare`/harness quando o caminho de saida for informado;
+- o preview deve refletir apenas as mensagens aprovadas pelo compliance;
+- o aviso de afiliado continua obrigatorio dentro do template estatico usado na
+  Shopee.
 
 Antes de gerar `.data/copy_briefs.json`, o fluxo deve passar por uma camada de
 selecao operacional. O scorer pode rankear uma base ampla, mas o copywriter nao
