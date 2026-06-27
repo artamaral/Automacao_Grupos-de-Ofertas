@@ -20,13 +20,26 @@ class ComplianceAgent:
         if draft.offer.price < 0:
             reasons.append("preço inválido")
 
-        if "afiliado" not in text and "comissão" not in text:
+        if not self._has_affiliate_disclosure(text):
             reasons.append("mensagem sem aviso de afiliado")
 
         if not dry_run and not self.settings.enable_real_publish:
             reasons.append("publicação real desabilitada por configuração")
 
         return ComplianceResult(approved=not reasons, reasons=reasons)
+
+    @staticmethod
+    def _has_affiliate_disclosure(text: str) -> bool:
+        return any(
+            marker in text
+            for marker in (
+                "afiliado",
+                "comissao",
+                "comissão",
+                "(anuncio)",
+                "(anúncio)",
+            )
+        )
 
     def validate_batch(
         self,

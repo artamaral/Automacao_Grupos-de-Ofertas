@@ -2,7 +2,10 @@ from dataclasses import replace
 from pathlib import Path
 
 from ofertas_bot.models import Marketplace, Offer, ScoredOffer
-from ofertas_bot.selection import apply_default_selection_policy
+from ofertas_bot.selection import (
+    DEFAULT_SELECTION_POLICIES_BY_NICHE,
+    apply_default_selection_policy,
+)
 
 
 def _make_scored_offer(title: str, score: float, url: str) -> ScoredOffer:
@@ -33,6 +36,19 @@ def _make_scored_offer_with_sales(
         scored_offer,
         offer=replace(scored_offer.offer, sales_count=sales_count),
     )
+
+
+def test_operational_selection_policies_cover_all_curated_niches() -> None:
+    assert set(DEFAULT_SELECTION_POLICIES_BY_NICHE) == {
+        "mae e bebe",
+        "feminino",
+        "auto e moto",
+    }
+    for policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.values():
+        assert policy.total_items == 20
+        assert sum(policy.subniche_quotas.values()) == 20
+        assert policy.max_zero_sales_items == 4
+        assert policy.minimum_daily_runs == 5
 
 
 def test_default_selection_policy_keeps_top_scores_within_subniche_quota(tmp_path: Path) -> None:

@@ -47,6 +47,7 @@ class DiscoveryProfile:
     query: str | None = None
     target: str | None = None
     limit: int | None = None
+    catalog_file: str | None = None
     keywords: tuple[str, ...] = ()
     brands: tuple[str, ...] = ()
     creators: tuple[str, ...] = ()
@@ -78,9 +79,14 @@ class DiscoveryProfile:
         object.__setattr__(self, "slug", normalized_slug)
         object.__setattr__(self, "name", normalized_name)
         object.__setattr__(self, "niche", normalized_niche)
-        object.__setattr__(self, "discovery_method", _normalize_optional_identifier(self.discovery_method))
+        object.__setattr__(
+            self,
+            "discovery_method",
+            _normalize_optional_identifier(self.discovery_method),
+        )
         object.__setattr__(self, "query", _normalize_optional_text(self.query))
         object.__setattr__(self, "target", normalized_target)
+        object.__setattr__(self, "catalog_file", _normalize_optional_text(self.catalog_file))
         object.__setattr__(self, "keywords", _normalize_string_list(self.keywords))
         object.__setattr__(self, "brands", _normalize_string_list(self.brands))
         object.__setattr__(self, "creators", _normalize_string_list(self.creators))
@@ -93,9 +99,21 @@ class DiscoveryProfile:
             normalized_shopee_offer_keyword = normalized_shopee_offer_names[0]
         object.__setattr__(self, "shopee_offer_keyword", normalized_shopee_offer_keyword)
         object.__setattr__(self, "shopee_offer_names", normalized_shopee_offer_names)
-        object.__setattr__(self, "shopee_category_urls", _normalize_preserved_string_list(self.shopee_category_urls))
-        object.__setattr__(self, "shopee_product_match_ids", _deduplicate_ints(self.shopee_product_match_ids))
-        object.__setattr__(self, "shopee_product_category_ids", _deduplicate_ints(self.shopee_product_category_ids))
+        object.__setattr__(
+            self,
+            "shopee_category_urls",
+            _normalize_preserved_string_list(self.shopee_category_urls),
+        )
+        object.__setattr__(
+            self,
+            "shopee_product_match_ids",
+            _deduplicate_ints(self.shopee_product_match_ids),
+        )
+        object.__setattr__(
+            self,
+            "shopee_product_category_ids",
+            _deduplicate_ints(self.shopee_product_category_ids),
+        )
         subgroup_slugs = [subgroup.slug for subgroup in self.subgroups]
         if len(subgroup_slugs) != len(set(subgroup_slugs)):
             raise DiscoveryProfileError("discovery subgroup slugs must be unique within profile")
@@ -138,6 +156,7 @@ class DiscoveryProfile:
             query=subgroup.query,
             target=self.target,
             limit=self.limit,
+            catalog_file=self.catalog_file,
             keywords=self.keywords,
             brands=self.brands,
             creators=self.creators,
@@ -233,6 +252,7 @@ def _build_profile(item: object) -> DiscoveryProfile:
         query=_string_or_none(item.get("query")),
         target=_string_or_none(item.get("target")),
         limit=_int_or_none(item.get("limit")),
+        catalog_file=_string_or_none(item.get("catalog_file")),
         keywords=_string_tuple(item.get("keywords")),
         brands=_string_tuple(item.get("brands")),
         creators=_string_tuple(item.get("creators")),
@@ -285,7 +305,9 @@ def _int_tuple(value: object) -> tuple[int, ...]:
     normalized: list[int] = []
     for item in value:
         if isinstance(item, bool) or not isinstance(item, int):
-            raise DiscoveryProfileError("integer list fields in discovery profile must contain integers")
+            raise DiscoveryProfileError(
+                "integer list fields in discovery profile must contain integers"
+            )
         normalized.append(item)
     return tuple(normalized)
 

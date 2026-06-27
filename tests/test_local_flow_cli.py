@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 from ofertas_bot import local_flow_cli
@@ -266,6 +267,12 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
     assert paths.bundle_json == Path(tmp_path / "local_review_bundle.json")
     assert paths.review_plan_json == Path(tmp_path / "review_plan.json")
     assert paths.review_plan_text == Path(tmp_path / "review_plan.txt")
+
+
+def test_local_flow_uses_profile_specific_default_data_dir() -> None:
+    args = argparse.Namespace(data_dir=None, profile="Feminino")
+
+    assert local_flow_cli._resolve_data_dir(args) == Path(".data/feminino")
 
 
 def test_local_flow_prepare_forwards_catalog_file(tmp_path, monkeypatch) -> None:

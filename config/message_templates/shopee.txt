@@ -14,6 +14,4 @@
 ✅ Link do produto:
 {{facts.url}}
 
-Aviso: link de afiliado; podemos receber comissão pela compra. Preço e disponibilidade podem mudar.
-
 (anúncio)

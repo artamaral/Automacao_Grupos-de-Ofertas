@@ -18,6 +18,7 @@ Motivo operacional:
 Leitura pratica:
 
 - o template passa a ser a forma padrao de copy para Shopee;
+- o mesmo arquivo atende todos os nichos Shopee, sem override por nicho;
 - o assistente deixa de ser requisito para gerar o texto base;
 - variacoes futuras podem existir, mas o caminho oficial atual e o template
   versionado.
@@ -25,7 +26,6 @@ Leitura pratica:
 Arquivos de referencia:
 
 - template Shopee padrao: [`config/message_templates/shopee.txt`](../config/message_templates/shopee.txt)
-- template legado do nicho `mae-e-bebe`: [`config/message_templates/mae-e-bebe.txt`](../config/message_templates/mae-e-bebe.txt)
 - cupom global: [`config/coupon_urls.toml`](../config/coupon_urls.toml)
 - preview HTML validado: [`tmp/mae-e-bebe-message-preview.html`](../tmp/mae-e-bebe-message-preview.html)
 
@@ -47,8 +47,6 @@ Template registrado para Shopee:
 
 ✅ Link do produto:
 {{facts.url}}
-
-Aviso: link de afiliado; podemos receber comissão pela compra. Preço e disponibilidade podem mudar.
 
 (anúncio)
 ```
@@ -72,10 +70,10 @@ Validacao operacional desta etapa:
 
 Regra obrigatoria:
 
-- o disclosure de afiliado faz parte do proprio template Shopee;
-- `(anúncio)` sozinho nao substitui a exigencia de compliance;
-- qualquer template estatico novo deve continuar trazendo aviso explicito de
-  afiliado/comissao no corpo da mensagem.
+- no template estatico atual da Shopee, `(anúncio)` e o marcador aceito pelo
+  compliance;
+- qualquer template novo deve manter um marcador explicito de anuncio ou
+  disclosure equivalente.
 
 ## Linha de preço
 

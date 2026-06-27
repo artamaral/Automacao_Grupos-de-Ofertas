@@ -220,3 +220,48 @@ def test_harness_limits_zero_sales_items_in_default_selection_policy(tmp_path) -
         "Zero D",
         "Com Venda",
     ]
+
+
+def test_harness_resolves_catalog_file_from_profile(tmp_path) -> None:
+    catalog_path = tmp_path / "catalog.csv"
+    profiles_path = tmp_path / "profiles.toml"
+    output_path = tmp_path / "copy_briefs.json"
+    catalog_path.write_text(
+        "\n".join(
+            [
+                "productName,offerLink,price,sales,ratingStar,commissionRate,subniches",
+                'Item Profile,https://example.com/profile,20,10,5,0.20,["teste"]',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    profiles_path.write_text(
+        "\n".join(
+            [
+                "[[profiles]]",
+                'slug = "profile-teste"',
+                'name = "Profile Teste"',
+                'niche = "profile teste"',
+                'marketplace = "shopee"',
+                'target = "grupo-teste"',
+                "limit = 10",
+                f'catalog_file = "{catalog_path.as_posix()}"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = harness.run(
+        [
+            "--profile",
+            "profile-teste",
+            "--profiles-file",
+            str(profiles_path),
+            "--save-copy-briefs-json",
+            str(output_path),
+        ]
+    )
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert [item["facts"]["title"] for item in payload] == ["Item Profile"]

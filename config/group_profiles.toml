@@ -1,7 +1,7 @@
 [[profiles]]
 slug = "beleza-ofertas"
 name = "Beleza Ofertas"
-allowed_niches = ["beleza"]
+allowed_niches = ["beleza", "feminino"]
 allowed_marketplaces = ["mock", "shopee"]
 message_tone = "direto"
 allowed_content_types = ["product", "coupon", "context"]

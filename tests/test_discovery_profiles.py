@@ -6,6 +6,7 @@ from ofertas_bot.discovery_profiles import (
     DiscoveryProfileError,
     load_discovery_profile_catalog,
 )
+from ofertas_bot.selection import DEFAULT_SELECTION_POLICIES_BY_NICHE
 
 
 def test_load_discovery_profile_catalog_reads_profile_data(tmp_path: Path) -> None:
@@ -20,6 +21,7 @@ marketplace = "shopee"
 query = "batom maybelline"
 target = "grupo-maquiagem"
 limit = 4
+catalog_file = "catalogs/clean/maquiagem/clean_catalog.csv"
 discovery_method = "descobridor-geral"
 keywords = ["batom", "base"]
 brands = ["maybelline"]
@@ -44,6 +46,7 @@ subgroups = [
     assert profile.niche == "maquiagem"
     assert profile.target == "grupo-maquiagem"
     assert profile.limit == 4
+    assert profile.catalog_file == "catalogs/clean/maquiagem/clean_catalog.csv"
     assert profile.search_term() == "batom maybelline"
     assert profile.discovery_method == "descobridor-geral"
     assert profile.brands == ("maybelline",)
@@ -87,3 +90,17 @@ def test_discovery_profile_scopes_to_subgroup(tmp_path: Path) -> None:
 def test_load_discovery_profile_catalog_rejects_missing_file(tmp_path: Path) -> None:
     with pytest.raises(DiscoveryProfileError, match="file not found"):
         load_discovery_profile_catalog(tmp_path / "missing.toml")
+
+
+def test_operational_profiles_share_the_same_curated_flow_contract() -> None:
+    catalog = load_discovery_profile_catalog(Path("config/discovery_profiles.toml"))
+
+    for slug in ("mae-e-bebe", "feminino", "auto-e-moto"):
+        profile = catalog.get(slug)
+
+        assert profile is not None
+        assert profile.marketplace.value == "shopee"
+        assert profile.catalog_file is not None
+        assert f"/{slug}/" in profile.catalog_file.replace("\\", "/")
+        assert Path(profile.catalog_file).is_file()
+        assert profile.niche in DEFAULT_SELECTION_POLICIES_BY_NICHE

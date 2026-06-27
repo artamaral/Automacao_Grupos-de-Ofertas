@@ -10,21 +10,34 @@ Use o orquestrador local:
 .\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --profile feminino
 ```
 
-Fluxo recomendado para operação recorrente:
-
-```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino
-```
-
-Quando a rodada usar um catalogo curado local como entrada operacional do
-`Collector`, o caminho recomendado passa a ser:
-
-```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino --catalog-file .\.data\catalogos\feminino.csv
-```
+Os comandos completos, flags de debug, entradas e saidas estao em
+[`docs/cli-rodadas.md`](cli-rodadas.md).
 
 O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
 e está documentado em [`docs/discovery-profiles.md`](discovery-profiles.md).
+
+## Horizontalizacao obrigatoria
+
+`mae-e-bebe`, `feminino` e `auto-e-moto` compartilham o mesmo pipeline:
+
+```text
+Catalogo curado -> Collector -> Scorer -> Selecao -> Refresh -> Template -> Compliance -> Preview
+```
+
+Quando uma capacidade compartilhada avanca em um nicho, ela deve ser entregue
+para todos os profiles operacionais no mesmo bloco. Nao devem existir versoes
+do fluxo ou ramificacoes de codigo exclusivas por nicho.
+
+As diferencas permitidas sao dados versionados:
+
+- caminho do catalogo, destino e limite em `config/discovery_profiles.toml`;
+- bandas por subnicho em `config/selection_profiles.toml`;
+- roteamento em `config/group_profiles.toml`.
+
+Todo profile operacional deve usar Shopee, catalogo curado, politica de 20
+itens, no maximo 4 itens sem venda, template estatico Shopee, compliance e
+preview automatico. Os testes devem falhar se um dos tres profiles perder esse
+contrato.
 
 Os grupos de destino devem ser mantidos em [`config/group_profiles.toml`](../config/group_profiles.toml)
 e estão descritos em [`docs/group-profiles.md`](group-profiles.md).
@@ -42,37 +55,37 @@ endurecer classificação, roteamento e score.
 Após a aprovação/rejeição da fila por um processo humano ou interface externa, finalize os artefatos locais:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage finalize
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage finalize --profile feminino
 ```
 
 Se o pacote foi instalado na venv, os atalhos equivalentes são:
 
 ```powershell
 ofertas-local-flow --stage prepare --profile feminino
-ofertas-local-flow --stage finalize
+ofertas-local-flow --stage finalize --profile feminino
 ```
 
 ## Caminhos padrão
 
-O fluxo usa `.data` por padrão:
+O fluxo usa `.data/<profile>/` por padrão:
 
 ```text
-.data/offers.json
-.data/copy_briefs.json
-.data/messages.json
-.data/messages.txt
-.data/messages_preview.html
-.data/review_queue.json
-.data/review_plan.json
-.data/review_plan.txt
-.data/approved_messages.json
-.data/approved_messages.txt
-.data/approved_messages_by_group/
-.data/dispatch_artifact.json
-.data/dispatch_report.json
-.data/dispatch_report.txt
-.data/publication_manifest.json
-.data/local_review_bundle.json
+.data/<profile>/offers.json
+.data/<profile>/copy_briefs.json
+.data/<profile>/messages.json
+.data/<profile>/messages.txt
+.data/<profile>/messages_preview.html
+.data/<profile>/review_queue.json
+.data/<profile>/review_plan.json
+.data/<profile>/review_plan.txt
+.data/<profile>/approved_messages.json
+.data/<profile>/approved_messages.txt
+.data/<profile>/approved_messages_by_group/
+.data/<profile>/dispatch_artifact.json
+.data/<profile>/dispatch_report.json
+.data/<profile>/dispatch_report.txt
+.data/<profile>/publication_manifest.json
+.data/<profile>/local_review_bundle.json
 ```
 
 ## Etapa prepare
@@ -107,11 +120,11 @@ A regra atual de pontuacao esta documentada em [`docs/scoring.md`](scoring.md).
 Ela cobre apenas qualidade comercial basica da oferta; aderencia fina ao grupo,
 subnicho e cupom continuam como camadas futuras de decisao.
 
-O arquivo `.data/copy_briefs.json` deve ser tratado como a entrada operacional
-do futuro copywriter com GPT. Ele deriva de `ScoredOffer` e contem apenas fatos
+O arquivo `.data/<profile>/copy_briefs.json` e o contrato entre selecao e
+geracao de mensagem. Ele deriva de `ScoredOffer` e contem apenas fatos
 permitidos da oferta, `score`, motivos do score, disclosures obrigatorios,
-restricoes de copy e alegacoes proibidas. O GPT deve redigir dentro desse
-contrato, sem inventar preco, disponibilidade, prazo, beneficio ou urgencia.
+restricoes de copy e alegacoes proibidas. Na Shopee, esses dados alimentam
+diretamente o template estatico; nao ha assistente ou GPT na geracao do texto.
 
 Decisao operacional atual para Shopee:
 
@@ -120,8 +133,7 @@ Decisao operacional atual para Shopee:
   brief, sem apoio de assistente;
 - o template oficial atual da Shopee fica em
   [`config/message_templates/shopee.txt`](../config/message_templates/shopee.txt);
-- o template pode ter override por nicho, como em
-  [`config/message_templates/mae-e-bebe.txt`](../config/message_templates/mae-e-bebe.txt);
+- o mesmo template atende todos os nichos operacionais, sem override por nicho;
 - a URL global de cupom fica em
   [`config/coupon_urls.toml`](../config/coupon_urls.toml);
 - o preview visual validado desta etapa fica em
@@ -132,10 +144,10 @@ Regra complementar desta etapa:
 - o preview HTML da rodada deixa de ser um mock manual e passa a ser artefato
   automatico do `prepare`/harness quando o caminho de saida for informado;
 - o preview deve refletir apenas as mensagens aprovadas pelo compliance;
-- o aviso de afiliado continua obrigatorio dentro do template estatico usado na
-  Shopee.
+- no template estatico atual da Shopee, `(anúncio)` cumpre o disclosure exigido
+  pelo compliance.
 
-Antes de gerar `.data/copy_briefs.json`, o fluxo deve passar por uma camada de
+Antes de gerar `.data/<profile>/copy_briefs.json`, o fluxo deve passar por uma camada de
 selecao operacional. O scorer pode rankear uma base ampla, mas o copywriter nao
 deve receber todos os itens pontuados. Apenas itens aprovados pelo gate devem
 virar brief de copy.
@@ -147,8 +159,8 @@ Regra de comportamento padrao do harness:
 - o harness nao deve inventar filtros paralelos fora do contrato documentado;
 - na ausencia de parametro especifico, a saida padrao para copy deve ser sempre
   a selecao deterministica definida para o nicho.
-- na rodada padrao de `mae-e-bebe`, itens sem venda podem entrar, mas nunca
-  ultrapassar `4` itens no total.
+- nas rodadas padrao dos tres profiles operacionais, itens sem venda podem
+  entrar, mas nunca ultrapassar `4` itens no total.
 
 ### Gate de selecao
 
@@ -178,21 +190,20 @@ Dentro de cada subnicho, a regra de corte deve ser:
 Isso significa que item nao elegivel nao pode ocupar slot da cota, mesmo com
 score maior que outro item elegivel do mesmo subnicho.
 
-O config dessa camada nao deve ficar espalhado em flags soltas. A direcao
-registrada e manter essas decisoes em um bloco de config proprio de selecao,
-com itens como:
+O config implementado dessa camada fica centralizado em
+[`config/selection_profiles.toml`](../config/selection_profiles.toml), incluindo:
 
-- `selection.cooldown_hours_default`
-- `selection.band_allocation`
-- `selection.similarity`
-- `selection.refresh_before_copy`
+- total de itens por rodada;
+- minimo de execucoes diarias;
+- teto de itens sem venda;
+- percentual e quantidade por subnicho;
+- caminho da evidencia usada na decisao.
 
 No estado atual de implementacao, esse refresh operacional fica ativo no
 harness da Shopee quando `ENABLE_REAL_HTTP=true`.
 
-Enquanto a implementacao nao existir, `copy_briefs.json` deve ser lido como
-contrato alvo da etapa, nao como prova de que todas essas travas ja estao
-ativas no codigo.
+Cooldown e similaridade continuam sendo evolucoes separadas. A selecao por
+banda e o refresh de preco/comissao ja fazem parte do fluxo compartilhado.
 
 ## Etapa finalize
 

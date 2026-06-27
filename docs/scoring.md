@@ -334,6 +334,37 @@ Cadencia operacional registrada:
 - minimo de `5` execucoes por dia;
 - alvo operacional de `100` mensagens por dia.
 
+## Horizontalizacao das politicas de selecao
+
+As regras executaveis dos tres nichos ficam em
+[`config/selection_profiles.toml`](../config/selection_profiles.toml). Todos
+usam o mesmo algoritmo:
+
+- selecionar somente dentro da banda configurada de cada subnicho;
+- ordenar candidatos por score decrescente;
+- selecionar ate 20 itens;
+- permitir itens sem venda sem forca-los;
+- limitar itens sem venda a 4 por rodada;
+- executar no minimo 5 rodadas por dia.
+
+A variacao entre nichos e somente a distribuicao das bandas:
+
+| Profile | Distribuicao inicial | Evidencia |
+| --- | --- | --- |
+| `mae-e-bebe` | 4 subnichos com 10% e 12 com 5% | estudo de score ponderado e vendas |
+| `feminino` | 5 subnichos com 10% e 10 com 5% | histograma de vendas do catalogo 4.8+ |
+| `auto-e-moto` | 3 subnichos com 15%, 4 com 10% e 3 com 5% | vendas do catalogo e top 10 por subnicho |
+
+Em `auto-e-moto`, a banda evita tratar subnichos com sinais diferentes como se
+tivessem o mesmo desempenho. Por exemplo, `ferramentas-e-manutencao` recebe 10%
+e `audio-e-som` recebe 5%. Em `feminino`, a banda concentra dois slots nos
+cinco maiores volumes observados e preserva diversidade com um slot nos dez
+seguintes.
+
+Essas bandas sao uma calibragem inicial versionada. Mudancas futuras devem
+atualizar a evidencia e o config no mesmo commit, sem criar condicao de codigo
+especifica para um nicho.
+
 Subnichos que ficam fora da banda principal nesta fase:
 
 - subnichos abaixo do piso de volume;

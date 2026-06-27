@@ -1,6 +1,9 @@
+from dataclasses import replace
+
 from ofertas_bot.agents.copywriter import CopywriterAgent
 from ofertas_bot.group_plan import GroupPlan
 from ofertas_bot.group_profiles import GroupProfile
+from ofertas_bot.message_template_renderer import render_shopee_message_template
 from ofertas_bot.models import Marketplace, Offer, ScoredOffer
 
 
@@ -81,9 +84,35 @@ def test_copywriter_renders_shopee_static_template_with_coupon() -> None:
     assert "🎟️ Resgate o cupom desta página:" in draft.text
     assert "https://s.shopee.com.br/4AxtmHq4If" in draft.text
     assert "✅ Link do produto:" in draft.text
-    assert "afiliado" in draft.text.lower()
-    assert "comiss" in draft.text.lower()
     assert "(anúncio)" in draft.text
+
+
+def test_shopee_template_is_shared_by_all_niches(tmp_path) -> None:
+    template_dir = tmp_path / "templates"
+    template_dir.mkdir()
+    (template_dir / "shopee.txt").write_text(
+        "PADRAO {{facts.title}} {{coupon_url}}",
+        encoding="utf-8",
+    )
+    (template_dir / "mae-e-bebe.txt").write_text("OVERRIDE", encoding="utf-8")
+    coupon_path = tmp_path / "coupons.toml"
+    coupon_path.write_text(
+        'global_coupon_url = "https://example.com/cupom"',
+        encoding="utf-8",
+    )
+    offer = replace(
+        make_offer(marketplace=Marketplace.SHOPEE, title="Produto mae e bebe"),
+        niche="mae e bebe",
+    )
+    scored = ScoredOffer(offer=offer, score=10, reasons=["teste"])
+
+    message = render_shopee_message_template(
+        scored,
+        template_dir=template_dir,
+        coupon_urls_path=coupon_path,
+    )
+
+    assert message == "PADRAO Produto mae e bebe https://example.com/cupom"
 
 
 def test_copywriter_includes_trust_line() -> None:

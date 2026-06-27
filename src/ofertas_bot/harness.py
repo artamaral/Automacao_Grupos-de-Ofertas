@@ -250,7 +250,10 @@ def run(argv: Sequence[str] | None = None) -> int:
     compliance = ComplianceAgent(settings=settings)
     publisher = DryRunPublisher()
     raw_response: dict[str, object] | None = None
-    catalog_source_path = Path(args.catalog_file) if args.catalog_file else None
+    catalog_source_path = _resolve_catalog_source_path(
+        catalog_file_arg=args.catalog_file,
+        profile=profile,
+    )
 
     try:
         if args.save_inspection_json:
@@ -535,6 +538,18 @@ class _InputContext(argparse.Namespace):
     marketplace: Marketplace
     limit: int
     target: str
+
+
+def _resolve_catalog_source_path(
+    *,
+    catalog_file_arg: str | None,
+    profile: DiscoveryProfile | None,
+) -> Path | None:
+    if catalog_file_arg:
+        return Path(catalog_file_arg)
+    if profile is not None and profile.catalog_file:
+        return Path(profile.catalog_file)
+    return None
 
 
 def _resolve_input_context(

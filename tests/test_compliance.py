@@ -92,3 +92,14 @@ def test_compliance_allows_unknown_price() -> None:
     result = ComplianceAgent(settings=Settings()).validate(draft=draft, dry_run=True)
 
     assert result.approved
+
+
+def test_compliance_accepts_static_ad_marker() -> None:
+    draft = MessageDraft(
+        offer=make_offer(),
+        text="Oferta aprovada\n\n(anúncio)",
+    )
+
+    result = ComplianceAgent(settings=Settings()).validate(draft=draft, dry_run=True)
+
+    assert result.approved

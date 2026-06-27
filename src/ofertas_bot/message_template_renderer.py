@@ -19,7 +19,7 @@ def render_shopee_message_template(
     coupon_urls_path: Path = DEFAULT_COUPON_URLS_PATH,
 ) -> str:
     offer = scored_offer.offer
-    template_text = _load_shopee_template(template_dir=template_dir, niche=offer.niche)
+    template_text = _load_shopee_template(template_dir=template_dir)
     coupon_url = _load_global_coupon_url(path=coupon_urls_path)
     replacements = {
         "{{facts.title}}": offer.title,
@@ -171,7 +171,6 @@ def _render_preview_card(
             <p class="line rating">⭐ Avaliação: {html.escape(_format_rating_br(offer.rating))}/5</p>
             <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="{html.escape(coupon_url)}">{html.escape(coupon_url)}</a></p>
             <p class="line"><span class="label">✅ Link do produto:</span><br><a href="{html.escape(offer.url)}">{html.escape(offer.url)}</a></p>
-            <p class="line">Aviso: link de afiliado; podemos receber comissão pela compra. Preço e disponibilidade podem mudar.</p>
             <p class="ad">(anúncio)</p>
           </div>
         </article>
@@ -179,16 +178,10 @@ def _render_preview_card(
 """
 
 
-def _load_shopee_template(*, template_dir: Path, niche: str) -> str:
-    niche_slug = niche.strip().lower().replace(" ", "-")
-    candidates = (
-        template_dir / f"{niche_slug}.txt",
-        template_dir / "shopee.txt",
-        template_dir / "mae-e-bebe.txt",
-    )
-    for path in candidates:
-        if path.exists():
-            return path.read_text(encoding="utf-8")
+def _load_shopee_template(*, template_dir: Path) -> str:
+    path = template_dir / "shopee.txt"
+    if path.exists():
+        return path.read_text(encoding="utf-8").lstrip("\ufeff")
     raise FileNotFoundError("no Shopee message template found")
 
 

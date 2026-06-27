@@ -1,0 +1,231 @@
+# Politicas operacionais aplicadas depois do score e antes da copy.
+# Todas as bandas somam 100% e 20 itens por rodada.
+
+[[policies]]
+slug = "mae-e-bebe"
+niche = "mae e bebe"
+total_items = 20
+max_zero_sales_items = 4
+minimum_daily_runs = 5
+evidence = "tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv"
+
+[[policies.bands]]
+subniche = "amamentacao-extracao-leite"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "roupas-body"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "quarto-monitoramento"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "higiene-saude-unhas"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "higiene-saude-aspiradores-nasais"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "passeio-canguru-ergonomico"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "roupas-geral"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "enxoval-kits"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "alimentacao-mamadeiras"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "oral-mordedores-chupetas"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "alimentacao-copos-treinamento"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "maternidade-bolsas-mochilas"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "troca-trocadores-portateis"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "brinquedos-montessori"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "passeio-carrinhos"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "banho-banheiras"
+share_percent = 5
+items = 1
+
+[[policies]]
+slug = "feminino"
+niche = "feminino"
+total_items = 20
+max_zero_sales_items = 4
+minimum_daily_runs = 5
+evidence = "catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv"
+
+[[policies.bands]]
+subniche = "cabelo-tratamento"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "moda-calcas"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "moda-inverno"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "moda-saias-e-shorts"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "moda-partes-de-cima"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "unhas-manicure"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "maquiagem-olhos"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "lingerie-e-intimos"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "moda-vestidos"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "cabelo-ferramentas"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "moda-fitness"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "skincare-facial"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "maquiagem-labios"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "moda-social-e-trabalho"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "maquiagem-pele"
+share_percent = 5
+items = 1
+
+[[policies]]
+slug = "auto-e-moto"
+niche = "auto e moto"
+total_items = 20
+max_zero_sales_items = 4
+minimum_daily_runs = 5
+evidence = "tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv"
+
+[[policies.bands]]
+subniche = "acessorios-geral"
+share_percent = 15
+items = 3
+
+[[policies.bands]]
+subniche = "pneus-rodas-e-calibragem"
+share_percent = 15
+items = 3
+
+[[policies.bands]]
+subniche = "energia-e-conectividade"
+share_percent = 15
+items = 3
+
+[[policies.bands]]
+subniche = "suportes-e-fixadores"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "limpeza-e-estetica"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "ferramentas-e-manutencao"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "organizacao-e-conforto"
+share_percent = 10
+items = 2
+
+[[policies.bands]]
+subniche = "audio-e-som"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "seguranca-e-monitoramento"
+share_percent = 5
+items = 1
+
+[[policies.bands]]
+subniche = "multimidia-e-gps"
+share_percent = 5
+items = 1

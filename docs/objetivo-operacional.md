@@ -138,6 +138,35 @@ ou responsabilidade:
 O operador não deve precisar executar uma sequência longa de scripts pequenos
 para concluir o fluxo diário.
 
+## Decisao operacional atual sobre horizontalizacao
+
+Os perfis operacionais `mae-e-bebe`, `feminino` e `auto-e-moto` passam a
+compartilhar o mesmo fluxo de execucao, o mesmo contrato de artefatos e o mesmo
+comportamento default. Quando uma capacidade compartilhada avancar em um
+profile, ela deve avancar nos tres no mesmo bloco.
+
+Regra obrigatoria:
+
+- a operacao diaria deve mudar apenas o valor de `--profile`;
+- diferencas de negocio devem ficar somente em configuracao versionada;
+- nao deve existir desvio de implementacao por nicho no pipeline principal.
+
+Config que pode variar por profile:
+
+- `config/discovery_profiles.toml`: catalogo curado, contexto e limite;
+- `config/selection_profiles.toml`: bandas por subnicho e teto de itens sem venda;
+- `config/group_profiles.toml`: roteamento dos grupos.
+
+Contrato comum atual:
+
+- Shopee como marketplace operacional;
+- catalogo curado `ratingStar >= 4.8` por niche;
+- selecao default de `20` itens por rodada;
+- no maximo `4` itens sem venda por rodada;
+- template estatico compartilhado da Shopee;
+- compliance obrigatorio;
+- render automatico de preview HTML.
+
 ## Decisão operacional atual sobre contas por nicho
 
 Para organizar a operação desde o início, o projeto passa a considerar a

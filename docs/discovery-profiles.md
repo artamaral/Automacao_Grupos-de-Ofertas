@@ -18,6 +18,7 @@ Cada perfil concentra a entrada de negócio para a coleta:
 - termos de inclusão e exclusão;
 - target lógico padrão;
 - limite sugerido por execução.
+- caminho do catalogo curado, quando o profile for operacional.
 
 O perfil também deve ser pensado como ponte para a identidade operacional do
 nicho. Hoje o projeto já possui a decisão de manter contas de email separadas
@@ -26,10 +27,10 @@ existirem campos explícitos para isso no arquivo, essa separação serve apenas
 como contexto operacional documentado. As contas ainda não fazem parte da lógica
 de descoberta e não devem dirigir os filtros atuais dos perfis.
 
-Exemplo de uso no harness:
+Exemplo de uso no fluxo operacional:
 
 ```powershell
-.\.venv\Scripts\python.exe -m ofertas_bot.harness --profile feminino
+.\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage prepare --profile feminino
 ```
 
 Exemplo com subgroup:
@@ -78,6 +79,9 @@ Regras atuais:
 
 - `--niche` continua disponível para uso manual e debug rápido;
 - `--profile` passa a ser o caminho recomendado para operação;
+- `feminino`, `mae-e-bebe` e `auto-e-moto` resolvem automaticamente Shopee,
+  catalogo curado 4.8+, limite e destino;
+- as bandas desses profiles ficam em `config/selection_profiles.toml`;
 - `--subgroup` permite recortar um macro-nicho quando o profile já tiver essa
   taxonomia definida;
 - `--save-inspection-json` salva metadados da coleta, ofertas normalizadas e

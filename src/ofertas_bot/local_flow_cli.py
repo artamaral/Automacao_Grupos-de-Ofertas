@@ -154,13 +154,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--limit",
         type=int,
-        default=1,
-        help="Quantidade máxima de ofertas na etapa prepare",
+        default=None,
+        help="Sobrescreve a quantidade maxima de ofertas do profile",
     )
     parser.add_argument(
         "--data-dir",
-        default=".data",
-        help="Diretório local padrão dos artefatos",
+        default=None,
+        help="Diretorio dos artefatos; por profile usa .data/<profile>",
     )
     parser.add_argument(
         "--catalog-file",
@@ -172,7 +172,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    paths = LocalFlowPaths(data_dir=Path(args.data_dir))
+    paths = LocalFlowPaths(data_dir=_resolve_data_dir(args))
     paths.data_dir.mkdir(parents=True, exist_ok=True)
 
     if args.stage == "prepare":
@@ -182,6 +182,14 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     print("ERRO | Etapa operacional desconhecida", file=sys.stderr)
     return 3
+
+
+def _resolve_data_dir(args: argparse.Namespace) -> Path:
+    if args.data_dir:
+        return Path(args.data_dir)
+    if args.profile:
+        return Path(".data") / str(args.profile).strip().lower()
+    return Path(".data")
 
 
 def _run_prepare(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
@@ -395,7 +403,7 @@ def _build_prepare_harness_args(
                 "--marketplace",
                 context.marketplace.value,
                 "--limit",
-                str(args.limit),
+                str(args.limit or 1),
                 "--target",
                 context.target,
             ]
