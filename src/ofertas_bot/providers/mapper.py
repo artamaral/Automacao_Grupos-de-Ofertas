@@ -21,6 +21,7 @@ class ExternalOfferPayload:
     commission_rate: float = 0.0
     sales_count: int = 0
     rating: float | None = None
+    item_id: int | None = None
     is_prime_or_free_shipping: bool = False
     shop_type_code: int | None = None
     allow_unknown_price: bool = False
@@ -40,6 +41,7 @@ class OfferMapper:
             sales_count=payload.sales_count,
             rating=payload.rating,
             niche=payload.niche.strip(),
+            item_id=payload.item_id,
             is_prime_or_free_shipping=payload.is_prime_or_free_shipping,
             shop_type_code=payload.shop_type_code,
         )
@@ -67,6 +69,9 @@ class OfferMapper:
 
         if payload.rating is not None and not 0 <= payload.rating <= 5:
             errors.append("rating")
+
+        if payload.item_id is not None and payload.item_id < 0:
+            errors.append("item_id")
 
         if payload.shop_type_code is not None and payload.shop_type_code < 0:
             errors.append("shop_type_code")

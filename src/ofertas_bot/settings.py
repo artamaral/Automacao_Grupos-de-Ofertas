@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     max_offers_per_run: int = 5
     enable_real_publish: bool = False
     enable_real_http: bool = False
+    selection_refresh_before_copy_enabled: bool = True
+    selection_refresh_before_copy_max_iterations: int = 5
 
     shopee_partner_id: str | None = None
     shopee_secret_key: str | None = None

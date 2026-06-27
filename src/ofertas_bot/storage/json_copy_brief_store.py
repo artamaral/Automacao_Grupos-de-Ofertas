@@ -65,6 +65,7 @@ def copy_brief_to_json(brief: CopyBrief) -> dict[str, Any]:
             "marketplace": offer.marketplace.value,
             "niche": offer.niche,
             "url": offer.url,
+            "item_id": offer.item_id,
             "image_url": offer.image_url,
             "price": offer.price,
             "old_price": offer.old_price,

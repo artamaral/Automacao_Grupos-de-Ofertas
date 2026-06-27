@@ -166,7 +166,9 @@ Config esperado:
 ### 4. Refresh final antes do copy
 
 - todo item selecionado deve ter preço e comissão rechecados via API;
-- se algum item mudar, a lista precisa ser reordenada e reavaliada;
+- a chamada deve usar apenas `itemId`;
+- nesta etapa, a API deve revalidar apenas `price` e `commissionRate`;
+- se algum item mudar, a lista inteira precisa ser rescored e reselecionada;
 - repetir o ciclo até a saída estabilizar ou atingir o limite configurado;
 - bloquear ida para copy quando a lista continuar stale além do limite.
 

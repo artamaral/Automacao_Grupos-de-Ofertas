@@ -237,22 +237,30 @@ sem uma rechecagem operacional de preco e comissao.
 
 Decisao registrada:
 
-- todo item selecionado deve ter preco e comissao rechecados via API no final;
-- se pelo menos um item mudar, a lista de score precisa ser recalculada;
-- esse ciclo deve continuar ate que a lista de saida do score nao tenha mais
-  itens desatualizados.
+- o refresh deve acontecer apenas sobre os itens selecionados para a rodada;
+- na rodada padrao atual, isso significa rechecagem dos `20` itens escolhidos;
+- a chamada da API deve usar apenas `itemId`;
+- nesta etapa, o refresh deve conferir somente os campos `price` e
+  `commissionRate`;
+- se pelo menos um item mudar, a lista inteira precisa ser reprocessada:
+  recalcular score de todos os itens, aplicar novamente a selecao dos `20` e
+  repetir o refresh;
+- esse ciclo deve continuar ate que a lista selecionada nao tenha mais nenhum
+  item alterado no refresh.
 
 Leitura pratica:
 
-- o copywriter GPT so deve receber itens ja rechecados;
+- o copywriter GPT so deve receber itens ja rechecados e estaveis;
 - `CopyBrief` nao deve nascer de item com preco/comissao stale;
+- um produto pode sair da lista final se o refresh piorar seu score;
 - a rodada precisa registrar quantas iteracoes de refresh foram necessarias.
 
 Config esperado:
 
 - `selection.refresh_before_copy.enabled`
 - `selection.refresh_before_copy.max_iterations`
-- `selection.refresh_before_copy.fields = ["price", "commission_rate"]`
+- `selection.refresh_before_copy.lookup_key = "itemId"`
+- `selection.refresh_before_copy.fields = ["price", "commissionRate"]`
 - `selection.refresh_before_copy.stop_when_stable = true`
 
 Registro obrigatorio:

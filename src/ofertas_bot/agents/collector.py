@@ -391,6 +391,7 @@ def _offer_from_catalog_item(
             sales_count=offer.sales_count,
             rating=offer.rating,
             niche=niche,
+            item_id=offer.item_id,
             is_prime_or_free_shipping=offer.is_prime_or_free_shipping,
             shop_type_code=offer.shop_type_code,
         )
@@ -416,6 +417,7 @@ def _offer_from_catalog_item(
         sales_count=_catalog_int(item.get("sales"), default=0),
         rating=_catalog_optional_float(item.get("ratingStar")),
         niche=niche,
+        item_id=_catalog_optional_int(item.get("itemId")),
         is_prime_or_free_shipping=False,
         shop_type_code=_catalog_shop_type(item.get("shopType")),
     )
@@ -459,6 +461,12 @@ def _catalog_optional_float(value: object) -> float | None:
     if value in (None, ""):
         return None
     return float(value)
+
+
+def _catalog_optional_int(value: object) -> int | None:
+    if value in (None, ""):
+        return None
+    return int(float(value))
 
 
 def _catalog_float(value: object, *, default: float) -> float:

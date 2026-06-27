@@ -62,6 +62,7 @@ def offer_to_json(offer: Offer) -> dict[str, Any]:
         "sales_count": offer.sales_count,
         "rating": offer.rating,
         "niche": offer.niche,
+        "item_id": offer.item_id,
         "is_prime_or_free_shipping": offer.is_prime_or_free_shipping,
         "shop_type_code": offer.shop_type_code,
     }
@@ -84,6 +85,7 @@ def offer_from_json(data: object) -> Offer:
             sales_count=int(data["sales_count"]),
             rating=_optional_float(data.get("rating")),
             niche=str(data["niche"]),
+            item_id=_optional_int(data.get("item_id")),
             is_prime_or_free_shipping=bool(data.get("is_prime_or_free_shipping", False)),
             shop_type_code=_optional_int(data.get("shop_type_code")),
         )

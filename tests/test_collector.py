@@ -77,6 +77,7 @@ def test_collector_loads_offers_from_normalized_catalog_json(tmp_path) -> None:
                     "sales_count": 10,
                     "rating": 4.8,
                     "niche": "origem",
+                    "item_id": 12345,
                     "is_prime_or_free_shipping": False,
                     "shop_type_code": 1,
                 }
@@ -98,6 +99,7 @@ def test_collector_loads_offers_from_normalized_catalog_json(tmp_path) -> None:
     assert offers[0].title == "Bolsa maternidade"
     assert offers[0].niche == "mae e bebe"
     assert offers[0].url == "https://example.com/bolsa"
+    assert offers[0].item_id == 12345
     assert offers[0].shop_type_code == 1
 
 

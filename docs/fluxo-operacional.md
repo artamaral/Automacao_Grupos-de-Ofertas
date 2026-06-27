@@ -140,8 +140,10 @@ O gate entre `Scorer` e `Copywriter` deve aplicar quatro blocos de regra:
    itens muito parecidos devem disputar entre si antes do copy, para evitar
    repeticao excessiva de descricao e vendedor;
 4. refresh final:
-   todo item selecionado deve ter preco e comissao rechecados via API; se
-   algum item mudar, a lista precisa ser reordenada e revalidada ate estabilizar.
+   os itens selecionados da rodada devem ter preco e comissao rechecados via
+   API usando `itemId`; nesta etapa o refresh olha apenas `price` e
+   `commissionRate`; se algum item mudar, a lista inteira precisa ser
+   rescored, reselecionada e revalidada ate estabilizar.
 
 Dentro de cada subnicho, a regra de corte deve ser:
 
@@ -160,6 +162,9 @@ com itens como:
 - `selection.band_allocation`
 - `selection.similarity`
 - `selection.refresh_before_copy`
+
+No estado atual de implementacao, esse refresh operacional fica ativo no
+harness da Shopee quando `ENABLE_REAL_HTTP=true`.
 
 Enquanto a implementacao nao existir, `copy_briefs.json` deve ser lido como
 contrato alvo da etapa, nao como prova de que todas essas travas ja estao

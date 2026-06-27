@@ -28,6 +28,7 @@ from ofertas_bot.providers.shopee import ShopeeConfigurationError, ShopeeProvide
 from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.transport import HttpTransportError
+from ofertas_bot.refresh import stabilize_selected_shopee_offers
 from ofertas_bot.selection import apply_default_selection_policy
 from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_collection_inspection_store import (
@@ -337,6 +338,44 @@ def run(argv: Sequence[str] | None = None) -> int:
         catalog_source_path=catalog_source_path,
     )
     selected_scored_offers = selection_result.scored_offers
+    if (
+        marketplace is Marketplace.SHOPEE
+        and settings.enable_real_http
+        and settings.selection_refresh_before_copy_enabled
+        and selection_result.applied_default_policy
+    ):
+        try:
+            refresh_result = stabilize_selected_shopee_offers(
+                offers=offers,
+                scorer=scorer,
+                niche=niche,
+                catalog_source_path=catalog_source_path,
+                shopee_provider=collector._shopee_provider,
+                max_iterations=settings.selection_refresh_before_copy_max_iterations,
+            )
+        except ShopeeConfigurationError as error:
+            return _print_configuration_error(marketplace=Marketplace.SHOPEE, error=error)
+        except ShopeeGraphqlPayloadError as error:
+            return _print_payload_error(marketplace=Marketplace.SHOPEE, error=error)
+        except ProviderHttpError as error:
+            return _print_provider_http_error(marketplace=marketplace, error=error)
+        except HttpTransportError as error:
+            return _print_transport_error(marketplace=marketplace, error=error)
+
+        offers = refresh_result.offers
+        scored_offers = refresh_result.scored_offers
+        selection_result = refresh_result.selection_result
+        selected_scored_offers = selection_result.scored_offers
+        print(
+            "INFO | Refresh de preco/comissao executado: "
+            f"iteracoes={refresh_result.iterations} "
+            f"stability_reached={refresh_result.stability_reached} "
+            f"stale_items_count={refresh_result.stale_items_count}"
+        )
+        if not refresh_result.stability_reached:
+            return _print_selection_refresh_error(
+                stale_items_count=refresh_result.stale_items_count,
+            )
     copy_briefs = build_copy_briefs(selected_scored_offers)
     approved_drafts: list[MessageDraft] = []
 
@@ -770,6 +809,20 @@ def _print_save_copy_briefs_json_error(error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "ACAO | Verifique se o caminho e um arquivo valido e se ha permissao de escrita.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_selection_refresh_error(*, stale_items_count: int) -> int:
+    print("ERRO | Refresh de preco/comissao nao estabilizou antes do copy", file=sys.stderr)
+    print(
+        "DETALHE | "
+        f"stale_items_count={stale_items_count}",
+        file=sys.stderr,
+    )
+    print(
+        "ACAO | Revise a resposta da API e rode novamente antes de gerar briefs de copy.",
         file=sys.stderr,
     )
     return 3

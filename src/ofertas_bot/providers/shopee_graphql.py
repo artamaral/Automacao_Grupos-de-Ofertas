@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import re
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from ofertas_bot.models import Marketplace, Offer
@@ -156,6 +156,7 @@ class ShopeeGraphqlOfferMapper:
             sales_count=_optional_int(node.get("sales")) or 0,
             rating=_optional_float(node.get("ratingStar")),
             niche=niche,
+            item_id=_optional_int(node.get("itemId")),
             is_prime_or_free_shipping=False,
             allow_unknown_price=True,
         )

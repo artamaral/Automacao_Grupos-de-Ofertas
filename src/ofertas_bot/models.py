@@ -24,6 +24,7 @@ class Offer:
     sales_count: int
     rating: float | None
     niche: str
+    item_id: int | None = None
     is_prime_or_free_shipping: bool = False
     shop_type_code: int | None = None
 
