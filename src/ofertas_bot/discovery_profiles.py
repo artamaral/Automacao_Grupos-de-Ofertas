@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tomllib
+import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -168,11 +169,11 @@ class DiscoveryProfile:
 
     def apply_offer_filters(self, offers: Iterable[Offer]) -> list[Offer]:
         filtered: list[Offer] = []
-        include_terms = self.include_terms
-        exclude_terms = self.exclude_terms
+        include_terms = tuple(_normalize_match_text(term) for term in self.include_terms)
+        exclude_terms = tuple(_normalize_match_text(term) for term in self.exclude_terms)
 
         for offer in offers:
-            haystack = f"{offer.title} {offer.niche}".lower()
+            haystack = _normalize_match_text(f"{offer.title} {offer.niche}")
             if include_terms and not any(term in haystack for term in include_terms):
                 continue
             if exclude_terms and any(term in haystack for term in exclude_terms):
@@ -331,6 +332,12 @@ def _normalize_optional_text(value: str | None) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _normalize_match_text(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", value)
+    without_marks = "".join(char for char in decomposed if not unicodedata.combining(char))
+    return without_marks.strip().lower()
 
 
 def _normalize_optional_identifier(value: str | None) -> str | None:

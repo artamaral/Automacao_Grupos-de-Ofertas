@@ -181,6 +181,13 @@ Leitura desses arquivos:
 - `clean_catalog.*`: catalogo final, sem duplicacoes e sem itens bloqueados por
   `negative_terms`
 
+Regra operacional:
+
+- os termos bloqueados precisam ser eliminados antes de salvar `clean_catalog.*`;
+- o pipeline que consome `catalog_file` tambem deve reaplicar os filtros do
+  `profile`, para que `offers.json`, score e copy nunca avancem com itens que
+  ja deveriam ter sido limpos na descoberta.
+
 Campos importantes nos artefatos:
 
 - `source_type`: tipo da origem da linha coletada. No estado atual, os valores

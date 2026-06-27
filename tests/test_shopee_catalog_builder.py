@@ -36,6 +36,18 @@ def test_matches_negative_terms_uses_text_fields() -> None:
     assert _matches_negative_terms(item=item, negative_terms=("maternidade",)) is False
 
 
+def test_matches_negative_terms_accepts_phrase_and_accented_terms() -> None:
+    item = {
+        "productName": "Necessaire for men para cães",
+        "shopName": "Loja geral",
+        "productLink": "",
+        "offerLink": "",
+    }
+
+    assert _matches_negative_terms(item=item, negative_terms=("for men",)) is True
+    assert _matches_negative_terms(item=item, negative_terms=("caes",)) is True
+
+
 def test_classify_subniches_matches_keywords_and_respects_negative_terms() -> None:
     item = {
         "productName": "Fralda descartavel premium",

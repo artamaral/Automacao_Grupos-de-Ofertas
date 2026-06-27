@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import unicodedata
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -318,11 +319,14 @@ def _merge_items(target: dict[str, dict[str, Any]], rows: list[dict[str, Any]]) 
 def _matches_negative_terms(*, item: dict[str, Any], negative_terms: tuple[str, ...]) -> bool:
     if not negative_terms:
         return False
-    haystack = " ".join(
-        str(item.get(field, "")).lower()
-        for field in ("productName", "shopName", "productLink", "offerLink")
+    haystack = _normalize_match_text(
+        " ".join(
+            str(item.get(field, ""))
+            for field in ("productName", "shopName", "productLink", "offerLink")
+        )
     )
-    return any(term in haystack for term in negative_terms)
+    normalized_terms = tuple(_normalize_match_text(term) for term in negative_terms)
+    return any(term in haystack for term in normalized_terms)
 
 
 def _classify_subniches(
@@ -330,17 +334,27 @@ def _classify_subniches(
     item: dict[str, Any],
     subniches: tuple[ShopeeCatalogSubniche, ...],
 ) -> list[str]:
-    haystack = " ".join(
-        str(item.get(field, "")).lower()
-        for field in ("productName", "shopName", "productLink", "offerLink")
+    haystack = _normalize_match_text(
+        " ".join(
+            str(item.get(field, ""))
+            for field in ("productName", "shopName", "productLink", "offerLink")
+        )
     )
     matched: list[str] = []
     for subniche in subniches:
-        if subniche.negative_terms and any(term in haystack for term in subniche.negative_terms):
+        negative_terms = tuple(_normalize_match_text(term) for term in subniche.negative_terms)
+        keyword_terms = tuple(_normalize_match_text(term) for term in subniche.keyword_terms)
+        if negative_terms and any(term in haystack for term in negative_terms):
             continue
-        if subniche.keyword_terms and any(term in haystack for term in subniche.keyword_terms):
+        if keyword_terms and any(term in haystack for term in keyword_terms):
             matched.append(subniche.slug)
     return matched
+
+
+def _normalize_match_text(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", value)
+    without_marks = "".join(char for char in decomposed if not unicodedata.combining(char))
+    return without_marks.strip().lower()
 
 
 def _item_key(node: dict[str, Any]) -> str:

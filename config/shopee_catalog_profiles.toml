@@ -147,9 +147,14 @@ negative_terms = [
   "tratamento médico",
   "produto com promessa médica",
   "masculino",
+  "for men",
+  "for man",
   "barba",
   "adulto",
   "pet",
+  "carrocho",
+  "cão",
+  "cães",
   "boneca adulta",
   "fórmula",
   "suplemento",
@@ -162,10 +167,10 @@ shop_names = []
 subniches = [
   { slug = "maquiagem", name = "Maquiagem", keyword_terms = ["maquiagem", "base maquiagem", "corretivo", "batom", "gloss labial", "rímel", "máscara de cílios", "paleta de sombras", "delineador", "blush", "pincel maquiagem", "esponja maquiagem"], negative_terms = ["produto íntimo adulto", "adulto", "erótico"] },
   { slug = "skincare", name = "Skincare", keyword_terms = ["skincare", "sérum facial", "protetor solar facial", "hidratante facial", "máscara facial", "limpeza facial"], negative_terms = ["medicamento", "injeção", "tratamento médico", "produto com promessa médica", "hormônio"] },
-  { slug = "cabelo", name = "Cabelo", keyword_terms = ["escova secadora", "chapinha", "babyliss", "modelador de cabelo", "secador cabelo", "óleo capilar", "creme cabelo", "cronograma capilar"], negative_terms = ["calvície", "masculino", "barba"] },
+  { slug = "cabelo", name = "Cabelo", keyword_terms = ["escova secadora", "chapinha", "babyliss", "modelador de cabelo", "secador cabelo", "óleo capilar", "creme cabelo", "cronograma capilar"], negative_terms = ["calvície", "masculino", "for men", "for man", "barba"] },
   { slug = "unhas", name = "Unhas", keyword_terms = ["unhas gel", "cabine unha", "esmalte gel", "lixa elétrica unha"], negative_terms = [] },
-  { slug = "acessorios", name = "Acessorios Femininos", keyword_terms = ["depilador feminino", "necessaire", "organizador maquiagem", "bolsa feminina", "carteira feminina", "óculos feminino"], negative_terms = ["masculino", "pet"] },
-  { slug = "moda", name = "Moda Feminina", keyword_terms = ["roupa", "roupas", "moda", "vestido", "vestido casual", "vestido longo", "vestido curto", "vestido midi", "vestido festa", "vestido estampado", "vestido canelado", "vestido tubinho", "vestido envelope", "vestido plus size", "blusa", "blusinha", "cropped", "cropped canelado", "cropped basico", "regata", "camiseta", "t shirt", "camisa", "camisa social", "body", "body renda", "body canelado", "top", "top academia", "calca", "calca jeans", "calca pantalona", "calca wide leg", "calca flare", "calca legging", "calca alfaiataria", "calca cargo", "calca moletom", "short", "shorts jeans", "short saia", "saia", "saia midi", "saia longa", "saia curta", "saia jeans", "saia plissada", "conjunto", "conjunto cropped e saia", "conjunto calca e blusa", "conjunto short e blusa", "conjunto academia", "conjunto moletom", "macacao", "macaquinho", "blazer", "casaco", "jaqueta", "jaqueta jeans", "jaqueta couro", "cardigan", "kimono", "sueter", "tricot", "moletom", "lingerie", "calcinha", "sutia", "pijama", "camisola", "biquini", "maio", "saida de praia", "moda praia", "moda fitness", "roupa academia", "legging academia", "top fitness", "shorts academia", "moda evangelica", "vestido evangelico", "saia evangelica", "moda plus size", "blusa plus size", "calca plus size", "moda gestante", "roupa gestante", "vestido gestante", "look", "look casual", "look trabalho", "look festa", "roupa social", "roupa elegante", "roupa barata", "roupa promocao", "roupas atacado", "roupas shopee"], negative_terms = ["masculino", "adulto", "pet", "boneca adulta", "erótico"] },
+  { slug = "acessorios", name = "Acessorios Femininos", keyword_terms = ["depilador feminino", "necessaire", "organizador maquiagem", "bolsa feminina", "carteira feminina", "óculos feminino"], negative_terms = ["masculino", "for men", "for man", "pet", "carrocho", "cão", "cães"] },
+  { slug = "moda", name = "Moda Feminina", keyword_terms = ["roupa", "roupas", "moda", "vestido", "vestido casual", "vestido longo", "vestido curto", "vestido midi", "vestido festa", "vestido estampado", "vestido canelado", "vestido tubinho", "vestido envelope", "vestido plus size", "blusa", "blusinha", "cropped", "cropped canelado", "cropped basico", "regata", "camiseta", "t shirt", "camisa", "camisa social", "body", "body renda", "body canelado", "top", "top academia", "calca", "calca jeans", "calca pantalona", "calca wide leg", "calca flare", "calca legging", "calca alfaiataria", "calca cargo", "calca moletom", "short", "shorts jeans", "short saia", "saia", "saia midi", "saia longa", "saia curta", "saia jeans", "saia plissada", "conjunto", "conjunto cropped e saia", "conjunto calca e blusa", "conjunto short e blusa", "conjunto academia", "conjunto moletom", "macacao", "macaquinho", "blazer", "casaco", "jaqueta", "jaqueta jeans", "jaqueta couro", "cardigan", "kimono", "sueter", "tricot", "moletom", "lingerie", "calcinha", "sutia", "pijama", "camisola", "biquini", "maio", "saida de praia", "moda praia", "moda fitness", "roupa academia", "legging academia", "top fitness", "shorts academia", "moda evangelica", "vestido evangelico", "saia evangelica", "moda plus size", "blusa plus size", "calca plus size", "moda gestante", "roupa gestante", "vestido gestante", "look", "look casual", "look trabalho", "look festa", "roupa social", "roupa elegante", "roupa barata", "roupa promocao", "roupas atacado", "roupas shopee"], negative_terms = ["masculino", "for men", "for man", "adulto", "pet", "carrocho", "cão", "cães", "boneca adulta", "erótico"] },
 ]
 
 [[profiles]]
@@ -213,6 +218,11 @@ keyword_terms = [
 ]
 negative_terms = [
   "pet",
+  "for men",
+  "for man",
+  "carrocho",
+  "cao",
+  "caes",
   "boneca adulta",
   "medicamento",
   "fórmula",
@@ -236,7 +246,7 @@ subniches = [
   { slug = "fraldas-e-troca", name = "Fraldas e Troca", keyword_terms = ["fralda reutilizável", "trocador portátil"], negative_terms = [] },
   { slug = "quarto-e-monitoramento", name = "Quarto e Monitoramento", keyword_terms = ["organizador berço", "mosquiteiro bebê", "babá eletrônica", "monitor bebê"], negative_terms = [] },
   { slug = "brinquedos-e-desenvolvimento", name = "Brinquedos e Desenvolvimento", keyword_terms = ["tapete atividade bebê", "mordedor bebê", "brinquedo montessori bebê"], negative_terms = [] },
-  { slug = "roupas", name = "Roupas", keyword_terms = ["roupa bebê", "body bebê", "macacão bebê"], negative_terms = ["masculino", "adulto", "erótico"] },
+  { slug = "roupas", name = "Roupas", keyword_terms = ["roupa bebê", "body bebê", "macacão bebê"], negative_terms = ["masculino", "for men", "for man", "adulto", "erótico"] },
   { slug = "enxoval", name = "Enxoval", keyword_terms = ["enxoval bebê"], negative_terms = [] },
 ]
 

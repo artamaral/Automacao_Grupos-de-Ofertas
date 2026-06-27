@@ -132,6 +132,38 @@ def test_collector_loads_offers_from_builder_csv_and_deduplicates(tmp_path) -> N
     assert offers[0].shop_type_code == 4
 
 
+def test_collector_applies_profile_filters_when_loading_catalog_source(tmp_path) -> None:
+    catalog_path = tmp_path / "catalog.csv"
+    catalog_path.write_text(
+        "\n".join(
+            [
+                "productName,offerLink,productLink,imageUrl,price,priceMax,commissionRate,sales,ratingStar,shopType,sellerCommissionRate,shopeeCommissionRate",
+                "Camisa For Men,https://example.com/item-1,https://example.com/product-1,https://example.com/item-1.jpg,100,140,0.20,25,4.9,[],0.12,0.03",
+                "Acessorio para cães,https://example.com/item-2,https://example.com/product-2,https://example.com/item-2.jpg,100,140,0.20,25,4.9,[],0.12,0.03",
+                "Bolsa feminina,https://example.com/item-3,https://example.com/product-3,https://example.com/item-3.jpg,120,160,0.20,25,4.9,[],0.12,0.03",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    collector = CollectorAgent(settings=Settings())
+    profile = DiscoveryProfile(
+        slug="feminino",
+        name="Feminino",
+        niche="feminino",
+        marketplace=Marketplace.SHOPEE,
+        exclude_terms=("for men", "caes"),
+    )
+
+    batch = collector.collect_from_profile_with_inspection(
+        profile=profile,
+        limit=10,
+        catalog_source_path=catalog_path,
+    )
+
+    assert len(batch.offers) == 1
+    assert batch.offers[0].title == "Bolsa feminina"
+
+
 def test_collector_rejects_catalog_without_supported_format(tmp_path) -> None:
     catalog_path = tmp_path / "catalog.txt"
     catalog_path.write_text("invalid", encoding="utf-8")

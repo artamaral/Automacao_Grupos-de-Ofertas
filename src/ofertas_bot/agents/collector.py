@@ -106,13 +106,15 @@ class CollectorAgent:
         catalog_source_path: Path | None = None,
     ) -> CollectedOfferBatch:
         if catalog_source_path is not None:
-            return self.collect_with_inspection(
+            batch = self.collect_with_inspection(
                 marketplace=profile.marketplace,
                 niche=profile.niche,
                 limit=limit,
                 query=profile.search_term(),
                 catalog_source_path=catalog_source_path,
             )
+            filtered = profile.apply_offer_filters(batch.offers)
+            return CollectedOfferBatch(offers=filtered, raw_response=batch.raw_response)
 
         if (
             profile.marketplace is Marketplace.SHOPEE
