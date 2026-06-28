@@ -44,9 +44,6 @@ tmp/n8n-root-test/data/feminino/
 - [`scripts/n8n/invoke_finalize.ps1`](../scripts/n8n/invoke_finalize.ps1)
 - [`scripts/n8n/sync_catalog_to_n8n.ps1`](../scripts/n8n/sync_catalog_to_n8n.ps1)
 - [`scripts/n8n/invoke_prepare_window.ps1`](../scripts/n8n/invoke_prepare_window.ps1)
-
-Wrappers adicionados depois desta validacao e ainda pendentes de teste proprio:
-
 - [`scripts/n8n/invoke_finalize_window.ps1`](../scripts/n8n/invoke_finalize_window.ps1)
 
 ## Resultado 1: validacao de catalogo
@@ -220,6 +217,67 @@ Conclusao:
 - o wrapper de janela consegue preparar os tres nichos no mesmo `run`
 - a diferenca operacional entre nichos ficou reduzida ao valor do `profile`
 
+## Resultado 8: finalize da janela multi-profile
+
+Horario real da execucao:
+
+```text
+2026-06-28T08:04:31-03:00
+```
+
+Comando validado:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_finalize_window.ps1 -ProfilesCsv "feminino,mae-e-bebe,auto-e-moto" -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas -RunId 2026-06-28-janela-01
+```
+
+Resultado:
+
+- `OK`
+- `total_profiles = 3`
+- resumo de janela gerado em `tmp/n8n-root-test/data/window_finalize_summary_2026-06-28-janela-01.json`
+
+Resumo por `profile`:
+
+- `feminino`
+  - `approved_messages = 40`
+  - `targets = 2`
+  - `dispatch_report mensagens = 6`
+- `mae-e-bebe`
+  - `approved_messages = 80`
+  - `targets = 4`
+  - `dispatch_report mensagens = 16`
+- `auto-e-moto`
+  - `approved_messages = 80`
+  - `targets = 4`
+  - `dispatch_report mensagens = 16`
+
+Conclusao:
+
+- o wrapper de janela concluiu o `finalize` dos tres nichos no mesmo `run`
+- o contrato de artefatos por `profile` permaneceu consistente ate o
+  `dispatch_report`
+- a validacao multi-profile ficou completa para `prepare` e `finalize`
+
+## Resultado 9: cuidado de encoding na review queue
+
+Durante a validacao apareceu um detalhe operacional importante:
+
+- ao regravar `review_queue.json` com `Set-Content -Encoding utf8` no PowerShell
+  classico, o arquivo pode ganhar BOM
+- o loader do projeto espera JSON em `utf-8` legivel sem esse desvio
+
+Efeito observado:
+
+- a primeira tentativa do `finalize` multi-profile falhou com
+  `Saved message review queue JSON is invalid`
+- apos regravar os arquivos em UTF-8 sem BOM, o fluxo concluiu normalmente
+
+Conclusao:
+
+- qualquer etapa externa que regrave `review_queue.json` deve preservar JSON
+  valido em UTF-8 sem alterar sua estrutura esperada pelo projeto
+
 ## Conclusao geral
 
 O bloco implementado para `n8n` foi validado com sucesso em ambiente local de
@@ -230,9 +288,11 @@ teste:
 - wrapper de finalize: validado
 - wrapper de sync de catalogo: validado
 - wrapper de prepare da janela multi-profile: validado
+- wrapper de finalize da janela multi-profile: validado
 - cenario bloqueado por quiet period: validado
 - cenario liberado por horario forcado: validado
 - atualizacao de `last_sent_at` por oferta: validada
+- cuidado de encoding da `review_queue.json`: identificado e documentado
 
 ## Limites desta validacao
 
@@ -240,7 +300,6 @@ Esta validacao ainda nao cobre:
 
 - importacao real do JSON em uma instancia especifica do `n8n`
 - workflow importado no `n8n`
-- wrapper `invoke_finalize_window.ps1` com janela multi-profile completa
 - notificacoes reais
 - persistencia real em banco externo
 - envio real por `WhatsApp`

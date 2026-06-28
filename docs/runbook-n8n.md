@@ -272,6 +272,8 @@ Neste bloco, o `n8n` pode:
 Regra atual:
 
 - nenhum item segue para `finalize` com revisao pendente.
+- qualquer ferramenta externa que regrave `review_queue.json` deve preservar
+  JSON valido em UTF-8 sem introduzir mudanca estrutural no arquivo.
 
 ### 4. Esperar decisao humana
 
@@ -429,8 +431,12 @@ Este runbook ja possui uma validacao local registrada para o bloco atual:
 - `validate_catalog.ps1`: validado
 - `invoke_prepare.ps1`: validado
 - `invoke_finalize.ps1`: validado
+- `sync_catalog_to_n8n.ps1`: validado
+- `invoke_prepare_window.ps1`: validado
+- `invoke_finalize_window.ps1`: validado
 - dispatch bloqueado por `quiet_period`: validado
 - dispatch liberado por horario forcado: validado
+- janela multi-profile `prepare/finalize`: validada
 
 Detalhes e resultados numericos estao em
 [`docs/n8n-validation.md`](n8n-validation.md).
