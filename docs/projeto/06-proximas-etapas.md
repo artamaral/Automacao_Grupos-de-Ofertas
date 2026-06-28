@@ -2,18 +2,16 @@
 
 ## Prioridade imediata
 
-Automatizar o download ou espelho do CSV ativo do Google Drive usando o
-`catalog_registry`.
+Implementar a trilha `n8n-native` sem dependencia de runner, path local ou PC
+do operador.
 
 ## Sequencia recomendada
 
-1. usar o `catalog_registry` como contrato unico de path
-2. baixar ou sincronizar o CSV ativo de cada `profile`
-3. preservar o nome padrao `clean_catalog_rating_4_8_plus.csv`
-4. validar `prepare` usando os CSVs sincronizados
-5. automatizar a janela de sync antes do `prepare_window`
-6. expor um plano JSON de sync para o `n8n cloud`
-7. depois automatizar a execucao do download via Google Drive
+1. ler regras operacionais diretamente de Google Sheets
+2. ler o `catalog_registry` diretamente de Google Sheets
+3. baixar o CSV ativo de cada `profile` diretamente no `n8n`
+4. persistir estado e artefatos da rodada em superficie acessivel ao `n8n`
+5. remover do fluxo oficial qualquer referencia a path local e runner HTTP
 
 ## Resultado esperado
 

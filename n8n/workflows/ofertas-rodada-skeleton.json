@@ -1,8 +1,8 @@
 {
-  "name": "ofertas-rodada-cloud-skeleton",
+  "name": "ofertas-rodada-n8n-native-skeleton",
   "meta": {
     "templateCredsSetupCompleted": false,
-    "description": "Workflow hospedado/autonomo por HTTP. Mantem a trilha self-hosted em arquivo paralelo e usa o cloud runner para sync de catalogos, prepare/finalize e dispatch sem Execute Command."
+    "description": "Workflow oficial n8n-native. Nao referencia paths locais nem runner HTTP. Regras e dependencias externas devem estar no ecossistema do n8n e Google."
   },
   "active": false,
   "tags": [],
@@ -13,10 +13,7 @@
       "name": "Trigger Rodada",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ],
+      "position": [0, 0],
       "parameters": {}
     },
     {
@@ -24,46 +21,19 @@
       "name": "Set Contexto Base",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        260,
-        0
-      ],
+      "position": [260, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
           "string": [
-            {
-              "name": "profiles_csv",
-              "value": "={{ $json.profiles_csv || 'feminino,mae-e-bebe,auto-e-moto' }}"
-            },
-            {
-              "name": "run_id",
-              "value": "={{ $json.run_id || $now.toFormat('yyyy-LL-dd') + '-janela-01' }}"
-            },
-            {
-              "name": "requested_by",
-              "value": "={{ $json.requested_by || 'n8n' }}"
-            },
-            {
-              "name": "notes",
-              "value": "={{ $json.notes || '' }}"
-            },
-            {
-              "name": "allowed_targets_csv",
-              "value": "={{ $json.allowed_targets_csv || '' }}"
-            },
-            {
-              "name": "runner_base_url",
-              "value": "={{ $json.runner_base_url || 'https://SEU-RUNNER-HTTP' }}"
-            },
-            {
-              "name": "root_dir",
-              "value": "={{ $json.root_dir || 'C:\\\\Automacao_Grupos-de-Ofertas\\\\n8n\\\\root' }}"
-            },
-            {
-              "name": "app_dir",
-              "value": "={{ $json.app_dir || 'C:\\\\Automacao_Grupos-de-Ofertas' }}"
-            }
+            { "name": "profiles_csv", "value": "={{ $json.profiles_csv || 'feminino,mae-e-bebe,auto-e-moto' }}" },
+            { "name": "run_id", "value": "={{ $json.run_id || $now.toFormat('yyyy-LL-dd') + '-janela-01' }}" },
+            { "name": "requested_by", "value": "={{ $json.requested_by || 'n8n' }}" },
+            { "name": "notes", "value": "={{ $json.notes || '' }}" },
+            { "name": "allowed_targets_csv", "value": "={{ $json.allowed_targets_csv || '' }}" },
+            { "name": "rules_spreadsheet_id", "value": "={{ $json.rules_spreadsheet_id || '16M0S-ipgQ9lOUqCtXTd1OC80I2emERCK8ByVllR06-E' }}" },
+            { "name": "project_drive_folder_id", "value": "={{ $json.project_drive_folder_id || '1Ta1UWp88wrAp7GXnK3Hm8xO9xboO22WQ' }}" },
+            { "name": "catalog_clean_folder_id", "value": "={{ $json.catalog_clean_folder_id || '1D8FJRdlcvPEccWXNAO7GNqPh4Bdu0HMa' }}" }
           ]
         }
       }
@@ -73,310 +43,148 @@
       "name": "Validar Contexto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        520,
-        0
-      ],
+      "position": [520, 0],
       "parameters": {
-        "language": "JavaScript",
-        "jsCode": "const rawProfiles = $json.profiles_csv || '';\nconst profiles = rawProfiles.split(',').map(item => item.trim()).filter(Boolean);\nconst allowed = new Set(['feminino', 'mae-e-bebe', 'auto-e-moto']);\nif (!($json.runner_base_url || '').trim()) {\n  throw new Error('runner_base_url obrigatorio para o workflow hospedado');\n}\nif (profiles.length === 0) {\n  throw new Error('profiles_csv vazio');\n}\nfor (const profile of profiles) {\n  if (!allowed.has(profile)) {\n    throw new Error(`profile fora do contrato operacional: ${profile}`);\n  }\n}\nreturn [{ json: { ...$json, profiles: profiles, total_profiles: profiles.length } }];"
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawProfiles = $json.profiles_csv || '';\nconst profiles = rawProfiles.split(',').map(item => item.trim()).filter(Boolean);\nconst allowed = new Set(['feminino', 'mae-e-bebe', 'auto-e-moto']);\nif (!($json.rules_spreadsheet_id || '').trim()) throw new Error('rules_spreadsheet_id obrigatorio');\nif (!($json.project_drive_folder_id || '').trim()) throw new Error('project_drive_folder_id obrigatorio');\nif (profiles.length === 0) throw new Error('profiles_csv vazio');\nfor (const profile of profiles) { if (!allowed.has(profile)) throw new Error(`profile fora do contrato operacional: ${profile}`); }\nreturn [{ json: { ...$json, profiles, total_profiles: profiles.length } }];"
       }
     },
     {
       "id": "4",
-      "name": "Health Runner",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        800,
-        0
-      ],
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $json.runner_base_url + '/health' }}",
-        "options": {}
-      }
-    },
-    {
-      "id": "5",
-      "name": "Catalog Sync Plan",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1080,
-        0
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/catalog-sync-plan' }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir\n}",
-        "options": {}
-      }
-    },
-    {
-      "id": "6",
-      "name": "Placeholder Sync Catalogos",
+      "name": "Ler Regras Google Sheets",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        1360,
-        0
-      ],
+      "position": [800, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
           "string": [
-            {
-              "name": "catalog_sync_status",
-              "value": "pending_google_drive_download_and_catalog_sync_upload"
-            },
-            {
-              "name": "catalog_sync_upload_endpoint",
-              "value": "={{ $('Set Contexto Base').item.json.runner_base_url + '/catalog-sync-upload' }}"
-            }
+            { "name": "rules_status", "value": "pending_google_sheets_nodes" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "5",
+      "name": "Ler Catalog Registry",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1080, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "catalog_registry_status", "value": "pending_google_sheets_registry_read" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6",
+      "name": "Sync Catalogos Google Drive",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1360, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "catalog_sync_status", "value": "pending_google_drive_download_into_n8n_storage" }
           ]
         }
       }
     },
     {
       "id": "7",
-      "name": "Prepare Window",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1640,
-        0
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/prepare-window' }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir\n}",
-        "options": {}
-      }
-    },
-    {
-      "id": "8",
-      "name": "Finalizar Window",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1920,
-        0
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/finalize-window' }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir\n}",
-        "options": {}
-      }
-    },
-    {
-      "id": "9",
-      "name": "Dispatch Window",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2200,
-        0
-      ],
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/dispatch-window' }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir,\n  \"allowed_targets_csv\": $('Set Contexto Base').item.json.allowed_targets_csv\n}",
-        "options": {}
-      }
-    },
-    {
-      "id": "10",
-      "name": "Montar Resumo da Rodada",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2480,
-        0
-      ],
-      "parameters": {
-        "language": "JavaScript",
-        "jsCode": "const base = $('Set Contexto Base').item.json;\nconst syncPlan = $('Catalog Sync Plan').item.json.result || {};\nconst prepare = $('Prepare Window').item.json.result || {};\nconst finalize = $('Finalizar Window').item.json.result || {};\nconst dispatch = $('Dispatch Window').item.json.result || {};\nreturn [{\n  json: {\n    status: 'ok',\n    mode: 'cloud-runner-http',\n    run_id: base.run_id,\n    requested_by: base.requested_by,\n    notes: base.notes,\n    runner_base_url: base.runner_base_url,\n    profiles_csv: base.profiles_csv,\n    allowed_targets_csv: base.allowed_targets_csv,\n    total_profiles: finalize.total_profiles ?? prepare.total_profiles ?? syncPlan.total_profiles ?? 0,\n    catalog_sync_plan_summary_path: syncPlan.summary_path || null,\n    prepare_summary_path: prepare.summary_path || null,\n    finalize_summary_path: finalize.summary_path || null,\n    dispatch_total_targets: dispatch.total_targets ?? 0,\n    dispatch_total_deliveries: dispatch.total_deliveries ?? 0,\n    catalog_sync_profiles: syncPlan.profiles || [],\n    prepare_profiles: prepare.profiles || [],\n    finalize_profiles: finalize.profiles || [],\n    dispatch_profiles: dispatch.profiles || [],\n    deliveries: dispatch.deliveries || []\n  }\n}];"
-      }
-    },
-    {
-      "id": "11",
-      "name": "Persistir Log da Rodada",
+      "name": "Selecionar Ofertas",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        2760,
-        0
-      ],
+      "position": [1640, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
           "string": [
-            {
-              "name": "log_status",
-              "value": "pending_persistence_implementation"
-            }
+            { "name": "selection_status", "value": "pending_n8n_native_selection_logic" }
           ]
         }
       }
     },
     {
-      "id": "12",
-      "name": "Notificar Conclusao",
+      "id": "8",
+      "name": "Gerar Copy",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        3040,
-        0
-      ],
+      "position": [1920, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
           "string": [
-            {
-              "name": "notification_status",
-              "value": "pending_notification_implementation"
-            }
+            { "name": "copy_status", "value": "pending_n8n_native_message_render" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "9",
+      "name": "Montar Dispatch",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2200, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "dispatch_status", "value": "pending_n8n_native_dispatch_artifact" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "10",
+      "name": "Persistir Log da Rodada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2480, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "log_status", "value": "pending_n8n_storage_persistence" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "11",
+      "name": "Notificar Conclusao",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2760, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "notification_status", "value": "pending_channel_notification" }
           ]
         }
       }
     }
   ],
   "connections": {
-    "Trigger Rodada": {
-      "main": [
-        [
-          {
-            "node": "Set Contexto Base",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set Contexto Base": {
-      "main": [
-        [
-          {
-            "node": "Validar Contexto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validar Contexto": {
-      "main": [
-        [
-          {
-            "node": "Health Runner",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Health Runner": {
-      "main": [
-        [
-          {
-            "node": "Catalog Sync Plan",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Catalog Sync Plan": {
-      "main": [
-        [
-          {
-            "node": "Placeholder Sync Catalogos",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Placeholder Sync Catalogos": {
-      "main": [
-        [
-          {
-            "node": "Prepare Window",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Window": {
-      "main": [
-        [
-          {
-            "node": "Finalizar Window",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Finalizar Window": {
-      "main": [
-        [
-          {
-            "node": "Dispatch Window",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Dispatch Window": {
-      "main": [
-        [
-          {
-            "node": "Montar Resumo da Rodada",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Montar Resumo da Rodada": {
-      "main": [
-        [
-          {
-            "node": "Persistir Log da Rodada",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Persistir Log da Rodada": {
-      "main": [
-        [
-          {
-            "node": "Notificar Conclusao",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+    "Trigger Rodada": { "main": [[{ "node": "Set Contexto Base", "type": "main", "index": 0 }]] },
+    "Set Contexto Base": { "main": [[{ "node": "Validar Contexto", "type": "main", "index": 0 }]] },
+    "Validar Contexto": { "main": [[{ "node": "Ler Regras Google Sheets", "type": "main", "index": 0 }]] },
+    "Ler Regras Google Sheets": { "main": [[{ "node": "Ler Catalog Registry", "type": "main", "index": 0 }]] },
+    "Ler Catalog Registry": { "main": [[{ "node": "Sync Catalogos Google Drive", "type": "main", "index": 0 }]] },
+    "Sync Catalogos Google Drive": { "main": [[{ "node": "Selecionar Ofertas", "type": "main", "index": 0 }]] },
+    "Selecionar Ofertas": { "main": [[{ "node": "Gerar Copy", "type": "main", "index": 0 }]] },
+    "Gerar Copy": { "main": [[{ "node": "Montar Dispatch", "type": "main", "index": 0 }]] },
+    "Montar Dispatch": { "main": [[{ "node": "Persistir Log da Rodada", "type": "main", "index": 0 }]] },
+    "Persistir Log da Rodada": { "main": [[{ "node": "Notificar Conclusao", "type": "main", "index": 0 }]] }
   },
   "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "ofertas-rodada-cloud-skeleton-v3"
+  "versionId": "ofertas-rodada-n8n-native-skeleton-v1"
 }

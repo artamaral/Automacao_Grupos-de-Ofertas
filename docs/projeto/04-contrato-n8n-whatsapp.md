@@ -24,15 +24,15 @@ O `n8n` nao deve:
 
 ## Precondicao de catalogo
 
-Antes do `prepare-window`, o `n8n cloud` deve garantir que o catalogo ativo de
-cada `profile` foi sincronizado.
+Antes da rodada, o `n8n` deve garantir que o catalogo ativo de cada `profile`
+esta disponivel dentro do proprio ecossistema operacional do workflow.
 
-Contrato recomendado:
+Leitura oficial:
 
-1. chamar `POST /catalog-sync-plan`;
-2. baixar cada CSV pelo `drive_file_id`;
-3. gravar o arquivo em `target_catalog_path`;
-4. seguir para `POST /prepare-window`.
+1. o `n8n` le o registry de catalogos na superficie oficial de dados;
+2. o `n8n` baixa os CSVs ativos do Google Drive;
+3. o `n8n` persiste esses catálogos na sua superficie operacional;
+4. a rodada segue sem depender de path local do operador.
 
 ## Artefato final esperado
 

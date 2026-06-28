@@ -38,13 +38,18 @@ Isso significa:
 - consolidacao dos artefatos da rodada
 - disparo controlado por canal
 
-## Camadas transitorias
+## Camadas legadas
 
-Ainda existem, mas nao sao o destino final:
+Ainda existem no repositorio, mas nao fazem parte do fluxo oficial:
 
 - `self-hosted/local`
 - `cloud runner` HTTP
 - arquivos locais em `config/`
 
-Essas camadas continuam uteis apenas como apoio de transicao, validacao e
-fallback tecnico.
+Regra de leitura:
+
+- nao usar essas camadas para desenhar o workflow principal do `n8n`;
+- nao referenciar `C:\...`, `app_dir`, `root_dir` ou URL de runner no contrato
+  operacional oficial;
+- manter essas trilhas apenas como legado tecnico e apoio de debug enquanto a
+  migracao total nao estiver concluida.

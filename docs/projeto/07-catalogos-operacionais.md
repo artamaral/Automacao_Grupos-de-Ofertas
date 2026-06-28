@@ -78,18 +78,11 @@ Leitura correta desta fase:
 
 ## Contrato esperado no ambiente do n8n
 
-No ambiente que executa o fluxo, o `cloud runner` continua esperando:
+O workflow oficial deve trabalhar assim:
 
-```text
-<catalogs_dir>/feminino/clean_catalog_rating_4_8_plus.csv
-<catalogs_dir>/mae-e-bebe/clean_catalog_rating_4_8_plus.csv
-<catalogs_dir>/auto-e-moto/clean_catalog_rating_4_8_plus.csv
-```
-
-Ou seja:
-
-- Drive = origem oficial
-- pasta local/volume do n8n = espelho operacional consumido pelo runner
+- Drive = origem oficial do CSV ativo;
+- `n8n` = ambiente que baixa, guarda e consome esse CSV;
+- operador = nao precisa expor path local nem manter maquina ligada.
 
 ## Registry de sincronizacao
 
@@ -149,37 +142,16 @@ powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_sync_catalog_window.
 
 ## Contrato para n8n cloud
 
-Para o fluxo hospedado, o passo de sincronizacao deve nascer de um plano JSON.
+Nao referenciar:
 
-Endpoint:
+- `C:\...`
+- `root_dir`
+- `app_dir`
+- URL de runner HTTP
 
-```text
-POST /catalog-sync-plan
-```
+Fluxo oficial:
 
-Payload minimo:
-
-```json
-{
-  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
-  "run_id": "2026-06-28-janela-01",
-  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
-  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
-}
-```
-
-Retorno esperado por `profile`:
-
-- `drive_file_id`
-- `drive_url`
-- `target_catalog_dir`
-- `target_catalog_path`
-- `metadata_path`
-
-Leitura operacional:
-
-1. o `n8n` pede o plano ao runner;
-2. para cada `profile`, baixa o arquivo do Google Drive usando `drive_file_id`;
-3. grava o CSV em `target_catalog_path`;
-4. grava os metadados locais em `metadata_path`;
-5. so depois executa `prepare-window`.
+1. o `n8n` le o registry de catalogos em Google Sheets;
+2. o `n8n` baixa o CSV ativo de cada `profile` no Google Drive;
+3. o `n8n` guarda esse CSV na sua superficie operacional;
+4. a rodada usa apenas dados acessiveis dentro do proprio `n8n` e Google.
