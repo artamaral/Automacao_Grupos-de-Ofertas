@@ -100,6 +100,28 @@ def test_run_finalize_window_generates_summary(tmp_path, monkeypatch) -> None:
     assert Path(payload["summary_path"]).exists()
 
 
+def test_profile_catalog_path_uses_catalog_registry(tmp_path, monkeypatch) -> None:
+    from ofertas_bot import cloud_runner as module
+
+    config = module.CloudPathConfig(
+        root_dir=tmp_path,
+        app_dir=tmp_path,
+        catalogs_dir=tmp_path / "catalogs",
+        data_dir=tmp_path / "data",
+    )
+
+    class FakeEntry:
+        active = True
+        relative_dir = "feminino"
+        file_name = "clean_catalog_rating_4_8_plus.csv"
+
+    monkeypatch.setattr(module, "resolve_catalog_registry_entry", lambda profile: FakeEntry())
+
+    path = module.profile_catalog_path(config, "feminino")
+
+    assert path == config.catalogs_dir / "feminino" / "clean_catalog_rating_4_8_plus.csv"
+
+
 def test_load_dispatch_window_filters_allowed_targets(tmp_path) -> None:
     data_dir = tmp_path / "data" / "feminino"
     data_dir.mkdir(parents=True)

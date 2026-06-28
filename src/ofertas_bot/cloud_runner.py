@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ofertas_bot import local_flow_cli
+from ofertas_bot.catalog_registry import resolve_catalog_registry_entry
 from ofertas_bot.storage.json_message_draft_store import message_draft_from_json
 from ofertas_bot.storage.json_selection_state_store import (
     JsonSelectionStateStore,
@@ -119,6 +120,9 @@ def parse_allowed_targets(
 
 
 def profile_catalog_path(path_config: CloudPathConfig, profile: str) -> Path:
+    registry_entry = resolve_catalog_registry_entry(profile)
+    if registry_entry is not None and registry_entry.active:
+        return path_config.catalogs_dir / registry_entry.relative_dir / registry_entry.file_name
     return path_config.catalogs_dir / profile / "clean_catalog_rating_4_8_plus.csv"
 
 

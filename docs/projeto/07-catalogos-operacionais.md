@@ -91,6 +91,30 @@ Ou seja:
 - Drive = origem oficial
 - pasta local/volume do n8n = espelho operacional consumido pelo runner
 
+## Registry de sincronizacao
+
+O contrato entre Google Drive e pasta local do runner passa a ser descrito por:
+
+```text
+n8n/google_sheets_seed/catalog_registry.csv
+```
+
+Campos:
+
+- `profile`
+- `relative_dir`
+- `file_name`
+- `drive_file_id`
+- `drive_url`
+- `active`
+
+Leitura pratica:
+
+- o Drive informa qual arquivo e o ativo de cada `profile`;
+- o runner continua lendo apenas a copia espelhada em `catalogs_dir`;
+- o `n8n` ou um sincronizador local deve garantir que o arquivo do Drive seja
+  baixado para `catalogs_dir/<relative_dir>/<file_name>`.
+
 ## Proximo passo tecnico
 
 Implementar a sincronizacao do catalogo ativo do Google Drive para a pasta de
