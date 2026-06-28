@@ -1,5 +1,5 @@
 {
-  "name": "ofertas-rodada-skeleton",
+  "name": "ofertas-rodada-multi-profile-skeleton",
   "meta": {
     "templateCredsSetupCompleted": false,
     "description": "Esqueleto inicial do workflow operacional de ofertas para n8n 1.x. Ajustar paths, notificacoes e persistencia antes de uso real."
@@ -33,8 +33,8 @@
         "values": {
           "string": [
             {
-              "name": "profile",
-              "value": "={{ $json.profile || 'feminino' }}"
+              "name": "profiles_csv",
+              "value": "={{ $json.profiles_csv || 'feminino,mae-e-bebe,auto-e-moto' }}"
             },
             {
               "name": "run_id",
@@ -66,11 +66,11 @@
             },
             {
               "name": "profile_catalog",
-              "value": "={{ '<n8n-root>/catalogs/' + ($json.profile || 'feminino') + '/clean_catalog_rating_4_8_plus.csv' }}"
+              "value": ""
             },
             {
               "name": "profile_data_dir",
-              "value": "={{ '<n8n-root>/data/' + ($json.profile || 'feminino') }}"
+              "value": ""
             }
           ]
         }
@@ -78,7 +78,7 @@
     },
     {
       "id": "3",
-      "name": "Validar Profile",
+      "name": "Expandir Profiles",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -87,16 +87,30 @@
       ],
       "parameters": {
         "language": "JavaScript",
-        "jsCode": "const allowed = new Set(['feminino', 'mae-e-bebe', 'auto-e-moto']);\nconst profile = $json.profile;\nif (!allowed.has(profile)) {\n  return [{ json: { ...$json, status: 'error', error_code: 'invalid_profile', message: 'profile fora do contrato operacional' } }];\n}\nreturn [{ json: { ...$json, status: 'ok' } }];"
+        "jsCode": "const raw = $json.profiles_csv || 'feminino,mae-e-bebe,auto-e-moto';\nconst profiles = raw.split(',').map(item => item.trim()).filter(Boolean);\nreturn profiles.map((profile) => ({\n  json: {\n    ...$json,\n    profile,\n    profile_catalog: `${$json.catalogs_dir}/${profile}/clean_catalog_rating_4_8_plus.csv`,\n    profile_data_dir: `${$json.data_dir}/${profile}`,\n  }\n}));"
       }
     },
     {
       "id": "4",
+      "name": "Validar Profile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        0
+      ],
+      "parameters": {
+        "language": "JavaScript",
+        "jsCode": "const allowed = new Set(['feminino', 'mae-e-bebe', 'auto-e-moto']);\nconst profile = $json.profile;\nif (!allowed.has(profile)) {\n  return [{ json: { ...$json, status: 'error', error_code: 'invalid_profile', message: 'profile fora do contrato operacional' } }];\n}\nreturn [{ json: { ...$json, status: 'ok' } }];"
+      }
+    },
+    {
+      "id": "5",
       "name": "Profile OK?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        700,
+        940,
         0
       ],
       "parameters": {
@@ -112,21 +126,8 @@
       }
     },
     {
-      "id": "5",
-      "name": "Garantir Pasta do Profile",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        940,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -Command \"New-Item -ItemType Directory -Force -Path '{{$json.profile_data_dir}}' | Out-Null\""
-      }
-    },
-    {
       "id": "6",
-      "name": "Validar Catalogo Ativo",
+      "name": "Garantir Pasta do Profile",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
@@ -134,12 +135,12 @@
         -120
       ],
       "parameters": {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\validate_catalog.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
+        "command": "powershell -Command \"New-Item -ItemType Directory -Force -Path '{{$json.profile_data_dir}}' | Out-Null\""
       }
     },
     {
       "id": "7",
-      "name": "Executar Prepare",
+      "name": "Validar Catalogo Ativo",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
@@ -147,12 +148,12 @@
         -120
       ],
       "parameters": {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\invoke_prepare.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
+        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\validate_catalog.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
       }
     },
     {
       "id": "8",
-      "name": "Validar Artefatos Prepare",
+      "name": "Executar Prepare",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
@@ -160,16 +161,29 @@
         -120
       ],
       "parameters": {
-        "command": "powershell -Command \"$base='{{$json.profile_data_dir}}'; $required=@('offers.json','selection_state.json','copy_briefs.json','messages_preview.html','review_queue.json'); $missing=@(); foreach ($name in $required) { if (!(Test-Path (Join-Path $base $name))) { $missing += $name } }; if ($missing.Count -gt 0) { Write-Error ('MISSING=' + ($missing -join ',')); exit 1 }; Write-Output 'PREPARE_OUTPUTS_OK'\""
+        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\invoke_prepare.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
       }
     },
     {
       "id": "9",
+      "name": "Validar Artefatos Prepare",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1900,
+        -120
+      ],
+      "parameters": {
+        "command": "powershell -Command \"$base='{{$json.profile_data_dir}}'; $required=@('offers.json','selection_state.json','copy_briefs.json','messages_preview.html','review_queue.json'); $missing=@(); foreach ($name in $required) { if (!(Test-Path (Join-Path $base $name))) { $missing += $name } }; if ($missing.Count -gt 0) { Write-Error ('MISSING=' + ($missing -join ',')); exit 1 }; Write-Output 'PREPARE_OUTPUTS_OK'\""
+      }
+    },
+    {
+      "id": "10",
       "name": "Publicar Pendencia de Revisao",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1900,
+        2140,
         -120
       ],
       "parameters": {
@@ -189,12 +203,12 @@
       }
     },
     {
-      "id": "10",
+      "id": "11",
       "name": "Wait Review",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        2140,
+        2380,
         -120
       ],
       "parameters": {
@@ -202,21 +216,8 @@
       }
     },
     {
-      "id": "11",
-      "name": "Validar Queue Resolvida",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        2380,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -Command \"$path='{{$json.profile_data_dir}}\\review_queue.json'; $items=Get-Content $path -Raw | ConvertFrom-Json; $pending=@($items | Where-Object { $_.status -eq 'pending' }).Count; Write-Output ('PENDING_COUNT=' + $pending); if ($pending -gt 0) { exit 2 }\""
-      }
-    },
-    {
       "id": "12",
-      "name": "Executar Finalize",
+      "name": "Validar Queue Resolvida",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
@@ -224,12 +225,12 @@
         -120
       ],
       "parameters": {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\invoke_finalize.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
+        "command": "powershell -Command \"$path='{{$json.profile_data_dir}}\\review_queue.json'; $items=Get-Content $path -Raw | ConvertFrom-Json; $pending=@($items | Where-Object { $_.status -eq 'pending' }).Count; Write-Output ('PENDING_COUNT=' + $pending); if ($pending -gt 0) { exit 2 }\""
       }
     },
     {
       "id": "13",
-      "name": "Validar Artefatos Finalize",
+      "name": "Executar Finalize",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
@@ -237,12 +238,12 @@
         -120
       ],
       "parameters": {
-        "command": "powershell -Command \"$base='{{$json.profile_data_dir}}'; $required=@('approved_messages.json','publication_manifest.json','dispatch_artifact.json','dispatch_report.json'); $missing=@(); foreach ($name in $required) { if (!(Test-Path (Join-Path $base $name))) { $missing += $name } }; if ($missing.Count -gt 0) { Write-Error ('MISSING=' + ($missing -join ',')); exit 1 }; Write-Output 'FINALIZE_OUTPUTS_OK'\""
+        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\invoke_finalize.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
       }
     },
     {
       "id": "14",
-      "name": "Montar Resumo da Rodada",
+      "name": "Validar Artefatos Finalize",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
@@ -250,33 +251,34 @@
         -120
       ],
       "parameters": {
-        "command": "powershell -Command \"$artifact = Get-Content '{{$json.profile_data_dir}}\\dispatch_artifact.json' -Raw | ConvertFrom-Json; $report = Get-Content '{{$json.profile_data_dir}}\\dispatch_report.json' -Raw | ConvertFrom-Json; $summary = [ordered]@{ status = 'ok'; profile = '{{$json.profile}}'; run_id = '{{$json.run_id}}'; dispatch_artifact_path = '{{$json.profile_data_dir}}/dispatch_artifact.json'; dispatch_report_path = '{{$json.profile_data_dir}}/dispatch_report.json'; total_targets = $artifact.summary.total_targets; total_available_messages = $artifact.summary.total_available_messages; total_selected_messages = $artifact.summary.total_selected_messages; total_blocked_targets = $artifact.summary.total_blocked_targets; total_dry_run = $report.summary.total_dry_run; mode = 'dry-run' }; $summary | ConvertTo-Json -Compress\""
+        "command": "powershell -Command \"$base='{{$json.profile_data_dir}}'; $required=@('approved_messages.json','publication_manifest.json','dispatch_artifact.json','dispatch_report.json'); $missing=@(); foreach ($name in $required) { if (!(Test-Path (Join-Path $base $name))) { $missing += $name } }; if ($missing.Count -gt 0) { Write-Error ('MISSING=' + ($missing -join ',')); exit 1 }; Write-Output 'FINALIZE_OUTPUTS_OK'\""
       }
     },
     {
       "id": "15",
-      "name": "Ler Dispatch Artifact",
+      "name": "Montar Resumo do Profile",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        3100,
-        20
+        3340,
+        -120
       ],
       "parameters": {
-        "command": "powershell -Command \"Get-Content '{{$json.profile_data_dir}}\\dispatch_artifact.json' -Raw\""
+        "command": "powershell -Command \"$artifact = Get-Content '{{$json.profile_data_dir}}\\dispatch_artifact.json' -Raw | ConvertFrom-Json; $report = Get-Content '{{$json.profile_data_dir}}\\dispatch_report.json' -Raw | ConvertFrom-Json; $summary = [ordered]@{ status = 'ok'; profile = '{{$json.profile}}'; run_id = '{{$json.run_id}}'; dispatch_artifact_path = '{{$json.profile_data_dir}}/dispatch_artifact.json'; dispatch_report_path = '{{$json.profile_data_dir}}/dispatch_report.json'; total_targets = $artifact.summary.total_targets; total_available_messages = $artifact.summary.total_available_messages; total_selected_messages = $artifact.summary.total_selected_messages; total_blocked_targets = $artifact.summary.total_blocked_targets; total_dry_run = $report.summary.total_dry_run; mode = 'dry-run' }; $summary | ConvertTo-Json -Compress\""
       }
     },
     {
       "id": "16",
-      "name": "Ler Dispatch Report",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
+      "name": "Consolidar Resumo da Janela",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        3100,
-        160
+        3580,
+        -120
       ],
       "parameters": {
-        "command": "powershell -Command \"Get-Content '{{$json.profile_data_dir}}\\dispatch_report.json' -Raw\""
+        "language": "JavaScript",
+        "jsCode": "const rows = $input.all().map(item => JSON.parse(item.json.stdout || '{}'));\nconst summary = {\n  status: 'ok',\n  run_id: rows[0]?.run_id ?? null,\n  profiles_processed: rows.map(row => row.profile),\n  total_profiles: rows.length,\n  total_targets: rows.reduce((acc, row) => acc + (row.total_targets || 0), 0),\n  total_available_messages: rows.reduce((acc, row) => acc + (row.total_available_messages || 0), 0),\n  total_selected_messages: rows.reduce((acc, row) => acc + (row.total_selected_messages || 0), 0),\n  total_blocked_targets: rows.reduce((acc, row) => acc + (row.total_blocked_targets || 0), 0),\n  total_dry_run: rows.reduce((acc, row) => acc + (row.total_dry_run || 0), 0),\n  mode: 'dry-run',\n  profiles: rows,\n};\nreturn [{ json: summary }];"
       }
     },
     {
@@ -285,7 +287,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3340,
+        3820,
         -120
       ],
       "parameters": {
@@ -306,7 +308,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3580,
+        4060,
         -120
       ],
       "parameters": {
@@ -335,6 +337,17 @@
       ]
     },
     "Set Contexto Base": {
+      "main": [
+        [
+          {
+            "node": "Expandir Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expandir Profiles": {
       "main": [
         [
           {
@@ -460,14 +473,25 @@
       "main": [
         [
           {
-            "node": "Montar Resumo da Rodada",
+            "node": "Montar Resumo do Profile",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Montar Resumo da Rodada": {
+    "Montar Resumo do Profile": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Resumo da Janela",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar Resumo da Janela": {
       "main": [
         [
           {

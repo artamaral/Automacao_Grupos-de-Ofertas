@@ -16,7 +16,8 @@ A arquitetura para processar `N` nichos e `N` grupos na mesma execucao esta em
 
 ## Objetivo do workflow
 
-Executar uma rodada por `profile` dentro do `n8n`, mantendo:
+Executar uma janela operacional unica dentro do `n8n`, processando uma lista de
+`profiles` no mesmo run e mantendo:
 
 - catalogo ativo no ambiente do `n8n`;
 - artefatos da rodada no ambiente do `n8n`;
@@ -34,15 +35,19 @@ Executar uma rodada por `profile` dentro do `n8n`, mantendo:
 
 ```text
 Trigger
-  -> Validar profile e paths
-  -> Validar catalogo ativo
-  -> Executar prepare
-  -> Validar artefatos de prepare
-  -> Publicar fila para revisao
-  -> Esperar decisao humana
-  -> Validar queue sem pendencias
-  -> Executar finalize
-  -> Validar artefatos finais
+  -> Expandir profiles da janela
+  -> Para cada profile:
+       Validar profile e paths
+       Validar catalogo ativo
+       Executar prepare
+       Validar artefatos de prepare
+       Publicar fila para revisao
+       Esperar decisao humana
+       Validar queue sem pendencias
+       Executar finalize
+       Validar artefatos finais
+       Montar resumo do profile
+  -> Consolidar resumo da janela
   -> Registrar resultado
 ```
 
@@ -50,7 +55,7 @@ Trigger
 
 Campos de entrada da execucao:
 
-- `profile`
+- `profiles_csv`
 - `run_id`
 - `requested_by`
 - `notes`

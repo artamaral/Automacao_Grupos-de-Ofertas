@@ -42,7 +42,7 @@ data_dir = <n8n-root>/data
 Campos por execucao:
 
 ```text
-profile
+profiles_csv
 run_id
 requested_by
 notes
@@ -63,8 +63,8 @@ Payload minimo:
 
 ```json
 {
-  "profile": "feminino",
-  "run_id": "2026-06-28-feminino-01",
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
   "requested_by": "arthur",
   "notes": "rodada manual"
 }
@@ -82,16 +82,14 @@ Campos a criar:
 
 ```json
 {
-  "profile": "={{ $json.profile }}",
+  "profiles_csv": "={{ $json.profiles_csv || 'feminino,mae-e-bebe,auto-e-moto' }}",
   "run_id": "={{ $json.run_id }}",
   "requested_by": "={{ $json.requested_by || 'n8n' }}",
   "notes": "={{ $json.notes || '' }}",
   "root_dir": "<n8n-root>",
   "app_dir": "<n8n-root>/app/Automacao_Grupos-de-Ofertas",
   "catalogs_dir": "<n8n-root>/catalogs",
-  "data_dir": "<n8n-root>/data",
-  "profile_catalog": "={{ '<n8n-root>/catalogs/' + $json.profile + '/clean_catalog_rating_4_8_plus.csv' }}",
-  "profile_data_dir": "={{ '<n8n-root>/data/' + $json.profile }}"
+  "data_dir": "<n8n-root>/data"
 }
 ```
 
@@ -99,11 +97,25 @@ Saida esperada:
 
 - um item com todo o contexto de execucao
 
-### No 03 - Validar Profile
+### No 03 - Expandir Profiles
 
 Tipo:
 
-- `IF`
+- `Code`
+
+Responsabilidade:
+
+- transformar `profiles_csv` em multiplos itens dentro do mesmo run
+
+Saida esperada:
+
+- 1 item por `profile`
+
+### No 04 - Validar Profile
+
+Tipo:
+
+- `Code` ou `IF`
 
 Regra:
 
@@ -117,27 +129,17 @@ Ramo verdadeiro:
 
 Ramo falso:
 
-- vai para no de erro `Erro Profile Invalido`
-
-### No 04 - Erro Profile Invalido
-
-Tipo:
-
-- `Set` ou `Code`
-
-Payload sugerido:
-
-```json
-{
-  "status": "error",
-  "error_code": "invalid_profile",
-  "message": "profile fora do contrato operacional"
-}
-```
+- item sai com erro operacional
 
 ## Nos de preparacao de ambiente
 
-### No 05 - Garantir Pasta do Profile
+### No 05 - Profile OK?
+
+Tipo:
+
+- `IF`
+
+### No 06 - Garantir Pasta do Profile
 
 Tipo:
 
@@ -157,7 +159,7 @@ Saida esperada:
 
 - exit code `0`
 
-### No 06 - Validar Catalogo Ativo
+### No 07 - Validar Catalogo Ativo
 
 Tipo:
 
@@ -174,20 +176,6 @@ Ramo de erro:
 - notificar operador para atualizar catalogo
 
 ## Nos de prepare
-
-### No 07 - Montar Comando Prepare
-
-Tipo:
-
-- `Set`
-
-Campo sugerido:
-
-```json
-{
-  "prepare_command": "={{ 'powershell -ExecutionPolicy Bypass -File \"' + $json.app_dir + '\\scripts\\n8n\\invoke_prepare.ps1\" -Profile \"' + $json.profile + '\" -RootDir \"' + $json.root_dir + '\"' }}"
-}
-```
 
 ### No 08 - Executar Prepare
 
@@ -322,20 +310,6 @@ Tratamento:
 
 ## Nos de finalize
 
-### No 14 - Montar Comando Finalize
-
-Tipo:
-
-- `Set`
-
-Campo sugerido:
-
-```json
-{
-  "finalize_command": "={{ 'powershell -ExecutionPolicy Bypass -File \"' + $json.app_dir + '\\scripts\\n8n\\invoke_finalize.ps1\" -Profile \"' + $json.profile + '\" -RootDir \"' + $json.root_dir + '\"' }}"
-}
-```
-
 ### No 15 - Executar Finalize
 
 Tipo:
@@ -420,16 +394,16 @@ Saida:
 
 - objeto JSON do relatorio
 
-### No 19 - Montar Resumo da Rodada
+### No 19 - Montar Resumo do Profile
 
 Tipo:
 
-- `Code`
+- `Execute Command`
 
 Responsabilidade:
 
-- ler `dispatch_artifact` e `dispatch_report`
-- emitir resumo operacional
+- ler `dispatch_artifact` e `dispatch_report` do profile
+- emitir resumo operacional do profile
 
 Exemplo de saida:
 
@@ -437,7 +411,7 @@ Exemplo de saida:
 {
   "status": "ok",
   "profile": "feminino",
-  "run_id": "2026-06-28-feminino-01",
+  "run_id": "2026-06-28-janela-01",
   "dispatch_artifact_path": "<n8n-root>/data/feminino/dispatch_artifact.json",
   "dispatch_report_path": "<n8n-root>/data/feminino/dispatch_report.json",
   "total_targets": 2,
@@ -450,7 +424,18 @@ Exemplo de saida:
 
 ## Nos de persistencia e notificacao
 
-### No 20 - Persistir Log da Rodada
+### No 20 - Consolidar Resumo da Janela
+
+Tipo:
+
+- `Code`
+
+Responsabilidade:
+
+- juntar todos os resumos por `profile`
+- produzir o resumo unico da execucao
+
+### No 21 - Persistir Log da Rodada
 
 Tipo:
 
@@ -470,7 +455,7 @@ Payload recomendado:
 - `total_blocked_targets`
 - `requested_by`
 
-### No 21 - Notificar Conclusao
+### No 22 - Notificar Conclusao
 
 Tipo:
 
@@ -555,11 +540,11 @@ Acao:
 ```text
 01 Trigger Rodada
 02 Set Contexto Base
-03 Validar Profile
-04 Erro Profile Invalido
-05 Garantir Pasta do Profile
-06 Validar Catalogo Ativo
-07 Montar Comando Prepare
+03 Expandir Profiles
+04 Validar Profile
+05 Profile OK?
+06 Garantir Pasta do Profile
+07 Validar Catalogo Ativo
 08 Executar Prepare
 09 Validar Artefatos Prepare
 10 Carregar Review Queue
@@ -571,9 +556,10 @@ Acao:
 16 Validar Artefatos Finalize
 17 Ler Dispatch Artifact
 18 Ler Dispatch Report
-19 Montar Resumo da Rodada
-20 Persistir Log da Rodada
-21 Notificar Conclusao
+19 Montar Resumo do Profile
+20 Consolidar Resumo da Janela
+21 Persistir Log da Rodada
+22 Notificar Conclusao
 ```
 
 ## Ordem de implantacao recomendada
