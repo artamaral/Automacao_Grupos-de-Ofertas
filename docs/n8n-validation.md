@@ -180,6 +180,7 @@ teste:
 
 Esta validacao ainda nao cobre:
 
+- importacao real do JSON em uma instancia especifica do `n8n`
 - workflow importado no `n8n`
 - notificacoes reais
 - persistencia real em banco externo

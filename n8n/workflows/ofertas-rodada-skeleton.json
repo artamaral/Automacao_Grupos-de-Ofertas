@@ -2,9 +2,11 @@
   "name": "ofertas-rodada-skeleton",
   "meta": {
     "templateCredsSetupCompleted": false,
-    "description": "Esqueleto inicial do workflow operacional de ofertas para n8n. Ajustar paths, notificacoes e persistencia antes de uso real."
+    "description": "Esqueleto inicial do workflow operacional de ofertas para n8n 1.x. Ajustar paths, notificacoes e persistencia antes de uso real."
   },
   "active": false,
+  "tags": [],
+  "triggerCount": 0,
   "nodes": [
     {
       "id": "1",

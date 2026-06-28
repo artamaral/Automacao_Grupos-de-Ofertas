@@ -81,6 +81,9 @@ Regras:
 - Criar um script local iniciado pelo operador para atualizar o catalogo ativo
   diretamente no ambiente do `n8n`, garantindo sincronizacao do CSV curado por
   `profile` antes das rodadas.
+- Deixar essa sincronizacao de catalogo mais ergonomica no fluxo operacional do
+  `n8n`, reduzindo dependencia de passos manuais e tratando isso como melhoria
+  operacional ainda em aberto.
 - Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
   interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
   idempotência e reconciliação posterior no fluxo local.

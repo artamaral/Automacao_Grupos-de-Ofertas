@@ -11,6 +11,14 @@ Ele complementa:
 Um esqueleto inicial em JSON para montagem no `n8n` esta em
 [`n8n/workflows/ofertas-rodada-skeleton.json`](../n8n/workflows/ofertas-rodada-skeleton.json).
 
+Alvo atual do arquivo:
+
+- formato de workflow unico para importacao no `n8n` 1.x
+
+Nesta etapa, o objetivo e deixar o arquivo o mais proximo possivel do layout de
+export/import de uma instancia moderna do `n8n`, preservando placeholders onde
+credenciais, notificacoes e persistencia ainda dependem da implantacao real.
+
 ## Premissas
 
 - o `n8n` roda no mesmo ambiente onde os scripts operacionais estao
