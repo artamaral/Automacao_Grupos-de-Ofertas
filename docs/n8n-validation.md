@@ -174,9 +174,9 @@ Importante:
 Comandos validados:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile feminino -SourceCatalogPath catalogs\clean\feminino\clean_catalog_rating_4_8_plus.csv -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
-powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile mae-e-bebe -SourceCatalogPath catalogs\clean\mae-e-bebe\clean_catalog_rating_4_8_plus.csv -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
-powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile auto-e-moto -SourceCatalogPath catalogs\clean\auto-e-moto\clean_catalog_rating_4_8_plus.csv -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
+powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile feminino -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
+powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile mae-e-bebe -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
+powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile auto-e-moto -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
 ```
 
 Resultado:
@@ -189,6 +189,8 @@ Conclusao:
 
 - o operador ja tem um script unico e explicito para colocar catalogo curado
   dentro do ambiente operacional do `n8n`
+- o `SourceCatalogPath` pode continuar existindo como override manual, mas o
+  caminho padrao agora sai do `catalog_registry.csv`
 
 ## Resultado 7: prepare da janela multi-profile
 

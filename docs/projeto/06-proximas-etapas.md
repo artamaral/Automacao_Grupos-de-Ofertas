@@ -2,15 +2,16 @@
 
 ## Prioridade imediata
 
-Implementar a sincronizacao dos catalogos CSV a partir do Google Drive.
+Automatizar o download ou espelho do CSV ativo do Google Drive usando o
+`catalog_registry`.
 
 ## Sequencia recomendada
 
-1. definir o espelho local de catalogos consumido pelo runner
+1. usar o `catalog_registry` como contrato unico de path
 2. baixar ou sincronizar o CSV ativo de cada `profile`
 3. preservar o nome padrao `clean_catalog_rating_4_8_plus.csv`
 4. validar `prepare` usando os CSVs sincronizados
-5. depois automatizar essa etapa no `n8n`
+5. depois automatizar essa etapa no `n8n` ou Google Drive
 
 ## Resultado esperado
 

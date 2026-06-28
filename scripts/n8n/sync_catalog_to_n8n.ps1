@@ -1,8 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Profile,
-    [Parameter(Mandatory = $true)]
-    [string]$SourceCatalogPath,
+    [string]$SourceCatalogPath = "",
     [string]$RootDir = "",
     [string]$AppDir = "",
     [string]$CatalogsDir = "",
@@ -16,12 +15,20 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 try {
     Assert-AllowedProfile -Profile $Profile
     $pathConfig = Get-N8nPathConfig -RootDir $RootDir -AppDir $AppDir -CatalogsDir $CatalogsDir -DataDir $DataDir
-    Assert-NonEmptyFile -Path $SourceCatalogPath -Label "Catalogo de origem"
+    $registryEntry = Get-CatalogRegistryEntry -PathConfig $pathConfig -Profile $Profile
+    $resolvedSourceCatalogPath = $SourceCatalogPath
+    $sourceMode = "manual"
+    if ([string]::IsNullOrWhiteSpace($resolvedSourceCatalogPath)) {
+        $resolvedSourceCatalogPath = Get-DefaultSourceCatalogPath -PathConfig $pathConfig -Profile $Profile
+        $sourceMode = "default"
+    }
 
-    $targetDir = Join-Path $pathConfig.CatalogsDir $Profile
-    $targetPath = Join-Path $targetDir "clean_catalog_rating_4_8_plus.csv"
+    Assert-NonEmptyFile -Path $resolvedSourceCatalogPath -Label "Catalogo de origem"
+
+    $targetPath = Get-ProfileCatalogPath -PathConfig $pathConfig -Profile $Profile
+    $targetDir = Split-Path -Parent $targetPath
     New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-    Copy-Item -LiteralPath $SourceCatalogPath -Destination $targetPath -Force
+    Copy-Item -LiteralPath $resolvedSourceCatalogPath -Destination $targetPath -Force
 
     $metadataPath = Join-Path $targetDir "catalog_sync_metadata.json"
     $operator = $OperatorName
@@ -31,15 +38,19 @@ try {
 
     Save-JsonFile -Path $metadataPath -Payload @{
         profile = $Profile
-        source_catalog_path = $SourceCatalogPath
+        source_catalog_path = $resolvedSourceCatalogPath
+        source_mode = $sourceMode
         target_catalog_path = $targetPath
         synced_at = (Get-Date).ToString("o")
         operator = $operator
+        drive_file_id = if ($null -ne $registryEntry) { $registryEntry.drive_file_id } else { "" }
+        drive_url = if ($null -ne $registryEntry) { $registryEntry.drive_url } else { "" }
     }
 
     Write-InfoLine "Catalogo sincronizado para o ambiente do n8n"
     Write-InfoLine "profile=$Profile"
-    Write-InfoLine "source=$SourceCatalogPath"
+    Write-InfoLine "source=$resolvedSourceCatalogPath"
+    Write-InfoLine "source_mode=$sourceMode"
     Write-InfoLine "target=$targetPath"
     Write-InfoLine "metadata=$metadataPath"
     Write-Output "CATALOG_SYNC_OK=$targetPath"

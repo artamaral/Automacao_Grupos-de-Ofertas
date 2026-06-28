@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $script:AllowedProfiles = @("feminino", "mae-e-bebe", "auto-e-moto")
+$script:CatalogRegistryCache = $null
 
 function Write-InfoLine {
     param(
@@ -97,6 +98,11 @@ function Get-ProfileCatalogPath {
         [Parameter(Mandatory = $true)]
         [string]$Profile
     )
+
+    $registryEntry = Get-CatalogRegistryEntry -PathConfig $PathConfig -Profile $Profile
+    if ($null -ne $registryEntry -and ($registryEntry.active -eq $true)) {
+        return Join-Path (Join-Path $PathConfig.CatalogsDir $registryEntry.relative_dir) $registryEntry.file_name
+    }
 
     return Join-Path (Join-Path $PathConfig.CatalogsDir $Profile) "clean_catalog_rating_4_8_plus.csv"
 }
@@ -224,4 +230,96 @@ function Save-JsonFile {
     }
     $json = $Payload | ConvertTo-Json -Depth 10
     Set-Content -LiteralPath $Path -Value $json -Encoding utf8
+}
+
+function Get-CatalogRegistryPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$PathConfig
+    )
+
+    return Join-Path $PathConfig.AppDir "n8n\google_sheets_seed\catalog_registry.csv"
+}
+
+function Get-CatalogRegistry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$PathConfig
+    )
+
+    if ($null -ne $script:CatalogRegistryCache) {
+        return $script:CatalogRegistryCache
+    }
+
+    $registryPath = Get-CatalogRegistryPath -PathConfig $PathConfig
+    if (-not (Test-Path -LiteralPath $registryPath -PathType Leaf)) {
+        $script:CatalogRegistryCache = @{}
+        return $script:CatalogRegistryCache
+    }
+
+    $rows = Import-Csv -LiteralPath $registryPath
+    $registry = @{}
+    foreach ($row in $rows) {
+        $normalizedProfile = [string]$row.profile
+        if ([string]::IsNullOrWhiteSpace($normalizedProfile)) {
+            continue
+        }
+
+        $normalizedProfile = $normalizedProfile.Trim().ToLowerInvariant()
+        $relativeDir = [string]$row.relative_dir
+        $fileName = [string]$row.file_name
+        $driveFileId = [string]$row.drive_file_id
+        $driveUrl = [string]$row.drive_url
+        $active = $true
+        $activeRaw = [string]$row.active
+        if (-not [string]::IsNullOrWhiteSpace($activeRaw)) {
+            $active = @("true", "1", "yes") -contains $activeRaw.Trim().ToLowerInvariant()
+        }
+
+        $registry[$normalizedProfile] = @{
+            profile = $normalizedProfile
+            relative_dir = $relativeDir.Trim().Replace("/", "\")
+            file_name = $fileName.Trim()
+            drive_file_id = $driveFileId.Trim()
+            drive_url = $driveUrl.Trim()
+            active = $active
+        }
+    }
+
+    $script:CatalogRegistryCache = $registry
+    return $script:CatalogRegistryCache
+}
+
+function Get-CatalogRegistryEntry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$PathConfig,
+        [Parameter(Mandatory = $true)]
+        [string]$Profile
+    )
+
+    $registry = Get-CatalogRegistry -PathConfig $PathConfig
+    $normalizedProfile = $Profile.Trim().ToLowerInvariant()
+    if ($registry.ContainsKey($normalizedProfile)) {
+        return $registry[$normalizedProfile]
+    }
+
+    return $null
+}
+
+function Get-DefaultSourceCatalogPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$PathConfig,
+        [Parameter(Mandatory = $true)]
+        [string]$Profile
+    )
+
+    $registryEntry = Get-CatalogRegistryEntry -PathConfig $PathConfig -Profile $Profile
+    if ($null -ne $registryEntry -and ($registryEntry.active -eq $true)) {
+        $baseDir = Join-Path (Join-Path $PathConfig.AppDir "catalogs\clean") $registryEntry.relative_dir
+        return Join-Path $baseDir $registryEntry.file_name
+    }
+
+    return Join-Path (Join-Path (Join-Path $PathConfig.AppDir "catalogs\clean") $Profile) "clean_catalog_rating_4_8_plus.csv"
 }

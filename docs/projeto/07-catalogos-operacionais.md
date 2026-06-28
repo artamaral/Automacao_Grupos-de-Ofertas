@@ -119,3 +119,24 @@ Leitura pratica:
 
 Implementar a sincronizacao do catalogo ativo do Google Drive para a pasta de
 catalogos que o `n8n` usa em execucao.
+
+## Contrato operacional do espelho local
+
+O espelho local passa a seguir exatamente o `catalog_registry.csv`.
+
+Isso significa:
+
+- o `runner` em Python resolve o catalogo ativo pelo registry;
+- os wrappers PowerShell do `n8n` resolvem o mesmo path pelo mesmo registry;
+- o script `scripts/n8n/sync_catalog_to_n8n.ps1` nao precisa mais receber
+  `SourceCatalogPath` quando o arquivo padrao ja estiver em
+  `catalogs/clean/<relative_dir>/<file_name>`.
+
+Fluxo esperado:
+
+1. o catalogo oficial e atualizado no Google Drive;
+2. o operador baixa ou espelha esse CSV para `catalogs/clean/...` no repo;
+3. o operador roda `sync_catalog_to_n8n.ps1 -Profile <profile>`;
+4. o script copia o CSV para o path operacional definido no registry;
+5. `validate_catalog`, `prepare` e `prepare_window` passam a ler esse mesmo
+   path sem regra hardcoded por nicho.
