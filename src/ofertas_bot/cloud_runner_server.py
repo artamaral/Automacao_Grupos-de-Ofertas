@@ -17,6 +17,7 @@ from ofertas_bot.cloud_runner import (
     run_finalize_window,
     run_prepare_window,
     run_window,
+    upload_catalog_sync,
 )
 
 
@@ -44,6 +45,7 @@ def build_handler() -> type[BaseHTTPRequestHandler]:
     routes: dict[tuple[str, str], Callable[[dict[str, Any]], dict[str, Any]]] = {
         ("GET", "/health"): lambda payload: health_payload(),
         ("POST", "/catalog-sync-plan"): lambda payload: build_catalog_sync_plan_window(**payload),
+        ("POST", "/catalog-sync-upload"): lambda payload: upload_catalog_sync(**payload),
         ("POST", "/prepare-window"): lambda payload: run_prepare_window(**payload),
         ("POST", "/finalize-window"): lambda payload: run_finalize_window(**payload),
         ("POST", "/dispatch-window"): lambda payload: load_dispatch_window(**payload),

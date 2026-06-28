@@ -171,6 +171,45 @@ def test_build_catalog_sync_plan_window_rejects_missing_registry(tmp_path, monke
         )
 
 
+def test_upload_catalog_sync_writes_catalog_and_metadata(tmp_path, monkeypatch) -> None:
+    from ofertas_bot import cloud_runner as module
+
+    app_dir = tmp_path / "app"
+    catalogs_dir = tmp_path / "catalogs"
+    data_dir = tmp_path / "data"
+    app_dir.mkdir(parents=True)
+    data_dir.mkdir(parents=True)
+
+    class FakeEntry:
+        active = True
+        relative_dir = "feminino"
+        file_name = "clean_catalog_rating_4_8_plus.csv"
+        drive_file_id = "drive-file-1"
+        drive_url = "https://drive.google.com/file/d/drive-file-1/view"
+
+    monkeypatch.setattr(module, "resolve_catalog_registry_entry", lambda profile: FakeEntry())
+
+    payload = module.upload_catalog_sync(
+        profile="feminino",
+        root_dir=str(tmp_path),
+        app_dir=str(app_dir),
+        catalogs_dir=str(catalogs_dir),
+        data_dir=str(data_dir),
+        csv_content="productName,offerLink\nProduto,https://example.com\n",
+        operator_name="arthur",
+        source_label="google-drive-test",
+        run_id="sync-upload-1",
+    )
+
+    target_catalog_path = catalogs_dir / "feminino" / "clean_catalog_rating_4_8_plus.csv"
+    metadata_path = catalogs_dir / "feminino" / "catalog_sync_metadata.json"
+
+    assert payload["stage"] == "catalog-sync-upload"
+    assert target_catalog_path.exists()
+    assert metadata_path.exists()
+    assert "Produto" in target_catalog_path.read_text(encoding="utf-8")
+
+
 def test_load_dispatch_window_filters_allowed_targets(tmp_path) -> None:
     data_dir = tmp_path / "data" / "feminino"
     data_dir.mkdir(parents=True)

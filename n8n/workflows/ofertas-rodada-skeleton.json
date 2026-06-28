@@ -2,7 +2,7 @@
   "name": "ofertas-rodada-cloud-skeleton",
   "meta": {
     "templateCredsSetupCompleted": false,
-    "description": "Workflow hospedado/autonomo por HTTP. Mantem a trilha self-hosted em arquivo paralelo e usa o cloud runner para prepare/finalize sem Execute Command."
+    "description": "Workflow hospedado/autonomo por HTTP. Mantem a trilha self-hosted em arquivo paralelo e usa o cloud runner para sync de catalogos, prepare/finalize e dispatch sem Execute Command."
   },
   "active": false,
   "tags": [],
@@ -99,11 +99,54 @@
     },
     {
       "id": "5",
-      "name": "Prepare Window",
+      "name": "Catalog Sync Plan",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         1080,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/catalog-sync-plan' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir\n}",
+        "options": {}
+      }
+    },
+    {
+      "id": "6",
+      "name": "Placeholder Sync Catalogos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        0
+      ],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            {
+              "name": "catalog_sync_status",
+              "value": "pending_google_drive_download_and_catalog_sync_upload"
+            },
+            {
+              "name": "catalog_sync_upload_endpoint",
+              "value": "={{ $('Set Contexto Base').item.json.runner_base_url + '/catalog-sync-upload' }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "7",
+      "name": "Prepare Window",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
         0
       ],
       "parameters": {
@@ -116,12 +159,12 @@
       }
     },
     {
-      "id": "6",
+      "id": "8",
       "name": "Finalizar Window",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1360,
+        1920,
         0
       ],
       "parameters": {
@@ -134,12 +177,12 @@
       }
     },
     {
-      "id": "7",
+      "id": "9",
       "name": "Dispatch Window",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1640,
+        2200,
         0
       ],
       "parameters": {
@@ -152,26 +195,26 @@
       }
     },
     {
-      "id": "8",
+      "id": "10",
       "name": "Montar Resumo da Rodada",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1920,
+        2480,
         0
       ],
       "parameters": {
         "language": "JavaScript",
-        "jsCode": "const base = $('Set Contexto Base').item.json;\nconst prepare = $('Prepare Window').item.json.result || {};\nconst finalize = $('Finalizar Window').item.json.result || {};\nconst dispatch = $('Dispatch Window').item.json.result || {};\nreturn [{\n  json: {\n    status: 'ok',\n    mode: 'cloud-runner-http',\n    run_id: base.run_id,\n    requested_by: base.requested_by,\n    notes: base.notes,\n    runner_base_url: base.runner_base_url,\n    profiles_csv: base.profiles_csv,\n    allowed_targets_csv: base.allowed_targets_csv,\n    total_profiles: finalize.total_profiles ?? prepare.total_profiles ?? 0,\n    prepare_summary_path: prepare.summary_path || null,\n    finalize_summary_path: finalize.summary_path || null,\n    dispatch_total_targets: dispatch.total_targets ?? 0,\n    dispatch_total_deliveries: dispatch.total_deliveries ?? 0,\n    prepare_profiles: prepare.profiles || [],\n    finalize_profiles: finalize.profiles || [],\n    dispatch_profiles: dispatch.profiles || [],\n    deliveries: dispatch.deliveries || []\n  }\n}];"
+        "jsCode": "const base = $('Set Contexto Base').item.json;\nconst syncPlan = $('Catalog Sync Plan').item.json.result || {};\nconst prepare = $('Prepare Window').item.json.result || {};\nconst finalize = $('Finalizar Window').item.json.result || {};\nconst dispatch = $('Dispatch Window').item.json.result || {};\nreturn [{\n  json: {\n    status: 'ok',\n    mode: 'cloud-runner-http',\n    run_id: base.run_id,\n    requested_by: base.requested_by,\n    notes: base.notes,\n    runner_base_url: base.runner_base_url,\n    profiles_csv: base.profiles_csv,\n    allowed_targets_csv: base.allowed_targets_csv,\n    total_profiles: finalize.total_profiles ?? prepare.total_profiles ?? syncPlan.total_profiles ?? 0,\n    catalog_sync_plan_summary_path: syncPlan.summary_path || null,\n    prepare_summary_path: prepare.summary_path || null,\n    finalize_summary_path: finalize.summary_path || null,\n    dispatch_total_targets: dispatch.total_targets ?? 0,\n    dispatch_total_deliveries: dispatch.total_deliveries ?? 0,\n    catalog_sync_profiles: syncPlan.profiles || [],\n    prepare_profiles: prepare.profiles || [],\n    finalize_profiles: finalize.profiles || [],\n    dispatch_profiles: dispatch.profiles || [],\n    deliveries: dispatch.deliveries || []\n  }\n}];"
       }
     },
     {
-      "id": "9",
+      "id": "11",
       "name": "Persistir Log da Rodada",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2200,
+        2760,
         0
       ],
       "parameters": {
@@ -187,12 +230,12 @@
       }
     },
     {
-      "id": "10",
+      "id": "12",
       "name": "Notificar Conclusao",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2480,
+        3040,
         0
       ],
       "parameters": {
@@ -243,6 +286,28 @@
       ]
     },
     "Health Runner": {
+      "main": [
+        [
+          {
+            "node": "Catalog Sync Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Catalog Sync Plan": {
+      "main": [
+        [
+          {
+            "node": "Placeholder Sync Catalogos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Placeholder Sync Catalogos": {
       "main": [
         [
           {
@@ -313,5 +378,5 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "ofertas-rodada-cloud-skeleton-v2"
+  "versionId": "ofertas-rodada-cloud-skeleton-v3"
 }

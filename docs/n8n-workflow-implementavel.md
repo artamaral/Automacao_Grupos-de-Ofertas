@@ -121,7 +121,50 @@ Objetivo:
 
 - confirmar que o runner HTTP esta de pe antes da rodada
 
-#### No 05 - Prepare Window
+#### No 05 - Catalog Sync Plan
+
+Tipo:
+
+- `HTTP Request`
+
+Chamada:
+
+```http
+POST {{runner_base_url}}/catalog-sync-plan
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
+}
+```
+
+Objetivo:
+
+- devolver o plano de sync dos catalogos;
+- informar `drive_file_id` e `target_catalog_path` por `profile`.
+
+#### No 06 - Sync Catalogos no Drive
+
+Tipo:
+
+- placeholder no skeleton atual
+- no workflow real deve virar a sequencia:
+  - download do Google Drive por `drive_file_id`
+  - conversao do CSV para texto ou base64
+  - `POST {{runner_base_url}}/catalog-sync-upload`
+
+Objetivo:
+
+- sincronizar o catalogo ativo de cada `profile` antes do `prepare-window`.
+
+#### No 07 - Prepare Window
 
 Tipo:
 
@@ -149,7 +192,7 @@ Objetivo:
 
 - disparar `prepare` para todos os perfis da janela
 
-#### No 06 - Finalizar Window
+#### No 08 - Finalizar Window
 
 Tipo:
 
@@ -168,7 +211,7 @@ Objetivo:
 
 - disparar o `finalize` automatico da janela
 
-#### No 07 - Dispatch Window
+#### No 09 - Dispatch Window
 
 Tipo:
 
@@ -198,7 +241,7 @@ Objetivo:
 - devolver para o `n8n` apenas as mensagens prontas para o teste controlado;
 - limitar a entrega real ao destino explicitamente permitido.
 
-#### No 08 - Enviar no Canal Real
+#### No 10 - Enviar no Canal Real
 
 Tipo:
 
@@ -213,7 +256,7 @@ Objetivo:
 - enviar a mensagem real no grupo de teste;
 - devolver sucesso ou falha por mensagem.
 
-#### No 09 - Confirmar Entrega
+#### No 11 - Confirmar Entrega
 
 Tipo:
 
@@ -242,7 +285,7 @@ Objetivo:
 
 - atualizar `last_sent_at` apenas da mensagem efetivamente enviada.
 
-#### No 10 - Montar Resumo da Rodada
+#### No 12 - Montar Resumo da Rodada
 
 Tipo:
 
@@ -263,7 +306,7 @@ Saida esperada:
 - `dispatch_profiles`
 - `deliveries`
 
-#### Nos 11 e 12
+#### Nos 13 e 14
 
 Tipos:
 
@@ -289,6 +332,8 @@ Implementacao:
 Endpoints:
 
 - `GET /health`
+- `POST /catalog-sync-plan`
+- `POST /catalog-sync-upload`
 - `POST /prepare-window`
 - `POST /finalize-window`
 - `POST /dispatch-window`
@@ -299,6 +344,8 @@ Endpoints:
 Payloads versionados:
 
 - [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
+- [`n8n/payloads/catalog-sync-plan-runner.example.json`](../n8n/payloads/catalog-sync-plan-runner.example.json)
+- [`n8n/payloads/catalog-sync-upload-runner.example.json`](../n8n/payloads/catalog-sync-upload-runner.example.json)
 - [`n8n/payloads/prepare-window-runner.example.json`](../n8n/payloads/prepare-window-runner.example.json)
 - [`n8n/payloads/finalize-window-runner.example.json`](../n8n/payloads/finalize-window-runner.example.json)
 - [`n8n/payloads/run-window-runner.example.json`](../n8n/payloads/run-window-runner.example.json)

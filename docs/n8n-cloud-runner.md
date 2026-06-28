@@ -24,6 +24,8 @@ O runtime continua reaproveitando o pipeline atual do projeto, mas passa a ser
 exposto por um servidor HTTP proprio:
 
 - `GET /health`
+- `POST /catalog-sync-plan`
+- `POST /catalog-sync-upload`
 - `POST /prepare-window`
 - `POST /finalize-window`
 - `POST /dispatch-window`
@@ -70,6 +72,62 @@ Resposta:
   }
 }
 ```
+
+### Catalog sync plan
+
+```http
+POST /catalog-sync-plan
+Content-Type: application/json
+```
+
+Payload minimo:
+
+```json
+{
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
+}
+```
+
+Objetivo:
+
+- devolver o plano de sincronizacao dos catalogos ativos;
+- informar `drive_file_id`, `drive_url` e `target_catalog_path` por `profile`;
+- permitir que o `n8n cloud` baixe do Google Drive e envie o CSV ao runner.
+
+### Catalog sync upload
+
+```http
+POST /catalog-sync-upload
+Content-Type: application/json
+```
+
+Payload minimo:
+
+```json
+{
+  "profile": "feminino",
+  "run_id": "2026-06-28-janela-01",
+  "operator_name": "n8n-cloud",
+  "source_label": "google-drive-download",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas",
+  "csv_content": "productName,offerLink\nProduto,https://example.com\n"
+}
+```
+
+Alternativa:
+
+- usar `csv_base64` em vez de `csv_content` quando o node do `n8n` trabalhar em
+  binario.
+
+Objetivo:
+
+- gravar o CSV no path resolvido pelo `catalog_registry`;
+- salvar `catalog_sync_metadata.json`;
+- liberar o ambiente para `prepare-window`.
 
 ### Prepare window
 

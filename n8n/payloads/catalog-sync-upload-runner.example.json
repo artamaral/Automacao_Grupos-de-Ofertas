@@ -1,0 +1,9 @@
+{
+  "profile": "feminino",
+  "run_id": "2026-06-28-janela-01",
+  "operator_name": "n8n-cloud",
+  "source_label": "google-drive-download",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas",
+  "csv_content": "productName,offerLink\nProduto,https://example.com\n"
+}

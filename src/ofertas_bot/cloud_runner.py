@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from base64 import b64decode
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -198,6 +199,79 @@ def build_catalog_sync_plan_window(
     save_json_file(summary_path, summary)
     summary["summary_path"] = str(summary_path)
     return summary
+
+
+def upload_catalog_sync(
+    *,
+    profile: str,
+    root_dir: str = "",
+    app_dir: str = "",
+    catalogs_dir: str = "",
+    data_dir: str = "",
+    csv_content: str = "",
+    csv_base64: str = "",
+    operator_name: str = "",
+    source_label: str = "",
+    run_id: str = "",
+) -> dict[str, Any]:
+    resolved_profiles = parse_profiles(profile=profile)
+    current_profile = resolved_profiles[0]
+    path_config = resolve_path_config(
+        root_dir=root_dir,
+        app_dir=app_dir,
+        catalogs_dir=catalogs_dir,
+        data_dir=data_dir,
+    )
+
+    registry_entry = resolve_catalog_registry_entry(current_profile)
+    if registry_entry is None or not registry_entry.active:
+        msg = f"catalog registry ausente ou inativo para profile={current_profile}"
+        raise CloudRunnerError(msg)
+
+    if csv_base64.strip():
+        try:
+            csv_bytes = b64decode(csv_base64.encode("utf-8"), validate=True)
+            csv_text = csv_bytes.decode("utf-8-sig")
+        except Exception as error:  # noqa: BLE001
+            msg = "csv_base64 invalido para upload de catalogo"
+            raise CloudRunnerError(msg) from error
+    else:
+        csv_text = csv_content
+
+    if not csv_text.strip():
+        msg = "Catalogo CSV vazio no upload"
+        raise CloudRunnerError(msg)
+
+    target_catalog_path = profile_catalog_path(path_config, current_profile)
+    target_catalog_path.parent.mkdir(parents=True, exist_ok=True)
+    target_catalog_path.write_text(csv_text, encoding="utf-8", newline="")
+
+    metadata_path = target_catalog_path.parent / "catalog_sync_metadata.json"
+    resolved_run_id = run_id.strip() or datetime.now(UTC).strftime("%Y-%m-%dT%H-%M-%SZ")
+    resolved_operator_name = operator_name.strip() or "n8n-cloud"
+    resolved_source_label = source_label.strip() or "google-drive-n8n-upload"
+    metadata = {
+        "profile": current_profile,
+        "source_mode": "runner_http_upload",
+        "source_label": resolved_source_label,
+        "run_id": resolved_run_id,
+        "operator": resolved_operator_name,
+        "target_catalog_path": str(target_catalog_path),
+        "drive_file_id": registry_entry.drive_file_id,
+        "drive_url": registry_entry.drive_url,
+        "synced_at": datetime.now(UTC).isoformat(),
+    }
+    save_json_file(metadata_path, metadata)
+
+    return {
+        "stage": "catalog-sync-upload",
+        "profile": current_profile,
+        "status": "ok",
+        "run_id": resolved_run_id,
+        "target_catalog_path": str(target_catalog_path),
+        "metadata_path": str(metadata_path),
+        "bytes_written": len(csv_text.encode("utf-8")),
+    }
 
 
 def run_prepare_window(
