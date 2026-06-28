@@ -7,6 +7,7 @@ niche = "mae e bebe"
 total_items = 20
 max_zero_sales_items = 4
 minimum_daily_runs = 5
+cooldown_hours_default = 24
 evidence = "tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv"
 
 [[policies.bands]]
@@ -95,6 +96,7 @@ niche = "feminino"
 total_items = 20
 max_zero_sales_items = 4
 minimum_daily_runs = 5
+cooldown_hours_default = 24
 evidence = "catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv"
 
 [[policies.bands]]
@@ -178,6 +180,7 @@ niche = "auto e moto"
 total_items = 20
 max_zero_sales_items = 4
 minimum_daily_runs = 5
+cooldown_hours_default = 24
 evidence = "tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv"
 
 [[policies.bands]]

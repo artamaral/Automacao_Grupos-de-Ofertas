@@ -1,14 +1,21 @@
 import argparse
+import json
 from pathlib import Path
 
 from ofertas_bot import local_flow_cli
 from ofertas_bot.models import Marketplace, MessageDraft, Offer
+from ofertas_bot.storage.json_message_draft_store import message_draft_to_json
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     MessageReviewQueueItem,
     MessageReviewRouting,
 )
 from ofertas_bot.storage.json_offer_store import JsonOfferStore
+from ofertas_bot.storage.json_selection_state_store import (
+    JsonSelectionStateStore,
+    stamp_selected_offers,
+    update_selection_state_from_selected_offers,
+)
 
 
 def _seed_prepare_outputs(tmp_path: Path, niche: str = "beleza") -> None:
@@ -75,6 +82,7 @@ def test_local_flow_prepare_uses_default_paths(tmp_path, monkeypatch, capsys) ->
     assert str(tmp_path / "copy_briefs.json") in calls[0]
     assert str(tmp_path / "messages.txt") in calls[0]
     assert str(tmp_path / "messages_preview.html") in calls[0]
+    assert str(tmp_path / "selection_state.json") in calls[0]
     assert (tmp_path / "review_plan.json").exists()
     assert (tmp_path / "review_plan.txt").exists()
     assert "Etapa prepare concluída" in output
@@ -257,6 +265,7 @@ def test_local_flow_paths_uses_data_dir(tmp_path) -> None:
     assert paths.offers_json == Path(tmp_path / "offers.json")
     assert paths.copy_briefs_json == Path(tmp_path / "copy_briefs.json")
     assert paths.review_queue_json == Path(tmp_path / "review_queue.json")
+    assert paths.selection_state_json == Path(tmp_path / "selection_state.json")
     assert paths.messages_preview_html == Path(tmp_path / "messages_preview.html")
     assert paths.approved_messages_json == Path(tmp_path / "approved_messages.json")
     assert paths.approved_messages_by_group_dir == Path(tmp_path / "approved_messages_by_group")
@@ -306,3 +315,50 @@ def test_local_flow_prepare_forwards_catalog_file(tmp_path, monkeypatch) -> None
     assert exit_code == 0
     assert "--catalog-file" in calls[0]
     assert str(catalog_path) in calls[0]
+
+
+def test_local_flow_marks_last_sent_at_from_dispatch_artifact(tmp_path) -> None:
+    paths = local_flow_cli.LocalFlowPaths(data_dir=tmp_path)
+    offer = Offer(
+        marketplace=Marketplace.SHOPEE,
+        title="Produto teste",
+        url="https://example.com/produto",
+        image_url=None,
+        price=10,
+        old_price=20,
+        commission_rate=0.05,
+        sales_count=100,
+        rating=4.7,
+        niche="beleza",
+    )
+    stamped_offer = stamp_selected_offers(
+        [offer],
+        selected_at="2026-06-27T10:00:00+00:00",
+        cooldown_until="2026-06-28T10:00:00+00:00",
+    )[0]
+    records = update_selection_state_from_selected_offers({}, [stamped_offer])
+    JsonSelectionStateStore(path=paths.selection_state_json).save(records)
+    draft = MessageDraft(offer=stamped_offer, text="msg")
+    paths.dispatch_artifact_json.write_text(
+        json.dumps(
+            {
+                "targets": [
+                    {
+                        "messages": [
+                            {
+                                "draft": message_draft_to_json(draft),
+                            }
+                        ]
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    local_flow_cli._mark_last_sent_at_from_finalize(paths=paths)
+
+    updated = JsonSelectionStateStore(path=paths.selection_state_json).load()
+    assert updated[offer.stable_key].selected_at == "2026-06-27T10:00:00+00:00"
+    assert updated[offer.stable_key].cooldown_until == "2026-06-28T10:00:00+00:00"
+    assert updated[offer.stable_key].last_sent_at is not None

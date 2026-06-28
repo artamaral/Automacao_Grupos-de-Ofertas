@@ -65,6 +65,9 @@ def offer_to_json(offer: Offer) -> dict[str, Any]:
         "item_id": offer.item_id,
         "is_prime_or_free_shipping": offer.is_prime_or_free_shipping,
         "shop_type_code": offer.shop_type_code,
+        "selected_at": offer.selected_at,
+        "cooldown_until": offer.cooldown_until,
+        "last_sent_at": offer.last_sent_at,
     }
 
 
@@ -88,6 +91,9 @@ def offer_from_json(data: object) -> Offer:
             item_id=_optional_int(data.get("item_id")),
             is_prime_or_free_shipping=bool(data.get("is_prime_or_free_shipping", False)),
             shop_type_code=_optional_int(data.get("shop_type_code")),
+            selected_at=_optional_str(data.get("selected_at")),
+            cooldown_until=_optional_str(data.get("cooldown_until")),
+            last_sent_at=_optional_str(data.get("last_sent_at")),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved offer item is invalid"

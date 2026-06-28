@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -25,13 +26,23 @@ from ofertas_bot.discovery_profiles import (
 )
 from ofertas_bot.group_plan import GroupPlanBuilder
 from ofertas_bot.group_profiles import DEFAULT_GROUP_PROFILES, GroupProfile, GroupProfileCatalog
-from ofertas_bot.models import Marketplace, Offer
+from ofertas_bot.models import Marketplace, MessageDraft, Offer
 from ofertas_bot.storage.json_group_plan_store import JsonGroupPlanStore
+from ofertas_bot.storage.json_message_draft_store import (
+    MessageDraftStoreError,
+    message_draft_from_json,
+)
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     summarize_review_queue,
 )
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreError
+from ofertas_bot.storage.json_selection_state_store import (
+    JsonSelectionStateStore,
+    SelectionStateStoreError,
+    SelectionStateStoreWriteError,
+    update_selection_state_last_sent_at,
+)
 
 
 @dataclass(frozen=True)
@@ -61,6 +72,10 @@ class LocalFlowPaths:
     @property
     def review_queue_json(self) -> Path:
         return self.data_dir / "review_queue.json"
+
+    @property
+    def selection_state_json(self) -> Path:
+        return self.data_dir / "selection_state.json"
 
     @property
     def approved_messages_json(self) -> Path:
@@ -284,6 +299,17 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
     if step_exit_code != 0:
         return _print_finalize_step_error("executar dry-run do disparo", step_exit_code)
 
+    try:
+        _mark_last_sent_at_from_finalize(paths=paths)
+    except (
+        MessageDraftStoreError,
+        OSError,
+        SelectionStateStoreError,
+        SelectionStateStoreWriteError,
+        ValueError,
+    ) as error:
+        return _print_finalize_selection_state_error(error)
+
     step_exit_code = local_review_bundle_cli.run(
         [
             "--queue-json",
@@ -423,9 +449,54 @@ def _build_prepare_harness_args(
             str(paths.messages_preview_html),
             "--save-review-queue-json",
             str(paths.review_queue_json),
+            "--selection-state-json",
+            str(paths.selection_state_json),
         ]
     )
     return command
+
+
+def _mark_last_sent_at_from_finalize(*, paths: LocalFlowPaths) -> None:
+    if not paths.dispatch_artifact_json.exists():
+        return
+    dispatched_drafts = _load_dispatched_drafts(paths.dispatch_artifact_json)
+    if not dispatched_drafts:
+        return
+
+    store = JsonSelectionStateStore(path=paths.selection_state_json)
+    records = store.load()
+    if not records:
+        return
+
+    last_sent_at = datetime.now(UTC).replace(microsecond=0).isoformat()
+    updated = update_selection_state_last_sent_at(
+        records,
+        drafts=dispatched_drafts,
+        last_sent_at=last_sent_at,
+    )
+    store.save(updated)
+
+
+def _load_dispatched_drafts(path: Path) -> tuple[MessageDraft, ...]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("dispatch artifact must be an object")
+
+    drafts: list[MessageDraft] = []
+    targets = payload.get("targets", [])
+    if not isinstance(targets, list):
+        raise ValueError("dispatch artifact targets must be a list")
+    for target in targets:
+        if not isinstance(target, dict):
+            continue
+        messages = target.get("messages", [])
+        if not isinstance(messages, list):
+            continue
+        for message in messages:
+            if not isinstance(message, dict):
+                continue
+            drafts.append(message_draft_from_json(message.get("draft")))
+    return tuple(drafts)
 
 
 def _build_review_plan(
@@ -577,6 +648,13 @@ def _print_finalize_step_error(step_name: str, exit_code: int) -> int:
     print(f"ERRO | Etapa finalize falhou em: {step_name}", file=sys.stderr)
     print("INFO | Nenhum envio foi executado.")
     return exit_code
+
+
+def _print_finalize_selection_state_error(error: Exception) -> int:
+    print("ERRO | Etapa finalize falhou ao atualizar last_sent_at", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print("INFO | Nenhum envio foi executado.")
+    return 3
 
 
 def _print_missing_prepare_target() -> int:

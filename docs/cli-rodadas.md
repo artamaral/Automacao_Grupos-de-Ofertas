@@ -30,6 +30,8 @@ politica de selecao. A operacao normal nao precisa repetir `--niche`,
 Os artefatos ficam separados por profile:
 
 ```text
+.data/<profile>/offers.json
+.data/<profile>/selection_state.json
 .data/<profile>/copy_briefs.json
 .data/<profile>/messages.json
 .data/<profile>/messages.txt
@@ -49,6 +51,8 @@ As flags operacionais mais importantes sao:
 - `--save-messages-json`: salva as mensagens aprovadas em JSON;
 - `--save-messages-text`: salva as mensagens aprovadas em TXT;
 - `--save-messages-preview-html`: salva o preview visual da rodada.
+- `--selection-state-json`: le e grava o estado operacional com `selected_at`,
+  `cooldown_until`, `last_sent_at`, `selection_count` e `sent_count`.
 
 Flags auxiliares que continuam disponiveis:
 
@@ -91,6 +95,7 @@ Exemplo:
 O `prepare` grava por padrao em `.data/<profile>/`:
 
 - `.data/<profile>/offers.json`
+- `.data/<profile>/selection_state.json`
 - `.data/<profile>/copy_briefs.json`
 - `.data/<profile>/messages.json`
 - `.data/<profile>/messages.txt`
@@ -121,7 +126,7 @@ selecao, refresh, template, compliance e render HTML.
 As diferencas de negocio ficam somente em config:
 
 - `config/discovery_profiles.toml`: entrada e contexto da rodada;
-- `config/selection_profiles.toml`: bandas de 20 itens e teto de 4 sem venda;
+- `config/selection_profiles.toml`: bandas de 20 itens, cooldown padrao e teto de 4 sem venda;
 - `config/group_profiles.toml`: roteamento.
 
 Quando uma capacidade compartilhada evoluir, os tres profiles devem ser

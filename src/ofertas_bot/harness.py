@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from time import time
 from typing import Any
@@ -20,7 +21,7 @@ from ofertas_bot.discovery_profiles import (
     load_discovery_profile_catalog,
 )
 from ofertas_bot.message_template_renderer import render_message_preview_html
-from ofertas_bot.models import Marketplace, MessageDraft
+from ofertas_bot.models import Marketplace, MessageDraft, Offer, ScoredOffer
 from ofertas_bot.providers.amazon import AmazonConfigurationError, AmazonProvider
 from ofertas_bot.providers.amazon_gateway import AmazonPayloadError
 from ofertas_bot.providers.gateway import ProviderLimitError
@@ -31,7 +32,7 @@ from ofertas_bot.providers.shopee_gateway import ShopeePayloadError
 from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.providers.transport import HttpTransportError
 from ofertas_bot.refresh import stabilize_selected_shopee_offers
-from ofertas_bot.selection import apply_default_selection_policy
+from ofertas_bot.selection import apply_default_selection_policy, resolve_selection_policy
 from ofertas_bot.settings import Settings, get_settings
 from ofertas_bot.storage.json_collection_inspection_store import (
     CollectionInspectionStoreWriteError,
@@ -55,6 +56,14 @@ from ofertas_bot.storage.json_offer_store import (
     JsonOfferStore,
     OfferStoreWriteError,
     offer_to_json,
+)
+from ofertas_bot.storage.json_selection_state_store import (
+    JsonSelectionStateStore,
+    SelectionStateStoreError,
+    SelectionStateStoreWriteError,
+    merge_selection_state_into_offers,
+    stamp_selected_offers,
+    update_selection_state_from_selected_offers,
 )
 
 SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
@@ -166,6 +175,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Arquivo local de catalogo curado usado como entrada do Collector",
     )
+    parser.add_argument(
+        "--selection-state-json",
+        default=None,
+        help="Caminho local para ler/gravar o estado operacional de selecao",
+    )
     return parser
 
 
@@ -254,6 +268,12 @@ def run(argv: Sequence[str] | None = None) -> int:
         catalog_file_arg=args.catalog_file,
         profile=profile,
     )
+    selection_state_store = (
+        JsonSelectionStateStore(path=Path(args.selection_state_json))
+        if args.selection_state_json
+        else None
+    )
+    selection_state_records = {}
 
     try:
         if args.save_inspection_json:
@@ -308,6 +328,13 @@ def run(argv: Sequence[str] | None = None) -> int:
     except CatalogSourceError as error:
         return _print_catalog_source_error(error=error)
 
+    if selection_state_store is not None:
+        try:
+            selection_state_records = selection_state_store.load()
+            offers = merge_selection_state_into_offers(offers, selection_state_records)
+        except SelectionStateStoreError as error:
+            return _print_selection_state_error(error=error)
+
     if args.save_inspection_json:
         save_path = Path(args.save_inspection_json)
         if _is_root_output_path(save_path):
@@ -330,16 +357,6 @@ def run(argv: Sequence[str] | None = None) -> int:
         except CollectionInspectionStoreWriteError as error:
             return _print_save_inspection_json_error(error=error)
         print(f"INFO | Inspeção estruturada da coleta salva em {save_path}")
-
-    if args.save_json:
-        save_path = Path(args.save_json)
-        if _is_root_output_path(save_path):
-            _print_save_json_root_warning(save_path)
-        try:
-            JsonOfferStore(path=save_path).save(offers)
-        except OfferStoreWriteError as error:
-            return _print_save_json_error(error=error)
-        print(f"INFO | Ofertas normalizadas salvas em {save_path}")
 
     scored_offers = scorer.score(offers)
     selection_result = apply_default_selection_policy(
@@ -392,6 +409,33 @@ def run(argv: Sequence[str] | None = None) -> int:
             return _print_selection_refresh_error(
                 stale_items_count=refresh_result.stale_items_count,
             )
+
+    if selection_state_store is not None and selected_scored_offers:
+        (
+            selected_scored_offers,
+            offers,
+            selection_state_records,
+        ) = _apply_selection_state_to_selected_offers(
+            selected_scored_offers=selected_scored_offers,
+            offers=offers,
+            niche=niche,
+            selection_state_records=selection_state_records,
+        )
+        try:
+            selection_state_store.save(selection_state_records)
+        except SelectionStateStoreWriteError as error:
+            return _print_selection_state_write_error(error=error)
+
+    if args.save_json:
+        save_path = Path(args.save_json)
+        if _is_root_output_path(save_path):
+            _print_save_json_root_warning(save_path)
+        try:
+            JsonOfferStore(path=save_path).save(offers)
+        except OfferStoreWriteError as error:
+            return _print_save_json_error(error=error)
+        print(f"INFO | Ofertas normalizadas salvas em {save_path}")
+
     copy_briefs = build_copy_briefs(
         selected_scored_offers,
         refresh_iterations=refresh_iterations,
@@ -513,6 +557,47 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(f"INFO | Fila de revisão salva em {save_path}")
 
     return 0
+
+
+def _apply_selection_state_to_selected_offers(
+    *,
+    selected_scored_offers: list[ScoredOffer],
+    offers: list[Offer],
+    niche: str,
+    selection_state_records: dict[str, Any],
+) -> tuple[list[ScoredOffer], list[Offer], dict[str, Any]]:
+    policy = resolve_selection_policy(niche)
+    if policy is None:
+        return selected_scored_offers, offers, selection_state_records
+
+    selected_at_dt = datetime.now(UTC).replace(microsecond=0)
+    cooldown_until_dt = selected_at_dt + timedelta(hours=policy.cooldown_hours_default)
+    selected_at = selected_at_dt.isoformat()
+    cooldown_until = cooldown_until_dt.isoformat()
+
+    stamped_selected_offers = stamp_selected_offers(
+        [item.offer for item in selected_scored_offers],
+        selected_at=selected_at,
+        cooldown_until=cooldown_until,
+    )
+    stamped_by_key = {offer.stable_key: offer for offer in stamped_selected_offers}
+    updated_scored_offers = [
+        ScoredOffer(
+            offer=stamped_by_key.get(item.offer.stable_key, item.offer),
+            score=item.score,
+            reasons=item.reasons,
+        )
+        for item in selected_scored_offers
+    ]
+    updated_offers = [
+        stamped_by_key.get(offer.stable_key, offer)
+        for offer in offers
+    ]
+    updated_records = update_selection_state_from_selected_offers(
+        selection_state_records,
+        stamped_selected_offers,
+    )
+    return updated_scored_offers, updated_offers, updated_records
 
 
 def _run_real_http_diagnostic(marketplace: Marketplace, settings: Settings) -> int:
@@ -913,6 +998,26 @@ def _print_save_inspection_json_error(error: Exception) -> int:
     print(f"DETALHE | {error}", file=sys.stderr)
     print(
         "AÇÃO | Verifique se o caminho é um arquivo válido e se há permissão de escrita.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_selection_state_error(error: Exception) -> int:
+    print("ERRO | Nao foi possivel ler o estado operacional de selecao", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "ACAO | Revise o arquivo informado em --selection-state-json antes de executar novamente.",
+        file=sys.stderr,
+    )
+    return 3
+
+
+def _print_selection_state_write_error(error: Exception) -> int:
+    print("ERRO | Nao foi possivel salvar o estado operacional de selecao", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print(
+        "ACAO | Verifique se o caminho de --selection-state-json permite escrita.",
         file=sys.stderr,
     )
     return 3

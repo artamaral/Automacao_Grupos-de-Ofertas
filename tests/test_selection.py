@@ -1,4 +1,5 @@
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from ofertas_bot.models import Marketplace, Offer, ScoredOffer
@@ -49,6 +50,7 @@ def test_operational_selection_policies_cover_all_curated_niches() -> None:
         assert sum(policy.subniche_quotas.values()) == 20
         assert policy.max_zero_sales_items == 4
         assert policy.minimum_daily_runs == 5
+        assert policy.cooldown_hours_default == 24
 
 
 def test_default_selection_policy_keeps_top_scores_within_subniche_quota(tmp_path: Path) -> None:
@@ -169,3 +171,47 @@ def test_default_selection_policy_limits_zero_sales_items_without_forcing_them(
         "Zero 4",
         "Com Venda",
     ]
+
+
+def test_default_selection_policy_skips_offer_in_active_cooldown(tmp_path: Path) -> None:
+    catalog_path = tmp_path / "catalog.csv"
+    catalog_path.write_text(
+        "\n".join(
+            [
+                "productName,offerLink,productLink,subniches",
+                'Item 1,https://example.com/1,,["mamadeiras"]',
+                'Item 2,https://example.com/2,,["mamadeiras"]',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    active_cooldown = (
+        datetime.now(UTC).replace(microsecond=0) + timedelta(hours=2)
+    ).isoformat()
+    scored_offers = [
+        replace(
+            _make_scored_offer("Item 1", 20.0, "https://example.com/1"),
+            offer=replace(
+                _make_scored_offer("Item 1", 20.0, "https://example.com/1").offer,
+                cooldown_until=active_cooldown,
+            ),
+        ),
+        _make_scored_offer("Item 2", 19.0, "https://example.com/2"),
+    ]
+
+    from ofertas_bot import selection
+
+    original = selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE
+    selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {"mae e bebe": {"mamadeiras": 2}}
+    try:
+        result = apply_default_selection_policy(
+            scored_offers,
+            niche="mae e bebe",
+            catalog_source_path=catalog_path,
+        )
+    finally:
+        selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = original
+
+    assert result.applied_default_policy is True
+    assert [item.offer.title for item in result.scored_offers] == ["Item 2"]

@@ -27,6 +27,9 @@ class Offer:
     item_id: int | None = None
     is_prime_or_free_shipping: bool = False
     shop_type_code: int | None = None
+    selected_at: str | None = None
+    cooldown_until: str | None = None
+    last_sent_at: str | None = None
 
     @property
     def discount_percent(self) -> float:

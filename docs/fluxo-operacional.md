@@ -71,6 +71,7 @@ O fluxo usa `.data/<profile>/` por padrão:
 
 ```text
 .data/<profile>/offers.json
+.data/<profile>/selection_state.json
 .data/<profile>/copy_briefs.json
 .data/<profile>/messages.json
 .data/<profile>/messages.txt
@@ -100,6 +101,7 @@ A etapa `prepare`:
 - gera mensagens;
 - valida compliance;
 - salva artefatos locais;
+- grava estado operacional em `selection_state.json`;
 - renderiza automaticamente `messages_preview.html` com a previa visual da rodada;
 - cria fila de revisão pendente já roteada pelo catálogo de grupos quando houver correspondência;
 - gera `review_plan.json` e `review_plan.txt` com grupos elegíveis, bloqueios e mensagens previstas por grupo;
@@ -119,7 +121,7 @@ Regra operacional atual:
 No caminho atual da Shopee, a copy recebe apenas a cadeia:
 
 ```text
-clean_catalog_rating_4_8_plus.csv -> Collector -> .data/<profile>/offers.json -> Scorer -> Selecao -> copy_briefs.json -> messages.json/html
+clean_catalog_rating_4_8_plus.csv -> Collector -> .data/<profile>/offers.json -> Scorer -> Selecao -> selection_state.json -> copy_briefs.json -> messages.json/html
 ```
 
 Regra de manutencao:
@@ -209,6 +211,7 @@ O config implementado dessa camada fica centralizado em
 
 - total de itens por rodada;
 - minimo de execucoes diarias;
+- `cooldown_hours_default`;
 - teto de itens sem venda;
 - percentual e quantidade por subnicho;
 - caminho da evidencia usada na decisao.
@@ -216,8 +219,19 @@ O config implementado dessa camada fica centralizado em
 No estado atual de implementacao, esse refresh operacional fica ativo no
 harness da Shopee quando `ENABLE_REAL_HTTP=true`.
 
-Cooldown e similaridade continuam sendo evolucoes separadas. A selecao por
-banda e o refresh de preco/comissao ja fazem parte do fluxo compartilhado.
+No estado atual, o cooldown operacional ja grava:
+
+- `selected_at`: instante em que a oferta entrou na rodada;
+- `cooldown_until`: instante ate o qual a oferta fica inelegivel;
+- `last_sent_at`: instante em que a oferta entrou no artefato final de dispatch da rodada.
+- `selection_count`: quantas vezes a oferta ja entrou em rodada selecionada;
+- `sent_count`: quantas vezes a oferta ja entrou no artefato final de dispatch.
+
+Esses campos ficam persistidos em `.data/<profile>/selection_state.json` e
+tambem aparecem nas ofertas serializadas quando disponiveis.
+
+Similaridade continua como evolucao separada. A selecao por banda, o cooldown e
+o refresh de preco/comissao ja fazem parte do fluxo compartilhado.
 
 ## Etapa finalize
 
@@ -230,6 +244,7 @@ A etapa `finalize`:
 - valida manifesto;
 - gera artefato de disparo agrupado por destino, ainda sem envio real;
 - executa o artefato em dry-run e salva relatório por destino;
+- atualiza `last_sent_at` das ofertas que entraram no artefato de dispatch;
 - cria bundle local de auditoria;
 - executa doctor local;
 - para na primeira falha;

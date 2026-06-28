@@ -25,6 +25,9 @@ def make_offer() -> Offer:
         niche="maquiagem",
         is_prime_or_free_shipping=True,
         shop_type_code=1,
+        selected_at="2026-06-27T12:00:00+00:00",
+        cooldown_until="2026-06-28T12:00:00+00:00",
+        last_sent_at="2026-06-27T13:00:00+00:00",
     )
 
 
@@ -42,8 +45,12 @@ def test_offer_to_json_keeps_safe_serializable_fields() -> None:
         "sales_count": 1200,
         "rating": 4.8,
         "niche": "maquiagem",
+        "item_id": None,
         "is_prime_or_free_shipping": True,
         "shop_type_code": 1,
+        "selected_at": "2026-06-27T12:00:00+00:00",
+        "cooldown_until": "2026-06-28T12:00:00+00:00",
+        "last_sent_at": "2026-06-27T13:00:00+00:00",
     }
 
 

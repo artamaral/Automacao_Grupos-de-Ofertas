@@ -4,6 +4,7 @@ import csv
 import json
 import tomllib
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ofertas_bot.models import ScoredOffer
@@ -24,6 +25,7 @@ class SelectionPolicy:
     total_items: int
     max_zero_sales_items: int
     minimum_daily_runs: int
+    cooldown_hours_default: int
     evidence: str
     subniche_quotas: dict[str, int]
 
@@ -58,6 +60,7 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
     total_items = int(raw_policy.get("total_items", 0))
     max_zero_sales_items = int(raw_policy.get("max_zero_sales_items", -1))
     minimum_daily_runs = int(raw_policy.get("minimum_daily_runs", 0))
+    cooldown_hours_default = int(raw_policy.get("cooldown_hours_default", 0))
     evidence = str(raw_policy.get("evidence", "")).strip()
     raw_bands = raw_policy.get("bands")
 
@@ -65,6 +68,8 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
         raise SelectionPolicyError("selection policy slug and niche are required")
     if total_items <= 0 or minimum_daily_runs <= 0:
         raise SelectionPolicyError(f"selection policy counts must be positive: {slug}")
+    if cooldown_hours_default <= 0:
+        raise SelectionPolicyError(f"selection policy cooldown must be positive: {slug}")
     if max_zero_sales_items < 0 or max_zero_sales_items > total_items:
         raise SelectionPolicyError(f"invalid zero-sales limit for selection policy: {slug}")
     if not evidence:
@@ -102,6 +107,7 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
         total_items=total_items,
         max_zero_sales_items=max_zero_sales_items,
         minimum_daily_runs=minimum_daily_runs,
+        cooldown_hours_default=cooldown_hours_default,
         evidence=evidence,
         subniche_quotas=quotas,
     )
@@ -135,6 +141,7 @@ def apply_default_selection_policy(
     catalog_source_path: Path | None,
 ) -> SelectionResult:
     normalized_niche = niche.strip().lower()
+    eligible_scored_offers = _filter_eligible_scored_offers(scored_offers)
     quotas = DEFAULT_SUBNICHE_QUOTAS_BY_NICHE.get(normalized_niche)
     max_zero_sales_items = DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE.get(normalized_niche)
     if (
@@ -143,9 +150,9 @@ def apply_default_selection_policy(
         or catalog_source_path.suffix.lower() != ".csv"
     ):
         return SelectionResult(
-            scored_offers=scored_offers,
+            scored_offers=eligible_scored_offers,
             applied_default_policy=False,
-            selected_count=len(scored_offers),
+            selected_count=len(eligible_scored_offers),
             quota_count=0,
         )
 
@@ -155,7 +162,7 @@ def apply_default_selection_policy(
     for subniche, quota in quotas.items():
         candidates = [
             item
-            for item in scored_offers
+            for item in eligible_scored_offers
             if subniche_by_url.get(item.offer.url) == subniche
         ]
         selected_in_subniche = 0
@@ -179,6 +186,34 @@ def apply_default_selection_policy(
         selected_count=len(selected),
         quota_count=sum(quotas.values()),
     )
+
+
+def resolve_selection_policy(niche: str) -> SelectionPolicy | None:
+    return DEFAULT_SELECTION_POLICIES_BY_NICHE.get(niche.strip().lower())
+
+
+def _filter_eligible_scored_offers(scored_offers: list[ScoredOffer]) -> list[ScoredOffer]:
+    now = datetime.now(UTC)
+    return [
+        item
+        for item in scored_offers
+        if _is_offer_eligible(
+            cooldown_until=item.offer.cooldown_until,
+            now=now,
+        )
+    ]
+
+
+def _is_offer_eligible(*, cooldown_until: str | None, now: datetime) -> bool:
+    if not cooldown_until:
+        return True
+    try:
+        parsed = datetime.fromisoformat(cooldown_until)
+    except ValueError:
+        return True
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed <= now
 
 
 def _load_first_subniche_by_url(path: Path) -> dict[str, str]:
