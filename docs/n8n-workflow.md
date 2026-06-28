@@ -11,6 +11,9 @@ Ele complementa:
 A versao implementavel, com nos e comandos sugeridos, esta em
 [`docs/n8n-workflow-implementavel.md`](n8n-workflow-implementavel.md).
 
+A arquitetura para processar `N` nichos e `N` grupos na mesma execucao esta em
+[`docs/n8n-arquitetura-multi-nicho.md`](n8n-arquitetura-multi-nicho.md).
+
 ## Objetivo do workflow
 
 Executar uma rodada por `profile` dentro do `n8n`, mantendo:

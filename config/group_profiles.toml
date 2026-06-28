@@ -1,3 +1,11 @@
+## Grupo logico:
+## - use `active = true/false` no bloco `[[profiles]]` para ligar ou desligar
+##   o profile inteiro
+## Destinos:
+## - use `[[profiles.destinations]]` para crescer para N grupos/canais
+## - use `active = true/false` em cada destino para ligar ou desligar apenas
+##   aquele alvo sem remover sua configuracao
+
 [[profiles]]
 slug = "beleza-ofertas"
 name = "Beleza Ofertas"

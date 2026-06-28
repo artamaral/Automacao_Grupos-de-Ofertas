@@ -7,6 +7,10 @@ orquestrador.
 O passo a passo de implantacao esta em
 [`docs/runbook-n8n.md`](runbook-n8n.md).
 
+A arquitetura recomendada para rodar multiplos nichos e grupos na mesma
+execucao esta em
+[`docs/n8n-arquitetura-multi-nicho.md`](n8n-arquitetura-multi-nicho.md).
+
 ## Decisao registrada
 
 - o `n8n` sera o orquestrador externo do fluxo;
