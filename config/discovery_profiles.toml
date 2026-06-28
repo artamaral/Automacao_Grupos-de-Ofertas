@@ -23,7 +23,7 @@ brands = ["maybelline", "ruby rose", "loreal"]
 creators = []
 categories = ["feminino"]
 include_terms = []
-exclude_terms = ["medicamento", "emagrecedor", "produto intimo adulto", "masculino", "adulto", "pet", "for men", "for man", "carrocho", "cao", "caes"]
+exclude_terms = ["medicamento", "emagrecedor", "produto intimo adulto", "masculino", "masculin", "adulto", "pet", "cachorr", "for men", "for man", "carrocho", "cao", "caes"]
 subgroups = [
   { slug = "maquiagem", label = "Maquiagem", query = "maquiagem base corretivo batom gloss rimel delineador blush", categories = ["Maquiagem"] },
   { slug = "skincare", label = "Skincare", query = "skincare serum facial protetor solar facial hidratante facial limpeza facial mascara facial", categories = ["Cuidados com a Pele"] },
@@ -66,7 +66,7 @@ brands = []
 creators = []
 categories = ["mae e bebe"]
 include_terms = []
-exclude_terms = ["pet", "for men", "for man", "carrocho", "cao", "caes"]
+exclude_terms = ["pet", "cachorr", "for men", "for man", "carrocho", "cao", "caes"]
 shopee_offer_names = ["Mom & Baby"]
 shopee_category_urls = ["https://shopee.com.br/Baby-Kids-Fashion-cat.11059973"]
 shopee_product_match_ids = [100632]
