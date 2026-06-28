@@ -43,6 +43,17 @@ Regras:
 - Refinar keywords e taxonomia de `auto-e-moto` após a primeira limpeza real,
   porque a rodada atual ainda concentrou muitos itens em subnichos genéricos
   e deixou volume alto de `unmapped_source_keywords` para revisão posterior.
+- Revisar a qualidade semântica dos subnichos nos catálogos operacionais `4.8+`,
+  porque preenchimento completo de `subniches` não garante coerência real do
+  item com o subnicho atribuído.
+- Levantar e corrigir falsos positivos semânticos nos tops por subnicho,
+  principalmente quando keyword ampla ou genérica puxa item para um grupo
+  plausível no texto, mas incorreto no contexto comercial.
+- Revisar a base de palavras-chave e a lógica de classificação usando como
+  evidência os artefatos `top10_por_subnicho.csv` gerados para
+  `mae-e-bebe`, `auto-e-moto` e `feminino`.
+- Reduzir casos em que um item entra em subnicho tecnicamente preenchido, mas
+  semanticamente fraco, ambíguo ou fora do contexto principal do nicho.
 
 ## Scoring e decisão
 
@@ -75,6 +86,12 @@ Regras:
 
 - Qual será o escopo da coleta ampla por macro-nicho na Shopee real.
 - Quais campos reais da API serão confiáveis para classificar subnicho.
+- Como endurecer a taxonomia sem perder cobertura, reduzindo falsos positivos
+  semânticos nos subnichos mais amplos.
+- Quais regras devem prevalecer quando keyword, nome do produto e contexto
+  comercial sugerirem subnichos diferentes.
+- Como medir qualidade semântica da classificação de subnicho de forma
+  recorrente sem travar o fluxo operacional.
 - Como representar roteamento para um ou mais grupos sem complicar o fluxo.
 - Como separar classificação determinística de classificação assistida por LLM.
 - Quando cupons entram na mesma esteira dos produtos e quando precisam de regra
