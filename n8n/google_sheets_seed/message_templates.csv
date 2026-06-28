@@ -1,0 +1,18 @@
+marketplace,template_key,active,template_body
+shopee,default,true,"🔥 {{facts.title}}
+
+🏪 Loja: {{facts.marketplace}}
+
+💵 {{facts.price | brl}}
+
+🏷️ {{facts.discount_percent | round}}% OFF
+
+⭐ Avaliação: {{facts.rating | rating_br}}/5
+
+🎟️ Resgate o cupom desta página:
+{{coupon_url}}
+
+✅ Link do produto:
+{{facts.url}}
+
+(anúncio)"

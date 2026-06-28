@@ -1,7 +1,14 @@
 # Cloud Runner n8n
 
-Este documento descreve a trilha paralela para operacao autonoma em nuvem,
-mantendo a solucao local/self-hosted atual intacta.
+Este documento descreve a ponte HTTP usada durante a transicao para a
+arquitetura nativa em `n8n cloud`.
+
+Leitura correta:
+
+- o `cloud runner` nao e o destino arquitetural final;
+- ele existe para viabilizar a transicao sem perder o contrato atual;
+- a decisao consolidada da fase esta em
+  [`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
 
 ## Objetivo
 
@@ -26,8 +33,9 @@ exposto por um servidor HTTP proprio:
 
 Esse runner fica em paralelo ao caminho atual:
 
-- solucao atual: local/self-hosted
-- nova solucao: runner HTTP cloud-ready
+- apoio atual: local/self-hosted
+- ponte atual: runner HTTP cloud-ready
+- alvo futuro: operacao nativa dentro do ecossistema do `n8n`
 
 ## Entry point
 

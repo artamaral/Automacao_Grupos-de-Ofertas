@@ -1,13 +1,16 @@
 # Workflow n8n implementavel
 
-Este documento descreve a versao implementavel das duas trilhas de `n8n`:
+Este documento descreve as trilhas implementadas no repositorio durante a
+transicao para a arquitetura alvo.
 
-- `self-hosted/local`
-- `hosted/cloud` por HTTP
+Leitura correta:
 
-A trilha atual continua sendo a local. A trilha cloud foi criada em paralelo para
-nao precisarmos redesenhar o fluxo quando quisermos operar tudo de forma
-autonoma.
+- alvo oficial: `n8n cloud` nativo;
+- ponte atual: `hosted/cloud` por HTTP;
+- apoio tecnico: `self-hosted/local`.
+
+A decisao consolidada da fase esta em
+[`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
 
 Arquivos centrais:
 

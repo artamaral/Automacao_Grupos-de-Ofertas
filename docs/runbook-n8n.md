@@ -1,13 +1,16 @@
 # Runbook n8n
 
-Este runbook descreve como operar o projeto com `n8n` nas duas trilhas hoje
-suportadas pelo repositorio:
+Este runbook descreve o estado atual da integracao com `n8n`.
 
-- `self-hosted/local`: trilha atual, usando scripts locais
-- `hosted/cloud`: trilha paralela, usando `cloud runner` HTTP
+Leitura correta:
+
+- `self-hosted/local` continua existindo apenas como apoio;
+- `hosted/cloud` por `cloud runner` continua existindo como ponte tecnica;
+- o alvo oficial do projeto passa a ser `n8n cloud` com operacao nativa.
 
 Documentos complementares:
 
+- [`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md)
 - [`docs/n8n-workflow.md`](n8n-workflow.md)
 - [`docs/n8n-workflow-implementavel.md`](n8n-workflow-implementavel.md)
 - [`docs/n8n-cloud-runner.md`](n8n-cloud-runner.md)

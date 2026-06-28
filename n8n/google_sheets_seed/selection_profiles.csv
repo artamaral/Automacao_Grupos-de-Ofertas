@@ -1,0 +1,42 @@
+slug,niche,total_items,max_zero_sales_items,minimum_daily_runs,cooldown_hours_default,evidence,subniche,share_percent,items
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,amamentacao-extracao-leite,10,2
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,roupas-body,10,2
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,quarto-monitoramento,10,2
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,higiene-saude-unhas,10,2
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,higiene-saude-aspiradores-nasais,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,passeio-canguru-ergonomico,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,roupas-geral,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,enxoval-kits,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,alimentacao-mamadeiras,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,oral-mordedores-chupetas,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,alimentacao-copos-treinamento,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,maternidade-bolsas-mochilas,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,troca-trocadores-portateis,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,brinquedos-montessori,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,passeio-carrinhos,5,1
+mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,banho-banheiras,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,cabelo-tratamento,10,2
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-calcas,10,2
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-inverno,10,2
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-saias-e-shorts,10,2
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-partes-de-cima,10,2
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,unhas-manicure,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,maquiagem-olhos,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,lingerie-e-intimos,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-vestidos,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,cabelo-ferramentas,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-fitness,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,skincare-facial,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,maquiagem-labios,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-social-e-trabalho,5,1
+feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,maquiagem-pele,5,1
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,acessorios-geral,15,3
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,pneus-rodas-e-calibragem,15,3
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,energia-e-conectividade,15,3
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,suportes-e-fixadores,10,2
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,limpeza-e-estetica,10,2
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,ferramentas-e-manutencao,10,2
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,organizacao-e-conforto,10,2
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,audio-e-som,5,1
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,seguranca-e-monitoramento,5,1
+auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,multimidia-e-gps,5,1

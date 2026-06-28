@@ -7,6 +7,9 @@ orquestrador.
 O passo a passo de implantacao esta em
 [`docs/runbook-n8n.md`](runbook-n8n.md).
 
+A decisao arquitetural consolidada da fase esta em
+[`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
+
 A arquitetura recomendada para rodar multiplos nichos e grupos na mesma
 execucao esta em
 [`docs/n8n-arquitetura-multi-nicho.md`](n8n-arquitetura-multi-nicho.md).
@@ -20,11 +23,15 @@ execucao esta em
 - os scripts chamados pelo operador e pela automacao devem ficar disponiveis no
   ambiente do `n8n`;
 - a regra de negocio continua dentro do projeto;
+- todos os arquivos de regras da operacao devem migrar para Google Planilhas,
+  para que a manutencao operacional aconteca no proprio ambiente do `n8n` e
+  possa ser automatizada depois por scripts de sincronizacao;
 - o primeiro canal real alvo passa a ser `WhatsApp`;
 - o envio real controlado deve acontecer no `n8n`, usando o artefato de
   dispatch gerado pelo projeto;
 - o publisher Python continua em `dry-run`;
-- a confirmacao de entrega real volta do `n8n` para o runner HTTP.
+- a confirmacao de entrega real volta do `n8n` para o runner HTTP enquanto a
+  trilha cloud nativa ainda nao assumir completamente a operacao.
 
 ## Distribuicao de responsabilidades
 
@@ -104,11 +111,11 @@ Entrada logica:
 
 Entradas resolvidas por configuracao:
 
-- `config/discovery_profiles.toml`
-- `config/selection_profiles.toml`
-- `config/group_profiles.toml`
-- `config/coupon_urls.toml`
-- `config/message_templates/shopee.txt`
+- Google Planilha `discovery_profiles`
+- Google Planilha `selection_profiles`
+- Google Planilha `group_profiles`
+- Google Planilha `coupon_urls`
+- Google Planilha `message_templates`
 - catalogo ativo do `profile`, armazenado no ambiente do `n8n`
 - estado operacional do `profile`, armazenado no ambiente do `n8n`
 
@@ -246,6 +253,24 @@ Isso nao elimina o repositorio como fonte de codigo. Significa apenas que a
 instancia operacional do fluxo, chamada pela automacao, deve existir dentro do
 ambiente em que o `n8n` roda.
 
+## Regras em Google Planilhas
+
+Decisao registrada desta fase:
+
+- os arquivos de regras nao devem ter `toml` ou `txt` como formato final de
+  operacao;
+- a fonte de verdade operacional das regras deve ser Google Planilhas;
+- isso vale para descoberta, selecao, grupos, cupons e templates;
+- o objetivo e permitir manutencao simples pelo operador e futura automacao de
+  alteracoes sem editar arquivos locais do repo.
+
+Leitura correta do estado atual:
+
+- os arquivos em `config/` continuam servindo como referencia do contrato ja
+  validado;
+- eles passam a ser base de migracao, nao o destino final da operacao nativa no
+  `n8n`.
+
 ## Contrato atual para WhatsApp
 
 No desenho atual, `WhatsApp` entra por `channel_adapter = "whatsapp"` em:
@@ -287,7 +312,7 @@ Regra pragmatica desta fase:
 - nao introduzir custo de dominio, hostname estavel ou infra adicional antes de
   validar o resultado operacional;
 - `Quick Tunnel` ou mecanismo equivalente continuam suficientes para a etapa de
-  prova controlada;
+  prova controlada da ponte HTTP;
 - a decisao de URL estavel fica adiada ate existir necessidade real de
   repeticao e escala.
 

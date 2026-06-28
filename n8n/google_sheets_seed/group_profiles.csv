@@ -1,0 +1,9 @@
+profile_slug,profile_name,allowed_niches_csv,allowed_marketplaces_csv,message_tone,allowed_content_types_csv,max_offers_per_run,min_minutes_between_posts,profile_active,destination_kind,destination_ref,channel_adapter,destination_active,max_messages_per_run,max_messages_per_hour,min_interval_seconds,quiet_periods_csv
+beleza-ofertas,Beleza Ofertas,beleza|feminino,mock|shopee,direto,product|coupon|context,3,120,true,group,grupo-beleza,whatsapp,true,3,10,45,22:00-08:00
+beleza-ofertas,Beleza Ofertas,beleza|feminino,mock|shopee,direto,product|coupon|context,3,120,true,channel,canal-beleza,telegram,true,3,10,60,22:00-08:00
+mae-e-bebe-ofertas,Mae e Bebe Ofertas,mae e bebe,mock|shopee,acolhedor,product|coupon|context,3,180,true,group,grupo-mae-e-bebe,whatsapp,true,3,8,45,22:00-08:00
+mae-e-bebe-ofertas,Mae e Bebe Ofertas,mae e bebe,mock|shopee,acolhedor,product|coupon|context,3,180,true,channel,canal-mae-e-bebe,telegram,true,3,8,60,22:00-08:00
+auto-e-moto-ofertas,Auto e Moto Ofertas,auto e moto,mock|shopee,pratico,product|coupon|context,3,180,true,group,grupo-auto-e-moto,whatsapp,true,3,8,45,22:00-08:00
+auto-e-moto-ofertas,Auto e Moto Ofertas,auto e moto,mock|shopee,pratico,product|coupon|context,3,180,true,channel,canal-auto-e-moto,telegram,true,3,8,60,22:00-08:00
+achadinhos-geral-ofertas,Achadinhos Geral,achadinhos geral|beleza|mae e bebe|auto e moto,mock|shopee,leve,product|coupon|context,5,90,true,group,grupo-achadinhos-geral,whatsapp,true,5,12,45,22:00-08:00
+achadinhos-geral-ofertas,Achadinhos Geral,achadinhos geral|beleza|mae e bebe|auto e moto,mock|shopee,leve,product|coupon|context,5,90,true,channel,canal-achadinhos-geral,telegram,true,5,12,60,22:00-08:00

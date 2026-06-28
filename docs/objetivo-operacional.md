@@ -4,6 +4,9 @@ Este documento define o objetivo do projeto e como ele deve ser operado. Ele
 deve ser lido junto com `docs/analise-operacional.md`, que orienta as próximas
 decisões de implementação.
 
+A decisao arquitetural consolidada para `n8n cloud` e Google Planilhas esta em
+[`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
+
 ## Objetivo do projeto
 
 O projeto existe para construir uma ferramenta operacional própria,
@@ -153,9 +156,20 @@ Regra obrigatoria:
 
 Config que pode variar por profile:
 
-- `config/discovery_profiles.toml`: catalogo curado, contexto e limite;
-- `config/selection_profiles.toml`: bandas por subnicho e teto de itens sem venda;
-- `config/group_profiles.toml`: roteamento dos grupos.
+- Google Planilha `discovery_profiles`: catalogo curado, contexto e limite;
+- Google Planilha `selection_profiles`: bandas por subnicho e teto de itens sem venda;
+- Google Planilha `group_profiles`: roteamento dos grupos.
+
+Decisao operacional complementar:
+
+- os arquivos de regras devem ter Google Planilhas como formato final de
+  operacao;
+- `toml` e `txt` ficam como referencia transitória enquanto a logica e migrada
+  para o ambiente nativo do `n8n`;
+- a escolha por planilhas busca reduzir atrito de manutencao e facilitar futura
+  automacao de mudancas por script.
+- a trilha `self-hosted/local` deixa de ser destino arquitetural e passa a ser
+  apenas apoio de transicao.
 
 Contrato comum atual:
 

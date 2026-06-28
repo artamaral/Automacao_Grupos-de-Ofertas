@@ -1,15 +1,15 @@
 # Workflow n8n
 
-Este documento registra as duas trilhas oficiais de integracao com `n8n`.
+Este documento registra o estado atual das trilhas de integracao com `n8n`.
 
-- trilha atual: `self-hosted/local`
-- trilha paralela: `hosted/cloud` por HTTP
+Leitura correta da fase:
 
-Elas coexistem. Quando avancamos o fluxo operacional, a regra passa a ser:
+- alvo oficial: `n8n cloud` com operacao nativa;
+- ponte tecnica atual: `hosted/cloud` por HTTP;
+- trilha de apoio/transicao: `self-hosted/local`.
 
-- nao quebrar a trilha atual que ja roda localmente;
-- preparar em paralelo a trilha autonoma para o futuro;
-- manter o mesmo contrato funcional: `prepare -> finalize -> dispatch_artifact`.
+A decisao consolidada esta em
+[`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
 
 Documentos relacionados:
 
@@ -44,7 +44,8 @@ Caracteristicas:
 
 - chama scripts PowerShell do projeto;
 - usa filesystem local diretamente;
-- continua sendo a solucao operacional atual.
+- continua existindo como apoio de transicao e debug;
+- nao e mais o destino arquitetural do projeto.
 
 ## Trilha 2: hosted/cloud por HTTP
 
@@ -63,7 +64,8 @@ Caracteristicas:
 - nao executa scripts locais dentro do `n8n`;
 - chama o `cloud runner` por HTTP;
 - preserva o mesmo contrato de `prepare/finalize`;
-- deixa o caminho pronto para migracao futura sem refazer a logica do projeto.
+- funciona como ponte para a operacao cloud enquanto a versao nativa no `n8n`
+  nao absorve regras, catalogos, estado e logs.
 
 ## Contrato minimo comum
 
@@ -139,7 +141,7 @@ Toda evolucao do fluxo operacional deve obedecer a esta regra:
 
 Ao final desta fase o repositorio passa a ter:
 
-- uma trilha `self-hosted/local` preservada e funcional;
-- uma trilha `hosted/cloud` criada em paralelo;
-- um workflow hospedado que ja representa o fluxo autonomo por HTTP;
+- uma trilha `self-hosted/local` preservada apenas como apoio;
+- uma ponte `hosted/cloud` funcional para validacao controlada;
+- a documentacao apontando `n8n cloud` nativo como destino principal;
 - nenhuma dependencia de revisao humana no contrato default.

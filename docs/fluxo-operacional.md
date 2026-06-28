@@ -25,6 +25,9 @@ O contrato externo para `n8n` e a decisao de iniciar a integracao real por
 `WhatsApp` estao registrados em
 [`docs/contrato-n8n-whatsapp.md`](contrato-n8n-whatsapp.md).
 
+A decisao arquitetural consolidada da fase esta em
+[`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
+
 O passo a passo operacional de implantacao no `n8n` esta em
 [`docs/runbook-n8n.md`](runbook-n8n.md).
 
@@ -45,9 +48,20 @@ do fluxo ou ramificacoes de codigo exclusivas por nicho.
 
 As diferencas permitidas sao dados versionados:
 
-- caminho do catalogo, destino e limite em `config/discovery_profiles.toml`;
-- bandas por subnicho em `config/selection_profiles.toml`;
-- roteamento em `config/group_profiles.toml`.
+- caminho do catalogo, destino e limite em Google Planilha
+  `discovery_profiles`;
+- bandas por subnicho em Google Planilha `selection_profiles`;
+- roteamento em Google Planilha `group_profiles`.
+
+Decisao complementar:
+
+- os arquivos de regras nao devem permanecer em `toml`/`txt` como formato final
+  de operacao;
+- a fonte de verdade operacional deve migrar para Google Planilhas;
+- isso facilita manutencao direta no `n8n` e posterior geracao de scripts de
+  alteracao.
+- a trilha local permanece apenas como apoio enquanto a operacao nativa no
+  `n8n` absorve regras, catalogos, logs e estado.
 
 Todo profile operacional deve usar Shopee, catalogo curado, politica de 20
 itens, no maximo 4 itens sem venda, template estatico Shopee, compliance e
@@ -175,11 +189,10 @@ Decisao operacional atual para Shopee:
 - a mensagem base pode ser gerada por template estatico;
 - esse template deve ser preenchido diretamente com os campos estruturados do
   brief, sem apoio de assistente;
-- o template oficial atual da Shopee fica em
-  [`config/message_templates/shopee.txt`](../config/message_templates/shopee.txt);
+- o template oficial atual da Shopee deve migrar para Google Planilha
+  `message_templates`;
 - o mesmo template atende todos os nichos operacionais, sem override por nicho;
-- a URL global de cupom fica em
-  [`config/coupon_urls.toml`](../config/coupon_urls.toml);
+- a URL global de cupom deve migrar para Google Planilha `coupon_urls`;
 - o preview visual validado desta etapa fica em
   [`tmp/mae-e-bebe-message-preview.html`](../tmp/mae-e-bebe-message-preview.html).
 
@@ -234,8 +247,8 @@ Dentro de cada subnicho, a regra de corte deve ser:
 Isso significa que item nao elegivel nao pode ocupar slot da cota, mesmo com
 score maior que outro item elegivel do mesmo subnicho.
 
-O config implementado dessa camada fica centralizado em
-[`config/selection_profiles.toml`](../config/selection_profiles.toml), incluindo:
+O config implementado dessa camada deve migrar para Google Planilha
+`selection_profiles`, incluindo:
 
 - total de itens por rodada;
 - minimo de execucoes diarias;
