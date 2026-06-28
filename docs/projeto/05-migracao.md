@@ -32,10 +32,17 @@ Proximo bloco tecnico:
 - substituir leitura de `config/` pelo leitor de planilhas;
 - validar `prepare` e `finalize` usando a planilha como fonte principal.
 
-### Etapa 4 - n8n nativo
+### Etapa 4 - catalogos no Google Drive
+
+- manter o Google Drive como origem canônica dos CSVs por `profile`;
+- estruturar as pastas operacionais no Drive;
+- definir o espelho operacional consumido pelo runner.
+
+### Etapa 5 - n8n nativo
 
 - adaptar o workflow para consumir diretamente o modelo final;
-- reduzir dependencias da ponte HTTP e do modo local.
+- reduzir dependencias da ponte HTTP e do modo local;
+- automatizar a sincronizacao entre Drive e pasta de catalogos usada na rodada.
 
 ## Regra de transicao
 

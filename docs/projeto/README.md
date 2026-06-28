@@ -17,6 +17,7 @@ Objetivo:
 4. [`04-contrato-n8n-whatsapp.md`](04-contrato-n8n-whatsapp.md)
 5. [`05-migracao.md`](05-migracao.md)
 6. [`06-proximas-etapas.md`](06-proximas-etapas.md)
+7. [`07-catalogos-operacionais.md`](07-catalogos-operacionais.md)
 
 ## Fonte canonica e legado
 

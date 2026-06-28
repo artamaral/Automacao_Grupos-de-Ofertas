@@ -1,15 +1,23 @@
 # ruff: noqa: E501, I001
 from __future__ import annotations
 
+import csv
 import html
 import tomllib
 from pathlib import Path
 
+from ofertas_bot.google_drive_rules import resolve_rules_file, resolve_sheet_csv_path
 from ofertas_bot.models import Marketplace, MessageDraft, ScoredOffer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_TEMPLATE_DIR = PROJECT_ROOT / "config" / "message_templates"
-DEFAULT_COUPON_URLS_PATH = PROJECT_ROOT / "config" / "coupon_urls.toml"
+DEFAULT_TEMPLATE_DIR = resolve_rules_file(
+    sheet_name="message_templates",
+    legacy_path=PROJECT_ROOT / "config" / "message_templates",
+)
+DEFAULT_COUPON_URLS_PATH = resolve_rules_file(
+    sheet_name="coupon_urls",
+    legacy_path=PROJECT_ROOT / "config" / "coupon_urls.toml",
+)
 
 
 def render_shopee_message_template(
@@ -179,18 +187,54 @@ def _render_preview_card(
 
 
 def _load_shopee_template(*, template_dir: Path) -> str:
-    path = template_dir / "shopee.txt"
+    if template_dir.is_dir():
+        path = template_dir / "shopee.txt"
+        if path.exists():
+            return path.read_text(encoding="utf-8").lstrip("\ufeff")
+    resolved_path = resolve_sheet_csv_path(template_dir, sheet_name="message_templates")
+    if resolved_path.suffix.lower() == ".csv":
+        return _load_shopee_template_from_csv(resolved_path)
+    path = resolved_path / "shopee.txt"
     if path.exists():
         return path.read_text(encoding="utf-8").lstrip("\ufeff")
     raise FileNotFoundError("no Shopee message template found")
 
 
 def _load_global_coupon_url(*, path: Path) -> str:
-    payload = tomllib.loads(path.read_text(encoding="utf-8"))
+    resolved_path = resolve_sheet_csv_path(path, sheet_name="coupon_urls")
+    if resolved_path.suffix.lower() == ".csv":
+        return _load_global_coupon_url_from_csv(resolved_path)
+    payload = tomllib.loads(resolved_path.read_text(encoding="utf-8"))
     coupon_url = payload.get("global_coupon_url")
     if not isinstance(coupon_url, str) or not coupon_url.strip():
         raise ValueError("global_coupon_url is required")
     return coupon_url.strip()
+
+
+def _load_shopee_template_from_csv(path: Path) -> str:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    for row in rows:
+        marketplace = (row.get("marketplace") or "").strip().lower()
+        template_key = (row.get("template_key") or "").strip().lower()
+        active = (row.get("active") or "").strip().lower()
+        if marketplace == "shopee" and template_key == "default" and active in {"true", "1", "yes"}:
+            template = row.get("template_body") or ""
+            if template.strip():
+                return template
+    raise ValueError("no active Shopee template found in csv")
+
+
+def _load_global_coupon_url_from_csv(path: Path) -> str:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    for row in rows:
+        marketplace = (row.get("marketplace") or "").strip().lower()
+        active = (row.get("active") or "").strip().lower()
+        coupon_url = (row.get("coupon_url") or "").strip()
+        if marketplace == "shopee" and active in {"true", "1", "yes"} and coupon_url:
+            return coupon_url
+    raise ValueError("no active coupon_url found in csv")
 
 
 def _format_brl(value: float) -> str:

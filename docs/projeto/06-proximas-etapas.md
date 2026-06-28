@@ -2,22 +2,20 @@
 
 ## Prioridade imediata
 
-Implementar o leitor unico de Google Sheets no projeto.
+Implementar a sincronizacao dos catalogos CSV a partir do Google Drive.
 
 ## Sequencia recomendada
 
-1. criar cliente de leitura da planilha principal
-2. buscar por nome de aba, nao por arquivo local
-3. converter linhas em estruturas do projeto
-4. manter fallback temporario para `config/`
-5. trocar `prepare` para usar planilhas
-6. trocar `finalize` para usar o mesmo contrato
-7. documentar o novo ponto unico de configuracao
+1. definir o espelho local de catalogos consumido pelo runner
+2. baixar ou sincronizar o CSV ativo de cada `profile`
+3. preservar o nome padrao `clean_catalog_rating_4_8_plus.csv`
+4. validar `prepare` usando os CSVs sincronizados
+5. depois automatizar essa etapa no `n8n`
 
 ## Resultado esperado
 
 Ao final desse bloco:
 
-- a manutencao operacional passa a acontecer na planilha;
-- o projeto deixa de depender de editar `toml` e `txt` para regras do dia a dia;
-- o `n8n` fica mais proximo de operar de forma autonoma.
+- o Drive vira a origem canônica dos catalogos operacionais;
+- o `n8n` passa a ter uma pasta espelho previsivel para consumo;
+- o fluxo fica mais proximo de operar sem dependencia manual de catalogo local.

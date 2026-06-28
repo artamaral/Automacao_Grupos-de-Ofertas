@@ -87,3 +87,25 @@ Define:
 - alteracoes operacionais devem nascer nessas abas;
 - `config/` vira referencia de transicao;
 - o leitor do projeto deve convergir para essa planilha como fonte principal.
+
+## Implementacao atual no codigo
+
+O projeto agora ja entende o formato CSV dessas abas exportadas do Google
+Sheets.
+
+Leitura default atual:
+
+- `n8n/google_sheets_seed/discovery_profiles.csv`
+- `n8n/google_sheets_seed/selection_profiles.csv`
+- `n8n/google_sheets_seed/group_profiles.csv`
+- `n8n/google_sheets_seed/coupon_urls.csv`
+- `n8n/google_sheets_seed/message_templates.csv`
+
+Fallback:
+
+- os arquivos legados em `config/` continuam funcionando como fallback.
+
+Override operacional:
+
+- a variavel `OFERTAS_RULES_DIR` pode apontar para outra pasta contendo esses
+  mesmos CSVs exportados.

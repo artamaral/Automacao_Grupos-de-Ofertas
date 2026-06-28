@@ -16,6 +16,7 @@ from ofertas_bot.agents.publisher import DryRunPublisher
 from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.copy_brief import build_copy_briefs
 from ofertas_bot.discovery_profiles import (
+    DEFAULT_DISCOVERY_PROFILES_PATH,
     DiscoveryProfile,
     DiscoveryProfileError,
     load_discovery_profile_catalog,
@@ -69,9 +70,6 @@ from ofertas_bot.storage.json_selection_state_store import (
 SHOPEE_MASKED_REQUEST_PARAMS = {"partner_id", "sign"}
 SHOPEE_MASKED_REQUEST_HEADERS = {"authorization"}
 REVIEW_TEXT_ENCODING = "utf-8-sig"
-DEFAULT_DISCOVERY_PROFILES_PATH = Path("config/discovery_profiles.toml")
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Harness dry-run do bot de ofertas")
     parser.add_argument(

@@ -1,0 +1,97 @@
+# Catalogos operacionais
+
+## Decisao
+
+Os catalogos operacionais do projeto devem ficar em `CSV`, nao em Google
+Planilhas.
+
+Separacao oficial:
+
+- regras operacionais: Google Sheets
+- catalogos operacionais: CSV no Google Drive
+
+## Motivo
+
+- catalogo e massa de dados grande e regeneravel;
+- catalogo nao e uma superficie boa para manutencao manual em planilha;
+- CSV e mais adequado para processamento, sincronizacao e reexecucao;
+- o `n8n` consegue trabalhar melhor com artefato objetivo por `profile`.
+
+## Pasta oficial no Google Drive
+
+Todos os catalogos do projeto devem ficar dentro de:
+
+- `Automacao_Grupos-de-Ofertas`
+- `catalogs`
+- `clean`
+
+Links:
+
+- pasta raiz do projeto:
+  <https://drive.google.com/drive/folders/1Ta1UWp88wrAp7GXnK3Hm8xO9xboO22WQ>
+- pasta `catalogs`:
+  <https://drive.google.com/drive/folders/1jOvvZycB0Rg1rCeoB1W7rAIR3yHchig5>
+- pasta `clean`:
+  <https://drive.google.com/drive/folders/1D8FJRdlcvPEccWXNAO7GNqPh4Bdu0HMa>
+
+## Estrutura atual
+
+### feminino
+
+- pasta:
+  <https://drive.google.com/drive/folders/1M1bI46LH81Cl7EfE_nuw1l9cJcuygiBp>
+- arquivo:
+  <https://drive.google.com/file/d/1pym2oUMwTar27izQBt22HX2jSEhtuOzw/view?usp=drivesdk>
+
+### mae-e-bebe
+
+- pasta:
+  <https://drive.google.com/drive/folders/1eEw9xA2jf-R8s-U8IQId9oK5Kk590O3O>
+- arquivo:
+  <https://drive.google.com/file/d/1WwPd048oat-JkGpbMZmiFKqhfiIcp2RV/view?usp=drivesdk>
+
+### auto-e-moto
+
+- pasta:
+  <https://drive.google.com/drive/folders/1e6jvZWHwwj0nCLTNZSN9SO8jah73Y1b->
+- arquivo:
+  <https://drive.google.com/file/d/15Vh5u9OLyOBAR4qkH2PKCAjhosZ2v4iL/view?usp=drivesdk>
+
+## Nome padrao do arquivo
+
+Cada `profile` deve manter:
+
+```text
+clean_catalog_rating_4_8_plus.csv
+```
+
+Isso evita divergencia entre nichos e reduz condicao especial no pipeline.
+
+## Contrato operacional atual
+
+Leitura correta desta fase:
+
+- o Google Drive passa a ser a origem canônica do catalogo ativo;
+- o runner ainda consome o CSV presente no ambiente de trabalho do `n8n`;
+- portanto, ainda existe uma etapa de baixar, sincronizar ou espelhar o CSV do
+  Drive para a pasta operacional que o fluxo le.
+
+## Contrato esperado no ambiente do n8n
+
+No ambiente que executa o fluxo, o `cloud runner` continua esperando:
+
+```text
+<catalogs_dir>/feminino/clean_catalog_rating_4_8_plus.csv
+<catalogs_dir>/mae-e-bebe/clean_catalog_rating_4_8_plus.csv
+<catalogs_dir>/auto-e-moto/clean_catalog_rating_4_8_plus.csv
+```
+
+Ou seja:
+
+- Drive = origem oficial
+- pasta local/volume do n8n = espelho operacional consumido pelo runner
+
+## Proximo passo tecnico
+
+Implementar a sincronizacao do catalogo ativo do Google Drive para a pasta de
+catalogos que o `n8n` usa em execucao.

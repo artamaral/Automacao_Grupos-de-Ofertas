@@ -7,10 +7,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ofertas_bot.google_drive_rules import resolve_rules_file, resolve_sheet_csv_path
 from ofertas_bot.models import ScoredOffer
 
-DEFAULT_SELECTION_PROFILES_PATH = (
-    Path(__file__).resolve().parents[2] / "config" / "selection_profiles.toml"
+DEFAULT_SELECTION_PROFILES_PATH = resolve_rules_file(
+    sheet_name="selection_profiles",
+    legacy_path=Path(__file__).resolve().parents[2] / "config" / "selection_profiles.toml",
 )
 
 
@@ -31,10 +33,13 @@ class SelectionPolicy:
 
 
 def load_selection_policies(path: Path) -> dict[str, SelectionPolicy]:
+    resolved_path = resolve_sheet_csv_path(path, sheet_name="selection_profiles")
+    if resolved_path.suffix.lower() == ".csv":
+        return _load_selection_policies_from_csv(resolved_path)
     try:
-        raw = tomllib.loads(path.read_text(encoding="utf-8"))
+        raw = tomllib.loads(resolved_path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
-        raise SelectionPolicyError(f"selection policy file not found: {path}") from error
+        raise SelectionPolicyError(f"selection policy file not found: {resolved_path}") from error
     except tomllib.TOMLDecodeError as error:
         raise SelectionPolicyError(f"invalid selection policy file: {error}") from error
 
@@ -48,6 +53,32 @@ def load_selection_policies(path: Path) -> dict[str, SelectionPolicy]:
         if policy.niche in policies:
             raise SelectionPolicyError(f"duplicate selection policy niche: {policy.niche}")
         policies[policy.niche] = policy
+    return policies
+
+
+def _load_selection_policies_from_csv(path: Path) -> dict[str, SelectionPolicy]:
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+    except FileNotFoundError as error:
+        raise SelectionPolicyError(f"selection policy file not found: {path}") from error
+
+    if not rows:
+        raise SelectionPolicyError("selection policy csv must contain at least one row")
+
+    grouped_rows: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        niche = (row.get("niche") or "").strip().lower()
+        if not niche:
+            raise SelectionPolicyError("selection policy csv requires niche")
+        grouped_rows.setdefault(niche, []).append(row)
+
+    policies: dict[str, SelectionPolicy] = {}
+    for niche, group_rows in grouped_rows.items():
+        policy = _build_selection_policy_from_csv_rows(group_rows)
+        if niche in policies:
+            raise SelectionPolicyError(f"duplicate selection policy niche: {niche}")
+        policies[niche] = policy
     return policies
 
 
@@ -113,17 +144,65 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
     )
 
 
-DEFAULT_SELECTION_POLICIES_BY_NICHE = load_selection_policies(
-    DEFAULT_SELECTION_PROFILES_PATH
-)
-DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {
-    niche: policy.subniche_quotas
-    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
-}
-DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE = {
-    niche: policy.max_zero_sales_items
-    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
-}
+def _build_selection_policy_from_csv_rows(rows: list[dict[str, str]]) -> SelectionPolicy:
+    first = rows[0]
+    slug = (first.get("slug") or "").strip().lower()
+    niche = (first.get("niche") or "").strip().lower()
+    total_items = _csv_required_int(first.get("total_items"), "total_items")
+    max_zero_sales_items = _csv_required_int(
+        first.get("max_zero_sales_items"),
+        "max_zero_sales_items",
+    )
+    minimum_daily_runs = _csv_required_int(first.get("minimum_daily_runs"), "minimum_daily_runs")
+    cooldown_hours_default = _csv_required_int(
+        first.get("cooldown_hours_default"),
+        "cooldown_hours_default",
+    )
+    evidence = (first.get("evidence") or "").strip()
+
+    if not slug or not niche:
+        raise SelectionPolicyError("selection policy slug and niche are required")
+    if total_items <= 0 or minimum_daily_runs <= 0:
+        raise SelectionPolicyError(f"selection policy counts must be positive: {slug}")
+    if cooldown_hours_default <= 0:
+        raise SelectionPolicyError(f"selection policy cooldown must be positive: {slug}")
+    if max_zero_sales_items < 0 or max_zero_sales_items > total_items:
+        raise SelectionPolicyError(f"invalid zero-sales limit for selection policy: {slug}")
+    if not evidence:
+        raise SelectionPolicyError(f"selection policy evidence is required: {slug}")
+
+    quotas: dict[str, int] = {}
+    total_share = 0
+    for row in rows:
+        subniche = (row.get("subniche") or "").strip()
+        items = _csv_required_int(row.get("items"), "items")
+        share_percent = _csv_required_int(row.get("share_percent"), "share_percent")
+        if not subniche or items <= 0 or share_percent <= 0:
+            raise SelectionPolicyError(f"invalid selection policy band: {slug}")
+        if subniche in quotas:
+            raise SelectionPolicyError(f"duplicate subniche in selection policy: {subniche}")
+        if share_percent * total_items != items * 100:
+            raise SelectionPolicyError(
+                f"selection policy share does not match item count: {slug}/{subniche}"
+            )
+        quotas[subniche] = items
+        total_share += share_percent
+
+    if sum(quotas.values()) != total_items:
+        raise SelectionPolicyError(f"selection policy item total must equal {total_items}: {slug}")
+    if total_share != 100:
+        raise SelectionPolicyError(f"selection policy shares must total 100: {slug}")
+
+    return SelectionPolicy(
+        slug=slug,
+        niche=niche,
+        total_items=total_items,
+        max_zero_sales_items=max_zero_sales_items,
+        minimum_daily_runs=minimum_daily_runs,
+        cooldown_hours_default=cooldown_hours_default,
+        evidence=evidence,
+        subniche_quotas=quotas,
+    )
 
 
 @dataclass(frozen=True)
@@ -239,3 +318,25 @@ def _parse_first_subniche(raw_value: str) -> str:
     if not isinstance(parsed, list) or not parsed:
         return "sem-subnicho"
     return str(parsed[0]).strip() or "sem-subnicho"
+
+
+def _csv_required_int(value: str | None, field_name: str) -> int:
+    if value is None or not value.strip():
+        raise SelectionPolicyError(f"selection policy csv field is required: {field_name}")
+    try:
+        return int(value.strip())
+    except ValueError as error:
+        raise SelectionPolicyError(f"selection policy csv field must be integer: {field_name}") from error
+
+
+DEFAULT_SELECTION_POLICIES_BY_NICHE = load_selection_policies(
+    DEFAULT_SELECTION_PROFILES_PATH
+)
+DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {
+    niche: policy.subniche_quotas
+    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
+}
+DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE = {
+    niche: policy.max_zero_sales_items
+    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
+}

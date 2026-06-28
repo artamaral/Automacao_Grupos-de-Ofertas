@@ -211,3 +211,26 @@ quiet_periods = ["21:00-07:00"]
     assert profile.destinations[1].destination_ref == "canal-beleza"
     assert profile.destinations[1].min_interval_seconds == 60
     assert profile.destinations[1].quiet_periods == ("21:00-07:00",)
+
+
+def test_load_group_profile_catalog_reads_csv_export(tmp_path) -> None:
+    path = tmp_path / "group_profiles.csv"
+    path.write_text(
+        "\n".join(
+            [
+                "profile_slug,profile_name,allowed_niches_csv,allowed_marketplaces_csv,message_tone,allowed_content_types_csv,max_offers_per_run,min_minutes_between_posts,profile_active,destination_kind,destination_ref,channel_adapter,destination_active,max_messages_per_run,max_messages_per_hour,min_interval_seconds,quiet_periods_csv",
+                "beleza-ofertas,Beleza Ofertas,beleza|feminino,mock|shopee,direto,product|coupon|context,3,120,true,group,grupo-beleza,whatsapp,true,3,10,45,22:00-08:00",
+                "beleza-ofertas,Beleza Ofertas,beleza|feminino,mock|shopee,direto,product|coupon|context,3,120,true,channel,canal-beleza,telegram,true,2,6,60,21:00-07:00",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    catalog = load_group_profile_catalog(path)
+    profile = catalog.get("beleza-ofertas")
+
+    assert profile is not None
+    assert profile.allowed_marketplaces == (Marketplace.MOCK, Marketplace.SHOPEE)
+    assert len(profile.destinations) == 2
+    assert profile.destinations[0].destination_ref == "grupo-beleza"
+    assert profile.destinations[1].destination_ref == "canal-beleza"

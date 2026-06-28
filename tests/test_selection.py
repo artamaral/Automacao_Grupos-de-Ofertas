@@ -6,6 +6,7 @@ from ofertas_bot.models import Marketplace, Offer, ScoredOffer
 from ofertas_bot.selection import (
     DEFAULT_SELECTION_POLICIES_BY_NICHE,
     apply_default_selection_policy,
+    load_selection_policies,
 )
 
 
@@ -51,6 +52,28 @@ def test_operational_selection_policies_cover_all_curated_niches() -> None:
         assert policy.max_zero_sales_items == 4
         assert policy.minimum_daily_runs == 5
         assert policy.cooldown_hours_default == 24
+
+
+def test_load_selection_policies_reads_csv_export(tmp_path: Path) -> None:
+    path = tmp_path / "selection_profiles.csv"
+    path.write_text(
+        "\n".join(
+            [
+                "slug,niche,total_items,max_zero_sales_items,minimum_daily_runs,cooldown_hours_default,evidence,subniche,share_percent,items",
+                "feminino,feminino,20,4,5,24,evidence.csv,maquiagem-olhos,50,10",
+                "feminino,feminino,20,4,5,24,evidence.csv,maquiagem-pele,50,10",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    policies = load_selection_policies(path)
+
+    assert set(policies) == {"feminino"}
+    assert policies["feminino"].subniche_quotas == {
+        "maquiagem-olhos": 10,
+        "maquiagem-pele": 10,
+    }
 
 
 def test_default_selection_policy_keeps_top_scores_within_subniche_quota(tmp_path: Path) -> None:

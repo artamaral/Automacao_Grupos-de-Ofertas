@@ -55,6 +55,33 @@ n8n/google_sheets_seed/message_templates.csv
 - a partir da importacao, a operacao passa a tratar a planilha como fonte de
   verdade editavel.
 
+## Implementacao atual
+
+O codigo do projeto ja suporta esse formato exportado em CSV.
+
+Fonte default atual:
+
+```text
+n8n/google_sheets_seed/
+```
+
+Arquivos esperados:
+
+- `discovery_profiles.csv`
+- `selection_profiles.csv`
+- `group_profiles.csv`
+- `coupon_urls.csv`
+- `message_templates.csv`
+
+Override suportado:
+
+```text
+OFERTAS_RULES_DIR=<pasta-com-os-csvs-exportados>
+```
+
+Se essa variavel nao existir, o projeto usa a seed local e, na ausencia dela,
+recua para os arquivos legados em `config/`.
+
 ## Ordem recomendada
 
 1. importar `coupon_urls.csv`

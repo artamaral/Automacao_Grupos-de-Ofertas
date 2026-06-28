@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import csv
+import json
 import tomllib
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from ofertas_bot.google_drive_rules import resolve_rules_file, resolve_sheet_csv_path
 from ofertas_bot.models import Marketplace, Offer
 
 
@@ -214,11 +217,20 @@ class DiscoveryProfileCatalog:
         return None
 
 
-def load_discovery_profile_catalog(path: Path) -> DiscoveryProfileCatalog:
+DEFAULT_DISCOVERY_PROFILES_PATH = resolve_rules_file(
+    sheet_name="discovery_profiles",
+    legacy_path=Path(__file__).resolve().parents[2] / "config" / "discovery_profiles.toml",
+)
+
+
+def load_discovery_profile_catalog(path: Path = DEFAULT_DISCOVERY_PROFILES_PATH) -> DiscoveryProfileCatalog:
+    resolved_path = resolve_sheet_csv_path(path, sheet_name="discovery_profiles")
+    if resolved_path.suffix.lower() == ".csv":
+        return _load_discovery_profile_catalog_from_csv(resolved_path)
     try:
-        raw = tomllib.loads(path.read_text(encoding="utf-8"))
+        raw = tomllib.loads(resolved_path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
-        raise DiscoveryProfileError(f"discovery profile file not found: {path}") from error
+        raise DiscoveryProfileError(f"discovery profile file not found: {resolved_path}") from error
     except tomllib.TOMLDecodeError as error:
         raise DiscoveryProfileError(f"invalid discovery profile file: {error}") from error
 
@@ -229,6 +241,20 @@ def load_discovery_profile_catalog(path: Path) -> DiscoveryProfileCatalog:
     profiles = tuple(_build_profile(item) for item in raw_profiles)
     if not profiles:
         raise DiscoveryProfileError("discovery profile file must contain at least one profile")
+    return DiscoveryProfileCatalog.from_iterable(profiles)
+
+
+def _load_discovery_profile_catalog_from_csv(path: Path) -> DiscoveryProfileCatalog:
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+    except FileNotFoundError as error:
+        raise DiscoveryProfileError(f"discovery profile file not found: {path}") from error
+
+    if not rows:
+        raise DiscoveryProfileError("discovery profile csv must contain at least one row")
+
+    profiles = tuple(_build_profile_from_csv_row(row) for row in rows)
     return DiscoveryProfileCatalog.from_iterable(profiles)
 
 
@@ -266,6 +292,42 @@ def _build_profile(item: object) -> DiscoveryProfile:
         shopee_product_match_ids=_int_tuple(item.get("shopee_product_match_ids")),
         shopee_product_category_ids=_int_tuple(item.get("shopee_product_category_ids")),
         subgroups=_subgroup_tuple(item.get("subgroups")),
+    )
+
+
+def _build_profile_from_csv_row(row: dict[str, str]) -> DiscoveryProfile:
+    marketplace_value = (row.get("marketplace") or Marketplace.MOCK.value).strip().lower()
+    try:
+        marketplace = Marketplace(marketplace_value)
+    except ValueError as error:
+        raise DiscoveryProfileError(
+            f"unsupported discovery profile marketplace: {marketplace_value}"
+        ) from error
+
+    return DiscoveryProfile(
+        slug=row.get("slug", ""),
+        name=row.get("name", ""),
+        niche=row.get("niche", ""),
+        marketplace=marketplace,
+        discovery_method=_csv_optional(row.get("discovery_method")),
+        query=_csv_optional(row.get("query")),
+        target=_csv_optional(row.get("target")),
+        limit=_csv_int_optional(row.get("limit")),
+        catalog_file=_csv_optional(row.get("catalog_file")),
+        keywords=_split_pipe(row.get("keywords_csv")),
+        brands=_split_pipe(row.get("brands_csv")),
+        creators=_split_pipe(row.get("creators_csv")),
+        categories=_split_pipe(row.get("categories_csv")),
+        include_terms=_split_pipe(row.get("include_terms_csv")),
+        exclude_terms=_split_pipe(row.get("exclude_terms_csv")),
+        shopee_offer_keyword=_csv_optional(row.get("shopee_offer_keyword")),
+        shopee_offer_names=_split_pipe(row.get("shopee_offer_names_csv")),
+        shopee_category_urls=_split_pipe(row.get("shopee_category_urls_csv")),
+        shopee_product_match_ids=_split_pipe_ints(row.get("shopee_product_match_ids_csv")),
+        shopee_product_category_ids=_split_pipe_ints(
+            row.get("shopee_product_category_ids_csv")
+        ),
+        subgroups=_parse_subgroups_json(row.get("subgroups_json")),
     )
 
 
@@ -317,6 +379,57 @@ def _string_or_none(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _csv_optional(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _csv_int_optional(value: str | None) -> int | None:
+    normalized = _csv_optional(value)
+    if normalized is None:
+        return None
+    try:
+        return int(normalized)
+    except ValueError as error:
+        raise DiscoveryProfileError(f"invalid integer in discovery profile csv: {normalized}") from error
+
+
+def _split_pipe(value: str | None) -> tuple[str, ...]:
+    normalized = _csv_optional(value)
+    if normalized is None:
+        return ()
+    return tuple(part.strip() for part in normalized.split("|") if part.strip())
+
+
+def _split_pipe_ints(value: str | None) -> tuple[int, ...]:
+    normalized = _csv_optional(value)
+    if normalized is None:
+        return ()
+    values: list[int] = []
+    for part in normalized.split("|"):
+        token = part.strip()
+        if not token:
+            continue
+        try:
+            values.append(int(token))
+        except ValueError as error:
+            raise DiscoveryProfileError(f"invalid integer in discovery profile csv: {token}") from error
+    return tuple(values)
+
+
+def _parse_subgroups_json(value: str | None) -> tuple[DiscoverySubgroup, ...]:
+    normalized = _csv_optional(value)
+    if normalized is None:
+        return ()
+    try:
+        payload = json.loads(normalized)
+    except json.JSONDecodeError as error:
+        raise DiscoveryProfileError(f"invalid subgroups_json in discovery profile csv: {error}") from error
+    return _subgroup_tuple(payload)
 
 
 def _int_or_none(value: object) -> int | None:

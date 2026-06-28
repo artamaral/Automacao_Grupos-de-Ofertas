@@ -115,6 +115,39 @@ def test_shopee_template_is_shared_by_all_niches(tmp_path) -> None:
     assert message == "PADRAO Produto mae e bebe https://example.com/cupom"
 
 
+def test_shopee_template_can_be_loaded_from_google_sheets_csv_export(tmp_path) -> None:
+    template_csv = tmp_path / "message_templates.csv"
+    template_csv.write_text(
+        "\n".join(
+            [
+                "marketplace,template_key,active,template_body",
+                'shopee,default,true,"PADRAO {{facts.title}} {{coupon_url}}"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    coupon_csv = tmp_path / "coupon_urls.csv"
+    coupon_csv.write_text(
+        "\n".join(
+            [
+                "marketplace,coupon_url,active",
+                "shopee,https://example.com/cupom,true",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    offer = make_offer(marketplace=Marketplace.SHOPEE, title="Produto csv")
+    scored = ScoredOffer(offer=offer, score=10, reasons=["teste"])
+
+    message = render_shopee_message_template(
+        scored,
+        template_dir=template_csv,
+        coupon_urls_path=coupon_csv,
+    )
+
+    assert message == "PADRAO Produto csv https://example.com/cupom"
+
+
 def test_copywriter_includes_trust_line() -> None:
     offer = make_offer(sales_count=250, rating=4.8)
     scored = ScoredOffer(offer=offer, score=10, reasons=["bem avaliado"])

@@ -151,7 +151,9 @@ def run_prepare_window(
     resolved_run_id = run_id.strip() or datetime.now(UTC).strftime("%Y-%m-%dT%H-%M-%SZ")
 
     results: list[dict[str, Any]] = []
-    profiles_file = path_config.app_dir / "config" / "discovery_profiles.toml"
+    profiles_file = path_config.app_dir / "n8n" / "google_sheets_seed" / "discovery_profiles.csv"
+    if not profiles_file.exists():
+        profiles_file = path_config.app_dir / "config" / "discovery_profiles.toml"
     for current_profile in resolved_profiles:
         catalog_path = profile_catalog_path(path_config, current_profile)
         if not catalog_path.exists() or catalog_path.stat().st_size <= 0:

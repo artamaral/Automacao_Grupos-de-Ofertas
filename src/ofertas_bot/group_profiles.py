@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import csv
 import tomllib
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import time
 from pathlib import Path
 
+from ofertas_bot.google_drive_rules import resolve_rules_file, resolve_sheet_csv_path
 from ofertas_bot.models import Marketplace
 
 VALID_CHANNEL_ADAPTERS = ("console", "whatsapp", "telegram")
@@ -15,7 +17,10 @@ class GroupProfileError(ValueError):
     """Raised when a group profile is invalid."""
 
 
-DEFAULT_GROUP_PROFILES_PATH = Path(__file__).resolve().parents[2] / "config" / "group_profiles.toml"
+DEFAULT_GROUP_PROFILES_PATH = resolve_rules_file(
+    sheet_name="group_profiles",
+    legacy_path=Path(__file__).resolve().parents[2] / "config" / "group_profiles.toml",
+)
 
 
 @dataclass(frozen=True)
@@ -156,10 +161,13 @@ class GroupProfileCatalog:
 
 
 def load_group_profile_catalog(path: Path = DEFAULT_GROUP_PROFILES_PATH) -> GroupProfileCatalog:
+    resolved_path = resolve_sheet_csv_path(path, sheet_name="group_profiles")
+    if resolved_path.suffix.lower() == ".csv":
+        return _load_group_profile_catalog_from_csv(resolved_path)
     try:
-        raw = tomllib.loads(path.read_text(encoding="utf-8"))
+        raw = tomllib.loads(resolved_path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
-        raise GroupProfileError(f"group profile file not found: {path}") from error
+        raise GroupProfileError(f"group profile file not found: {resolved_path}") from error
     except tomllib.TOMLDecodeError as error:
         raise GroupProfileError(f"invalid group profile file: {error}") from error
 
@@ -170,6 +178,27 @@ def load_group_profile_catalog(path: Path = DEFAULT_GROUP_PROFILES_PATH) -> Grou
     profiles = tuple(_build_group_profile(item) for item in raw_profiles)
     if not profiles:
         raise GroupProfileError("group profile file must contain at least one profile")
+    return GroupProfileCatalog.from_iterable(profiles)
+
+
+def _load_group_profile_catalog_from_csv(path: Path) -> GroupProfileCatalog:
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+    except FileNotFoundError as error:
+        raise GroupProfileError(f"group profile file not found: {path}") from error
+
+    if not rows:
+        raise GroupProfileError("group profile csv must contain at least one row")
+
+    grouped_rows: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        slug = (row.get("profile_slug") or "").strip().lower()
+        if not slug:
+            raise GroupProfileError("group profile csv requires profile_slug")
+        grouped_rows.setdefault(slug, []).append(row)
+
+    profiles = tuple(_build_group_profile_from_csv_rows(group_rows) for group_rows in grouped_rows.values())
     return GroupProfileCatalog.from_iterable(profiles)
 
 
@@ -195,6 +224,39 @@ def _build_group_profile(item: object) -> GroupProfile:
     )
 
 
+def _build_group_profile_from_csv_rows(rows: list[dict[str, str]]) -> GroupProfile:
+    first = rows[0]
+    return GroupProfile(
+        slug=first.get("profile_slug", ""),
+        name=first.get("profile_name", ""),
+        allowed_niches=_split_pipe(first.get("allowed_niches_csv")),
+        allowed_marketplaces=_marketplace_tuple(_split_pipe(first.get("allowed_marketplaces_csv"))),
+        destinations=tuple(_build_destination_from_csv_row(row) for row in rows),
+        message_tone=first.get("message_tone", "direto"),
+        allowed_content_types=_split_pipe(first.get("allowed_content_types_csv"))
+        or ("product", "coupon", "context"),
+        max_offers_per_run=_csv_int_or_default(first.get("max_offers_per_run"), 3),
+        min_minutes_between_posts=_csv_int_or_default(
+            first.get("min_minutes_between_posts"),
+            120,
+        ),
+        active=_csv_bool_or_default(first.get("profile_active"), True),
+    )
+
+
+def _build_destination_from_csv_row(row: dict[str, str]) -> GroupDestination:
+    return GroupDestination(
+        destination_kind=row.get("destination_kind", "group"),
+        destination_ref=_optional_str(row.get("destination_ref")),
+        channel_adapter=row.get("channel_adapter", "whatsapp"),
+        active=_csv_bool_or_default(row.get("destination_active"), True),
+        max_messages_per_run=_csv_int_or_default(row.get("max_messages_per_run"), 0),
+        max_messages_per_hour=_csv_int_or_default(row.get("max_messages_per_hour"), 0),
+        min_interval_seconds=_csv_int_or_default(row.get("min_interval_seconds"), 0),
+        quiet_periods=_split_pipe(row.get("quiet_periods_csv")),
+    )
+
+
 def _string_tuple(value: object) -> tuple[str, ...]:
     if value is None:
         return ()
@@ -206,7 +268,7 @@ def _string_tuple(value: object) -> tuple[str, ...]:
 def _marketplace_tuple(value: object) -> tuple[Marketplace, ...]:
     if value is None:
         return (Marketplace.MOCK,)
-    if not isinstance(value, list):
+    if not isinstance(value, (list, tuple)):
         raise GroupProfileError("allowed_marketplaces in group profile must be an array")
 
     marketplaces: list[Marketplace] = []
@@ -295,5 +357,33 @@ def _int_or_default(value: object, default: int) -> int:
         raise GroupProfileError("numeric fields in group profile must be integers")
     return value
 
+
+def _csv_int_or_default(value: str | None, default: int) -> int:
+    if value is None or not value.strip():
+        return default
+    try:
+        return int(value.strip())
+    except ValueError as error:
+        raise GroupProfileError("numeric fields in group profile csv must be integers") from error
+
+
+def _csv_bool_or_default(value: str | None, default: bool) -> bool:
+    if value is None or not value.strip():
+        return default
+    normalized = value.strip().lower()
+    if normalized in {"true", "1", "yes"}:
+        return True
+    if normalized in {"false", "0", "no"}:
+        return False
+    raise GroupProfileError("boolean fields in group profile csv are invalid")
+
+
+def _split_pipe(value: str | None) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    normalized = value.strip()
+    if not normalized:
+        return ()
+    return tuple(part.strip() for part in normalized.split("|") if part.strip())
 
 DEFAULT_GROUP_PROFILES = load_group_profile_catalog()

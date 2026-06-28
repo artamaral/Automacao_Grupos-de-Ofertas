@@ -20,6 +20,7 @@ from ofertas_bot import (
     review_queue_export_cli,
 )
 from ofertas_bot.discovery_profiles import (
+    DEFAULT_DISCOVERY_PROFILES_PATH,
     DiscoveryProfile,
     DiscoveryProfileError,
     load_discovery_profile_catalog,
@@ -159,8 +160,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--profiles-file",
-        default="config/discovery_profiles.toml",
-        help="Arquivo TOML com profiles de descoberta",
+        default=str(DEFAULT_DISCOVERY_PROFILES_PATH),
+        help="Arquivo de profiles de descoberta (CSV exportado do Google Sheets ou TOML legado)",
     )
     parser.add_argument(
         "--target",
