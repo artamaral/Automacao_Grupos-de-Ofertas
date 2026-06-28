@@ -45,6 +45,7 @@ tmp/n8n-root-test/data/feminino/
 - [`scripts/n8n/sync_catalog_to_n8n.ps1`](../scripts/n8n/sync_catalog_to_n8n.ps1)
 - [`scripts/n8n/invoke_prepare_window.ps1`](../scripts/n8n/invoke_prepare_window.ps1)
 - [`scripts/n8n/invoke_finalize_window.ps1`](../scripts/n8n/invoke_finalize_window.ps1)
+- [`scripts/n8n/invoke_sync_catalog_window.ps1`](../scripts/n8n/invoke_sync_catalog_window.ps1)
 
 ## Resultado 1: validacao de catalogo
 
@@ -193,6 +194,19 @@ Conclusao:
   caminho padrao agora sai do `catalog_registry.csv`
 
 ## Resultado 7: prepare da janela multi-profile
+
+Antes do `prepare_window`, o fluxo agora pode usar uma janela unica de
+sincronizacao de catalogos:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_sync_catalog_window.ps1 -ProfilesCsv "feminino,mae-e-bebe,auto-e-moto" -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas -RunId 2026-06-28-janela-01
+```
+
+Esse wrapper:
+
+- roda `sync_catalog_to_n8n.ps1` para cada `profile`;
+- usa o source padrao definido pelo `catalog_registry`;
+- gera um resumo unico em `window_catalog_sync_summary_<run_id>.json`.
 
 Comando validado:
 

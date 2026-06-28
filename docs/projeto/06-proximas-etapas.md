@@ -11,7 +11,8 @@ Automatizar o download ou espelho do CSV ativo do Google Drive usando o
 2. baixar ou sincronizar o CSV ativo de cada `profile`
 3. preservar o nome padrao `clean_catalog_rating_4_8_plus.csv`
 4. validar `prepare` usando os CSVs sincronizados
-5. depois automatizar essa etapa no `n8n` ou Google Drive
+5. automatizar a janela de sync antes do `prepare_window`
+6. depois automatizar essa etapa no `n8n` ou Google Drive
 
 ## Resultado esperado
 

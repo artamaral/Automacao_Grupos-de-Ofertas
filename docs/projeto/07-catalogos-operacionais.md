@@ -140,3 +140,9 @@ Fluxo esperado:
 4. o script copia o CSV para o path operacional definido no registry;
 5. `validate_catalog`, `prepare` e `prepare_window` passam a ler esse mesmo
    path sem regra hardcoded por nicho.
+
+Para janela multi-profile, o operador pode usar:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_sync_catalog_window.ps1 -ProfilesCsv "feminino,mae-e-bebe,auto-e-moto" -RootDir <n8n-root> -AppDir C:\Automacao_Grupos-de-Ofertas -RunId 2026-06-28-janela-01
+```
