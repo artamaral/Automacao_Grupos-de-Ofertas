@@ -12,7 +12,8 @@ Automatizar o download ou espelho do CSV ativo do Google Drive usando o
 3. preservar o nome padrao `clean_catalog_rating_4_8_plus.csv`
 4. validar `prepare` usando os CSVs sincronizados
 5. automatizar a janela de sync antes do `prepare_window`
-6. depois automatizar essa etapa no `n8n` ou Google Drive
+6. expor um plano JSON de sync para o `n8n cloud`
+7. depois automatizar a execucao do download via Google Drive
 
 ## Resultado esperado
 

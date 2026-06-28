@@ -122,6 +122,55 @@ def test_profile_catalog_path_uses_catalog_registry(tmp_path, monkeypatch) -> No
     assert path == config.catalogs_dir / "feminino" / "clean_catalog_rating_4_8_plus.csv"
 
 
+def test_build_catalog_sync_plan_window_generates_summary(tmp_path, monkeypatch) -> None:
+    from ofertas_bot import cloud_runner as module
+
+    app_dir = tmp_path / "app"
+    catalogs_dir = tmp_path / "catalogs"
+    data_dir = tmp_path / "data"
+    app_dir.mkdir(parents=True)
+    data_dir.mkdir(parents=True)
+
+    class FakeEntry:
+        active = True
+        relative_dir = "feminino"
+        file_name = "clean_catalog_rating_4_8_plus.csv"
+        drive_file_id = "drive-file-1"
+        drive_url = "https://drive.google.com/file/d/drive-file-1/view"
+
+    monkeypatch.setattr(module, "resolve_catalog_registry_entry", lambda profile: FakeEntry())
+
+    payload = module.build_catalog_sync_plan_window(
+        profiles_csv="feminino",
+        root_dir=str(tmp_path),
+        app_dir=str(app_dir),
+        catalogs_dir=str(catalogs_dir),
+        data_dir=str(data_dir),
+        run_id="sync-plan-1",
+    )
+
+    assert payload["stage"] == "catalog-sync-plan"
+    assert payload["total_profiles"] == 1
+    assert payload["profiles"][0]["drive_file_id"] == "drive-file-1"
+    assert Path(payload["summary_path"]).exists()
+
+
+def test_build_catalog_sync_plan_window_rejects_missing_registry(tmp_path, monkeypatch) -> None:
+    from ofertas_bot import cloud_runner as module
+
+    monkeypatch.setattr(module, "resolve_catalog_registry_entry", lambda profile: None)
+
+    with pytest.raises(module.CloudRunnerError):
+        module.build_catalog_sync_plan_window(
+            profiles_csv="feminino",
+            root_dir=str(tmp_path),
+            app_dir=str(tmp_path / "app"),
+            catalogs_dir=str(tmp_path / "catalogs"),
+            data_dir=str(tmp_path / "data"),
+            run_id="sync-plan-2",
+        )
+
+
 def test_load_dispatch_window_filters_allowed_targets(tmp_path) -> None:
     data_dir = tmp_path / "data" / "feminino"
     data_dir.mkdir(parents=True)

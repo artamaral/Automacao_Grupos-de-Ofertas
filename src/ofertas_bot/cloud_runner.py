@@ -130,6 +130,76 @@ def profile_data_dir(path_config: CloudPathConfig, profile: str) -> Path:
     return path_config.data_dir / profile
 
 
+def build_catalog_sync_plan_window(
+    *,
+    profile: str = "",
+    profiles_csv: str = "",
+    profiles: list[str] | tuple[str, ...] | None = None,
+    root_dir: str = "",
+    app_dir: str = "",
+    catalogs_dir: str = "",
+    data_dir: str = "",
+    run_id: str = "",
+) -> dict[str, Any]:
+    path_config = resolve_path_config(
+        root_dir=root_dir,
+        app_dir=app_dir,
+        catalogs_dir=catalogs_dir,
+        data_dir=data_dir,
+    )
+    resolved_profiles = parse_profiles(
+        profile=profile,
+        profiles_csv=profiles_csv,
+        profiles=profiles,
+    )
+    resolved_run_id = run_id.strip() or datetime.now(UTC).strftime("%Y-%m-%dT%H-%M-%SZ")
+
+    results: list[dict[str, Any]] = []
+    for current_profile in resolved_profiles:
+        registry_entry = resolve_catalog_registry_entry(current_profile)
+        if registry_entry is None or not registry_entry.active:
+            msg = (
+                "catalog registry ausente ou inativo para "
+                f"profile={current_profile}"
+            )
+            raise CloudRunnerError(msg)
+
+        target_catalog_path = profile_catalog_path(path_config, current_profile)
+        target_catalog_dir = target_catalog_path.parent
+        metadata_path = target_catalog_dir / "catalog_sync_metadata.json"
+        repo_source_catalog_path = (
+            path_config.app_dir / "catalogs" / "clean" / registry_entry.relative_dir / registry_entry.file_name
+        )
+
+        results.append(
+            {
+                "profile": current_profile,
+                "status": "ready",
+                "drive_file_id": registry_entry.drive_file_id,
+                "drive_url": registry_entry.drive_url,
+                "relative_dir": registry_entry.relative_dir,
+                "file_name": registry_entry.file_name,
+                "target_catalog_dir": str(target_catalog_dir),
+                "target_catalog_path": str(target_catalog_path),
+                "metadata_path": str(metadata_path),
+                "repo_source_catalog_path": str(repo_source_catalog_path),
+                "target_exists": target_catalog_path.exists(),
+                "metadata_exists": metadata_path.exists(),
+            }
+        )
+
+    summary = {
+        "stage": "catalog-sync-plan",
+        "run_id": resolved_run_id,
+        "profiles": results,
+        "total_profiles": len(results),
+    }
+    summary_path = path_config.data_dir / f"window_catalog_sync_plan_{resolved_run_id}.json"
+    save_json_file(summary_path, summary)
+    summary["summary_path"] = str(summary_path)
+    return summary
+
+
 def run_prepare_window(
     *,
     profile: str = "",

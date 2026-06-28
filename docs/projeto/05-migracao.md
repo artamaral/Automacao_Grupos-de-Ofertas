@@ -44,6 +44,12 @@ Proximo bloco tecnico:
 - reduzir dependencias da ponte HTTP e do modo local;
 - automatizar a sincronizacao entre Drive e pasta de catalogos usada na rodada.
 
+Bloco atual em andamento:
+
+- expor pelo runner um `catalog-sync-plan` com `drive_file_id` e `target_catalog_path`;
+- usar esse plano para o `n8n cloud` baixar os CSVs com node nativo do Google
+  Drive antes do `prepare-window`.
+
 ## Regra de transicao
 
 Durante a migracao:

@@ -22,6 +22,18 @@ O `n8n` nao deve:
 - alterar banda por subnicho sem regra;
 - editar manifesto manualmente.
 
+## Precondicao de catalogo
+
+Antes do `prepare-window`, o `n8n cloud` deve garantir que o catalogo ativo de
+cada `profile` foi sincronizado.
+
+Contrato recomendado:
+
+1. chamar `POST /catalog-sync-plan`;
+2. baixar cada CSV pelo `drive_file_id`;
+3. gravar o arquivo em `target_catalog_path`;
+4. seguir para `POST /prepare-window`.
+
 ## Artefato final esperado
 
 O contrato final da rodada continua sendo:

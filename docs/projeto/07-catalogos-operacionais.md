@@ -146,3 +146,40 @@ Para janela multi-profile, o operador pode usar:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_sync_catalog_window.ps1 -ProfilesCsv "feminino,mae-e-bebe,auto-e-moto" -RootDir <n8n-root> -AppDir C:\Automacao_Grupos-de-Ofertas -RunId 2026-06-28-janela-01
 ```
+
+## Contrato para n8n cloud
+
+Para o fluxo hospedado, o passo de sincronizacao deve nascer de um plano JSON.
+
+Endpoint:
+
+```text
+POST /catalog-sync-plan
+```
+
+Payload minimo:
+
+```json
+{
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
+}
+```
+
+Retorno esperado por `profile`:
+
+- `drive_file_id`
+- `drive_url`
+- `target_catalog_dir`
+- `target_catalog_path`
+- `metadata_path`
+
+Leitura operacional:
+
+1. o `n8n` pede o plano ao runner;
+2. para cada `profile`, baixa o arquivo do Google Drive usando `drive_file_id`;
+3. grava o CSV em `target_catalog_path`;
+4. grava os metadados locais em `metadata_path`;
+5. so depois executa `prepare-window`.
