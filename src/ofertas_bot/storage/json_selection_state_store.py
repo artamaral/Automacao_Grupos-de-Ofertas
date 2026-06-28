@@ -28,7 +28,6 @@ class SelectionStateRecord:
     cooldown_until: str | None = None
     last_sent_at: str | None = None
     selection_count: int = 0
-    sent_count: int = 0
 
 
 class JsonSelectionStateStore:
@@ -80,7 +79,6 @@ def selection_state_record_to_json(record: SelectionStateRecord) -> dict[str, An
         "cooldown_until": record.cooldown_until,
         "last_sent_at": record.last_sent_at,
         "selection_count": record.selection_count,
-        "sent_count": record.sent_count,
     }
 
 
@@ -101,7 +99,6 @@ def selection_state_record_from_json(data: object) -> SelectionStateRecord:
             cooldown_until=_optional_str(data.get("cooldown_until")),
             last_sent_at=_optional_str(data.get("last_sent_at")),
             selection_count=int(data.get("selection_count", 0)),
-            sent_count=int(data.get("sent_count", 0)),
         )
     except (KeyError, TypeError, ValueError) as error:
         msg = "Saved selection state item is invalid"
@@ -183,7 +180,6 @@ def update_selection_state_from_selected_offers(
             cooldown_until=offer.cooldown_until,
             last_sent_at=current.last_sent_at if current is not None else offer.last_sent_at,
             selection_count=(current.selection_count + 1) if current is not None else 1,
-            sent_count=current.sent_count if current is not None else 0,
         )
     return updated
 
@@ -206,7 +202,6 @@ def update_selection_state_last_sent_at(
             ),
             last_sent_at=last_sent_at,
             selection_count=current.selection_count if current is not None else 0,
-            sent_count=(current.sent_count + 1) if current is not None else 1,
         )
     return updated
 
@@ -230,7 +225,6 @@ def _build_selection_state_record(
     cooldown_until: str | None,
     last_sent_at: str | None,
     selection_count: int,
-    sent_count: int,
 ) -> SelectionStateRecord:
     return SelectionStateRecord(
         stable_key=offer.stable_key,
@@ -243,5 +237,4 @@ def _build_selection_state_record(
         cooldown_until=cooldown_until,
         last_sent_at=last_sent_at,
         selection_count=selection_count,
-        sent_count=sent_count,
     )

@@ -225,7 +225,6 @@ No estado atual, o cooldown operacional ja grava:
 - `cooldown_until`: instante ate o qual a oferta fica inelegivel;
 - `last_sent_at`: instante em que a oferta entrou no artefato final de dispatch da rodada.
 - `selection_count`: quantas vezes a oferta ja entrou em rodada selecionada;
-- `sent_count`: quantas vezes a oferta ja entrou no artefato final de dispatch.
 
 Esses campos ficam persistidos em `.data/<profile>/selection_state.json` e
 tambem aparecem nas ofertas serializadas quando disponiveis.

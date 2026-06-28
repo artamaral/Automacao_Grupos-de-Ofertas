@@ -48,7 +48,6 @@ def test_selection_state_store_saves_and_loads_records(tmp_path) -> None:
     assert loaded[offer.stable_key].cooldown_until == "2026-06-28T12:00:00+00:00"
     assert loaded[offer.stable_key].last_sent_at == "2026-06-27T13:00:00+00:00"
     assert loaded[offer.stable_key].selection_count == 1
-    assert loaded[offer.stable_key].sent_count == 1
 
 
 def test_merge_selection_state_into_offers_restores_operational_fields(tmp_path) -> None:
@@ -91,4 +90,4 @@ def test_selection_state_counters_accumulate_across_rounds() -> None:
     )
 
     assert records[offer.stable_key].selection_count == 2
-    assert records[offer.stable_key].sent_count == 1
+    assert records[offer.stable_key].last_sent_at == "2026-06-29T13:00:00+00:00"

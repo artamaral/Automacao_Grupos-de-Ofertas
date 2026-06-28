@@ -52,7 +52,7 @@ As flags operacionais mais importantes sao:
 - `--save-messages-text`: salva as mensagens aprovadas em TXT;
 - `--save-messages-preview-html`: salva o preview visual da rodada.
 - `--selection-state-json`: le e grava o estado operacional com `selected_at`,
-  `cooldown_until`, `last_sent_at`, `selection_count` e `sent_count`.
+  `cooldown_until`, `last_sent_at` e `selection_count`.
 
 Flags auxiliares que continuam disponiveis:
 
