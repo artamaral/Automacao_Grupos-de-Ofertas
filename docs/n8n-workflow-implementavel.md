@@ -8,6 +8,9 @@ Ele complementa:
 - [`docs/n8n-workflow.md`](n8n-workflow.md)
 - [`docs/runbook-n8n.md`](runbook-n8n.md)
 
+Um esqueleto inicial em JSON para montagem no `n8n` esta em
+[`n8n/workflows/ofertas-rodada-skeleton.json`](../n8n/workflows/ofertas-rodada-skeleton.json).
+
 ## Premissas
 
 - o `n8n` roda no mesmo ambiente onde os scripts operacionais estao

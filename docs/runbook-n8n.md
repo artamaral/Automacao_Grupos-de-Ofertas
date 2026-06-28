@@ -12,6 +12,9 @@ Ele parte das decisoes ja registradas em:
 O desenho nodo a nodo do workflow esta em
 [`docs/n8n-workflow.md`](n8n-workflow.md).
 
+A validacao local dos wrappers e do contrato operacional esta em
+[`docs/n8n-validation.md`](n8n-validation.md).
+
 ## Objetivo desta implantacao
 
 Colocar o `n8n` como centro operacional desde o inicio, com:
@@ -395,6 +398,19 @@ Ainda fica fora do escopo desta fase:
 - integracao real de sessao ou provedor de envio
 - confirmacao externa de entrega
 - `ENABLE_REAL_PUBLISH=true`
+
+## Evidencia de validacao
+
+Este runbook ja possui uma validacao local registrada para o bloco atual:
+
+- `validate_catalog.ps1`: validado
+- `invoke_prepare.ps1`: validado
+- `invoke_finalize.ps1`: validado
+- dispatch bloqueado por `quiet_period`: validado
+- dispatch liberado por horario forcado: validado
+
+Detalhes e resultados numericos estao em
+[`docs/n8n-validation.md`](n8n-validation.md).
 
 ## Proximo bloco apos este runbook
 
