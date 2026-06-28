@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-28T11:23:48+00:00",
+    "profile_slug": "feminino",
+    "subgroup_slug": null,
+    "niche": "feminino",
+    "marketplace": "shopee",
+    "target": "grupo-beleza",
+    "offers_path": "n8n\\root\\data\\feminino\\offers.json",
+    "review_queue_path": "n8n\\root\\data\\feminino\\review_queue.json"
+  },
+  "summary": {
+    "total_groups": 1,
+    "allowed_groups": 1,
+    "blocked_groups": 0,
+    "total_offers_collected": 63437,
+    "total_selected_offers": 3,
+    "total_review_queue_items": 40,
+    "total_routed_queue_items": 40,
+    "total_unrouted_queue_items": 0
+  },
+  "review_queue": {
+    "total": 40,
+    "pending": 40,
+    "approved": 0,
+    "rejected": 0,
+    "routed": 40,
+    "unrouted": 0
+  },
+  "groups": [
+    {
+      "group_slug": "beleza-ofertas",
+      "group_name": "Beleza Ofertas",
+      "destination_ref": "grupo-beleza",
+      "destination_kind": "group",
+      "message_tone": "direto",
+      "allowed": true,
+      "selected_offer_count": 3,
+      "selected_offers": [
+        {
+          "title": "Guarda-Roupa Modulado Neo + Guarda-Roupa Royale 3 Portas de Correr com Espelho Branco Madesa",
+          "url": "https://s.shopee.com.br/110qaG73Nk",
+          "price": 4108.68,
+          "old_price": null,
+          "niche": "feminino",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Guarda-Roupa Modulado Neo + Guarda-Roupa Royale 3 Portas de Correr Branco Madesa",
+          "url": "https://s.shopee.com.br/8KnRJjf8VM",
+          "price": 3891.29,
+          "old_price": null,
+          "niche": "feminino",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Guarda-Roupa Modulado de Canto 310 cm 5 Portas 2 Gavetas Branco Neo Madesa 01",
+          "url": "https://s.shopee.com.br/BRjajAE4Z",
+          "price": 3858.68,
+          "old_price": null,
+          "niche": "feminino",
+          "marketplace": "shopee"
+        }
+      ],
+      "review_queue_items": 40,
+      "reasons": [],
+      "next_available_at": null
+    }
+  ]
+}

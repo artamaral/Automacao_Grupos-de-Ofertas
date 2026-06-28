@@ -1,0 +1,36 @@
+Plano da rodada
+profile=auto-e-moto
+subgroup=None
+niche=auto e moto
+marketplace=shopee
+generated_at=2026-06-28T11:23:55+00:00
+total_groups=2
+allowed_groups=2
+blocked_groups=0
+total_offers_collected=27361
+total_selected_offers=8
+total_review_queue_items=80
+--------------------------------------------------------------------------------
+group=auto-e-moto-ofertas
+name=Auto e Moto Ofertas
+allowed=True
+destination_ref=grupo-auto-e-moto
+message_tone=pratico
+selected_offer_count=3
+review_queue_items=40
+offer=Scanner Automotivo Multimec X3 Ciclo Otto Diesel Leve | price=4863.0 | marketplace=shopee
+offer=Scanner Automotivo Starter 3 Pro Com Tablet e Cabos Diesel Pesada RAVEN | price=9332.0 | marketplace=shopee
+offer=Scanner Automotivo Profissional Multimec X3 Portátil Sem uso de WI-FI 100% Atualizado | price=4366.83 | marketplace=shopee
+--------------------------------------------------------------------------------
+group=achadinhos-geral-ofertas
+name=Achadinhos Geral
+allowed=True
+destination_ref=grupo-achadinhos-geral
+message_tone=leve
+selected_offer_count=5
+review_queue_items=40
+offer=Scanner Automotivo Multimec X3 Ciclo Otto Diesel Leve | price=4863.0 | marketplace=shopee
+offer=Scanner Automotivo Starter 3 Pro Com Tablet e Cabos Diesel Pesada RAVEN | price=9332.0 | marketplace=shopee
+offer=Scanner Automotivo Profissional Multimec X3 Portátil Sem uso de WI-FI 100% Atualizado | price=4366.83 | marketplace=shopee
+offer=Scanner Automotivo Multimecx3 Portátil - Multi Mec Diagnostico Otto Diesel Injeção ABS | price=4333.75 | marketplace=shopee
+offer=Scanner Automotivo Multimecx3 Portátil - Multi Mec Diagnostico Diesel Injeção ABS | price=4333.75 | marketplace=shopee

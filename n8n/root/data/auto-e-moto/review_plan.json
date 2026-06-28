@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-28T11:23:55+00:00",
+    "profile_slug": "auto-e-moto",
+    "subgroup_slug": null,
+    "niche": "auto e moto",
+    "marketplace": "shopee",
+    "target": "grupo-auto-e-moto",
+    "offers_path": "n8n\\root\\data\\auto-e-moto\\offers.json",
+    "review_queue_path": "n8n\\root\\data\\auto-e-moto\\review_queue.json"
+  },
+  "summary": {
+    "total_groups": 2,
+    "allowed_groups": 2,
+    "blocked_groups": 0,
+    "total_offers_collected": 27361,
+    "total_selected_offers": 8,
+    "total_review_queue_items": 80,
+    "total_routed_queue_items": 80,
+    "total_unrouted_queue_items": 0
+  },
+  "review_queue": {
+    "total": 80,
+    "pending": 80,
+    "approved": 0,
+    "rejected": 0,
+    "routed": 80,
+    "unrouted": 0
+  },
+  "groups": [
+    {
+      "group_slug": "auto-e-moto-ofertas",
+      "group_name": "Auto e Moto Ofertas",
+      "destination_ref": "grupo-auto-e-moto",
+      "destination_kind": "group",
+      "message_tone": "pratico",
+      "allowed": true,
+      "selected_offer_count": 3,
+      "selected_offers": [
+        {
+          "title": "Scanner Automotivo Multimec X3 Ciclo Otto Diesel Leve",
+          "url": "https://s.shopee.com.br/9AMYwaYPoy",
+          "price": 4863.0,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Scanner Automotivo Starter 3 Pro Com Tablet e Cabos Diesel Pesada RAVEN",
+          "url": "https://s.shopee.com.br/AKYWKkbGiF",
+          "price": 9332.0,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Scanner Automotivo Profissional Multimec X3 Portátil Sem uso de WI-FI 100% Atualizado",
+          "url": "https://s.shopee.com.br/5AqQBEwRTf",
+          "price": 4366.83,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        }
+      ],
+      "review_queue_items": 40,
+      "reasons": [],
+      "next_available_at": null
+    },
+    {
+      "group_slug": "achadinhos-geral-ofertas",
+      "group_name": "Achadinhos Geral",
+      "destination_ref": "grupo-achadinhos-geral",
+      "destination_kind": "group",
+      "message_tone": "leve",
+      "allowed": true,
+      "selected_offer_count": 5,
+      "selected_offers": [
+        {
+          "title": "Scanner Automotivo Multimec X3 Ciclo Otto Diesel Leve",
+          "url": "https://s.shopee.com.br/9AMYwaYPoy",
+          "price": 4863.0,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Scanner Automotivo Starter 3 Pro Com Tablet e Cabos Diesel Pesada RAVEN",
+          "url": "https://s.shopee.com.br/AKYWKkbGiF",
+          "price": 9332.0,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Scanner Automotivo Profissional Multimec X3 Portátil Sem uso de WI-FI 100% Atualizado",
+          "url": "https://s.shopee.com.br/5AqQBEwRTf",
+          "price": 4366.83,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Scanner Automotivo Multimecx3 Portátil - Multi Mec Diagnostico Otto Diesel Injeção ABS",
+          "url": "https://s.shopee.com.br/6AixN4sdRQ",
+          "price": 4333.75,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Scanner Automotivo Multimecx3 Portátil - Multi Mec Diagnostico Diesel Injeção ABS",
+          "url": "https://s.shopee.com.br/AKYWKjclz9",
+          "price": 4333.75,
+          "old_price": null,
+          "niche": "auto e moto",
+          "marketplace": "shopee"
+        }
+      ],
+      "review_queue_items": 40,
+      "reasons": [],
+      "next_available_at": null
+    }
+  ]
+}

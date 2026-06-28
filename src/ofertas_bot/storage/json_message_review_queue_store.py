@@ -107,6 +107,29 @@ def create_pending_review_queue(
     drafts: tuple[MessageDraft, ...],
     group_catalog: GroupProfileCatalog = DEFAULT_GROUP_PROFILES,
 ) -> tuple[MessageReviewQueueItem, ...]:
+    return create_review_queue(
+        drafts=drafts,
+        group_catalog=group_catalog,
+        initial_status="pending",
+    )
+
+
+def create_approved_review_queue(
+    drafts: tuple[MessageDraft, ...],
+    group_catalog: GroupProfileCatalog = DEFAULT_GROUP_PROFILES,
+) -> tuple[MessageReviewQueueItem, ...]:
+    return create_review_queue(
+        drafts=drafts,
+        group_catalog=group_catalog,
+        initial_status="approved",
+    )
+
+
+def create_review_queue(
+    drafts: tuple[MessageDraft, ...],
+    group_catalog: GroupProfileCatalog = DEFAULT_GROUP_PROFILES,
+    initial_status: ReviewStatus = "pending",
+) -> tuple[MessageReviewQueueItem, ...]:
     items: list[MessageReviewQueueItem] = []
     for draft in drafts:
         matching_profiles = tuple(
@@ -116,7 +139,7 @@ def create_pending_review_queue(
             and profile.allows_marketplace(draft.offer.marketplace)
         )
         if not matching_profiles:
-            items.append(MessageReviewQueueItem(draft=draft))
+            items.append(MessageReviewQueueItem(draft=draft, status=initial_status))
             continue
         for profile in matching_profiles:
             for destination in profile.destinations:
@@ -125,6 +148,7 @@ def create_pending_review_queue(
                 items.append(
                     MessageReviewQueueItem(
                         draft=draft,
+                        status=initial_status,
                         routing=MessageReviewRouting(
                             group_slug=profile.slug,
                             group_name=profile.name,
@@ -141,6 +165,25 @@ def create_pending_review_queue(
                     )
                 )
     return tuple(items)
+
+
+def auto_approve_review_queue_items(
+    items: tuple[MessageReviewQueueItem, ...],
+    reviewer: str = "system",
+    notes: str = "automatic_flow",
+) -> tuple[MessageReviewQueueItem, ...]:
+    clean_reviewer = _clean_reviewer(reviewer)
+    clean_notes = notes.strip()
+    return tuple(
+        MessageReviewQueueItem(
+            draft=item.draft,
+            status="approved",
+            reviewer=clean_reviewer,
+            notes=clean_notes,
+            routing=item.routing,
+        )
+        for item in items
+    )
 
 
 def approved_review_drafts(

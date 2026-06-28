@@ -1,0 +1,23 @@
+Plano da rodada
+profile=feminino
+subgroup=None
+niche=feminino
+marketplace=shopee
+generated_at=2026-06-28T11:23:48+00:00
+total_groups=1
+allowed_groups=1
+blocked_groups=0
+total_offers_collected=63437
+total_selected_offers=3
+total_review_queue_items=40
+--------------------------------------------------------------------------------
+group=beleza-ofertas
+name=Beleza Ofertas
+allowed=True
+destination_ref=grupo-beleza
+message_tone=direto
+selected_offer_count=3
+review_queue_items=40
+offer=Guarda-Roupa Modulado Neo + Guarda-Roupa Royale 3 Portas de Correr com Espelho Branco Madesa | price=4108.68 | marketplace=shopee
+offer=Guarda-Roupa Modulado Neo + Guarda-Roupa Royale 3 Portas de Correr Branco Madesa | price=3891.29 | marketplace=shopee
+offer=Guarda-Roupa Modulado de Canto 310 cm 5 Portas 2 Gavetas Branco Neo Madesa 01 | price=3858.68 | marketplace=shopee

@@ -3,5 +3,7 @@
   "run_id": "2026-06-28-janela-01",
   "requested_by": "arthur",
   "notes": "janela manual multi-profile",
-  "root_dir": "<n8n-root>"
+  "runner_base_url": "https://SEU-RUNNER-HTTP",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
 }

@@ -1,0 +1,72 @@
+Relatorio de disparo
+generated_at=2026-06-28T11:32:35+00:00
+source_generated_at=2026-06-28T08:32:35-03:00
+source_timezone=America/Sao_Paulo
+mode=dry-run
+adapter_kind=mixed
+total_targets=4
+total_available_messages=80
+total_selected_messages=16
+total_skipped_messages=64
+total_blocked_targets=0
+total_dry_run=16
+--------------------------------------------------------------------------------
+target=canal-achadinhos-geral
+status=simulated
+adapter_kind=telegram
+available_message_count=20
+selected_message_count=5
+skipped_message_count=15
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=60
+message=4 | planned_at=2026-06-28T08:32:35-03:00 | offset=0s | delivery=telegram:canal-achadinhos-geral | title=Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A
+message=8 | planned_at=2026-06-28T08:33:35-03:00 | offset=60s | delivery=telegram:canal-achadinhos-geral | title=Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma
+message=12 | planned_at=2026-06-28T08:34:35-03:00 | offset=120s | delivery=telegram:canal-achadinhos-geral | title=Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto
+message=16 | planned_at=2026-06-28T08:35:35-03:00 | offset=180s | delivery=telegram:canal-achadinhos-geral | title=Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão
+message=20 | planned_at=2026-06-28T08:36:35-03:00 | offset=240s | delivery=telegram:canal-achadinhos-geral | title=Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel
+--------------------------------------------------------------------------------
+target=canal-auto-e-moto
+status=simulated
+adapter_kind=telegram
+available_message_count=20
+selected_message_count=3
+skipped_message_count=17
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=60
+message=2 | planned_at=2026-06-28T08:32:35-03:00 | offset=0s | delivery=telegram:canal-auto-e-moto | title=Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A
+message=6 | planned_at=2026-06-28T08:33:35-03:00 | offset=60s | delivery=telegram:canal-auto-e-moto | title=Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma
+message=10 | planned_at=2026-06-28T08:34:35-03:00 | offset=120s | delivery=telegram:canal-auto-e-moto | title=Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto
+--------------------------------------------------------------------------------
+target=grupo-achadinhos-geral
+status=simulated
+adapter_kind=whatsapp
+available_message_count=20
+selected_message_count=5
+skipped_message_count=15
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=45
+message=3 | planned_at=2026-06-28T08:32:35-03:00 | offset=0s | delivery=whatsapp:grupo-achadinhos-geral | title=Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A
+message=7 | planned_at=2026-06-28T08:33:20-03:00 | offset=45s | delivery=whatsapp:grupo-achadinhos-geral | title=Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma
+message=11 | planned_at=2026-06-28T08:34:05-03:00 | offset=90s | delivery=whatsapp:grupo-achadinhos-geral | title=Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto
+message=15 | planned_at=2026-06-28T08:34:50-03:00 | offset=135s | delivery=whatsapp:grupo-achadinhos-geral | title=Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão
+message=19 | planned_at=2026-06-28T08:35:35-03:00 | offset=180s | delivery=whatsapp:grupo-achadinhos-geral | title=Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel
+--------------------------------------------------------------------------------
+target=grupo-auto-e-moto
+status=simulated
+adapter_kind=whatsapp
+available_message_count=20
+selected_message_count=3
+skipped_message_count=17
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=45
+message=1 | planned_at=2026-06-28T08:32:35-03:00 | offset=0s | delivery=whatsapp:grupo-auto-e-moto | title=Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A
+message=5 | planned_at=2026-06-28T08:33:20-03:00 | offset=45s | delivery=whatsapp:grupo-auto-e-moto | title=Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma
+message=9 | planned_at=2026-06-28T08:34:05-03:00 | offset=90s | delivery=whatsapp:grupo-auto-e-moto | title=Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto

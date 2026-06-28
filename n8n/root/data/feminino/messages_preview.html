@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>grupo-beleza</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b141a;
+      --panel: #111b21;
+      --card: #202c33;
+      --text: #e9edef;
+      --muted: #8696a0;
+      --link: #53bdeb;
+      --green-soft: #103529;
+      --gold: #ffd279;
+      --border: #2a3942;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .page { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .header { margin-bottom: 20px; }
+    .header h1 { margin: 0 0 6px; font-size: 28px; }
+    .header p { margin: 0; color: var(--muted); font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .phone { background: #10181d; border: 1px solid var(--border); border-radius: 24px; padding: 12px; box-shadow: 0 16px 40px rgba(0,0,0,0.28); }
+    .phone-top { display: flex; align-items: center; gap: 10px; padding: 8px 8px 14px; }
+    .avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #ffb21c; color: #1a1a1a; font-size: 18px; }
+    .group-meta strong, .group-meta span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .group-meta span { margin-top: 2px; color: var(--muted); font-size: 12px; }
+    .bubble { background: var(--card); border-radius: 14px; padding: 12px; border: 1px solid rgba(255,255,255,0.03); min-width: 0; overflow: hidden; }
+    .bubble img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; border-radius: 10px; background: #fff; }
+    .message-body { margin-top: 14px; min-width: 0; }
+    .title { margin: 0 0 12px; font-size: 17px; line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; word-break: break-word; }
+    .line { margin: 10px 0 0; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; word-break: break-word; }
+    .label { font-weight: 700; }
+    .price { color: #d7fdd3; font-size: 16px; font-weight: 700; }
+    .old-price { display: block; margin-top: 6px; color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; border-radius: 999px; background: var(--green-soft); color: #d7fdd3; border: 1px solid rgba(0,168,132,0.35); padding: 5px 10px; font-size: 14px; font-weight: 700; }
+    .rating { color: var(--gold); font-weight: 700; }
+    a { color: var(--link); text-decoration: none; overflow-wrap: anywhere; word-break: break-word; }
+    .ad { margin-top: 14px; font-weight: 700; }
+    .time { margin-top: 8px; text-align: right; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <h1>grupo-beleza</h1>
+      <p>Preview HTML gerado automaticamente a partir da rodada.</p>
+    </div>
+    <div class="grid">
+      
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #1</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7r98o-lko151ywf5i449" alt="TRATAMENTO CAPILAR: SHAMPOOS CABELOS DANIFICADOS, CONDICIONADOR: LAST COMPLEMENT E ÓLEO PARA OS CABELOS">
+          <div class="message-body">
+            <p class="title">🔥 TRATAMENTO CAPILAR: SHAMPOOS CABELOS DANIFICADOS, CONDICIONADOR: LAST COMPLEMENT E ÓLEO PARA OS CABELOS</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 240,00 </p>
+            <div class="badge">🏷️ 0% OFF</div>
+            <p class="line rating">⭐ Avaliação: 5,0/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/8KnRIVJFIP">https://s.shopee.com.br/8KnRIVJFIP</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #2</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-81ztc-mja8znijzls27b" alt="Creme Para Pentear  Karité Soul Power 800g">
+          <div class="message-body">
+            <p class="title">🔥 Creme Para Pentear  Karité Soul Power 800g</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 64,99 </p>
+            <div class="badge">🏷️ 0% OFF</div>
+            <p class="line rating">⭐ Avaliação: 5,0/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/30luwmSf4z">https://s.shopee.com.br/30luwmSf4z</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #3</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7r98o-m9qlugmqwf95cb" alt="Calça jeans wide leg  com desenho estilo pantalona infantil juvenil 10 aos 16">
+          <div class="message-body">
+            <p class="title">🔥 Calça jeans wide leg  com desenho estilo pantalona infantil juvenil 10 aos 16</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 47,90 <span class="old-price">R$ 69,99</span></p>
+            <div class="badge">🏷️ 32% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/7KuuAcxJAL">https://s.shopee.com.br/7KuuAcxJAL</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #4</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7qukw-ljetz3mnbybj0c" alt="Kit 10 Colmeia Organizadora com divisórias para Calça Jeans/Camisetas/Sutiã/Calcinhas/Cuecas">
+          <div class="message-body">
+            <p class="title">🔥 Kit 10 Colmeia Organizadora com divisórias para Calça Jeans/Camisetas/Sutiã/Calcinhas/Cuecas</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 63,81 <span class="old-price">R$ 103,50</span></p>
+            <div class="badge">🏷️ 38% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,8/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/5L9pmqQRru">https://s.shopee.com.br/5L9pmqQRru</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #5</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/sg-11134201-8227q-mhhy158ts8oyf9" alt="Saída de Praia Feminina Calça Tricot Tamanho Único Verão 26">
+          <div class="message-body">
+            <p class="title">🔥 Saída de Praia Feminina Calça Tricot Tamanho Único Verão 26</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 49,69 <span class="old-price">R$ 139,80</span></p>
+            <div class="badge">🏷️ 64% OFF</div>
+            <p class="line rating">⭐ Avaliação: 5,0/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/4qDZFRZz91">https://s.shopee.com.br/4qDZFRZz91</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #6</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-820m7-mpwxz31vs0e9b0" alt="Jaqueta Puffer Bobojaco Corta Vento Nylon Frio Reforçada motoqueiro bombojaco">
+          <div class="message-body">
+            <p class="title">🔥 Jaqueta Puffer Bobojaco Corta Vento Nylon Frio Reforçada motoqueiro bombojaco</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 71,07 <span class="old-price">R$ 106,97</span></p>
+            <div class="badge">🏷️ 34% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/9UzOnHOhbE">https://s.shopee.com.br/9UzOnHOhbE</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #7</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/sg-11134201-824gl-mfl276cmd4wd8a" alt="WD VEST Conjunto de Biquíni com Saia e Detalhe de Estrela do Mar 2025 XX546">
+          <div class="message-body">
+            <p class="title">🔥 WD VEST Conjunto de Biquíni com Saia e Detalhe de Estrela do Mar 2025 XX546</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 161,96 </p>
+            <div class="badge">🏷️ 0% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/8AU1BFB4JG">https://s.shopee.com.br/8AU1BFB4JG</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #8</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/sg-11134201-22110-k2p48emqsojv29" alt="KIT C/ 2 Shorts Saída de Praia shortinho renda saída de praia Com Babadinho HT Feminina Moda">
+          <div class="message-body">
+            <p class="title">🔥 KIT C/ 2 Shorts Saída de Praia shortinho renda saída de praia Com Babadinho HT Feminina Moda</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 80,00 </p>
+            <div class="badge">🏷️ 0% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,8/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/8pjhyAKbZy">https://s.shopee.com.br/8pjhyAKbZy</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #9</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7r98o-ma0fghwvl0jm09" alt="Camisa Cropped Feminina Xadrez em Crepinho Manga Longa - Leve e Estilosa">
+          <div class="message-body">
+            <p class="title">🔥 Camisa Cropped Feminina Xadrez em Crepinho Manga Longa - Leve e Estilosa</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 47,73 <span class="old-price">R$ 59,66</span></p>
+            <div class="badge">🏷️ 20% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/AUrvusy2Nm">https://s.shopee.com.br/AUrvusy2Nm</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #10</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7r98o-m1jtg35cqt3lc3" alt="HT VEST Conjunto de 3 Peças de Praia Juvenil Feminino com Saia e Camisa - J3010">
+          <div class="message-body">
+            <p class="title">🔥 HT VEST Conjunto de 3 Peças de Praia Juvenil Feminino com Saia e Camisa - J3010</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 120,00 </p>
+            <div class="badge">🏷️ 0% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,8/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/9038883kQN">https://s.shopee.com.br/9038883kQN</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #11</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/sg-11134301-7rd71-m6s27vao86myc9" alt="XEIJAYI 2 Peças De Esmalte Em Gel Metálico Pintado Para Unhas , Arte Criativo , Elástico , Pintura Com Cola Pintada , De">
+          <div class="message-body">
+            <p class="title">🔥 XEIJAYI 2 Peças De Esmalte Em Gel Metálico Pintado Para Unhas , Arte Criativo , Elástico , Pintura Com Cola Pintada , De</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 14,01 <span class="old-price">R$ 25,22</span></p>
+            <div class="badge">🏷️ 44% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/5VTFvZjACd">https://s.shopee.com.br/5VTFvZjACd</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #12</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7r98o-lzuvphdweecl1a" alt="200 Unidades Pad Gel (100 Pares) Protetor de Pálpebras Alongamento Cílios Extensão Patch Pad Gel">
+          <div class="message-body">
+            <p class="title">🔥 200 Unidades Pad Gel (100 Pares) Protetor de Pálpebras Alongamento Cílios Extensão Patch Pad Gel</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 18,70 <span class="old-price">R$ 33,74</span></p>
+            <div class="badge">🏷️ 45% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/6L2MtfoNLl">https://s.shopee.com.br/6L2MtfoNLl</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #13</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-81z1k-mh3y2dxuc7phaf" alt="kit 5/10 Calcinhas 100%  Algodão Lisa Cos Cintura Alta Tanga Modelo Confortáveis com Forro">
+          <div class="message-body">
+            <p class="title">🔥 kit 5/10 Calcinhas 100%  Algodão Lisa Cos Cintura Alta Tanga Modelo Confortáveis com Forro</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 26,99 <span class="old-price">R$ 57,84</span></p>
+            <div class="badge">🏷️ 53% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/5AqPeOUdIu">https://s.shopee.com.br/5AqPeOUdIu</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #14</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-820lx-mlj2n8ckre2s08" alt="Vestido Plus Size Midi Manga Longa Inverno Tubinho Fenda Elastano Veste Até G4">
+          <div class="message-body">
+            <p class="title">🔥 Vestido Plus Size Midi Manga Longa Inverno Tubinho Fenda Elastano Veste Até G4</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 59,90 <span class="old-price">R$ 139,90</span></p>
+            <div class="badge">🏷️ 57% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/6AiwjuA9Bn">https://s.shopee.com.br/6AiwjuA9Bn</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #15</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-820ma-mmi51zt6o74663" alt="Pé Palito de Madeira 30 CM Com Chapinha Inclinada">
+          <div class="message-body">
+            <p class="title">🔥 Pé Palito de Madeira 30 CM Com Chapinha Inclinada</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 19,43 <span class="old-price">R$ 71,90</span></p>
+            <div class="badge">🏷️ 73% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,8/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/3qL1vxGqVH">https://s.shopee.com.br/3qL1vxGqVH</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #16</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-820md-moic601f91qdcc" alt="Calça Legging  de Cintura Alta para Academia Feminina Esportiva  Modeladora Cores Verão">
+          <div class="message-body">
+            <p class="title">🔥 Calça Legging  de Cintura Alta para Academia Feminina Esportiva  Modeladora Cores Verão</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 29,90 <span class="old-price">R$ 89,90</span></p>
+            <div class="badge">🏷️ 67% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,8/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/9AMYQnpuhZ">https://s.shopee.com.br/9AMYQnpuhZ</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #17</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7r98o-mcgk0wvi9lpu36" alt="ÓLEO DE EUCALIPTO CONCENTRADO 1x500ML + SPRAY 120ML - REPELENTE">
+          <div class="message-body">
+            <p class="title">🔥 ÓLEO DE EUCALIPTO CONCENTRADO 1x500ML + SPRAY 120ML - REPELENTE</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 37,90 </p>
+            <div class="badge">🏷️ 0% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,8/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/20tNk6n8u2">https://s.shopee.com.br/20tNk6n8u2</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #18</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-820mb-mon4ysaz63utae" alt="Carmed Copa do Mundo Seleções Sabor Surpresa Hidratante Labial Fini Coca Sprite Batom Efeito Gloss Maquiagem 10g">
+          <div class="message-body">
+            <p class="title">🔥 Carmed Copa do Mundo Seleções Sabor Surpresa Hidratante Labial Fini Coca Sprite Batom Efeito Gloss Maquiagem 10g</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 17,40 <span class="old-price">R$ 67,50</span></p>
+            <div class="badge">🏷️ 74% OFF</div>
+            <p class="line rating">⭐ Avaliação: 5,0/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/3B5L7e2FEi">https://s.shopee.com.br/3B5L7e2FEi</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #19</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-820lp-mofwe439m134d2" alt="Blusa Feminina Regata De Paetê Elegante Casual Luxo Regata Com Brilho">
+          <div class="message-body">
+            <p class="title">🔥 Blusa Feminina Regata De Paetê Elegante Casual Luxo Regata Com Brilho</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 56,90 <span class="old-price">R$ 137,90</span></p>
+            <div class="badge">🏷️ 59% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/5fmgIGQN5S">https://s.shopee.com.br/5fmgIGQN5S</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+
+      <section class="phone">
+        <div class="phone-top">
+          <div class="avatar">🛍️</div>
+          <div class="group-meta">
+            <strong>grupo-beleza</strong>
+            <span>prévia da mensagem #20</span>
+          </div>
+        </div>
+        <article class="bubble">
+          <img src="https://cf.shopee.com.br/file/br-11134207-7r98o-lyy3leaxni1x62" alt="PERFUME FEMININO RADIANT GIRL BLUSH - PRIMACIAL PERFUME FLORAL">
+          <div class="message-body">
+            <p class="title">🔥 PERFUME FEMININO RADIANT GIRL BLUSH - PRIMACIAL PERFUME FLORAL</p>
+            <p class="line"><span class="label">🏪 Loja:</span> Shopee</p>
+            <p class="line price">💵 R$ 80,00 <span class="old-price">R$ 164,00</span></p>
+            <div class="badge">🏷️ 51% OFF</div>
+            <p class="line rating">⭐ Avaliação: 4,9/5</p>
+            <p class="line"><span class="label">🎟️ Resgate o cupom desta página:</span><br><a href="https://s.shopee.com.br/4AxtmHq4If">https://s.shopee.com.br/4AxtmHq4If</a></p>
+            <p class="line"><span class="label">✅ Link do produto:</span><br><a href="https://s.shopee.com.br/3B5L82nkKp">https://s.shopee.com.br/3B5L82nkKp</a></p>
+            <p class="ad">(anúncio)</p>
+          </div>
+        </article>
+      </section>
+
+    </div>
+  </div>
+</body>
+</html>

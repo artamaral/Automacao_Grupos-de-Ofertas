@@ -1,599 +1,247 @@
 # Workflow n8n implementavel
 
-Este documento descreve uma versao implementavel do workflow no `n8n`, com
-nomes sugeridos de nos, tipos de nos, comandos e contratos de entrada e saida.
+Este documento descreve a versao implementavel das duas trilhas de `n8n`:
 
-Ele complementa:
+- `self-hosted/local`
+- `hosted/cloud` por HTTP
 
-- [`docs/n8n-workflow.md`](n8n-workflow.md)
-- [`docs/runbook-n8n.md`](runbook-n8n.md)
+A trilha atual continua sendo a local. A trilha cloud foi criada em paralelo para
+nao precisarmos redesenhar o fluxo quando quisermos operar tudo de forma
+autonoma.
 
-Um esqueleto inicial em JSON para montagem no `n8n` esta em
-[`n8n/workflows/ofertas-rodada-skeleton.json`](../n8n/workflows/ofertas-rodada-skeleton.json).
+Arquivos centrais:
 
-Alvo atual do arquivo:
+- [`n8n/workflows/ofertas-rodada-self-hosted-skeleton.json`](../n8n/workflows/ofertas-rodada-self-hosted-skeleton.json)
+- [`n8n/workflows/ofertas-rodada-skeleton.json`](../n8n/workflows/ofertas-rodada-skeleton.json)
+- [`docs/n8n-cloud-runner.md`](n8n-cloud-runner.md)
 
-- formato de workflow unico para importacao no `n8n` 1.x
+## Regra operacional
 
-Nesta etapa, o objetivo e deixar o arquivo o mais proximo possivel do layout de
-export/import de uma instancia moderna do `n8n`, preservando placeholders onde
-credenciais, notificacoes e persistencia ainda dependem da implantacao real.
+O contrato default e automatico.
 
-## Premissas
+Isso significa:
 
-- o `n8n` roda no mesmo ambiente onde os scripts operacionais estao
-  disponiveis;
-- o projeto esta disponivel em `<n8n-root>/app/Automacao_Grupos-de-Ofertas`;
-- os catalogos ativos estao em `<n8n-root>/catalogs/<profile>/`;
-- os artefatos da rodada ficam em `<n8n-root>/data/<profile>/`;
-- a fase continua em `dry-run`.
+- `review_queue.json` nao bloqueia mais o fluxo;
+- `prepare` ja deixa a fila tecnicamente pronta;
+- `finalize` nao depende de aprovacao humana;
+- qualquer etapa manual futura fica fora do contrato minimo.
 
-## Variaveis base do workflow
+## 1. Trilha self-hosted/local
 
-Configure estes valores no inicio do fluxo:
+Quando usar:
 
-```text
-root_dir = <n8n-root>
-app_dir = <n8n-root>/app/Automacao_Grupos-de-Ofertas
-catalogs_dir = <n8n-root>/catalogs
-data_dir = <n8n-root>/data
-```
+- `n8n` no mesmo host do projeto
+- nodes de comando disponiveis
+- acesso ao filesystem local
 
-Campos por execucao:
+Passos:
 
-```text
-profiles_csv
-profiles_file
-run_id
-requested_by
-notes
-profile_catalog
-profile_data_dir
-```
+1. validar catalogo local
+2. executar `prepare`
+3. validar artefatos de `prepare`
+4. executar `finalize`
+5. validar artefatos finais
+6. consolidar resumo
 
-## Trigger recomendado
+Essa trilha continua suportada pelo workflow:
 
-### No 01 - Trigger Rodada
+- [`n8n/workflows/ofertas-rodada-self-hosted-skeleton.json`](../n8n/workflows/ofertas-rodada-self-hosted-skeleton.json)
+
+## 2. Trilha hosted/cloud por HTTP
+
+Quando usar:
+
+- `n8n` hospedado
+- ausencia de `Execute Command`
+- necessidade de automacao de ponta a ponta
+
+### Nos do skeleton hospedado
+
+#### No 01 - Trigger Rodada
 
 Tipo:
 
 - `Manual Trigger` no inicio
 - depois pode virar `Cron` ou `Webhook`
 
-Payload minimo:
+Payload base:
 
 ```json
 {
   "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
   "run_id": "2026-06-28-janela-01",
   "requested_by": "arthur",
-  "notes": "rodada manual"
+  "notes": "rodada dry-run",
+  "runner_base_url": "https://SEU-RUNNER-HTTP"
 }
 ```
 
-Exemplo versionado:
+#### No 02 - Set Contexto Base
 
-- [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
+Campos criados:
 
-## Nos de contexto e validacao
+- `profiles_csv`
+- `run_id`
+- `requested_by`
+- `notes`
+- `runner_base_url`
+- `root_dir`
+- `app_dir`
 
-### No 02 - Set Contexto Base
+#### No 03 - Validar Contexto
 
 Tipo:
+
+- `Code`
+
+Valida:
+
+- `runner_base_url` presente
+- `profiles_csv` nao vazio
+- profiles dentro do contrato
+
+#### No 04 - Health Runner
+
+Tipo:
+
+- `HTTP Request`
+
+Chamada:
+
+```http
+GET {{runner_base_url}}/health
+```
+
+Objetivo:
+
+- confirmar que o runner HTTP esta de pe antes da rodada
+
+#### No 05 - Prepare Window
+
+Tipo:
+
+- `HTTP Request`
+
+Chamada:
+
+```http
+POST {{runner_base_url}}/prepare-window
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
+}
+```
+
+Objetivo:
+
+- disparar `prepare` para todos os perfis da janela
+
+#### No 06 - Finalizar Window
+
+Tipo:
+
+- `HTTP Request`
+
+Chamada:
+
+```http
+POST {{runner_base_url}}/finalize-window
+Content-Type: application/json
+```
+
+Body igual ao `prepare`.
+
+Objetivo:
+
+- disparar o `finalize` automatico da janela
+
+#### No 07 - Montar Resumo da Rodada
+
+Tipo:
+
+- `Code`
+
+Saida esperada:
+
+- `run_id`
+- `profiles_csv`
+- `runner_base_url`
+- `prepare_summary_path`
+- `finalize_summary_path`
+- `prepare_profiles`
+- `finalize_profiles`
+
+#### Nos 08 e 09
+
+Tipos:
 
 - `Set`
 
-Campos a criar:
+Estado atual:
 
-```json
-{
-  "profiles_csv": "={{ $json.profiles_csv || 'feminino,mae-e-bebe,auto-e-moto' }}",
-  "run_id": "={{ $json.run_id }}",
-  "requested_by": "={{ $json.requested_by || 'n8n' }}",
-  "notes": "={{ $json.notes || '' }}",
-  "root_dir": "<n8n-root>",
-  "app_dir": "<n8n-root>/app/Automacao_Grupos-de-Ofertas",
-  "catalogs_dir": "<n8n-root>/catalogs",
-  "data_dir": "<n8n-root>/data"
-}
-```
+- placeholders para persistencia e notificacao reais
 
-Saida esperada:
+## 3. Cloud runner do projeto
 
-- um item com todo o contexto de execucao
-
-### No 03 - Expandir Profiles
-
-Tipo:
-
-- `Code`
-
-Responsabilidade:
-
-- transformar `profiles_csv` em multiplos itens dentro do mesmo run
-
-Saida esperada:
-
-- 1 item por `profile`
-
-Alternativas aceitas no bloco operacional:
-
-- `profiles_csv`
-- arquivo texto com um `profile` por linha, consumido pelos wrappers de janela
-
-### No 04 - Validar Profile
-
-Tipo:
-
-- `Code` ou `IF`
-
-Regra:
+Entry point:
 
 ```text
-profile in ['feminino', 'mae-e-bebe', 'auto-e-moto']
+ofertas-cloud-runner
 ```
 
-Ramo verdadeiro:
+Implementacao:
 
-- segue fluxo
+- [`src/ofertas_bot/cloud_runner.py`](../src/ofertas_bot/cloud_runner.py)
+- [`src/ofertas_bot/cloud_runner_server.py`](../src/ofertas_bot/cloud_runner_server.py)
 
-Ramo falso:
+Endpoints:
 
-- item sai com erro operacional
+- `GET /health`
+- `POST /prepare-window`
+- `POST /finalize-window`
 
-## Nos de preparacao de ambiente
+Payloads versionados:
 
-### No 05 - Profile OK?
+- [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
+- [`n8n/payloads/prepare-window-runner.example.json`](../n8n/payloads/prepare-window-runner.example.json)
+- [`n8n/payloads/finalize-window-runner.example.json`](../n8n/payloads/finalize-window-runner.example.json)
 
-Tipo:
+## 4. O que permanece igual entre as duas trilhas
 
-- `IF`
+- perfis permitidos
+- score e selecao
+- copy briefs gerados
+- HTML preview gerado
+- manifesto e dispatch final
+- ausencia de validacao humana obrigatoria
 
-### No 06 - Garantir Pasta do Profile
+## 5. O que muda entre as duas trilhas
 
-Tipo:
+### Self-hosted/local
 
-- `Execute Command`
+- executa script local
+- depende de host e filesystem
+- menor distancia da implementacao atual
 
-Comando:
+### Hosted/cloud
 
-```powershell
-New-Item -ItemType Directory -Force -Path "{{$json.profile_data_dir}}" | Out-Null
-```
+- executa por HTTP
+- nao depende de node de comando no `n8n`
+- preparada para operacao autonoma futura
 
-Workdir:
+## 6. Fora do escopo desta fase
 
-- qualquer
+Ainda nao entra nesta fase:
 
-Saida esperada:
-
-- exit code `0`
-
-### No 07 - Validar Catalogo Ativo
-
-Tipo:
-
-- `Execute Command`
-
-Comando:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File "{{$json.root_dir}}\app\Automacao_Grupos-de-Ofertas\scripts\n8n\validate_catalog.ps1" -Profile "{{$json.profile}}" -RootDir "{{$json.root_dir}}"
-```
-
-Ramo de erro:
-
-- notificar operador para atualizar catalogo
-
-## Nos de prepare
-
-### No 08 - Executar Prepare
-
-Tipo:
-
-- `Execute Command`
-
-Comando:
-
-```powershell
-{{$json.prepare_command}}
-```
-
-Workdir:
-
-- `={{ $json.app_dir }}`
-
-Capturar:
-
-- stdout
-- stderr
-- exit code
-
-Observacao:
-
-- para operacao de janela multi-profile, tambem existem wrappers dedicados:
-  - [`scripts/n8n/invoke_prepare_window.ps1`](../scripts/n8n/invoke_prepare_window.ps1)
-  - [`scripts/n8n/invoke_finalize_window.ps1`](../scripts/n8n/invoke_finalize_window.ps1)
-
-### No 09 - Validar Artefatos Prepare
-
-Tipo:
-
-- `Execute Command`
-
-Comando:
-
-```powershell
-$base = "{{$json.profile_data_dir}}"
-$required = @(
-  "offers.json",
-  "selection_state.json",
-  "copy_briefs.json",
-  "messages_preview.html",
-  "review_queue.json"
-)
-$missing = @()
-foreach ($name in $required) {
-  $path = Join-Path $base $name
-  if (!(Test-Path $path)) { $missing += $name }
-}
-if ($missing.Count -gt 0) {
-  Write-Error ("MISSING=" + ($missing -join ","))
-  exit 1
-}
-Write-Output "PREPARE_OUTPUTS_OK"
-```
-
-Se falhar:
-
-- parar rodada
-- registrar erro `prepare_outputs_missing`
-
-## Nos de revisao
-
-### No 10 - Carregar Review Queue
-
-Tipo:
-
-- `Read File`
-- ou `Execute Command` lendo JSON
-
-Arquivo:
-
-```text
-{{$json.profile_data_dir}}/review_queue.json
-```
-
-Saida:
-
-- conteudo da fila em JSON
-
-### No 11 - Publicar Pendencia de Revisao
-
-Tipo:
-
-- `Email`, `Slack`, `WhatsApp`, `Telegram` ou `Set`
-
-Mensagem minima:
-
-```text
-Rodada {{$json.run_id}} do profile {{$json.profile}} aguardando revisao.
-Fila: {{$json.profile_data_dir}}/review_queue.json
-```
-
-Saida esperada:
-
-```json
-{
-  "review_status": "awaiting_human_review"
-}
-```
-
-### No 12 - Wait Review
-
-Tipo:
-
-- `Wait`
-
-Modo sugerido:
-
-- pausar e retomar manualmente
-- ou retomar via `Webhook`
-
-## Nos de validacao da revisao
-
-### No 13 - Validar Queue Resolvida
-
-Tipo:
-
-- `Execute Command`
-
-Comando:
-
-```powershell
-$path = "{{$json.profile_data_dir}}\\review_queue.json"
-$items = Get-Content $path -Raw | ConvertFrom-Json
-$pending = @($items | Where-Object { $_.status -eq "pending" }).Count
-Write-Output "PENDING_COUNT=$pending"
-if ($pending -gt 0) { exit 2 }
-```
-
-Tratamento:
-
-- `exit 0`: seguir
-- `exit 2`: voltar para espera ou encerrar com `review_incomplete`
-- `exit 1`: erro de leitura ou formato
-
-## Nos de finalize
-
-### No 15 - Executar Finalize
-
-Tipo:
-
-- `Execute Command`
-
-Comando:
-
-```powershell
-{{$json.finalize_command}}
-```
-
-Workdir:
-
-- `={{ $json.app_dir }}`
-
-Capturar:
-
-- stdout
-- stderr
-- exit code
-
-### No 16 - Validar Artefatos Finalize
-
-Tipo:
-
-- `Execute Command`
-
-Comando:
-
-```powershell
-$base = "{{$json.profile_data_dir}}"
-$required = @(
-  "approved_messages.json",
-  "publication_manifest.json",
-  "dispatch_artifact.json",
-  "dispatch_report.json"
-)
-$missing = @()
-foreach ($name in $required) {
-  $path = Join-Path $base $name
-  if (!(Test-Path $path)) { $missing += $name }
-}
-if ($missing.Count -gt 0) {
-  Write-Error ("MISSING=" + ($missing -join ","))
-  exit 1
-}
-Write-Output "FINALIZE_OUTPUTS_OK"
-```
-
-## Nos de leitura e resumo final
-
-### No 17 - Ler Dispatch Artifact
-
-Tipo:
-
-- `Read File`
-
-Arquivo:
-
-```text
-{{$json.profile_data_dir}}/dispatch_artifact.json
-```
-
-Saida:
-
-- objeto JSON do dispatch
-
-### No 18 - Ler Dispatch Report
-
-Tipo:
-
-- `Read File`
-
-Arquivo:
-
-```text
-{{$json.profile_data_dir}}/dispatch_report.json
-```
-
-Saida:
-
-- objeto JSON do relatorio
-
-### No 19 - Montar Resumo do Profile
-
-Tipo:
-
-- `Execute Command`
-
-Responsabilidade:
-
-- ler `dispatch_artifact` e `dispatch_report` do profile
-- emitir resumo operacional do profile
-
-Exemplo de saida:
-
-```json
-{
-  "status": "ok",
-  "profile": "feminino",
-  "run_id": "2026-06-28-janela-01",
-  "dispatch_artifact_path": "<n8n-root>/data/feminino/dispatch_artifact.json",
-  "dispatch_report_path": "<n8n-root>/data/feminino/dispatch_report.json",
-  "total_targets": 2,
-  "total_available_messages": 6,
-  "total_selected_messages": 6,
-  "total_blocked_targets": 0,
-  "mode": "dry-run"
-}
-```
-
-## Nos de persistencia e notificacao
-
-### No 20 - Consolidar Resumo da Janela
-
-Tipo:
-
-- `Code`
-
-Responsabilidade:
-
-- juntar todos os resumos por `profile`
-- produzir o resumo unico da execucao
-
-### No 21 - Persistir Log da Rodada
-
-Tipo:
-
-- `Write File`
-- `Database`
-- `Google Sheets`
-- `Notion`
-
-Payload recomendado:
-
-- `profile`
-- `run_id`
-- `status`
-- `mode`
-- `total_targets`
-- `total_selected_messages`
-- `total_blocked_targets`
-- `requested_by`
-
-### No 22 - Notificar Conclusao
-
-Tipo:
-
-- `Email`
-- `Slack`
-- `WhatsApp`
-- `Telegram`
-
-Mensagem sugerida:
-
-```text
-Rodada {{$json.run_id}} do profile {{$json.profile}} concluida em dry-run.
-Mensagens selecionadas: {{$json.total_selected_messages}}
-Destinos: {{$json.total_targets}}
-Bloqueios: {{$json.total_blocked_targets}}
-```
-
-## Branches de erro implementaveis
-
-## Branch A - Catalogo ausente
-
-Origem:
-
-- no `Validar Catalogo Ativo`
-
-Acao:
-
-1. gravar erro estruturado
-2. notificar operador
-3. encerrar workflow
-
-Payload sugerido:
-
-```json
-{
-  "status": "error",
-  "error_code": "catalog_missing",
-  "profile": "feminino"
-}
-```
-
-## Branch B - Prepare falhou
-
-Origem:
-
-- no `Executar Prepare`
-
-Acao:
-
-1. capturar stderr
-2. registrar erro
-3. notificar operador
-4. encerrar workflow
-
-## Branch C - Revisao incompleta
-
-Origem:
-
-- no `Validar Queue Resolvida`
-
-Acao:
-
-1. marcar `review_incomplete`
-2. voltar para espera
-3. ou encerrar com status de pendencia
-
-## Branch D - Finalize falhou
-
-Origem:
-
-- no `Executar Finalize`
-
-Acao:
-
-1. capturar stderr
-2. registrar erro
-3. notificar operador
-4. encerrar workflow
-
-## Mapa resumido dos nos
-
-```text
-01 Trigger Rodada
-02 Set Contexto Base
-03 Expandir Profiles
-04 Validar Profile
-05 Profile OK?
-06 Garantir Pasta do Profile
-07 Validar Catalogo Ativo
-08 Executar Prepare
-09 Validar Artefatos Prepare
-10 Carregar Review Queue
-11 Publicar Pendencia de Revisao
-12 Wait Review
-13 Validar Queue Resolvida
-14 Montar Comando Finalize
-15 Executar Finalize
-16 Validar Artefatos Finalize
-17 Ler Dispatch Artifact
-18 Ler Dispatch Report
-19 Montar Resumo do Profile
-20 Consolidar Resumo da Janela
-21 Persistir Log da Rodada
-22 Notificar Conclusao
-```
-
-## Ordem de implantacao recomendada
-
-1. montar nos `01` a `09`
-2. validar `prepare` para `feminino`
-3. montar nos `10` a `13`
-4. validar pausa e retomada de revisao
-5. montar nos `14` a `21`
-6. validar `finalize`
-7. repetir com `mae-e-bebe`
-8. repetir com `auto-e-moto`
-
-## Fora do escopo desta versao
-
-Ainda nao entra nesta versao:
-
-- envio real por `WhatsApp`
-- sessao autenticada
-- webhook de entrega real
-- `ENABLE_REAL_PUBLISH=true`
+- envio real por WhatsApp
+- credenciais reais no `n8n`
+- storage realmente cloud-native
+- persistencia final de logs e notificacoes reais

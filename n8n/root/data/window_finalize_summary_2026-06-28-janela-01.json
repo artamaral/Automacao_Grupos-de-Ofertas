@@ -1,0 +1,28 @@
+﻿{
+    "stage":  "finalize",
+    "run_id":  "2026-06-28-janela-01",
+    "profiles":  [
+                     {
+                         "profile":  "feminino",
+                         "data_dir":  "n8n\\root\\data\\feminino",
+                         "dispatch_report":  "n8n\\root\\data\\feminino\\dispatch_report.json",
+                         "dispatch_artifact":  "n8n\\root\\data\\feminino\\dispatch_artifact.json",
+                         "status":  "ok"
+                     },
+                     {
+                         "profile":  "mae-e-bebe",
+                         "data_dir":  "n8n\\root\\data\\mae-e-bebe",
+                         "dispatch_report":  "n8n\\root\\data\\mae-e-bebe\\dispatch_report.json",
+                         "dispatch_artifact":  "n8n\\root\\data\\mae-e-bebe\\dispatch_artifact.json",
+                         "status":  "ok"
+                     },
+                     {
+                         "profile":  "auto-e-moto",
+                         "data_dir":  "n8n\\root\\data\\auto-e-moto",
+                         "dispatch_report":  "n8n\\root\\data\\auto-e-moto\\dispatch_report.json",
+                         "dispatch_artifact":  "n8n\\root\\data\\auto-e-moto\\dispatch_artifact.json",
+                         "status":  "ok"
+                     }
+                 ],
+    "total_profiles":  3
+}

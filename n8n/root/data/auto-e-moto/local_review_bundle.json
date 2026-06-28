@@ -1,0 +1,70 @@
+{
+  "created_at": "2026-06-28T11:32:35+00:00",
+  "files": {
+    "queue": {
+      "path": "n8n\\root\\data\\auto-e-moto\\review_queue.json",
+      "size_bytes": 137979,
+      "sha256": "ab5ed73112e74c2d06eaca206e739703e970ff08085169ca54d09c88e119376f",
+      "items": 80,
+      "status_counts": {
+        "approved": 80
+      }
+    },
+    "approved_messages": {
+      "path": "n8n\\root\\data\\auto-e-moto\\approved_messages.json",
+      "size_bytes": 91459,
+      "sha256": "42f055279fdfa0004662ea75ac3d5b4294e8a12ca61bfd122c4e5f74b6e35194",
+      "items": 80,
+      "status_counts": {
+        "unknown": 80
+      }
+    },
+    "manifest": {
+      "path": "n8n\\root\\data\\auto-e-moto\\publication_manifest.json",
+      "size_bytes": 120179,
+      "sha256": "6cb4c5717a7b0f483a8c2313c2786b2d2b65d552473ce688bdc364e8b46f14e7",
+      "items": 80,
+      "status_counts": {
+        "ready": 80
+      }
+    },
+    "dispatch_artifact": {
+      "path": "n8n\\root\\data\\auto-e-moto\\dispatch_artifact.json",
+      "size_bytes": 36947,
+      "sha256": "845c557a1f0088ddd5e335a03845f7b455a362dd8e47ed96b8faff4cf5d5da78",
+      "keys": [
+        "generated_at",
+        "summary",
+        "targets",
+        "timezone"
+      ]
+    },
+    "dispatch_report": {
+      "path": "n8n\\root\\data\\auto-e-moto\\dispatch_report.json",
+      "size_bytes": 20079,
+      "sha256": "b6419af1fbae45a89d496e9ba888633727f84288f8811fbbf88bc9d42b545a3b",
+      "keys": [
+        "adapter_kind",
+        "generated_at",
+        "mode",
+        "source_generated_at",
+        "source_timezone",
+        "summary",
+        "targets"
+      ]
+    }
+  },
+  "checks": {
+    "queue_pending": 0,
+    "approved_messages": 80,
+    "manifest_items": 80,
+    "manifest_ready": 80,
+    "dispatch_targets": 4,
+    "dispatch_available_messages": 80,
+    "dispatch_selected_messages": 16,
+    "dispatch_report_messages": 16,
+    "dispatch_report_selected_messages": 16
+  },
+  "valid": true,
+  "issues": []
+}

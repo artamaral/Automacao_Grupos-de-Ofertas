@@ -8,6 +8,8 @@ from ofertas_bot.storage.json_message_review_queue_store import (
     MessageReviewQueueUpdateError,
     MessageReviewRouting,
     approve_review_queue_item,
+    auto_approve_review_queue_items,
+    create_approved_review_queue,
     approved_review_drafts,
     create_pending_review_queue,
     reject_review_queue_item,
@@ -131,6 +133,27 @@ def test_create_pending_review_queue_expands_multiple_destinations() -> None:
     assert items[1].routing.max_messages_per_hour == 3
     assert items[1].routing.min_interval_seconds == 60
     assert items[1].routing.quiet_periods == ("23:00-07:00",)
+
+
+def test_create_approved_review_queue_sets_items_as_approved() -> None:
+    draft = make_draft()
+
+    items = create_approved_review_queue((draft,))
+
+    assert items
+    assert all(item.status == "approved" for item in items)
+
+
+def test_auto_approve_review_queue_items_marks_every_item_as_approved() -> None:
+    items = (
+        MessageReviewQueueItem(draft=make_draft("Pendente"), status="pending"),
+        MessageReviewQueueItem(draft=make_draft("Rejeitado"), status="rejected"),
+    )
+
+    normalized = auto_approve_review_queue_items(items)
+
+    assert [item.status for item in normalized] == ["approved", "approved"]
+    assert all(item.reviewer == "system" for item in normalized)
 
 
 def test_json_message_review_queue_store_saves_and_loads_items(tmp_path) -> None:

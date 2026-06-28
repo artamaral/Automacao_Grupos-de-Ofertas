@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "generated_at": "2026-06-28T11:23:51+00:00",
+    "profile_slug": "mae-e-bebe",
+    "subgroup_slug": null,
+    "niche": "mae e bebe",
+    "marketplace": "shopee",
+    "target": "grupo-mae-e-bebe",
+    "offers_path": "n8n\\root\\data\\mae-e-bebe\\offers.json",
+    "review_queue_path": "n8n\\root\\data\\mae-e-bebe\\review_queue.json"
+  },
+  "summary": {
+    "total_groups": 2,
+    "allowed_groups": 2,
+    "blocked_groups": 0,
+    "total_offers_collected": 17271,
+    "total_selected_offers": 8,
+    "total_review_queue_items": 80,
+    "total_routed_queue_items": 80,
+    "total_unrouted_queue_items": 0
+  },
+  "review_queue": {
+    "total": 80,
+    "pending": 80,
+    "approved": 0,
+    "rejected": 0,
+    "routed": 80,
+    "unrouted": 0
+  },
+  "groups": [
+    {
+      "group_slug": "mae-e-bebe-ofertas",
+      "group_name": "Mae e Bebe Ofertas",
+      "destination_ref": "grupo-mae-e-bebe",
+      "destination_kind": "group",
+      "message_tone": "acolhedor",
+      "allowed": true,
+      "selected_offer_count": 3,
+      "selected_offers": [
+        {
+          "title": "Carrinho Passeio Moisés 0-15 Kg Candy Titanium Litet BB185A",
+          "url": "https://s.shopee.com.br/4AxsEWqazV",
+          "price": 4039.0,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Carrinho Passeio Infantil Moisés Candy X Litet Preto BB294TS",
+          "url": "https://s.shopee.com.br/7prAbGcdYR",
+          "price": 4039.0,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Carrinho com Bebê Conforto  Travel System Eva³ Trio 0 a 15 Kg Essential Black Champagne - Maxi-Cosi",
+          "url": "https://s.shopee.com.br/20tNg5Kxtc",
+          "price": 4001.7,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        }
+      ],
+      "review_queue_items": 40,
+      "reasons": [],
+      "next_available_at": null
+    },
+    {
+      "group_slug": "achadinhos-geral-ofertas",
+      "group_name": "Achadinhos Geral",
+      "destination_ref": "grupo-achadinhos-geral",
+      "destination_kind": "group",
+      "message_tone": "leve",
+      "allowed": true,
+      "selected_offer_count": 5,
+      "selected_offers": [
+        {
+          "title": "Carrinho Passeio Moisés 0-15 Kg Candy Titanium Litet BB185A",
+          "url": "https://s.shopee.com.br/4AxsEWqazV",
+          "price": 4039.0,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Carrinho Passeio Infantil Moisés Candy X Litet Preto BB294TS",
+          "url": "https://s.shopee.com.br/7prAbGcdYR",
+          "price": 4039.0,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Carrinho com Bebê Conforto  Travel System Eva³ Trio 0 a 15 Kg Essential Black Champagne - Maxi-Cosi",
+          "url": "https://s.shopee.com.br/20tNg5Kxtc",
+          "price": 4001.7,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Kit Carrinho Bebê Gb Pockit+ All-city Night Blue Com Bolsa",
+          "url": "https://s.shopee.com.br/8KnRC9ooEa",
+          "price": 2299.0,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        },
+        {
+          "title": "Combo Completo Brinquedoteca Grande Madeira Infantil Faz de Conta Pedagógico Montessori Kit Livro",
+          "url": "https://s.shopee.com.br/1Vx76E1ZPf",
+          "price": 3409.56,
+          "old_price": null,
+          "niche": "mae e bebe",
+          "marketplace": "shopee"
+        }
+      ],
+      "review_queue_items": 40,
+      "reasons": [],
+      "next_available_at": null
+    }
+  ]
+}

@@ -50,7 +50,7 @@ from ofertas_bot.storage.json_message_draft_store import (
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
     MessageReviewQueueStoreWriteError,
-    create_pending_review_queue,
+    create_approved_review_queue,
 )
 from ofertas_bot.storage.json_offer_store import (
     JsonOfferStore,
@@ -550,7 +550,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             _print_save_json_root_warning(save_path)
         try:
             JsonMessageReviewQueueStore(path=save_path).save(
-                create_pending_review_queue(approved_drafts_tuple)
+                create_approved_review_queue(approved_drafts_tuple)
             )
         except MessageReviewQueueStoreWriteError as error:
             return _print_save_review_queue_json_error(error=error)

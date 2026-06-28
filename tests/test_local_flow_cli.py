@@ -88,6 +88,31 @@ def test_local_flow_prepare_uses_default_paths(tmp_path, monkeypatch, capsys) ->
     assert "Etapa prepare concluída" in output
 
 
+def test_local_flow_finalize_auto_approves_queue_before_export(tmp_path, monkeypatch) -> None:
+    _seed_prepare_outputs(tmp_path)
+    statuses_seen: list[str] = []
+
+    def fake_export_run(argv: list[str]) -> int:
+        assert argv
+        items = JsonMessageReviewQueueStore(path=tmp_path / "review_queue.json").load()
+        statuses_seen.extend(item.status for item in items)
+        return 3
+
+    monkeypatch.setattr(local_flow_cli.review_queue_export_cli, "run", fake_export_run)
+
+    exit_code = local_flow_cli.run(
+        [
+            "--stage",
+            "finalize",
+            "--data-dir",
+            str(tmp_path),
+        ]
+    )
+
+    assert exit_code == 3
+    assert statuses_seen == ["approved"]
+
+
 def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     order: list[str] = []
     manifest_calls: list[list[str]] = []

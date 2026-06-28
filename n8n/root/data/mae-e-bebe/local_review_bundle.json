@@ -1,0 +1,70 @@
+{
+  "created_at": "2026-06-28T11:32:34+00:00",
+  "files": {
+    "queue": {
+      "path": "n8n\\root\\data\\mae-e-bebe\\review_queue.json",
+      "size_bytes": 137695,
+      "sha256": "4e37db83840cf91ae0c49e7d58c91b0799bbe920bccaed27b96cd3848fb31015",
+      "items": 80,
+      "status_counts": {
+        "approved": 80
+      }
+    },
+    "approved_messages": {
+      "path": "n8n\\root\\data\\mae-e-bebe\\approved_messages.json",
+      "size_bytes": 91215,
+      "sha256": "e1c5f634bd6d7ddfacb5bb34c014d778e89a5797e933aa3584d7aaf89e55d604",
+      "items": 80,
+      "status_counts": {
+        "unknown": 80
+      }
+    },
+    "manifest": {
+      "path": "n8n\\root\\data\\mae-e-bebe\\publication_manifest.json",
+      "size_bytes": 119895,
+      "sha256": "659374a44e657ca52c8cb78419c786425bc705eaa719575f1376427472e98e2f",
+      "items": 80,
+      "status_counts": {
+        "ready": 80
+      }
+    },
+    "dispatch_artifact": {
+      "path": "n8n\\root\\data\\mae-e-bebe\\dispatch_artifact.json",
+      "size_bytes": 37735,
+      "sha256": "f7efb7cc0184f9a161d820e8ae204053428818bb1784cf843f5962f2005d470e",
+      "keys": [
+        "generated_at",
+        "summary",
+        "targets",
+        "timezone"
+      ]
+    },
+    "dispatch_report": {
+      "path": "n8n\\root\\data\\mae-e-bebe\\dispatch_report.json",
+      "size_bytes": 20459,
+      "sha256": "c69b772351f2b73bcf64907dc97d07003d71c9db59e0f0f1cf37071cf62e4b90",
+      "keys": [
+        "adapter_kind",
+        "generated_at",
+        "mode",
+        "source_generated_at",
+        "source_timezone",
+        "summary",
+        "targets"
+      ]
+    }
+  },
+  "checks": {
+    "queue_pending": 0,
+    "approved_messages": 80,
+    "manifest_items": 80,
+    "manifest_ready": 80,
+    "dispatch_targets": 4,
+    "dispatch_available_messages": 80,
+    "dispatch_selected_messages": 16,
+    "dispatch_report_messages": 16,
+    "dispatch_report_selected_messages": 16
+  },
+  "valid": true,
+  "issues": []
+}

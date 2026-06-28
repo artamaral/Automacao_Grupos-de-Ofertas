@@ -1,0 +1,415 @@
+{
+  "generated_at": "2026-06-28T11:32:34+00:00",
+  "mode": "dry-run",
+  "source_generated_at": "2026-06-28T08:32:34-03:00",
+  "source_timezone": "America/Sao_Paulo",
+  "adapter_kind": "mixed",
+  "summary": {
+    "total_targets": 4,
+    "total_available_messages": 80,
+    "total_messages": 16,
+    "total_selected_messages": 16,
+    "total_skipped_messages": 64,
+    "total_sent": 0,
+    "total_dry_run": 16,
+    "total_blocked_targets": 0
+  },
+  "targets": [
+    {
+      "target": "canal-achadinhos-geral",
+      "status": "simulated",
+      "adapter_kind": "telegram",
+      "available_message_count": 20,
+      "selected_message_count": 5,
+      "skipped_message_count": 15,
+      "max_messages_per_run": 5,
+      "max_messages_per_hour": 12,
+      "min_interval_seconds": 60,
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "message_count": 5,
+      "sent_messages": 0,
+      "dry_run_messages": 5,
+      "messages": [
+        {
+          "manifest_item_number": 4,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-achadinhos-geral",
+          "text": "🔥 Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa\n\n🏪 Loja: Shopee\n\n💵 R$ 33,22\n\n🏷️ 45% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UfKeiK\n\n(anúncio)\n",
+          "offer": {
+            "title": "Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UfKeiK",
+            "price": 33.22
+          }
+        },
+        {
+          "manifest_item_number": 8,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 60,
+          "planned_at": "2026-06-28T08:33:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-achadinhos-geral",
+          "text": "🔥 Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos\n\n🏪 Loja: Shopee\n\n💵 R$ 189,80\n\n🏷️ 47% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UaCuhf\n\n(anúncio)\n",
+          "offer": {
+            "title": "Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UaCuhf",
+            "price": 189.8
+          }
+        },
+        {
+          "manifest_item_number": 12,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 120,
+          "planned_at": "2026-06-28T08:34:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-achadinhos-geral",
+          "text": "🔥 kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens\n\n🏪 Loja: Shopee\n\n💵 R$ 49,90\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/40eS4rzqYs\n\n(anúncio)\n",
+          "offer": {
+            "title": "kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/40eS4rzqYs",
+            "price": 49.9
+          }
+        },
+        {
+          "manifest_item_number": 16,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 180,
+          "planned_at": "2026-06-28T08:35:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-achadinhos-geral",
+          "text": "🔥 Body bebê Time Para mesversario\n\n🏪 Loja: Shopee\n\n💵 R$ 21,90\n\n🏷️ 45% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/W4ZuRhtsG\n\n(anúncio)\n",
+          "offer": {
+            "title": "Body bebê Time Para mesversario",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/W4ZuRhtsG",
+            "price": 21.9
+          }
+        },
+        {
+          "manifest_item_number": 20,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 240,
+          "planned_at": "2026-06-28T08:36:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-achadinhos-geral",
+          "text": "🔥 INOVA câmera wifi visão noturna full HD 360º microfone áudio babá eletrônica robozinho sem fio\n\n🏪 Loja: Shopee\n\n💵 R$ 159,99\n\n🏷️ 75% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKGh62ZB7\n\n(anúncio)\n",
+          "offer": {
+            "title": "INOVA câmera wifi visão noturna full HD 360º microfone áudio babá eletrônica robozinho sem fio",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/1BKGh62ZB7",
+            "price": 159.99
+          }
+        }
+      ]
+    },
+    {
+      "target": "canal-mae-e-bebe",
+      "status": "simulated",
+      "adapter_kind": "telegram",
+      "available_message_count": 20,
+      "selected_message_count": 3,
+      "skipped_message_count": 17,
+      "max_messages_per_run": 3,
+      "max_messages_per_hour": 8,
+      "min_interval_seconds": 60,
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "message_count": 3,
+      "sent_messages": 0,
+      "dry_run_messages": 3,
+      "messages": [
+        {
+          "manifest_item_number": 2,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-mae-e-bebe",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-mae-e-bebe",
+          "text": "🔥 Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa\n\n🏪 Loja: Shopee\n\n💵 R$ 33,22\n\n🏷️ 45% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UfKeiK\n\n(anúncio)\n",
+          "offer": {
+            "title": "Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UfKeiK",
+            "price": 33.22
+          }
+        },
+        {
+          "manifest_item_number": 6,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 60,
+          "planned_at": "2026-06-28T08:33:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-mae-e-bebe",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-mae-e-bebe",
+          "text": "🔥 Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos\n\n🏪 Loja: Shopee\n\n💵 R$ 189,80\n\n🏷️ 47% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UaCuhf\n\n(anúncio)\n",
+          "offer": {
+            "title": "Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UaCuhf",
+            "price": 189.8
+          }
+        },
+        {
+          "manifest_item_number": 10,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 120,
+          "planned_at": "2026-06-28T08:34:34-03:00",
+          "status": "ready",
+          "adapter_kind": "telegram",
+          "delivery_label": "telegram:canal-mae-e-bebe",
+          "sent": false,
+          "dry_run": true,
+          "target": "canal-mae-e-bebe",
+          "text": "🔥 kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens\n\n🏪 Loja: Shopee\n\n💵 R$ 49,90\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/40eS4rzqYs\n\n(anúncio)\n",
+          "offer": {
+            "title": "kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/40eS4rzqYs",
+            "price": 49.9
+          }
+        }
+      ]
+    },
+    {
+      "target": "grupo-achadinhos-geral",
+      "status": "simulated",
+      "adapter_kind": "whatsapp",
+      "available_message_count": 20,
+      "selected_message_count": 5,
+      "skipped_message_count": 15,
+      "max_messages_per_run": 5,
+      "max_messages_per_hour": 12,
+      "min_interval_seconds": 45,
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "message_count": 5,
+      "sent_messages": 0,
+      "dry_run_messages": 5,
+      "messages": [
+        {
+          "manifest_item_number": 3,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:34-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-achadinhos-geral",
+          "text": "🔥 Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa\n\n🏪 Loja: Shopee\n\n💵 R$ 33,22\n\n🏷️ 45% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UfKeiK\n\n(anúncio)\n",
+          "offer": {
+            "title": "Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UfKeiK",
+            "price": 33.22
+          }
+        },
+        {
+          "manifest_item_number": 7,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 45,
+          "planned_at": "2026-06-28T08:33:19-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-achadinhos-geral",
+          "text": "🔥 Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos\n\n🏪 Loja: Shopee\n\n💵 R$ 189,80\n\n🏷️ 47% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UaCuhf\n\n(anúncio)\n",
+          "offer": {
+            "title": "Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UaCuhf",
+            "price": 189.8
+          }
+        },
+        {
+          "manifest_item_number": 11,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 90,
+          "planned_at": "2026-06-28T08:34:04-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-achadinhos-geral",
+          "text": "🔥 kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens\n\n🏪 Loja: Shopee\n\n💵 R$ 49,90\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/40eS4rzqYs\n\n(anúncio)\n",
+          "offer": {
+            "title": "kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/40eS4rzqYs",
+            "price": 49.9
+          }
+        },
+        {
+          "manifest_item_number": 15,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 135,
+          "planned_at": "2026-06-28T08:34:49-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-achadinhos-geral",
+          "text": "🔥 Body bebê Time Para mesversario\n\n🏪 Loja: Shopee\n\n💵 R$ 21,90\n\n🏷️ 45% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/W4ZuRhtsG\n\n(anúncio)\n",
+          "offer": {
+            "title": "Body bebê Time Para mesversario",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/W4ZuRhtsG",
+            "price": 21.9
+          }
+        },
+        {
+          "manifest_item_number": 19,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 180,
+          "planned_at": "2026-06-28T08:35:34-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-achadinhos-geral",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-achadinhos-geral",
+          "text": "🔥 INOVA câmera wifi visão noturna full HD 360º microfone áudio babá eletrônica robozinho sem fio\n\n🏪 Loja: Shopee\n\n💵 R$ 159,99\n\n🏷️ 75% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKGh62ZB7\n\n(anúncio)\n",
+          "offer": {
+            "title": "INOVA câmera wifi visão noturna full HD 360º microfone áudio babá eletrônica robozinho sem fio",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/1BKGh62ZB7",
+            "price": 159.99
+          }
+        }
+      ]
+    },
+    {
+      "target": "grupo-mae-e-bebe",
+      "status": "simulated",
+      "adapter_kind": "whatsapp",
+      "available_message_count": 20,
+      "selected_message_count": 3,
+      "skipped_message_count": 17,
+      "max_messages_per_run": 3,
+      "max_messages_per_hour": 8,
+      "min_interval_seconds": 45,
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "message_count": 3,
+      "sent_messages": 0,
+      "dry_run_messages": 3,
+      "messages": [
+        {
+          "manifest_item_number": 1,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:34-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-mae-e-bebe",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-mae-e-bebe",
+          "text": "🔥 Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa\n\n🏪 Loja: Shopee\n\n💵 R$ 33,22\n\n🏷️ 45% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UfKeiK\n\n(anúncio)\n",
+          "offer": {
+            "title": "Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UfKeiK",
+            "price": 33.22
+          }
+        },
+        {
+          "manifest_item_number": 5,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 45,
+          "planned_at": "2026-06-28T08:33:19-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-mae-e-bebe",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-mae-e-bebe",
+          "text": "🔥 Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos\n\n🏪 Loja: Shopee\n\n💵 R$ 189,80\n\n🏷️ 47% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/2g94UaCuhf\n\n(anúncio)\n",
+          "offer": {
+            "title": "Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/2g94UaCuhf",
+            "price": 189.8
+          }
+        },
+        {
+          "manifest_item_number": 9,
+          "created_at": "2026-06-28T11:32:34+00:00",
+          "planned_offset_seconds": 90,
+          "planned_at": "2026-06-28T08:34:04-03:00",
+          "status": "ready",
+          "adapter_kind": "whatsapp",
+          "delivery_label": "whatsapp:grupo-mae-e-bebe",
+          "sent": false,
+          "dry_run": true,
+          "target": "grupo-mae-e-bebe",
+          "text": "🔥 kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens\n\n🏪 Loja: Shopee\n\n💵 R$ 49,90\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/40eS4rzqYs\n\n(anúncio)\n",
+          "offer": {
+            "title": "kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens",
+            "niche": "mae e bebe",
+            "marketplace": "shopee",
+            "url": "https://s.shopee.com.br/40eS4rzqYs",
+            "price": 49.9
+          }
+        }
+      ]
+    }
+  ]
+}

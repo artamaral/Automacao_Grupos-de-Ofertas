@@ -1,0 +1,70 @@
+{
+  "created_at": "2026-06-28T11:32:33+00:00",
+  "files": {
+    "queue": {
+      "path": "n8n\\root\\data\\feminino\\review_queue.json",
+      "size_bytes": 67213,
+      "sha256": "82e2758ff9183c894583e6b4fb25b439be93e6220ccc4d141e0c4988320e4511",
+      "items": 40,
+      "status_counts": {
+        "approved": 40
+      }
+    },
+    "approved_messages": {
+      "path": "n8n\\root\\data\\feminino\\approved_messages.json",
+      "size_bytes": 44653,
+      "sha256": "31d04bffbbb21a544682623a2ea78ab15387ed64ebd9975c8d604bfc1e63d6c6",
+      "items": 40,
+      "status_counts": {
+        "unknown": 40
+      }
+    },
+    "manifest": {
+      "path": "n8n\\root\\data\\feminino\\publication_manifest.json",
+      "size_bytes": 58733,
+      "sha256": "4dafeefcbd7ea227e2640f9ea4c181a51fee64ce6f7cf5acd20cae2b1c85a508",
+      "items": 40,
+      "status_counts": {
+        "ready": 40
+      }
+    },
+    "dispatch_artifact": {
+      "path": "n8n\\root\\data\\feminino\\dispatch_artifact.json",
+      "size_bytes": 14295,
+      "sha256": "1c68c98a88ffd32b5032358e689598fbaca2f7334755081cbf5baf71675c6b05",
+      "keys": [
+        "generated_at",
+        "summary",
+        "targets",
+        "timezone"
+      ]
+    },
+    "dispatch_report": {
+      "path": "n8n\\root\\data\\feminino\\dispatch_report.json",
+      "size_bytes": 7942,
+      "sha256": "53898adb3491899cbdedd841293b625296c9d83ed104b069f997a291b399a0eb",
+      "keys": [
+        "adapter_kind",
+        "generated_at",
+        "mode",
+        "source_generated_at",
+        "source_timezone",
+        "summary",
+        "targets"
+      ]
+    }
+  },
+  "checks": {
+    "queue_pending": 0,
+    "approved_messages": 40,
+    "manifest_items": 40,
+    "manifest_ready": 40,
+    "dispatch_targets": 2,
+    "dispatch_available_messages": 40,
+    "dispatch_selected_messages": 6,
+    "dispatch_report_messages": 6,
+    "dispatch_report_selected_messages": 6
+  },
+  "valid": true,
+  "issues": []
+}

@@ -1,8 +1,8 @@
 {
-  "name": "ofertas-rodada-multi-profile-skeleton",
+  "name": "ofertas-rodada-cloud-skeleton",
   "meta": {
     "templateCredsSetupCompleted": false,
-    "description": "Esqueleto inicial do workflow operacional de ofertas para n8n 1.x. Ajustar paths, notificacoes e persistencia antes de uso real."
+    "description": "Workflow hospedado/autonomo por HTTP. Mantem a trilha self-hosted em arquivo paralelo e usa o cloud runner para prepare/finalize sem Execute Command."
   },
   "active": false,
   "tags": [],
@@ -25,7 +25,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        220,
+        260,
         0
       ],
       "parameters": {
@@ -38,7 +38,7 @@
             },
             {
               "name": "run_id",
-              "value": "={{ $json.run_id || $now.toISO() }}"
+              "value": "={{ $json.run_id || $now.toFormat('yyyy-LL-dd') + '-janela-01' }}"
             },
             {
               "name": "requested_by",
@@ -49,28 +49,16 @@
               "value": "={{ $json.notes || '' }}"
             },
             {
+              "name": "runner_base_url",
+              "value": "={{ $json.runner_base_url || 'https://SEU-RUNNER-HTTP' }}"
+            },
+            {
               "name": "root_dir",
-              "value": "<n8n-root>"
+              "value": "={{ $json.root_dir || 'C:\\\\Automacao_Grupos-de-Ofertas\\\\n8n\\\\root' }}"
             },
             {
               "name": "app_dir",
-              "value": "<n8n-root>/app/Automacao_Grupos-de-Ofertas"
-            },
-            {
-              "name": "catalogs_dir",
-              "value": "<n8n-root>/catalogs"
-            },
-            {
-              "name": "data_dir",
-              "value": "<n8n-root>/data"
-            },
-            {
-              "name": "profile_catalog",
-              "value": ""
-            },
-            {
-              "name": "profile_data_dir",
-              "value": ""
+              "value": "={{ $json.app_dir || 'C:\\\\Automacao_Grupos-de-Ofertas' }}"
             }
           ]
         }
@@ -78,217 +66,91 @@
     },
     {
       "id": "3",
-      "name": "Expandir Profiles",
+      "name": "Validar Contexto",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        460,
+        520,
         0
       ],
       "parameters": {
         "language": "JavaScript",
-        "jsCode": "const raw = $json.profiles_csv || 'feminino,mae-e-bebe,auto-e-moto';\nconst profiles = raw.split(',').map(item => item.trim()).filter(Boolean);\nreturn profiles.map((profile) => ({\n  json: {\n    ...$json,\n    profile,\n    profile_catalog: `${$json.catalogs_dir}/${profile}/clean_catalog_rating_4_8_plus.csv`,\n    profile_data_dir: `${$json.data_dir}/${profile}`,\n  }\n}));"
+        "jsCode": "const rawProfiles = $json.profiles_csv || '';\nconst profiles = rawProfiles.split(',').map(item => item.trim()).filter(Boolean);\nconst allowed = new Set(['feminino', 'mae-e-bebe', 'auto-e-moto']);\nif (!($json.runner_base_url || '').trim()) {\n  throw new Error('runner_base_url obrigatorio para o workflow hospedado');\n}\nif (profiles.length === 0) {\n  throw new Error('profiles_csv vazio');\n}\nfor (const profile of profiles) {\n  if (!allowed.has(profile)) {\n    throw new Error(`profile fora do contrato operacional: ${profile}`);\n  }\n}\nreturn [{ json: { ...$json, profiles: profiles, total_profiles: profiles.length } }];"
       }
     },
     {
       "id": "4",
-      "name": "Validar Profile",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "name": "Health Runner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        700,
+        800,
         0
       ],
       "parameters": {
-        "language": "JavaScript",
-        "jsCode": "const allowed = new Set(['feminino', 'mae-e-bebe', 'auto-e-moto']);\nconst profile = $json.profile;\nif (!allowed.has(profile)) {\n  return [{ json: { ...$json, status: 'error', error_code: 'invalid_profile', message: 'profile fora do contrato operacional' } }];\n}\nreturn [{ json: { ...$json, status: 'ok' } }];"
+        "method": "GET",
+        "url": "={{ $json.runner_base_url + '/health' }}",
+        "options": {}
       }
     },
     {
       "id": "5",
-      "name": "Profile OK?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "name": "Prepare Window",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        940,
+        1080,
         0
       ],
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.status }}",
-              "operation": "equal",
-              "value2": "ok"
-            }
-          ]
-        }
+        "method": "POST",
+        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/prepare-window' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir\n}",
+        "options": {}
       }
     },
     {
       "id": "6",
-      "name": "Garantir Pasta do Profile",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
+      "name": "Finalizar Window",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        1180,
-        -120
+        1360,
+        0
       ],
       "parameters": {
-        "command": "powershell -Command \"New-Item -ItemType Directory -Force -Path '{{$json.profile_data_dir}}' | Out-Null\""
+        "method": "POST",
+        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/finalize-window' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir\n}",
+        "options": {}
       }
     },
     {
       "id": "7",
-      "name": "Validar Catalogo Ativo",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
+      "name": "Montar Resumo da Rodada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
-        1420,
-        -120
+        1640,
+        0
       ],
       "parameters": {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\validate_catalog.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
+        "language": "JavaScript",
+        "jsCode": "const base = $('Set Contexto Base').item.json;\nconst prepare = $('Prepare Window').item.json.result || {};\nconst finalize = $('Finalizar Window').item.json.result || {};\nreturn [{\n  json: {\n    status: 'ok',\n    mode: 'cloud-runner-http',\n    run_id: base.run_id,\n    requested_by: base.requested_by,\n    notes: base.notes,\n    runner_base_url: base.runner_base_url,\n    profiles_csv: base.profiles_csv,\n    total_profiles: finalize.total_profiles ?? prepare.total_profiles ?? 0,\n    prepare_summary_path: prepare.summary_path || null,\n    finalize_summary_path: finalize.summary_path || null,\n    prepare_profiles: prepare.profiles || [],\n    finalize_profiles: finalize.profiles || []\n  }\n}];"
       }
     },
     {
       "id": "8",
-      "name": "Executar Prepare",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        1660,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\invoke_prepare.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
-      }
-    },
-    {
-      "id": "9",
-      "name": "Validar Artefatos Prepare",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        1900,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -Command \"$base='{{$json.profile_data_dir}}'; $required=@('offers.json','selection_state.json','copy_briefs.json','messages_preview.html','review_queue.json'); $missing=@(); foreach ($name in $required) { if (!(Test-Path (Join-Path $base $name))) { $missing += $name } }; if ($missing.Count -gt 0) { Write-Error ('MISSING=' + ($missing -join ',')); exit 1 }; Write-Output 'PREPARE_OUTPUTS_OK'\""
-      }
-    },
-    {
-      "id": "10",
-      "name": "Publicar Pendencia de Revisao",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        2140,
-        -120
-      ],
-      "parameters": {
-        "keepOnlySet": false,
-        "values": {
-          "string": [
-            {
-              "name": "review_status",
-              "value": "awaiting_human_review"
-            },
-            {
-              "name": "review_queue_path",
-              "value": "={{ $json.profile_data_dir + '/review_queue.json' }}"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "11",
-      "name": "Wait Review",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        2380,
-        -120
-      ],
-      "parameters": {
-        "resume": "manual"
-      }
-    },
-    {
-      "id": "12",
-      "name": "Validar Queue Resolvida",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        2620,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -Command \"$path='{{$json.profile_data_dir}}\\review_queue.json'; $items=Get-Content $path -Raw | ConvertFrom-Json; $pending=@($items | Where-Object { $_.status -eq 'pending' }).Count; Write-Output ('PENDING_COUNT=' + $pending); if ($pending -gt 0) { exit 2 }\""
-      }
-    },
-    {
-      "id": "13",
-      "name": "Executar Finalize",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        2860,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -ExecutionPolicy Bypass -File \"{{$json.app_dir}}\\scripts\\n8n\\invoke_finalize.ps1\" -Profile \"{{$json.profile}}\" -RootDir \"{{$json.root_dir}}\""
-      }
-    },
-    {
-      "id": "14",
-      "name": "Validar Artefatos Finalize",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        3100,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -Command \"$base='{{$json.profile_data_dir}}'; $required=@('approved_messages.json','publication_manifest.json','dispatch_artifact.json','dispatch_report.json'); $missing=@(); foreach ($name in $required) { if (!(Test-Path (Join-Path $base $name))) { $missing += $name } }; if ($missing.Count -gt 0) { Write-Error ('MISSING=' + ($missing -join ',')); exit 1 }; Write-Output 'FINALIZE_OUTPUTS_OK'\""
-      }
-    },
-    {
-      "id": "15",
-      "name": "Montar Resumo do Profile",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        3340,
-        -120
-      ],
-      "parameters": {
-        "command": "powershell -Command \"$artifact = Get-Content '{{$json.profile_data_dir}}\\dispatch_artifact.json' -Raw | ConvertFrom-Json; $report = Get-Content '{{$json.profile_data_dir}}\\dispatch_report.json' -Raw | ConvertFrom-Json; $summary = [ordered]@{ status = 'ok'; profile = '{{$json.profile}}'; run_id = '{{$json.run_id}}'; dispatch_artifact_path = '{{$json.profile_data_dir}}/dispatch_artifact.json'; dispatch_report_path = '{{$json.profile_data_dir}}/dispatch_report.json'; total_targets = $artifact.summary.total_targets; total_available_messages = $artifact.summary.total_available_messages; total_selected_messages = $artifact.summary.total_selected_messages; total_blocked_targets = $artifact.summary.total_blocked_targets; total_dry_run = $report.summary.total_dry_run; mode = 'dry-run' }; $summary | ConvertTo-Json -Compress\""
-      }
-    },
-    {
-      "id": "16",
-      "name": "Consolidar Resumo da Janela",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3580,
-        -120
-      ],
-      "parameters": {
-        "language": "JavaScript",
-        "jsCode": "const rows = $input.all().map(item => JSON.parse(item.json.stdout || '{}'));\nconst summary = {\n  status: 'ok',\n  run_id: rows[0]?.run_id ?? null,\n  profiles_processed: rows.map(row => row.profile),\n  total_profiles: rows.length,\n  total_targets: rows.reduce((acc, row) => acc + (row.total_targets || 0), 0),\n  total_available_messages: rows.reduce((acc, row) => acc + (row.total_available_messages || 0), 0),\n  total_selected_messages: rows.reduce((acc, row) => acc + (row.total_selected_messages || 0), 0),\n  total_blocked_targets: rows.reduce((acc, row) => acc + (row.total_blocked_targets || 0), 0),\n  total_dry_run: rows.reduce((acc, row) => acc + (row.total_dry_run || 0), 0),\n  mode: 'dry-run',\n  profiles: rows,\n};\nreturn [{ json: summary }];"
-      }
-    },
-    {
-      "id": "17",
       "name": "Persistir Log da Rodada",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3820,
-        -120
+        1920,
+        0
       ],
       "parameters": {
         "keepOnlySet": false,
@@ -303,13 +165,13 @@
       }
     },
     {
-      "id": "18",
+      "id": "9",
       "name": "Notificar Conclusao",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4060,
-        -120
+        2200,
+        0
       ],
       "parameters": {
         "keepOnlySet": false,
@@ -340,158 +202,58 @@
       "main": [
         [
           {
-            "node": "Expandir Profiles",
+            "node": "Validar Contexto",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Expandir Profiles": {
+    "Validar Contexto": {
       "main": [
         [
           {
-            "node": "Validar Profile",
+            "node": "Health Runner",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validar Profile": {
+    "Health Runner": {
       "main": [
         [
           {
-            "node": "Profile OK?",
+            "node": "Prepare Window",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Profile OK?": {
+    "Prepare Window": {
       "main": [
         [
           {
-            "node": "Garantir Pasta do Profile",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
-      ]
-    },
-    "Garantir Pasta do Profile": {
-      "main": [
-        [
-          {
-            "node": "Validar Catalogo Ativo",
+            "node": "Finalizar Window",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validar Catalogo Ativo": {
+    "Finalizar Window": {
       "main": [
         [
           {
-            "node": "Executar Prepare",
+            "node": "Montar Resumo da Rodada",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Executar Prepare": {
-      "main": [
-        [
-          {
-            "node": "Validar Artefatos Prepare",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validar Artefatos Prepare": {
-      "main": [
-        [
-          {
-            "node": "Publicar Pendencia de Revisao",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Publicar Pendencia de Revisao": {
-      "main": [
-        [
-          {
-            "node": "Wait Review",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait Review": {
-      "main": [
-        [
-          {
-            "node": "Validar Queue Resolvida",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validar Queue Resolvida": {
-      "main": [
-        [
-          {
-            "node": "Executar Finalize",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Executar Finalize": {
-      "main": [
-        [
-          {
-            "node": "Validar Artefatos Finalize",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validar Artefatos Finalize": {
-      "main": [
-        [
-          {
-            "node": "Montar Resumo do Profile",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Montar Resumo do Profile": {
-      "main": [
-        [
-          {
-            "node": "Consolidar Resumo da Janela",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Consolidar Resumo da Janela": {
+    "Montar Resumo da Rodada": {
       "main": [
         [
           {
@@ -518,5 +280,5 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "ofertas-rodada-skeleton-v1"
+  "versionId": "ofertas-rodada-cloud-skeleton-v2"
 }

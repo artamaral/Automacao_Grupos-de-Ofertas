@@ -1,0 +1,7 @@
+﻿{
+    "profile":  "feminino",
+    "source_catalog_path":  "catalogs\\clean\\feminino\\clean_catalog_rating_4_8_plus.csv",
+    "synced_at":  "2026-06-28T08:19:55.4080948-03:00",
+    "operator":  "arthu",
+    "target_catalog_path":  "n8n\\root\\catalogs\\feminino\\clean_catalog_rating_4_8_plus.csv"
+}

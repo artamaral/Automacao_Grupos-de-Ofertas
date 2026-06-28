@@ -1,0 +1,1374 @@
+[
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "TRATAMENTO CAPILAR: SHAMPOOS CABELOS DANIFICADOS, CONDICIONADOR: LAST COMPLEMENT E ÓLEO PARA OS CABELOS",
+      "url": "https://s.shopee.com.br/8KnRIVJFIP",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-lko151ywf5i449",
+      "price": 240.0,
+      "old_price": null,
+      "commission_rate": 0.81,
+      "sales_count": 0,
+      "rating": 5.0,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 91.0,
+      "reasons": [
+        "comissao de 81%",
+        "avaliacao 5.0"
+      ]
+    },
+    "facts": {
+      "title": "TRATAMENTO CAPILAR: SHAMPOOS CABELOS DANIFICADOS, CONDICIONADOR: LAST COMPLEMENT E ÓLEO PARA OS CABELOS",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/8KnRIVJFIP",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-lko151ywf5i449",
+      "price": 240.0,
+      "old_price": null,
+      "discount_percent": 0.0,
+      "sales_count": 0,
+      "rating": 5.0,
+      "commission_rate": 0.81,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Creme Para Pentear  Karité Soul Power 800g",
+      "url": "https://s.shopee.com.br/30luwmSf4z",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-81ztc-mja8znijzls27b",
+      "price": 64.99,
+      "old_price": null,
+      "commission_rate": 0.63,
+      "sales_count": 0,
+      "rating": 5.0,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 78.0,
+      "reasons": [
+        "comissao de 63%",
+        "avaliacao 5.0",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Creme Para Pentear  Karité Soul Power 800g",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/30luwmSf4z",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-81ztc-mja8znijzls27b",
+      "price": 64.99,
+      "old_price": null,
+      "discount_percent": 0.0,
+      "sales_count": 0,
+      "rating": 5.0,
+      "commission_rate": 0.63,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Calça jeans wide leg  com desenho estilo pantalona infantil juvenil 10 aos 16",
+      "url": "https://s.shopee.com.br/7KuuAcxJAL",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-m9qlugmqwf95cb",
+      "price": 47.9,
+      "old_price": 69.99,
+      "commission_rate": 0.32999999999999996,
+      "sales_count": 1376,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 77.54,
+      "reasons": [
+        "desconto de 32%",
+        "comissao de 33%",
+        "1376 vendas",
+        "avaliacao 4.9",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Calça jeans wide leg  com desenho estilo pantalona infantil juvenil 10 aos 16",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/7KuuAcxJAL",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-m9qlugmqwf95cb",
+      "price": 47.9,
+      "old_price": 69.99,
+      "discount_percent": 31.56,
+      "sales_count": 1376,
+      "rating": 4.9,
+      "commission_rate": 0.32999999999999996,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Kit 10 Colmeia Organizadora com divisórias para Calça Jeans/Camisetas/Sutiã/Calcinhas/Cuecas",
+      "url": "https://s.shopee.com.br/5L9pmqQRru",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7qukw-ljetz3mnbybj0c",
+      "price": 63.81,
+      "old_price": 103.5,
+      "commission_rate": 0.43000000000000005,
+      "sales_count": 3,
+      "rating": 4.8,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 77.18,
+      "reasons": [
+        "desconto de 38%",
+        "comissao de 43%",
+        "avaliacao 4.8",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Kit 10 Colmeia Organizadora com divisórias para Calça Jeans/Camisetas/Sutiã/Calcinhas/Cuecas",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/5L9pmqQRru",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7qukw-ljetz3mnbybj0c",
+      "price": 63.81,
+      "old_price": 103.5,
+      "discount_percent": 38.35,
+      "sales_count": 3,
+      "rating": 4.8,
+      "commission_rate": 0.43000000000000005,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Saída de Praia Feminina Calça Tricot Tamanho Único Verão 26",
+      "url": "https://s.shopee.com.br/4qDZFRZz91",
+      "image_url": "https://cf.shopee.com.br/file/sg-11134201-8227q-mhhy158ts8oyf9",
+      "price": 49.69,
+      "old_price": 139.8,
+      "commission_rate": 0.43000000000000005,
+      "sales_count": 0,
+      "rating": 5.0,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 78.0,
+      "reasons": [
+        "desconto de 64%",
+        "comissao de 43%",
+        "avaliacao 5.0",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Saída de Praia Feminina Calça Tricot Tamanho Único Verão 26",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/4qDZFRZz91",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/sg-11134201-8227q-mhhy158ts8oyf9",
+      "price": 49.69,
+      "old_price": 139.8,
+      "discount_percent": 64.46,
+      "sales_count": 0,
+      "rating": 5.0,
+      "commission_rate": 0.43000000000000005,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Jaqueta Puffer Bobojaco Corta Vento Nylon Frio Reforçada motoqueiro bombojaco",
+      "url": "https://s.shopee.com.br/9UzOnHOhbE",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820m7-mpwxz31vs0e9b0",
+      "price": 71.07,
+      "old_price": 106.97,
+      "commission_rate": 0.38,
+      "sales_count": 528,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 70.06,
+      "reasons": [
+        "desconto de 34%",
+        "comissao de 38%",
+        "528 vendas",
+        "avaliacao 4.9"
+      ]
+    },
+    "facts": {
+      "title": "Jaqueta Puffer Bobojaco Corta Vento Nylon Frio Reforçada motoqueiro bombojaco",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/9UzOnHOhbE",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820m7-mpwxz31vs0e9b0",
+      "price": 71.07,
+      "old_price": 106.97,
+      "discount_percent": 33.56,
+      "sales_count": 528,
+      "rating": 4.9,
+      "commission_rate": 0.38,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "WD VEST Conjunto de Biquíni com Saia e Detalhe de Estrela do Mar 2025 XX546",
+      "url": "https://s.shopee.com.br/8AU1BFB4JG",
+      "image_url": "https://cf.shopee.com.br/file/sg-11134201-824gl-mfl276cmd4wd8a",
+      "price": 161.96,
+      "old_price": null,
+      "commission_rate": 0.68,
+      "sales_count": 17,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 78.0,
+      "reasons": [
+        "comissao de 68%",
+        "avaliacao 4.9"
+      ]
+    },
+    "facts": {
+      "title": "WD VEST Conjunto de Biquíni com Saia e Detalhe de Estrela do Mar 2025 XX546",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/8AU1BFB4JG",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/sg-11134201-824gl-mfl276cmd4wd8a",
+      "price": 161.96,
+      "old_price": null,
+      "discount_percent": 0.0,
+      "sales_count": 17,
+      "rating": 4.9,
+      "commission_rate": 0.68,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "KIT C/ 2 Shorts Saída de Praia shortinho renda saída de praia Com Babadinho HT Feminina Moda",
+      "url": "https://s.shopee.com.br/8pjhyAKbZy",
+      "image_url": "https://cf.shopee.com.br/file/sg-11134201-22110-k2p48emqsojv29",
+      "price": 80.0,
+      "old_price": null,
+      "commission_rate": 0.68,
+      "sales_count": 0,
+      "rating": 4.8,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 78.0,
+      "reasons": [
+        "comissao de 68%",
+        "avaliacao 4.8"
+      ]
+    },
+    "facts": {
+      "title": "KIT C/ 2 Shorts Saída de Praia shortinho renda saída de praia Com Babadinho HT Feminina Moda",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/8pjhyAKbZy",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/sg-11134201-22110-k2p48emqsojv29",
+      "price": 80.0,
+      "old_price": null,
+      "discount_percent": 0.0,
+      "sales_count": 0,
+      "rating": 4.8,
+      "commission_rate": 0.68,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Camisa Cropped Feminina Xadrez em Crepinho Manga Longa - Leve e Estilosa",
+      "url": "https://s.shopee.com.br/AUrvusy2Nm",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-ma0fghwvl0jm09",
+      "price": 47.73,
+      "old_price": 59.66,
+      "commission_rate": 0.5900000000000001,
+      "sales_count": 38,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 79.0,
+      "reasons": [
+        "desconto de 20%",
+        "comissao de 59%",
+        "avaliacao 4.9"
+      ]
+    },
+    "facts": {
+      "title": "Camisa Cropped Feminina Xadrez em Crepinho Manga Longa - Leve e Estilosa",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/AUrvusy2Nm",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-ma0fghwvl0jm09",
+      "price": 47.73,
+      "old_price": 59.66,
+      "discount_percent": 20.0,
+      "sales_count": 38,
+      "rating": 4.9,
+      "commission_rate": 0.5900000000000001,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "HT VEST Conjunto de 3 Peças de Praia Juvenil Feminino com Saia e Camisa - J3010",
+      "url": "https://s.shopee.com.br/9038883kQN",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-m1jtg35cqt3lc3",
+      "price": 120.0,
+      "old_price": null,
+      "commission_rate": 0.68,
+      "sales_count": 1,
+      "rating": 4.8,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 78.0,
+      "reasons": [
+        "comissao de 68%",
+        "avaliacao 4.8"
+      ]
+    },
+    "facts": {
+      "title": "HT VEST Conjunto de 3 Peças de Praia Juvenil Feminino com Saia e Camisa - J3010",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/9038883kQN",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-m1jtg35cqt3lc3",
+      "price": 120.0,
+      "old_price": null,
+      "discount_percent": 0.0,
+      "sales_count": 1,
+      "rating": 4.8,
+      "commission_rate": 0.68,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "XEIJAYI 2 Peças De Esmalte Em Gel Metálico Pintado Para Unhas , Arte Criativo , Elástico , Pintura Com Cola Pintada , De",
+      "url": "https://s.shopee.com.br/5VTFvZjACd",
+      "image_url": "https://cf.shopee.com.br/file/sg-11134301-7rd71-m6s27vao86myc9",
+      "price": 14.01,
+      "old_price": 25.22,
+      "commission_rate": 0.12,
+      "sales_count": 3206,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 67.0,
+      "reasons": [
+        "desconto de 44%",
+        "comissao de 12%",
+        "3206 vendas",
+        "avaliacao 4.9",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "XEIJAYI 2 Peças De Esmalte Em Gel Metálico Pintado Para Unhas , Arte Criativo , Elástico , Pintura Com Cola Pintada , De",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/5VTFvZjACd",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/sg-11134301-7rd71-m6s27vao86myc9",
+      "price": 14.01,
+      "old_price": 25.22,
+      "discount_percent": 44.45,
+      "sales_count": 3206,
+      "rating": 4.9,
+      "commission_rate": 0.12,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "200 Unidades Pad Gel (100 Pares) Protetor de Pálpebras Alongamento Cílios Extensão Patch Pad Gel",
+      "url": "https://s.shopee.com.br/6L2MtfoNLl",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-lzuvphdweecl1a",
+      "price": 18.7,
+      "old_price": 33.74,
+      "commission_rate": 0.19,
+      "sales_count": 1147,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 65.47,
+      "reasons": [
+        "desconto de 45%",
+        "comissao de 19%",
+        "1147 vendas",
+        "avaliacao 4.9",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "200 Unidades Pad Gel (100 Pares) Protetor de Pálpebras Alongamento Cílios Extensão Patch Pad Gel",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/6L2MtfoNLl",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-lzuvphdweecl1a",
+      "price": 18.7,
+      "old_price": 33.74,
+      "discount_percent": 44.58,
+      "sales_count": 1147,
+      "rating": 4.9,
+      "commission_rate": 0.19,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "kit 5/10 Calcinhas 100%  Algodão Lisa Cos Cintura Alta Tanga Modelo Confortáveis com Forro",
+      "url": "https://s.shopee.com.br/5AqPeOUdIu",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-81z1k-mh3y2dxuc7phaf",
+      "price": 26.99,
+      "old_price": 57.84,
+      "commission_rate": 0.17,
+      "sales_count": 3609,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 72.0,
+      "reasons": [
+        "desconto de 53%",
+        "comissao de 17%",
+        "3609 vendas",
+        "avaliacao 4.9",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "kit 5/10 Calcinhas 100%  Algodão Lisa Cos Cintura Alta Tanga Modelo Confortáveis com Forro",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/5AqPeOUdIu",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-81z1k-mh3y2dxuc7phaf",
+      "price": 26.99,
+      "old_price": 57.84,
+      "discount_percent": 53.34,
+      "sales_count": 3609,
+      "rating": 4.9,
+      "commission_rate": 0.17,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Vestido Plus Size Midi Manga Longa Inverno Tubinho Fenda Elastano Veste Até G4",
+      "url": "https://s.shopee.com.br/6AiwjuA9Bn",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820lx-mlj2n8ckre2s08",
+      "price": 59.9,
+      "old_price": 139.9,
+      "commission_rate": 0.53,
+      "sales_count": 13,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 88.0,
+      "reasons": [
+        "desconto de 57%",
+        "comissao de 53%",
+        "avaliacao 4.9",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Vestido Plus Size Midi Manga Longa Inverno Tubinho Fenda Elastano Veste Até G4",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/6AiwjuA9Bn",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820lx-mlj2n8ckre2s08",
+      "price": 59.9,
+      "old_price": 139.9,
+      "discount_percent": 57.18,
+      "sales_count": 13,
+      "rating": 4.9,
+      "commission_rate": 0.53,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Pé Palito de Madeira 30 CM Com Chapinha Inclinada",
+      "url": "https://s.shopee.com.br/3qL1vxGqVH",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820ma-mmi51zt6o74663",
+      "price": 19.43,
+      "old_price": 71.9,
+      "commission_rate": 0.38,
+      "sales_count": 10,
+      "rating": 4.8,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 73.0,
+      "reasons": [
+        "desconto de 73%",
+        "comissao de 38%",
+        "avaliacao 4.8",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Pé Palito de Madeira 30 CM Com Chapinha Inclinada",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/3qL1vxGqVH",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820ma-mmi51zt6o74663",
+      "price": 19.43,
+      "old_price": 71.9,
+      "discount_percent": 72.98,
+      "sales_count": 10,
+      "rating": 4.8,
+      "commission_rate": 0.38,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Calça Legging  de Cintura Alta para Academia Feminina Esportiva  Modeladora Cores Verão",
+      "url": "https://s.shopee.com.br/9AMYQnpuhZ",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820md-moic601f91qdcc",
+      "price": 29.9,
+      "old_price": 89.9,
+      "commission_rate": 0.2401,
+      "sales_count": 3704,
+      "rating": 4.8,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 79.01,
+      "reasons": [
+        "desconto de 67%",
+        "comissao de 24%",
+        "3704 vendas",
+        "avaliacao 4.8",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Calça Legging  de Cintura Alta para Academia Feminina Esportiva  Modeladora Cores Verão",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/9AMYQnpuhZ",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820md-moic601f91qdcc",
+      "price": 29.9,
+      "old_price": 89.9,
+      "discount_percent": 66.74,
+      "sales_count": 3704,
+      "rating": 4.8,
+      "commission_rate": 0.2401,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "ÓLEO DE EUCALIPTO CONCENTRADO 1x500ML + SPRAY 120ML - REPELENTE",
+      "url": "https://s.shopee.com.br/20tNk6n8u2",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-mcgk0wvi9lpu36",
+      "price": 37.9,
+      "old_price": null,
+      "commission_rate": 0.73,
+      "sales_count": 2,
+      "rating": 4.8,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 83.0,
+      "reasons": [
+        "comissao de 73%",
+        "avaliacao 4.8"
+      ]
+    },
+    "facts": {
+      "title": "ÓLEO DE EUCALIPTO CONCENTRADO 1x500ML + SPRAY 120ML - REPELENTE",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/20tNk6n8u2",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-mcgk0wvi9lpu36",
+      "price": 37.9,
+      "old_price": null,
+      "discount_percent": 0.0,
+      "sales_count": 2,
+      "rating": 4.8,
+      "commission_rate": 0.73,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Carmed Copa do Mundo Seleções Sabor Surpresa Hidratante Labial Fini Coca Sprite Batom Efeito Gloss Maquiagem 10g",
+      "url": "https://s.shopee.com.br/3B5L7e2FEi",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820mb-mon4ysaz63utae",
+      "price": 17.4,
+      "old_price": 67.5,
+      "commission_rate": 0.38,
+      "sales_count": 26,
+      "rating": 5.0,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 68.0,
+      "reasons": [
+        "desconto de 74%",
+        "comissao de 38%",
+        "avaliacao 5.0"
+      ]
+    },
+    "facts": {
+      "title": "Carmed Copa do Mundo Seleções Sabor Surpresa Hidratante Labial Fini Coca Sprite Batom Efeito Gloss Maquiagem 10g",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/3B5L7e2FEi",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820mb-mon4ysaz63utae",
+      "price": 17.4,
+      "old_price": 67.5,
+      "discount_percent": 74.22,
+      "sales_count": 26,
+      "rating": 5.0,
+      "commission_rate": 0.38,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": null
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "Blusa Feminina Regata De Paetê Elegante Casual Luxo Regata Com Brilho",
+      "url": "https://s.shopee.com.br/5fmgIGQN5S",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820lp-mofwe439m134d2",
+      "price": 56.9,
+      "old_price": 137.9,
+      "commission_rate": 0.31000000000000005,
+      "sales_count": 66,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 66.0,
+      "reasons": [
+        "desconto de 59%",
+        "comissao de 31%",
+        "avaliacao 4.9",
+        "loja star"
+      ]
+    },
+    "facts": {
+      "title": "Blusa Feminina Regata De Paetê Elegante Casual Luxo Regata Com Brilho",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/5fmgIGQN5S",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-820lp-mofwe439m134d2",
+      "price": 56.9,
+      "old_price": 137.9,
+      "discount_percent": 58.74,
+      "sales_count": 66,
+      "rating": 4.9,
+      "commission_rate": 0.31000000000000005,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 2
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  },
+  {
+    "content_type": "product_offer",
+    "offer": {
+      "marketplace": "shopee",
+      "title": "PERFUME FEMININO RADIANT GIRL BLUSH - PRIMACIAL PERFUME FLORAL",
+      "url": "https://s.shopee.com.br/3B5L82nkKp",
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-lyy3leaxni1x62",
+      "price": 80.0,
+      "old_price": 164.0,
+      "commission_rate": 0.28,
+      "sales_count": 17,
+      "rating": 4.9,
+      "niche": "feminino",
+      "item_id": null,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 1,
+      "selected_at": "2026-06-28T11:23:45+00:00",
+      "cooldown_until": "2026-06-29T11:23:45+00:00",
+      "last_sent_at": null
+    },
+    "selection": {
+      "score": 68.0,
+      "reasons": [
+        "desconto de 51%",
+        "comissao de 28%",
+        "avaliacao 4.9",
+        "loja oficial"
+      ]
+    },
+    "facts": {
+      "title": "PERFUME FEMININO RADIANT GIRL BLUSH - PRIMACIAL PERFUME FLORAL",
+      "marketplace": "shopee",
+      "niche": "feminino",
+      "url": "https://s.shopee.com.br/3B5L82nkKp",
+      "item_id": null,
+      "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-lyy3leaxni1x62",
+      "price": 80.0,
+      "old_price": 164.0,
+      "discount_percent": 51.22,
+      "sales_count": 17,
+      "rating": 4.9,
+      "commission_rate": 0.28,
+      "is_prime_or_free_shipping": false,
+      "shop_type_code": 1
+    },
+    "required_disclosures": [
+      "Informar que o link e de afiliado e pode gerar comissao.",
+      "Informar que preco e disponibilidade podem mudar."
+    ],
+    "copy_constraints": [
+      "Usar somente os fatos estruturados deste brief.",
+      "Nao alterar preco, desconto, marketplace, link ou sinais de confianca.",
+      "Nao prometer estoque, prazo de entrega, garantia ou beneficio nao informado.",
+      "Manter a mensagem curta, clara e adequada para grupo opt-in.",
+      "Evitar urgencia falsa ou promessa de preco permanente."
+    ],
+    "forbidden_claims": [
+      "preco garantido",
+      "ultima chance",
+      "estoque garantido",
+      "entrega garantida",
+      "menor preco da internet"
+    ],
+    "refresh": {
+      "iterations": 1,
+      "stability_reached": true,
+      "changed_items": []
+    }
+  }
+]

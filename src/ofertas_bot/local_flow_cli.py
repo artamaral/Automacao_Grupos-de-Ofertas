@@ -34,6 +34,7 @@ from ofertas_bot.storage.json_message_draft_store import (
 )
 from ofertas_bot.storage.json_message_review_queue_store import (
     JsonMessageReviewQueueStore,
+    auto_approve_review_queue_items,
     summarize_review_queue,
 )
 from ofertas_bot.storage.json_offer_store import JsonOfferStore, OfferStoreError
@@ -239,6 +240,9 @@ def _run_prepare(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
 
 def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
     print("INFO | Iniciando fluxo local: finalize")
+    normalize_exit_code = _normalize_review_queue_for_automatic_flow(paths=paths)
+    if normalize_exit_code != 0:
+        return normalize_exit_code
 
     step_exit_code = review_queue_export_cli.run(
         [
@@ -477,6 +481,21 @@ def _mark_last_sent_at_from_finalize(*, paths: LocalFlowPaths) -> None:
     store.save(updated)
 
 
+def _normalize_review_queue_for_automatic_flow(*, paths: LocalFlowPaths) -> int:
+    try:
+        store = JsonMessageReviewQueueStore(path=paths.review_queue_json)
+        queue_items = store.load()
+        if not queue_items:
+            return 0
+        normalized_items = auto_approve_review_queue_items(queue_items)
+        store.save(normalized_items)
+    except OSError as error:
+        return _print_finalize_queue_normalization_error(error)
+
+    print(f"INFO | Fila tecnica normalizada automaticamente em {paths.review_queue_json}")
+    return 0
+
+
 def _load_dispatched_drafts(path: Path) -> tuple[MessageDraft, ...]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -652,6 +671,13 @@ def _print_finalize_step_error(step_name: str, exit_code: int) -> int:
 
 def _print_finalize_selection_state_error(error: Exception) -> int:
     print("ERRO | Etapa finalize falhou ao atualizar last_sent_at", file=sys.stderr)
+    print(f"DETALHE | {error}", file=sys.stderr)
+    print("INFO | Nenhum envio foi executado.")
+    return 3
+
+
+def _print_finalize_queue_normalization_error(error: Exception) -> int:
+    print("ERRO | Etapa finalize falhou ao normalizar fila tecnica", file=sys.stderr)
     print(f"DETALHE | {error}", file=sys.stderr)
     print("INFO | Nenhum envio foi executado.")
     return 3

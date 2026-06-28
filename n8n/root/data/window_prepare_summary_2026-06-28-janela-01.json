@@ -1,0 +1,25 @@
+﻿{
+    "stage":  "prepare",
+    "run_id":  "2026-06-28-janela-01",
+    "profiles":  [
+                     {
+                         "profile":  "feminino",
+                         "data_dir":  "n8n\\root\\data\\feminino",
+                         "status":  "ok",
+                         "catalog_path":  "n8n\\root\\catalogs\\feminino\\clean_catalog_rating_4_8_plus.csv"
+                     },
+                     {
+                         "profile":  "mae-e-bebe",
+                         "data_dir":  "n8n\\root\\data\\mae-e-bebe",
+                         "status":  "ok",
+                         "catalog_path":  "n8n\\root\\catalogs\\mae-e-bebe\\clean_catalog_rating_4_8_plus.csv"
+                     },
+                     {
+                         "profile":  "auto-e-moto",
+                         "data_dir":  "n8n\\root\\data\\auto-e-moto",
+                         "status":  "ok",
+                         "catalog_path":  "n8n\\root\\catalogs\\auto-e-moto\\clean_catalog_rating_4_8_plus.csv"
+                     }
+                 ],
+    "total_profiles":  3
+}

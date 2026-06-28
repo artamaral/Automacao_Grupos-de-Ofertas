@@ -1,0 +1,72 @@
+Relatorio de disparo
+generated_at=2026-06-28T11:32:34+00:00
+source_generated_at=2026-06-28T08:32:34-03:00
+source_timezone=America/Sao_Paulo
+mode=dry-run
+adapter_kind=mixed
+total_targets=4
+total_available_messages=80
+total_selected_messages=16
+total_skipped_messages=64
+total_blocked_targets=0
+total_dry_run=16
+--------------------------------------------------------------------------------
+target=canal-achadinhos-geral
+status=simulated
+adapter_kind=telegram
+available_message_count=20
+selected_message_count=5
+skipped_message_count=15
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=60
+message=4 | planned_at=2026-06-28T08:32:34-03:00 | offset=0s | delivery=telegram:canal-achadinhos-geral | title=Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa
+message=8 | planned_at=2026-06-28T08:33:34-03:00 | offset=60s | delivery=telegram:canal-achadinhos-geral | title=Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos
+message=12 | planned_at=2026-06-28T08:34:34-03:00 | offset=120s | delivery=telegram:canal-achadinhos-geral | title=kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens
+message=16 | planned_at=2026-06-28T08:35:34-03:00 | offset=180s | delivery=telegram:canal-achadinhos-geral | title=Body bebê Time Para mesversario
+message=20 | planned_at=2026-06-28T08:36:34-03:00 | offset=240s | delivery=telegram:canal-achadinhos-geral | title=INOVA câmera wifi visão noturna full HD 360º microfone áudio babá eletrônica robozinho sem fio
+--------------------------------------------------------------------------------
+target=canal-mae-e-bebe
+status=simulated
+adapter_kind=telegram
+available_message_count=20
+selected_message_count=3
+skipped_message_count=17
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=60
+message=2 | planned_at=2026-06-28T08:32:34-03:00 | offset=0s | delivery=telegram:canal-mae-e-bebe | title=Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa
+message=6 | planned_at=2026-06-28T08:33:34-03:00 | offset=60s | delivery=telegram:canal-mae-e-bebe | title=Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos
+message=10 | planned_at=2026-06-28T08:34:34-03:00 | offset=120s | delivery=telegram:canal-mae-e-bebe | title=kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens
+--------------------------------------------------------------------------------
+target=grupo-achadinhos-geral
+status=simulated
+adapter_kind=whatsapp
+available_message_count=20
+selected_message_count=5
+skipped_message_count=15
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=45
+message=3 | planned_at=2026-06-28T08:32:34-03:00 | offset=0s | delivery=whatsapp:grupo-achadinhos-geral | title=Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa
+message=7 | planned_at=2026-06-28T08:33:19-03:00 | offset=45s | delivery=whatsapp:grupo-achadinhos-geral | title=Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos
+message=11 | planned_at=2026-06-28T08:34:04-03:00 | offset=90s | delivery=whatsapp:grupo-achadinhos-geral | title=kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens
+message=15 | planned_at=2026-06-28T08:34:49-03:00 | offset=135s | delivery=whatsapp:grupo-achadinhos-geral | title=Body bebê Time Para mesversario
+message=19 | planned_at=2026-06-28T08:35:34-03:00 | offset=180s | delivery=whatsapp:grupo-achadinhos-geral | title=INOVA câmera wifi visão noturna full HD 360º microfone áudio babá eletrônica robozinho sem fio
+--------------------------------------------------------------------------------
+target=grupo-mae-e-bebe
+status=simulated
+adapter_kind=whatsapp
+available_message_count=20
+selected_message_count=3
+skipped_message_count=17
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=45
+message=1 | planned_at=2026-06-28T08:32:34-03:00 | offset=0s | delivery=whatsapp:grupo-mae-e-bebe | title=Coletor Manual Silicone de Aleitamento Materno Bomba De Leite Com Tampa
+message=5 | planned_at=2026-06-28T08:33:19-03:00 | offset=45s | delivery=whatsapp:grupo-mae-e-bebe | title=Bomba Tira Leite Materno Elétrica Vestível , bomba extratora de leite elétrica，bomba de tirar leite manual  4 Modos
+message=9 | planned_at=2026-06-28T08:34:04-03:00 | offset=90s | delivery=whatsapp:grupo-mae-e-bebe | title=kit 4 peças body bebê temáticos e divertidos-rescém nascido-mêsversário-roupas de bebê personagens

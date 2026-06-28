@@ -1,0 +1,7 @@
+﻿{
+    "profile":  "mae-e-bebe",
+    "source_catalog_path":  "catalogs\\clean\\mae-e-bebe\\clean_catalog_rating_4_8_plus.csv",
+    "synced_at":  "2026-06-28T08:20:10.2161378-03:00",
+    "operator":  "arthu",
+    "target_catalog_path":  "n8n\\root\\catalogs\\mae-e-bebe\\clean_catalog_rating_4_8_plus.csv"
+}

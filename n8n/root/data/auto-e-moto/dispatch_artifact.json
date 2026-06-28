@@ -1,0 +1,694 @@
+{
+  "generated_at": "2026-06-28T08:32:35-03:00",
+  "timezone": "America/Sao_Paulo",
+  "summary": {
+    "total_targets": 4,
+    "total_available_messages": 80,
+    "total_selected_messages": 16,
+    "total_skipped_messages": 64,
+    "total_blocked_targets": 0,
+    "total_messages": 16
+  },
+  "targets": [
+    {
+      "target": "canal-achadinhos-geral",
+      "adapter_kind": "telegram",
+      "status": "ready",
+      "available_message_count": 20,
+      "message_count": 5,
+      "selected_message_count": 5,
+      "skipped_message_count": 15,
+      "max_messages_per_run": 5,
+      "max_messages_per_hour": 12,
+      "min_interval_seconds": 60,
+      "quiet_periods": [
+        "22:00-08:00"
+      ],
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "first_planned_at": "2026-06-28T08:32:35-03:00",
+      "last_planned_at": "2026-06-28T08:36:35-03:00",
+      "messages": [
+        {
+          "manifest_item_number": 4,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:35-03:00",
+          "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+              "url": "https://s.shopee.com.br/AAF631l062",
+              "image_url": "https://cf.shopee.com.br/file/ad9d4b9e597d5c726f34d1dc99db602a",
+              "price": 79.05,
+              "old_price": null,
+              "commission_rate": 0.76,
+              "sales_count": 0,
+              "rating": 5.0,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+            "url": "https://s.shopee.com.br/AAF631l062",
+            "price": 79.05,
+            "old_price": null
+          }
+        },
+        {
+          "manifest_item_number": 8,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 60,
+          "planned_at": "2026-06-28T08:33:35-03:00",
+          "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+              "url": "https://s.shopee.com.br/3qL2WF9hV8",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-820m4-mlin53jljy1166",
+              "price": 20.0,
+              "old_price": 40.0,
+              "commission_rate": 0.28,
+              "sales_count": 2393,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+            "url": "https://s.shopee.com.br/3qL2WF9hV8",
+            "price": 20.0,
+            "old_price": 40.0
+          }
+        },
+        {
+          "manifest_item_number": 12,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 120,
+          "planned_at": "2026-06-28T08:34:35-03:00",
+          "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+              "url": "https://s.shopee.com.br/1BKHKUJGMv",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-81z1k-mhrj3ggecxs69d",
+              "price": 31.24,
+              "old_price": 66.04,
+              "commission_rate": 0.39,
+              "sales_count": 17,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+            "url": "https://s.shopee.com.br/1BKHKUJGMv",
+            "price": 31.24,
+            "old_price": 66.04
+          }
+        },
+        {
+          "manifest_item_number": 16,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 180,
+          "planned_at": "2026-06-28T08:35:35-03:00",
+          "text": "🔥 Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão\n\n🏪 Loja: Shopee\n\n💵 R$ 14,99\n\n🏷️ 40% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/6L2NXUhvcP\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão",
+              "url": "https://s.shopee.com.br/6L2NXUhvcP",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-m82d39516v3l56",
+              "price": 14.99,
+              "old_price": 24.99,
+              "commission_rate": 0.11,
+              "sales_count": 5389,
+              "rating": 4.9,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão\n\n🏪 Loja: Shopee\n\n💵 R$ 14,99\n\n🏷️ 40% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/6L2NXUhvcP\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão",
+            "url": "https://s.shopee.com.br/6L2NXUhvcP",
+            "price": 14.99,
+            "old_price": 24.99
+          }
+        },
+        {
+          "manifest_item_number": 20,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 240,
+          "planned_at": "2026-06-28T08:36:35-03:00",
+          "text": "🔥 Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel\n\n🏪 Loja: Shopee\n\n💵 R$ 49,99\n\n🏷️ 65% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/BRk92mmL4\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel",
+              "url": "https://s.shopee.com.br/BRk92mmL4",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-820ly-ml7r9ijjhl3a0a",
+              "price": 49.99,
+              "old_price": 140.99,
+              "commission_rate": 0.13,
+              "sales_count": 1059,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel\n\n🏪 Loja: Shopee\n\n💵 R$ 49,99\n\n🏷️ 65% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/BRk92mmL4\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel",
+            "url": "https://s.shopee.com.br/BRk92mmL4",
+            "price": 49.99,
+            "old_price": 140.99
+          }
+        }
+      ]
+    },
+    {
+      "target": "canal-auto-e-moto",
+      "adapter_kind": "telegram",
+      "status": "ready",
+      "available_message_count": 20,
+      "message_count": 3,
+      "selected_message_count": 3,
+      "skipped_message_count": 17,
+      "max_messages_per_run": 3,
+      "max_messages_per_hour": 8,
+      "min_interval_seconds": 60,
+      "quiet_periods": [
+        "22:00-08:00"
+      ],
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "first_planned_at": "2026-06-28T08:32:35-03:00",
+      "last_planned_at": "2026-06-28T08:34:35-03:00",
+      "messages": [
+        {
+          "manifest_item_number": 2,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:35-03:00",
+          "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+              "url": "https://s.shopee.com.br/AAF631l062",
+              "image_url": "https://cf.shopee.com.br/file/ad9d4b9e597d5c726f34d1dc99db602a",
+              "price": 79.05,
+              "old_price": null,
+              "commission_rate": 0.76,
+              "sales_count": 0,
+              "rating": 5.0,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+            "url": "https://s.shopee.com.br/AAF631l062",
+            "price": 79.05,
+            "old_price": null
+          }
+        },
+        {
+          "manifest_item_number": 6,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 60,
+          "planned_at": "2026-06-28T08:33:35-03:00",
+          "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+              "url": "https://s.shopee.com.br/3qL2WF9hV8",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-820m4-mlin53jljy1166",
+              "price": 20.0,
+              "old_price": 40.0,
+              "commission_rate": 0.28,
+              "sales_count": 2393,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+            "url": "https://s.shopee.com.br/3qL2WF9hV8",
+            "price": 20.0,
+            "old_price": 40.0
+          }
+        },
+        {
+          "manifest_item_number": 10,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 120,
+          "planned_at": "2026-06-28T08:34:35-03:00",
+          "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+              "url": "https://s.shopee.com.br/1BKHKUJGMv",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-81z1k-mhrj3ggecxs69d",
+              "price": 31.24,
+              "old_price": 66.04,
+              "commission_rate": 0.39,
+              "sales_count": 17,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+            "url": "https://s.shopee.com.br/1BKHKUJGMv",
+            "price": 31.24,
+            "old_price": 66.04
+          }
+        }
+      ]
+    },
+    {
+      "target": "grupo-achadinhos-geral",
+      "adapter_kind": "whatsapp",
+      "status": "ready",
+      "available_message_count": 20,
+      "message_count": 5,
+      "selected_message_count": 5,
+      "skipped_message_count": 15,
+      "max_messages_per_run": 5,
+      "max_messages_per_hour": 12,
+      "min_interval_seconds": 45,
+      "quiet_periods": [
+        "22:00-08:00"
+      ],
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "first_planned_at": "2026-06-28T08:32:35-03:00",
+      "last_planned_at": "2026-06-28T08:35:35-03:00",
+      "messages": [
+        {
+          "manifest_item_number": 3,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:35-03:00",
+          "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+              "url": "https://s.shopee.com.br/AAF631l062",
+              "image_url": "https://cf.shopee.com.br/file/ad9d4b9e597d5c726f34d1dc99db602a",
+              "price": 79.05,
+              "old_price": null,
+              "commission_rate": 0.76,
+              "sales_count": 0,
+              "rating": 5.0,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+            "url": "https://s.shopee.com.br/AAF631l062",
+            "price": 79.05,
+            "old_price": null
+          }
+        },
+        {
+          "manifest_item_number": 7,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 45,
+          "planned_at": "2026-06-28T08:33:20-03:00",
+          "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+              "url": "https://s.shopee.com.br/3qL2WF9hV8",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-820m4-mlin53jljy1166",
+              "price": 20.0,
+              "old_price": 40.0,
+              "commission_rate": 0.28,
+              "sales_count": 2393,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+            "url": "https://s.shopee.com.br/3qL2WF9hV8",
+            "price": 20.0,
+            "old_price": 40.0
+          }
+        },
+        {
+          "manifest_item_number": 11,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 90,
+          "planned_at": "2026-06-28T08:34:05-03:00",
+          "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+              "url": "https://s.shopee.com.br/1BKHKUJGMv",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-81z1k-mhrj3ggecxs69d",
+              "price": 31.24,
+              "old_price": 66.04,
+              "commission_rate": 0.39,
+              "sales_count": 17,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+            "url": "https://s.shopee.com.br/1BKHKUJGMv",
+            "price": 31.24,
+            "old_price": 66.04
+          }
+        },
+        {
+          "manifest_item_number": 15,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 135,
+          "planned_at": "2026-06-28T08:34:50-03:00",
+          "text": "🔥 Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão\n\n🏪 Loja: Shopee\n\n💵 R$ 14,99\n\n🏷️ 40% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/6L2NXUhvcP\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão",
+              "url": "https://s.shopee.com.br/6L2NXUhvcP",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-7r98o-m82d39516v3l56",
+              "price": 14.99,
+              "old_price": 24.99,
+              "commission_rate": 0.11,
+              "sales_count": 5389,
+              "rating": 4.9,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão\n\n🏪 Loja: Shopee\n\n💵 R$ 14,99\n\n🏷️ 40% OFF\n\n⭐ Avaliação: 4,9/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/6L2NXUhvcP\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Kit Reparo Pneu Sem Camara Carro E Moto Refil Selante Remendo Macarrão",
+            "url": "https://s.shopee.com.br/6L2NXUhvcP",
+            "price": 14.99,
+            "old_price": 24.99
+          }
+        },
+        {
+          "manifest_item_number": 19,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 180,
+          "planned_at": "2026-06-28T08:35:35-03:00",
+          "text": "🔥 Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel\n\n🏪 Loja: Shopee\n\n💵 R$ 49,99\n\n🏷️ 65% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/BRk92mmL4\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel",
+              "url": "https://s.shopee.com.br/BRk92mmL4",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-820ly-ml7r9ijjhl3a0a",
+              "price": 49.99,
+              "old_price": 140.99,
+              "commission_rate": 0.13,
+              "sales_count": 1059,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel\n\n🏪 Loja: Shopee\n\n💵 R$ 49,99\n\n🏷️ 65% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/BRk92mmL4\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Compressor Detector de Ar Portatil Recarregavél Com Fio Sem Fio Digital USB Calibrador Pneu de Carro Automóvel",
+            "url": "https://s.shopee.com.br/BRk92mmL4",
+            "price": 49.99,
+            "old_price": 140.99
+          }
+        }
+      ]
+    },
+    {
+      "target": "grupo-auto-e-moto",
+      "adapter_kind": "whatsapp",
+      "status": "ready",
+      "available_message_count": 20,
+      "message_count": 3,
+      "selected_message_count": 3,
+      "skipped_message_count": 17,
+      "max_messages_per_run": 3,
+      "max_messages_per_hour": 8,
+      "min_interval_seconds": 45,
+      "quiet_periods": [
+        "22:00-08:00"
+      ],
+      "quiet_period_active": false,
+      "blocked_reason": null,
+      "selection_reason": "max_messages_per_run",
+      "first_planned_at": "2026-06-28T08:32:35-03:00",
+      "last_planned_at": "2026-06-28T08:34:05-03:00",
+      "messages": [
+        {
+          "manifest_item_number": 1,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 0,
+          "planned_at": "2026-06-28T08:32:35-03:00",
+          "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+              "url": "https://s.shopee.com.br/AAF631l062",
+              "image_url": "https://cf.shopee.com.br/file/ad9d4b9e597d5c726f34d1dc99db602a",
+              "price": 79.05,
+              "old_price": null,
+              "commission_rate": 0.76,
+              "sales_count": 0,
+              "rating": 5.0,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A\n\n🏪 Loja: Shopee\n\n💵 R$ 79,05\n\n🏷️ 0% OFF\n\n⭐ Avaliação: 5,0/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/AAF631l062\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Kit Capa Protetora Manutenção Carro Mecanico Corino 5 Peças REF:039A",
+            "url": "https://s.shopee.com.br/AAF631l062",
+            "price": 79.05,
+            "old_price": null
+          }
+        },
+        {
+          "manifest_item_number": 5,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 45,
+          "planned_at": "2026-06-28T08:33:20-03:00",
+          "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+              "url": "https://s.shopee.com.br/3qL2WF9hV8",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-820m4-mlin53jljy1166",
+              "price": 20.0,
+              "old_price": 40.0,
+              "commission_rate": 0.28,
+              "sales_count": 2393,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma\n\n🏪 Loja: Shopee\n\n💵 R$ 20,00\n\n🏷️ 50% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/3qL2WF9hV8\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Cheirinho para Carro Árabe  Aromatizante Automotivo 10mlIdeal para Uber | Escolha Aroma",
+            "url": "https://s.shopee.com.br/3qL2WF9hV8",
+            "price": 20.0,
+            "old_price": 40.0
+          }
+        },
+        {
+          "manifest_item_number": 9,
+          "status": "ready",
+          "created_at": "2026-06-28T11:32:35+00:00",
+          "planned_offset_seconds": 90,
+          "planned_at": "2026-06-28T08:34:05-03:00",
+          "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n",
+          "draft": {
+            "offer": {
+              "marketplace": "shopee",
+              "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+              "url": "https://s.shopee.com.br/1BKHKUJGMv",
+              "image_url": "https://cf.shopee.com.br/file/br-11134207-81z1k-mhrj3ggecxs69d",
+              "price": 31.24,
+              "old_price": 66.04,
+              "commission_rate": 0.39,
+              "sales_count": 17,
+              "rating": 4.8,
+              "niche": "auto e moto",
+              "item_id": null,
+              "is_prime_or_free_shipping": false,
+              "shop_type_code": 2,
+              "selected_at": "2026-06-28T11:23:54+00:00",
+              "cooldown_until": "2026-06-29T11:23:54+00:00",
+              "last_sent_at": null
+            },
+            "text": "🔥 Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto\n\n🏪 Loja: Shopee\n\n💵 R$ 31,24\n\n🏷️ 53% OFF\n\n⭐ Avaliação: 4,8/5\n\n🎟️ Resgate o cupom desta página:\nhttps://s.shopee.com.br/4AxtmHq4If\n\n✅ Link do produto:\nhttps://s.shopee.com.br/1BKHKUJGMv\n\n(anúncio)\n"
+          },
+          "offer": {
+            "marketplace": "shopee",
+            "niche": "auto e moto",
+            "title": "Vinil Adesivo Black Piano Envelopamento Automotivo Carro Moto",
+            "url": "https://s.shopee.com.br/1BKHKUJGMv",
+            "price": 31.24,
+            "old_price": 66.04
+          }
+        }
+      ]
+    }
+  ]
+}

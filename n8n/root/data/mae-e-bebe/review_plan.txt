@@ -1,0 +1,36 @@
+Plano da rodada
+profile=mae-e-bebe
+subgroup=None
+niche=mae e bebe
+marketplace=shopee
+generated_at=2026-06-28T11:23:51+00:00
+total_groups=2
+allowed_groups=2
+blocked_groups=0
+total_offers_collected=17271
+total_selected_offers=8
+total_review_queue_items=80
+--------------------------------------------------------------------------------
+group=mae-e-bebe-ofertas
+name=Mae e Bebe Ofertas
+allowed=True
+destination_ref=grupo-mae-e-bebe
+message_tone=acolhedor
+selected_offer_count=3
+review_queue_items=40
+offer=Carrinho Passeio Moisés 0-15 Kg Candy Titanium Litet BB185A | price=4039.0 | marketplace=shopee
+offer=Carrinho Passeio Infantil Moisés Candy X Litet Preto BB294TS | price=4039.0 | marketplace=shopee
+offer=Carrinho com Bebê Conforto  Travel System Eva³ Trio 0 a 15 Kg Essential Black Champagne - Maxi-Cosi | price=4001.7 | marketplace=shopee
+--------------------------------------------------------------------------------
+group=achadinhos-geral-ofertas
+name=Achadinhos Geral
+allowed=True
+destination_ref=grupo-achadinhos-geral
+message_tone=leve
+selected_offer_count=5
+review_queue_items=40
+offer=Carrinho Passeio Moisés 0-15 Kg Candy Titanium Litet BB185A | price=4039.0 | marketplace=shopee
+offer=Carrinho Passeio Infantil Moisés Candy X Litet Preto BB294TS | price=4039.0 | marketplace=shopee
+offer=Carrinho com Bebê Conforto  Travel System Eva³ Trio 0 a 15 Kg Essential Black Champagne - Maxi-Cosi | price=4001.7 | marketplace=shopee
+offer=Kit Carrinho Bebê Gb Pockit+ All-city Night Blue Com Bolsa | price=2299.0 | marketplace=shopee
+offer=Combo Completo Brinquedoteca Grande Madeira Infantil Faz de Conta Pedagógico Montessori Kit Livro | price=3409.56 | marketplace=shopee

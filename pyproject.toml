@@ -38,6 +38,7 @@ ofertas-manifest-hash = "ofertas_bot.local_manifest_hash_cli:main"
 ofertas-review-bundle = "ofertas_bot.local_review_bundle_cli:main"
 ofertas-local-doctor = "ofertas_bot.local_artifacts_doctor_cli:main"
 ofertas-local-flow = "ofertas_bot.local_flow_cli:main"
+ofertas-cloud-runner = "ofertas_bot.cloud_runner_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

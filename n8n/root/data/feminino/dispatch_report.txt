@@ -1,0 +1,40 @@
+Relatorio de disparo
+generated_at=2026-06-28T11:32:33+00:00
+source_generated_at=2026-06-28T08:32:33-03:00
+source_timezone=America/Sao_Paulo
+mode=dry-run
+adapter_kind=mixed
+total_targets=2
+total_available_messages=40
+total_selected_messages=6
+total_skipped_messages=34
+total_blocked_targets=0
+total_dry_run=6
+--------------------------------------------------------------------------------
+target=canal-beleza
+status=simulated
+adapter_kind=telegram
+available_message_count=20
+selected_message_count=3
+skipped_message_count=17
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=60
+message=2 | planned_at=2026-06-28T08:32:33-03:00 | offset=0s | delivery=telegram:canal-beleza | title=TRATAMENTO CAPILAR: SHAMPOOS CABELOS DANIFICADOS, CONDICIONADOR: LAST COMPLEMENT E ÓLEO PARA OS CABELOS
+message=4 | planned_at=2026-06-28T08:33:33-03:00 | offset=60s | delivery=telegram:canal-beleza | title=Creme Para Pentear  Karité Soul Power 800g
+message=6 | planned_at=2026-06-28T08:34:33-03:00 | offset=120s | delivery=telegram:canal-beleza | title=Calça jeans wide leg  com desenho estilo pantalona infantil juvenil 10 aos 16
+--------------------------------------------------------------------------------
+target=grupo-beleza
+status=simulated
+adapter_kind=whatsapp
+available_message_count=20
+selected_message_count=3
+skipped_message_count=17
+blocked_reason=None
+selection_reason=max_messages_per_run
+quiet_period_active=False
+min_interval_seconds=45
+message=1 | planned_at=2026-06-28T08:32:33-03:00 | offset=0s | delivery=whatsapp:grupo-beleza | title=TRATAMENTO CAPILAR: SHAMPOOS CABELOS DANIFICADOS, CONDICIONADOR: LAST COMPLEMENT E ÓLEO PARA OS CABELOS
+message=3 | planned_at=2026-06-28T08:33:18-03:00 | offset=45s | delivery=whatsapp:grupo-beleza | title=Creme Para Pentear  Karité Soul Power 800g
+message=5 | planned_at=2026-06-28T08:34:03-03:00 | offset=90s | delivery=whatsapp:grupo-beleza | title=Calça jeans wide leg  com desenho estilo pantalona infantil juvenil 10 aos 16
