@@ -11,6 +11,20 @@ Ele deve ser lido junto com
 Substituir a manutencao operacional em arquivos locais por planilhas editaveis
 no ecossistema do Google, preservando o mesmo contrato de negocio do projeto.
 
+## Pasta oficial no Google Drive
+
+Todos os arquivos externos usados pelo projeto devem ficar dentro da pasta:
+
+- `Automacao_Grupos-de-Ofertas`
+- <https://drive.google.com/drive/folders/1Ta1UWp88wrAp7GXnK3Hm8xO9xboO22WQ>
+
+Isso vale para:
+
+- planilhas operacionais;
+- documentos auxiliares;
+- exports de apoio;
+- futuros arquivos externos consumidos por automacao.
+
 ## Abas iniciais
 
 O pacote inicial deve ser composto por cinco abas:
