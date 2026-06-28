@@ -162,3 +162,66 @@ function Assert-NonEmptyFile {
     }
 }
 
+function Get-ProfilesFromInput {
+    param(
+        [string]$Profile = "",
+        [string]$ProfilesCsv = "",
+        [string]$ProfilesFile = ""
+    )
+
+    $profiles = New-Object System.Collections.Generic.List[string]
+
+    if (-not [string]::IsNullOrWhiteSpace($Profile)) {
+        $profiles.Add($Profile.Trim())
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ProfilesCsv)) {
+        foreach ($item in $ProfilesCsv.Split(",")) {
+            $normalized = $item.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($normalized)) {
+                $profiles.Add($normalized)
+            }
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ProfilesFile)) {
+        Assert-NonEmptyFile -Path $ProfilesFile -Label "Arquivo de profiles"
+        $rawProfiles = Get-Content -LiteralPath $ProfilesFile -Encoding utf8
+        foreach ($item in $rawProfiles) {
+            $normalized = $item.Trim()
+            if (-not [string]::IsNullOrWhiteSpace($normalized)) {
+                $profiles.Add($normalized)
+            }
+        }
+    }
+
+    if ($profiles.Count -eq 0) {
+        throw "Nenhum profile informado. Use -Profile, -ProfilesCsv ou -ProfilesFile."
+    }
+
+    $uniqueProfiles = New-Object System.Collections.Generic.List[string]
+    foreach ($item in $profiles) {
+        if ($uniqueProfiles -notcontains $item) {
+            Assert-AllowedProfile -Profile $item
+            $uniqueProfiles.Add($item)
+        }
+    }
+
+    return [string[]]$uniqueProfiles
+}
+
+function Save-JsonFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$Payload
+    )
+
+    $parent = Split-Path -Parent $Path
+    if (-not [string]::IsNullOrWhiteSpace($parent)) {
+        New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    }
+    $json = $Payload | ConvertTo-Json -Depth 10
+    Set-Content -LiteralPath $Path -Value $json -Encoding utf8
+}

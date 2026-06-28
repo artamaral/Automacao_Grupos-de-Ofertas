@@ -43,6 +43,7 @@ Campos por execucao:
 
 ```text
 profiles_csv
+profiles_file
 run_id
 requested_by
 notes
@@ -69,6 +70,10 @@ Payload minimo:
   "notes": "rodada manual"
 }
 ```
+
+Exemplo versionado:
+
+- [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
 
 ## Nos de contexto e validacao
 
@@ -110,6 +115,11 @@ Responsabilidade:
 Saida esperada:
 
 - 1 item por `profile`
+
+Alternativas aceitas no bloco operacional:
+
+- `profiles_csv`
+- arquivo texto com um `profile` por linha, consumido pelos wrappers de janela
 
 ### No 04 - Validar Profile
 
@@ -198,6 +208,12 @@ Capturar:
 - stdout
 - stderr
 - exit code
+
+Observacao:
+
+- para operacao de janela multi-profile, tambem existem wrappers dedicados:
+  - [`scripts/n8n/invoke_prepare_window.ps1`](../scripts/n8n/invoke_prepare_window.ps1)
+  - [`scripts/n8n/invoke_finalize_window.ps1`](../scripts/n8n/invoke_finalize_window.ps1)
 
 ### No 09 - Validar Artefatos Prepare
 

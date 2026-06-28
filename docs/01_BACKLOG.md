@@ -78,9 +78,6 @@ Regras:
 - Planejar evolução do config para suportar perfis ativos/inativos e prioridade.
 - Decidir quando perfis e grupos saem de arquivo versionado para banco/interface.
 - Definir observabilidade mínima do fluxo operacional.
-- Criar um script local iniciado pelo operador para atualizar o catalogo ativo
-  diretamente no ambiente do `n8n`, garantindo sincronizacao do CSV curado por
-  `profile` antes das rodadas.
 - Deixar essa sincronizacao de catalogo mais ergonomica no fluxo operacional do
   `n8n`, reduzindo dependencia de passos manuais e tratando isso como melhoria
   operacional ainda em aberto.

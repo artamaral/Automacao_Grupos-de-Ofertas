@@ -24,9 +24,11 @@ Raiz usada no teste:
 tmp/n8n-root-test
 ```
 
-Profile validado:
+Profiles validados:
 
 - `feminino`
+- `mae-e-bebe`
+- `auto-e-moto`
 
 Estrutura preparada:
 
@@ -40,6 +42,12 @@ tmp/n8n-root-test/data/feminino/
 - [`scripts/n8n/validate_catalog.ps1`](../scripts/n8n/validate_catalog.ps1)
 - [`scripts/n8n/invoke_prepare.ps1`](../scripts/n8n/invoke_prepare.ps1)
 - [`scripts/n8n/invoke_finalize.ps1`](../scripts/n8n/invoke_finalize.ps1)
+- [`scripts/n8n/sync_catalog_to_n8n.ps1`](../scripts/n8n/sync_catalog_to_n8n.ps1)
+- [`scripts/n8n/invoke_prepare_window.ps1`](../scripts/n8n/invoke_prepare_window.ps1)
+
+Wrappers adicionados depois desta validacao e ainda pendentes de teste proprio:
+
+- [`scripts/n8n/invoke_finalize_window.ps1`](../scripts/n8n/invoke_finalize_window.ps1)
 
 ## Resultado 1: validacao de catalogo
 
@@ -164,6 +172,54 @@ Importante:
 - como `selection_state` e por oferta, o correto era atualizar `3` ofertas, e
   nao `6`
 
+## Resultado 6: sincronizacao de catalogo para raiz do n8n
+
+Comandos validados:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile feminino -SourceCatalogPath catalogs\clean\feminino\clean_catalog_rating_4_8_plus.csv -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
+powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile mae-e-bebe -SourceCatalogPath catalogs\clean\mae-e-bebe\clean_catalog_rating_4_8_plus.csv -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
+powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile auto-e-moto -SourceCatalogPath catalogs\clean\auto-e-moto\clean_catalog_rating_4_8_plus.csv -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas
+```
+
+Resultado:
+
+- `OK` para os tres `profiles`
+- catalogos copiados para `tmp/n8n-root-test/catalogs/<profile>/`
+- metadados gerados em `catalog_sync_metadata.json` por `profile`
+
+Conclusao:
+
+- o operador ja tem um script unico e explicito para colocar catalogo curado
+  dentro do ambiente operacional do `n8n`
+
+## Resultado 7: prepare da janela multi-profile
+
+Comando validado:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_prepare_window.ps1 -ProfilesCsv "feminino,mae-e-bebe,auto-e-moto" -RootDir tmp\n8n-root-test -AppDir C:\Automacao_Grupos-de-Ofertas -RunId 2026-06-28-janela-01
+```
+
+Resultado:
+
+- `OK`
+- `total_profiles = 3`
+- resumo de janela gerado em `tmp/n8n-root-test/data/window_prepare_summary_2026-06-28-janela-01.json`
+
+Artefatos confirmados por `profile`:
+
+- `offers.json`
+- `selection_state.json`
+- `copy_briefs.json`
+- `messages_preview.html`
+- `review_queue.json`
+
+Conclusao:
+
+- o wrapper de janela consegue preparar os tres nichos no mesmo `run`
+- a diferenca operacional entre nichos ficou reduzida ao valor do `profile`
+
 ## Conclusao geral
 
 O bloco implementado para `n8n` foi validado com sucesso em ambiente local de
@@ -172,6 +228,8 @@ teste:
 - wrapper de catalogo: validado
 - wrapper de prepare: validado
 - wrapper de finalize: validado
+- wrapper de sync de catalogo: validado
+- wrapper de prepare da janela multi-profile: validado
 - cenario bloqueado por quiet period: validado
 - cenario liberado por horario forcado: validado
 - atualizacao de `last_sent_at` por oferta: validada
@@ -182,6 +240,7 @@ Esta validacao ainda nao cobre:
 
 - importacao real do JSON em uma instancia especifica do `n8n`
 - workflow importado no `n8n`
+- wrapper `invoke_finalize_window.ps1` com janela multi-profile completa
 - notificacoes reais
 - persistencia real em banco externo
 - envio real por `WhatsApp`

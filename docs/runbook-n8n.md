@@ -154,6 +154,8 @@ Minimo recomendado:
 
 - wrapper de `prepare`
 - wrapper de `finalize`
+- wrapper de `prepare` da janela multi-profile
+- wrapper de `finalize` da janela multi-profile
 - wrapper de validacao de catalogo
 - script local de atualizacao de catalogo, iniciado pelo operador
 
@@ -168,7 +170,10 @@ Wrappers implementados neste repositorio:
 
 - [`scripts/n8n/invoke_prepare.ps1`](../scripts/n8n/invoke_prepare.ps1)
 - [`scripts/n8n/invoke_finalize.ps1`](../scripts/n8n/invoke_finalize.ps1)
+- [`scripts/n8n/invoke_prepare_window.ps1`](../scripts/n8n/invoke_prepare_window.ps1)
+- [`scripts/n8n/invoke_finalize_window.ps1`](../scripts/n8n/invoke_finalize_window.ps1)
 - [`scripts/n8n/validate_catalog.ps1`](../scripts/n8n/validate_catalog.ps1)
+- [`scripts/n8n/sync_catalog_to_n8n.ps1`](../scripts/n8n/sync_catalog_to_n8n.ps1)
 - [`scripts/n8n/common.ps1`](../scripts/n8n/common.ps1)
 
 ## Comandos base
@@ -189,6 +194,24 @@ powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_finalize.ps1 -Profil
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\n8n\validate_catalog.ps1 -Profile feminino -RootDir <n8n-root>
+```
+
+### Prepare da janela multi-profile
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_prepare_window.ps1 -ProfilesCsv "feminino,mae-e-bebe,auto-e-moto" -RootDir <n8n-root> -RunId 2026-06-28-janela-01
+```
+
+### Finalize da janela multi-profile
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\invoke_finalize_window.ps1 -ProfilesCsv "feminino,mae-e-bebe,auto-e-moto" -RootDir <n8n-root> -RunId 2026-06-28-janela-01
+```
+
+### Sincronizar catalogo para o n8n
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\n8n\sync_catalog_to_n8n.ps1 -Profile feminino -SourceCatalogPath C:\origem\clean_catalog_rating_4_8_plus.csv -RootDir <n8n-root>
 ```
 
 Regra:
