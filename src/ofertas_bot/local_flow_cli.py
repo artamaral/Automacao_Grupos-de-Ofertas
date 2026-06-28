@@ -183,6 +183,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Arquivo local de catalogo curado usado como entrada da etapa prepare",
     )
+    parser.add_argument(
+        "--defer-last-sent-at",
+        action="store_true",
+        help=(
+            "Nao atualiza last_sent_at no finalize; usar quando o envio real sera "
+            "confirmado externamente depois do dispatch_artifact"
+        ),
+    )
     return parser
 
 
@@ -303,16 +311,19 @@ def _run_finalize(*, args: argparse.Namespace, paths: LocalFlowPaths) -> int:
     if step_exit_code != 0:
         return _print_finalize_step_error("executar dry-run do disparo", step_exit_code)
 
-    try:
-        _mark_last_sent_at_from_finalize(paths=paths)
-    except (
-        MessageDraftStoreError,
-        OSError,
-        SelectionStateStoreError,
-        SelectionStateStoreWriteError,
-        ValueError,
-    ) as error:
-        return _print_finalize_selection_state_error(error)
+    if args.defer_last_sent_at:
+        print("INFO | last_sent_at adiado para confirmacao externa de entrega.")
+    else:
+        try:
+            _mark_last_sent_at_from_finalize(paths=paths)
+        except (
+            MessageDraftStoreError,
+            OSError,
+            SelectionStateStoreError,
+            SelectionStateStoreWriteError,
+            ValueError,
+        ) as error:
+            return _print_finalize_selection_state_error(error)
 
     step_exit_code = local_review_bundle_cli.run(
         [

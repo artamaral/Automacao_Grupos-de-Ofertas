@@ -1,0 +1,11 @@
+{
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas",
+  "deliveries": [
+    {
+      "profile": "feminino",
+      "target": "grupo-teste-controlado",
+      "manifest_item_number": 1
+    }
+  ]
+}

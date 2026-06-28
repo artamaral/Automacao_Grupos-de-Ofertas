@@ -9,9 +9,13 @@ from typing import Any
 
 from ofertas_bot.cloud_runner import (
     CloudRunnerError,
+    confirm_delivery,
+    confirm_window_deliveries,
     health_payload,
+    load_dispatch_window,
     run_finalize_window,
     run_prepare_window,
+    run_window,
 )
 
 
@@ -40,6 +44,13 @@ def build_handler() -> type[BaseHTTPRequestHandler]:
         ("GET", "/health"): lambda payload: health_payload(),
         ("POST", "/prepare-window"): lambda payload: run_prepare_window(**payload),
         ("POST", "/finalize-window"): lambda payload: run_finalize_window(**payload),
+        ("POST", "/dispatch-window"): lambda payload: load_dispatch_window(**payload),
+        ("POST", "/run-window"): lambda payload: run_window(**payload),
+        ("POST", "/confirm-delivery"): lambda payload: confirm_delivery(**payload),
+        (
+            "POST",
+            "/confirm-window-deliveries",
+        ): lambda payload: confirm_window_deliveries(**payload),
     }
 
     class Handler(BaseHTTPRequestHandler):

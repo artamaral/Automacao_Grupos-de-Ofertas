@@ -21,8 +21,10 @@ execucao esta em
   ambiente do `n8n`;
 - a regra de negocio continua dentro do projeto;
 - o primeiro canal real alvo passa a ser `WhatsApp`;
-- enquanto o publisher real nao existir, o fluxo continua estritamente em
-  `dry-run`.
+- o envio real controlado deve acontecer no `n8n`, usando o artefato de
+  dispatch gerado pelo projeto;
+- o publisher Python continua em `dry-run`;
+- a confirmacao de entrega real volta do `n8n` para o runner HTTP.
 
 ## Distribuicao de responsabilidades
 
@@ -252,36 +254,42 @@ No desenho atual, `WhatsApp` entra por `channel_adapter = "whatsapp"` em:
 - `publication_manifest.json`
 - `dispatch_artifact.json`
 
-Hoje isso ainda significa:
+Hoje isso significa:
 
 - roteamento para destino logico de WhatsApp;
 - validacao de limites e quiet period;
-- simulacao local de disparo.
+- geracao de `dispatch_artifact.json`;
+- entrega real feita no `n8n` para um grupo controlado;
+- confirmacao externa de entrega via runner HTTP.
 
-Ainda nao significa:
+O que continua fora do Python:
 
 - sessao conectada;
-- envio real;
-- integracao oficial com provedor;
-- confirmacao de entrega externa.
+- credencial do provedor;
+- envio real do canal;
+- retry e reconciliacao do provedor.
 
 ## Bloco de implementacao que vem agora
 
-Para iniciar o caminho de `WhatsApp` sem romper a seguranca, o proximo bloco
-de desenvolvimento deve ser:
+Para iniciar o caminho de `WhatsApp` sem romper a seguranca, o bloco atual de
+implementacao passa a ser:
 
-1. preparar a estrutura de dados, scripts e catalogos no ambiente do `n8n`;
-2. adaptar os comandos do fluxo para usar paths operacionais do `n8n`;
-3. manter `n8n` executando `prepare` e `finalize` sobre seus proprios arquivos;
-4. criar a camada de `WhatsAppPublisher` por interface isolada;
-5. manter fallback em `dry-run`;
-6. registrar resultado por mensagem em formato auditavel;
-7. liberar `ENABLE_REAL_PUBLISH=true` somente depois do checklist completo.
+1. `n8n` chama o runner HTTP para `prepare` e `finalize`;
+2. `n8n` carrega as `deliveries[]` do `dispatch-window` ou `run-window`;
+3. `n8n` envia no provedor real apenas para os destinos permitidos do teste;
+4. a cada sucesso, `n8n` chama `confirm-delivery`;
+5. o runner atualiza `last_sent_at` apenas das mensagens realmente enviadas;
+6. o publisher Python continua em `dry-run` como camada local de validacao;
+7. a expansao para mais grupos continua dependente de allowlist e checklist.
 
 ## Regra obrigatoria
 
-Enquanto o publisher real de `WhatsApp` nao existir e nao for validado:
+Enquanto o publisher real de `WhatsApp` dentro do Python nao existir e nao for
+validado:
 
 - `dispatch_execute_cli` continua em `dry-run`;
-- `ENABLE_REAL_PUBLISH` continua `false`;
-- o `n8n` pode orquestrar a rodada, mas nao deve assumir entrega real.
+- `ENABLE_REAL_PUBLISH` continua `false` no projeto Python;
+- o envio real permitido nesta fase deve acontecer apenas no `n8n`;
+- o `n8n` so deve enviar para destinos explicitamente allowlisted;
+- a confirmacao de entrega deve voltar ao runner por `confirm-delivery` ou
+  `confirm-window-deliveries`.

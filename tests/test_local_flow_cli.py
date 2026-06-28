@@ -195,6 +195,66 @@ def test_local_flow_finalize_runs_steps_in_order(tmp_path, monkeypatch) -> None:
     assert "--dispatch-report-json" in doctor_calls[0]
 
 
+def test_local_flow_finalize_can_defer_last_sent_at(tmp_path, monkeypatch) -> None:
+    order: list[str] = []
+    mark_calls: list[Path] = []
+
+    def make_step(name: str):
+        def fake_run(argv: list[str]) -> int:
+            order.append(name)
+            assert argv
+            return 0
+
+        return fake_run
+
+    monkeypatch.setattr(local_flow_cli.review_queue_export_cli, "run", make_step("export"))
+    monkeypatch.setattr(local_flow_cli.publication_manifest_cli, "run", make_step("manifest"))
+    monkeypatch.setattr(
+        local_flow_cli.publication_manifest_validate_cli,
+        "run",
+        make_step("validate"),
+    )
+    monkeypatch.setattr(local_flow_cli.dispatch_artifact_cli, "run", make_step("dispatch"))
+    monkeypatch.setattr(
+        local_flow_cli.dispatch_execute_cli,
+        "run",
+        make_step("dispatch-execute"),
+    )
+    monkeypatch.setattr(local_flow_cli.local_review_bundle_cli, "run", make_step("bundle"))
+    monkeypatch.setattr(local_flow_cli.local_artifacts_doctor_cli, "run", make_step("doctor"))
+
+    def fake_mark_last_sent_at_from_finalize(*, paths: local_flow_cli.LocalFlowPaths) -> None:
+        mark_calls.append(paths.data_dir)
+
+    monkeypatch.setattr(
+        local_flow_cli,
+        "_mark_last_sent_at_from_finalize",
+        fake_mark_last_sent_at_from_finalize,
+    )
+
+    exit_code = local_flow_cli.run(
+        [
+            "--stage",
+            "finalize",
+            "--data-dir",
+            str(tmp_path),
+            "--defer-last-sent-at",
+        ]
+    )
+
+    assert exit_code == 0
+    assert order == [
+        "export",
+        "manifest",
+        "validate",
+        "dispatch",
+        "dispatch-execute",
+        "bundle",
+        "doctor",
+    ]
+    assert mark_calls == []
+
+
 def test_local_flow_prepare_prefers_profile_and_generates_review_plan(
     tmp_path, monkeypatch
 ) -> None:

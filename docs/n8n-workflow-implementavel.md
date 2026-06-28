@@ -71,8 +71,9 @@ Payload base:
   "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
   "run_id": "2026-06-28-janela-01",
   "requested_by": "arthur",
-  "notes": "rodada dry-run",
-  "runner_base_url": "https://SEU-RUNNER-HTTP"
+  "notes": "rodada controlada",
+  "runner_base_url": "https://SEU-RUNNER-HTTP",
+  "allowed_targets_csv": "grupo-teste-controlado"
 }
 ```
 
@@ -84,6 +85,7 @@ Campos criados:
 - `run_id`
 - `requested_by`
 - `notes`
+- `allowed_targets_csv`
 - `runner_base_url`
 - `root_dir`
 - `app_dir`
@@ -163,7 +165,81 @@ Objetivo:
 
 - disparar o `finalize` automatico da janela
 
-#### No 07 - Montar Resumo da Rodada
+#### No 07 - Dispatch Window
+
+Tipo:
+
+- `HTTP Request`
+
+Chamada:
+
+```http
+POST {{runner_base_url}}/dispatch-window
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas",
+  "allowed_targets_csv": "grupo-teste-controlado"
+}
+```
+
+Objetivo:
+
+- devolver para o `n8n` apenas as mensagens prontas para o teste controlado;
+- limitar a entrega real ao destino explicitamente permitido.
+
+#### No 08 - Enviar no Canal Real
+
+Tipo:
+
+- node do provedor real de `WhatsApp` escolhido na instancia do `n8n`
+
+Entrada:
+
+- cada item de `deliveries[]` vindo do `dispatch-window`
+
+Objetivo:
+
+- enviar a mensagem real no grupo de teste;
+- devolver sucesso ou falha por mensagem.
+
+#### No 09 - Confirmar Entrega
+
+Tipo:
+
+- `HTTP Request`
+
+Chamada:
+
+```http
+POST {{runner_base_url}}/confirm-delivery
+Content-Type: application/json
+```
+
+Body minimo:
+
+```json
+{
+  "profile": "feminino",
+  "target": "grupo-teste-controlado",
+  "manifest_item_number": 1,
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
+}
+```
+
+Objetivo:
+
+- atualizar `last_sent_at` apenas da mensagem efetivamente enviada.
+
+#### No 10 - Montar Resumo da Rodada
 
 Tipo:
 
@@ -174,12 +250,17 @@ Saida esperada:
 - `run_id`
 - `profiles_csv`
 - `runner_base_url`
+- `allowed_targets_csv`
 - `prepare_summary_path`
 - `finalize_summary_path`
+- `dispatch_total_targets`
+- `dispatch_total_deliveries`
 - `prepare_profiles`
 - `finalize_profiles`
+- `dispatch_profiles`
+- `deliveries`
 
-#### Nos 08 e 09
+#### Nos 11 e 12
 
 Tipos:
 
@@ -207,12 +288,18 @@ Endpoints:
 - `GET /health`
 - `POST /prepare-window`
 - `POST /finalize-window`
+- `POST /dispatch-window`
+- `POST /run-window`
+- `POST /confirm-delivery`
+- `POST /confirm-window-deliveries`
 
 Payloads versionados:
 
 - [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
 - [`n8n/payloads/prepare-window-runner.example.json`](../n8n/payloads/prepare-window-runner.example.json)
 - [`n8n/payloads/finalize-window-runner.example.json`](../n8n/payloads/finalize-window-runner.example.json)
+- [`n8n/payloads/run-window-runner.example.json`](../n8n/payloads/run-window-runner.example.json)
+- [`n8n/payloads/confirm-window-deliveries-runner.example.json`](../n8n/payloads/confirm-window-deliveries-runner.example.json)
 
 ## 4. O que permanece igual entre as duas trilhas
 
@@ -241,7 +328,5 @@ Payloads versionados:
 
 Ainda nao entra nesta fase:
 
-- envio real por WhatsApp
-- credenciais reais no `n8n`
 - storage realmente cloud-native
-- persistencia final de logs e notificacoes reais
+- publisher real dentro do Python

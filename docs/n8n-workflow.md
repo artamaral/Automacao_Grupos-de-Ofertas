@@ -97,6 +97,9 @@ Trigger
   -> GET /health
   -> POST /prepare-window
   -> POST /finalize-window
+  -> POST /dispatch-window
+  -> envio real no n8n
+  -> POST /confirm-delivery
   -> Montar resumo da rodada
   -> Persistir log
   -> Notificar conclusao

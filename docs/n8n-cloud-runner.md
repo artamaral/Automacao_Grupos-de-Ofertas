@@ -19,6 +19,10 @@ exposto por um servidor HTTP proprio:
 - `GET /health`
 - `POST /prepare-window`
 - `POST /finalize-window`
+- `POST /dispatch-window`
+- `POST /run-window`
+- `POST /confirm-delivery`
+- `POST /confirm-window-deliveries`
 
 Esse runner fica em paralelo ao caminho atual:
 
@@ -95,6 +99,103 @@ Payload minimo:
 }
 ```
 
+### Dispatch window
+
+```http
+POST /dispatch-window
+Content-Type: application/json
+```
+
+Payload minimo:
+
+```json
+{
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas",
+  "allowed_targets_csv": "grupo-teste-controlado"
+}
+```
+
+Objetivo:
+
+- carregar os `dispatch_artifact.json` da janela;
+- filtrar os destinos permitidos para o teste controlado;
+- devolver as mensagens prontas para o `n8n` enviar no canal real.
+
+### Run window
+
+```http
+POST /run-window
+Content-Type: application/json
+```
+
+Payload minimo:
+
+```json
+{
+  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
+  "run_id": "2026-06-28-janela-01",
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas",
+  "allowed_targets_csv": "grupo-teste-controlado"
+}
+```
+
+Objetivo:
+
+- executar `prepare` e `finalize` numa chamada unica;
+- devolver no mesmo retorno a lista `deliveries[]` pronta para envio real;
+- manter `last_sent_at` adiado ate a confirmacao externa de entrega.
+
+### Confirm delivery
+
+```http
+POST /confirm-delivery
+Content-Type: application/json
+```
+
+Payload minimo:
+
+```json
+{
+  "profile": "feminino",
+  "target": "grupo-teste-controlado",
+  "manifest_item_number": 1,
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
+}
+```
+
+Objetivo:
+
+- confirmar no projeto apenas a mensagem que realmente saiu no canal;
+- atualizar `last_sent_at` no `selection_state.json` somente apos sucesso real.
+
+### Confirm window deliveries
+
+```http
+POST /confirm-window-deliveries
+Content-Type: application/json
+```
+
+Payload minimo:
+
+```json
+{
+  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
+  "app_dir": "C:\\Automacao_Grupos-de-Ofertas",
+  "deliveries": [
+    {
+      "profile": "feminino",
+      "target": "grupo-teste-controlado",
+      "manifest_item_number": 1
+    }
+  ]
+}
+```
+
 ## Observacao importante
 
 Nesta primeira implementacao paralela, o runner HTTP ainda reutiliza:
@@ -102,6 +203,12 @@ Nesta primeira implementacao paralela, o runner HTTP ainda reutiliza:
 - `catalogs/`
 - `data/`
 - `local_flow_cli`
+
+No modo `real controlado`, o envio continua fora do Python:
+
+- o Python monta e valida a rodada;
+- o `n8n` faz o envio real pelo provedor de `WhatsApp` configurado;
+- o `n8n` confirma de volta ao runner quais mensagens realmente sairam.
 
 Ou seja:
 

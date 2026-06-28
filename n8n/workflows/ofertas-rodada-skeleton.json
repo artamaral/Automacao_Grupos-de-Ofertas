@@ -49,6 +49,10 @@
               "value": "={{ $json.notes || '' }}"
             },
             {
+              "name": "allowed_targets_csv",
+              "value": "={{ $json.allowed_targets_csv || '' }}"
+            },
+            {
               "name": "runner_base_url",
               "value": "={{ $json.runner_base_url || 'https://SEU-RUNNER-HTTP' }}"
             },
@@ -131,25 +135,43 @@
     },
     {
       "id": "7",
-      "name": "Montar Resumo da Rodada",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "name": "Dispatch Window",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         1640,
         0
       ],
       "parameters": {
-        "language": "JavaScript",
-        "jsCode": "const base = $('Set Contexto Base').item.json;\nconst prepare = $('Prepare Window').item.json.result || {};\nconst finalize = $('Finalizar Window').item.json.result || {};\nreturn [{\n  json: {\n    status: 'ok',\n    mode: 'cloud-runner-http',\n    run_id: base.run_id,\n    requested_by: base.requested_by,\n    notes: base.notes,\n    runner_base_url: base.runner_base_url,\n    profiles_csv: base.profiles_csv,\n    total_profiles: finalize.total_profiles ?? prepare.total_profiles ?? 0,\n    prepare_summary_path: prepare.summary_path || null,\n    finalize_summary_path: finalize.summary_path || null,\n    prepare_profiles: prepare.profiles || [],\n    finalize_profiles: finalize.profiles || []\n  }\n}];"
+        "method": "POST",
+        "url": "={{ $('Set Contexto Base').item.json.runner_base_url + '/dispatch-window' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"profiles_csv\": $('Set Contexto Base').item.json.profiles_csv,\n  \"run_id\": $('Set Contexto Base').item.json.run_id,\n  \"root_dir\": $('Set Contexto Base').item.json.root_dir,\n  \"app_dir\": $('Set Contexto Base').item.json.app_dir,\n  \"allowed_targets_csv\": $('Set Contexto Base').item.json.allowed_targets_csv\n}",
+        "options": {}
       }
     },
     {
       "id": "8",
+      "name": "Montar Resumo da Rodada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        0
+      ],
+      "parameters": {
+        "language": "JavaScript",
+        "jsCode": "const base = $('Set Contexto Base').item.json;\nconst prepare = $('Prepare Window').item.json.result || {};\nconst finalize = $('Finalizar Window').item.json.result || {};\nconst dispatch = $('Dispatch Window').item.json.result || {};\nreturn [{\n  json: {\n    status: 'ok',\n    mode: 'cloud-runner-http',\n    run_id: base.run_id,\n    requested_by: base.requested_by,\n    notes: base.notes,\n    runner_base_url: base.runner_base_url,\n    profiles_csv: base.profiles_csv,\n    allowed_targets_csv: base.allowed_targets_csv,\n    total_profiles: finalize.total_profiles ?? prepare.total_profiles ?? 0,\n    prepare_summary_path: prepare.summary_path || null,\n    finalize_summary_path: finalize.summary_path || null,\n    dispatch_total_targets: dispatch.total_targets ?? 0,\n    dispatch_total_deliveries: dispatch.total_deliveries ?? 0,\n    prepare_profiles: prepare.profiles || [],\n    finalize_profiles: finalize.profiles || [],\n    dispatch_profiles: dispatch.profiles || [],\n    deliveries: dispatch.deliveries || []\n  }\n}];"
+      }
+    },
+    {
+      "id": "9",
       "name": "Persistir Log da Rodada",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1920,
+        2200,
         0
       ],
       "parameters": {
@@ -165,12 +187,12 @@
       }
     },
     {
-      "id": "9",
+      "id": "10",
       "name": "Notificar Conclusao",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2200,
+        2480,
         0
       ],
       "parameters": {
@@ -243,6 +265,17 @@
       ]
     },
     "Finalizar Window": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Window",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Window": {
       "main": [
         [
           {

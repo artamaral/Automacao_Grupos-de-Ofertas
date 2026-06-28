@@ -39,6 +39,8 @@ Portanto:
 - [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
 - [`n8n/payloads/prepare-window-runner.example.json`](../n8n/payloads/prepare-window-runner.example.json)
 - [`n8n/payloads/finalize-window-runner.example.json`](../n8n/payloads/finalize-window-runner.example.json)
+- [`n8n/payloads/run-window-runner.example.json`](../n8n/payloads/run-window-runner.example.json)
+- [`n8n/payloads/confirm-window-deliveries-runner.example.json`](../n8n/payloads/confirm-window-deliveries-runner.example.json)
 
 ## 2. Perfis permitidos
 
@@ -88,6 +90,10 @@ O `n8n` fala com um runner HTTP do projeto:
 - `GET /health`
 - `POST /prepare-window`
 - `POST /finalize-window`
+- `POST /dispatch-window`
+- `POST /run-window`
+- `POST /confirm-delivery`
+- `POST /confirm-window-deliveries`
 
 ### Entry point do runner
 
@@ -103,6 +109,23 @@ ofertas-cloud-runner
 4. configurar `runner_base_url`
 5. disparar a rodada pelo payload da janela
 
+### Modo real controlado
+
+Para avaliar o resultado final com apenas um grupo controlado:
+
+1. preencher `allowed_targets_csv` no workflow com o destino de teste;
+2. executar `dispatch-window` ou `run-window`;
+3. enviar no provedor real do `WhatsApp` apenas as mensagens devolvidas em
+   `deliveries[]`;
+4. confirmar cada sucesso em `confirm-delivery` ou fechar em lote com
+   `confirm-window-deliveries`.
+
+Observacao de estabilidade:
+
+- `Quick Tunnel` da Cloudflare serve para validacao;
+- para rodar isso de forma repetivel, o recomendado e usar `named tunnel` ou
+  hospedar o runner em ambiente proprio com URL estavel.
+
 ### Payload base do workflow hosted
 
 ```json
@@ -110,7 +133,8 @@ ofertas-cloud-runner
   "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
   "run_id": "2026-06-28-janela-01",
   "requested_by": "arthur",
-  "notes": "rodada dry-run",
+  "notes": "rodada controlada",
+  "allowed_targets_csv": "grupo-teste-controlado",
   "runner_base_url": "https://SEU-RUNNER-HTTP",
   "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
   "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
@@ -134,6 +158,12 @@ ofertas-cloud-runner
 - `dispatch_artifact.json`
 - `dispatch_report.json`
 
+### Dispatch real controlado
+
+- `deliveries[]` no retorno do runner
+- confirmacao por mensagem em `confirm-delivery`
+- confirmacao em lote por `confirm-window-deliveries`
+
 ## 6. Regra de horizontalizacao
 
 Toda evolucao do fluxo principal deve respeitar:
@@ -151,4 +181,6 @@ Hoje o repositorio fica assim:
 - a solucao local continua sendo a oficial e operacional;
 - a solucao cloud foi criada em paralelo para uso futuro;
 - nenhuma das duas depende de validacao humana obrigatoria;
-- o proximo salto natural e hospedar o `cloud runner` e ligar persistencia/notificacao reais no `n8n`.
+- o `n8n` ja pode executar o envio real controlado usando `deliveries[]`;
+- o runner HTTP ja consegue receber a confirmacao das mensagens realmente
+  enviadas.
