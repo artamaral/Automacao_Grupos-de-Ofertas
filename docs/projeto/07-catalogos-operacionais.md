@@ -67,6 +67,29 @@ clean_catalog_rating_4_8_plus.csv
 
 Isso evita divergencia entre nichos e reduz condicao especial no pipeline.
 
+## Schema operacional minimo
+
+O arquivo ativo `clean_catalog_rating_4_8_plus.csv` deve carregar apenas o
+contrato minimo consumido pelo fluxo principal.
+
+Campos mantidos:
+
+- `itemId`
+- `productName`
+- `productLink`
+- `offerLink`
+- `imageUrl`
+- `price`
+- `priceMax`
+- `sales`
+- `ratingStar`
+- `shopType`
+- `sellerCommissionRate`
+- `shopeeCommissionRate`
+- `subniches`
+
+Campos fora desse bloco nao devem voltar ao CSV operacional ativo.
+
 ## Contrato operacional atual
 
 Leitura correta desta fase:

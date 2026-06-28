@@ -10,6 +10,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ofertas_bot.catalog_contract import (
+    OPERATIONAL_CATALOG_FIELDNAMES,
+    project_operational_catalog_row,
+)
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.settings import get_settings
@@ -361,19 +365,37 @@ def _item_key(node: dict[str, Any]) -> str:
     return f"{node.get('shopId')}:{node.get('itemId')}"
 
 
-def _write_catalog_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+def _write_catalog_csv(
+    path: Path,
+    rows: list[dict[str, Any]],
+    *,
+    fieldnames: list[str] | None = None,
+) -> None:
+    resolved_fieldnames = fieldnames or CATALOG_FIELDNAMES
     serializable_rows: list[dict[str, Any]] = []
     for row in rows:
         item = dict(row)
-        item["productCatIds"] = json.dumps(item.get("productCatIds"), ensure_ascii=False)
-        item["shopType"] = json.dumps(item.get("shopType"), ensure_ascii=False)
-        item["source_hits"] = json.dumps(item.get("source_hits"), ensure_ascii=False)
-        item["subniches"] = json.dumps(item.get("subniches"), ensure_ascii=False)
+        if "productCatIds" in item:
+            item["productCatIds"] = _serialize_csv_value(item.get("productCatIds"))
+        if "shopType" in item:
+            item["shopType"] = _serialize_csv_value(item.get("shopType"))
+        if "source_hits" in item:
+            item["source_hits"] = _serialize_csv_value(item.get("source_hits"))
+        if "subniches" in item:
+            item["subniches"] = _serialize_csv_value(item.get("subniches"))
         serializable_rows.append(item)
     with path.open("w", newline="", encoding="utf-8-sig") as handle:
-        writer = csv.DictWriter(handle, fieldnames=CATALOG_FIELDNAMES)
+        writer = csv.DictWriter(handle, fieldnames=resolved_fieldnames)
         writer.writeheader()
         writer.writerows(serializable_rows)
+
+
+def _serialize_csv_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, dict)):
+        return json.dumps(value, ensure_ascii=False)
+    return value
 
 
 def _persist_catalog_run(
@@ -406,6 +428,10 @@ def _persist_catalog_run(
     )
     deduplicated_items = _build_deduplicated_items(profile=profile, merged_items=merged_items)
     clean_items = _build_clean_items(profile=profile, deduplicated_items=deduplicated_items)
+    operational_clean_items = [
+        project_operational_catalog_row(item)
+        for item in clean_items
+    ]
     _write_catalog_csv(raw_csv_path, raw_source_rows)
     raw_json_path.write_text(json.dumps(raw_source_rows, ensure_ascii=False, indent=2), encoding="utf-8")
     _write_catalog_csv(deduplicated_csv_path, deduplicated_items)
@@ -413,8 +439,15 @@ def _persist_catalog_run(
         json.dumps(deduplicated_items, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    _write_catalog_csv(clean_csv_path, clean_items)
-    clean_json_path.write_text(json.dumps(clean_items, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write_catalog_csv(
+        clean_csv_path,
+        operational_clean_items,
+        fieldnames=OPERATIONAL_CATALOG_FIELDNAMES,
+    )
+    clean_json_path.write_text(
+        json.dumps(operational_clean_items, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     summary_path.write_text(json.dumps(summary_payload, ensure_ascii=False, indent=2), encoding="utf-8")
     print(
         "INFO | "
