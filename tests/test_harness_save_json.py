@@ -121,6 +121,8 @@ def test_harness_saves_messages_preview_html_when_requested(tmp_path) -> None:
     assert exit_code == 0
     assert "<!DOCTYPE html>" in html
     assert "Preview HTML gerado automaticamente a partir da rodada." in html
+    assert "overflow-wrap: anywhere" in html
+    assert "word-break: break-word" in html
     assert "🛍️" in html
 
 

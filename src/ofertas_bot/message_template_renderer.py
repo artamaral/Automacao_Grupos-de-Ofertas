@@ -85,17 +85,17 @@ def render_message_preview_html(
     .avatar {{ width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #ffb21c; color: #1a1a1a; font-size: 18px; }}
     .group-meta strong, .group-meta span {{ display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
     .group-meta span {{ margin-top: 2px; color: var(--muted); font-size: 12px; }}
-    .bubble {{ background: var(--card); border-radius: 14px; padding: 12px; border: 1px solid rgba(255,255,255,0.03); }}
+    .bubble {{ background: var(--card); border-radius: 14px; padding: 12px; border: 1px solid rgba(255,255,255,0.03); min-width: 0; overflow: hidden; }}
     .bubble img {{ width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; border-radius: 10px; background: #fff; }}
-    .message-body {{ margin-top: 14px; }}
-    .title {{ margin: 0 0 12px; font-size: 17px; line-height: 1.3; font-weight: 700; }}
-    .line {{ margin: 10px 0 0; font-size: 15px; line-height: 1.4; }}
+    .message-body {{ margin-top: 14px; min-width: 0; }}
+    .title {{ margin: 0 0 12px; font-size: 17px; line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; word-break: break-word; }}
+    .line {{ margin: 10px 0 0; font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; word-break: break-word; }}
     .label {{ font-weight: 700; }}
     .price {{ color: #d7fdd3; font-size: 16px; font-weight: 700; }}
     .old-price {{ display: block; margin-top: 6px; color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }}
     .badge {{ display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; border-radius: 999px; background: var(--green-soft); color: #d7fdd3; border: 1px solid rgba(0,168,132,0.35); padding: 5px 10px; font-size: 14px; font-weight: 700; }}
     .rating {{ color: var(--gold); font-weight: 700; }}
-    a {{ color: var(--link); text-decoration: none; word-break: break-all; }}
+    a {{ color: var(--link); text-decoration: none; overflow-wrap: anywhere; word-break: break-word; }}
     .ad {{ margin-top: 14px; font-weight: 700; }}
     .time {{ margin-top: 8px; text-align: right; color: var(--muted); font-size: 12px; }}
   </style>
