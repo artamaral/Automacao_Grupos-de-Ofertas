@@ -235,6 +235,18 @@ serviço deve considerar volume, automação e necessidade de operação em clou
 O n8n pode ser usado como camada de automação para chamar o fluxo principal,
 agendar execuções, conectar aprovações humanas e integrar serviços externos.
 
+Decisao operacional complementar desta etapa:
+
+- o primeiro canal real alvo para a camada de publicacao passa a ser
+  `WhatsApp`;
+- o `n8n` deve consumir o contrato operacional do projeto, e nao reimplementar
+  regra de negocio;
+- os dados operacionais, catalogos ativos e scripts chamados pela automacao
+  devem ficar no ambiente do `n8n` desde o inicio da integracao;
+- enquanto o publisher real de `WhatsApp` nao existir, o uso do `n8n` continua
+  limitado a orquestracao, execucao do fluxo e leitura de artefatos locais do
+  proprio `n8n`.
+
 Possíveis responsabilidades do n8n:
 
 - disparar execuções por agenda, nicho ou grupo;

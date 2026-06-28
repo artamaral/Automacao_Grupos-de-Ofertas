@@ -2,6 +2,14 @@
 
 Este projeto deve ser operado por automação, agendador ou orquestrador. O objetivo é evitar execução manual de vários scripts pequenos.
 
+Decisao operacional complementar:
+
+- na implantacao alvo, os dados da rodada, os catalogos operacionais e os
+  scripts chamados pela automacao devem ficar no ambiente do `n8n` desde o
+  inicio da integracao;
+- o repositorio continua como fonte de codigo, contrato e configuracao
+  versionada.
+
 ## Comando principal
 
 Use o orquestrador local:
@@ -12,6 +20,13 @@ Use o orquestrador local:
 
 Os comandos completos, flags de debug, entradas e saidas estao em
 [`docs/cli-rodadas.md`](cli-rodadas.md).
+
+O contrato externo para `n8n` e a decisao de iniciar a integracao real por
+`WhatsApp` estao registrados em
+[`docs/contrato-n8n-whatsapp.md`](contrato-n8n-whatsapp.md).
+
+O passo a passo operacional de implantacao no `n8n` esta em
+[`docs/runbook-n8n.md`](runbook-n8n.md).
 
 O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
 e está documentado em [`docs/discovery-profiles.md`](discovery-profiles.md).
@@ -88,6 +103,19 @@ O fluxo usa `.data/<profile>/` por padrão:
 .data/<profile>/publication_manifest.json
 .data/<profile>/local_review_bundle.json
 ```
+
+Para automacao externa, o arquivo principal de consumo da rodada finalizada e:
+
+```text
+.data/<profile>/dispatch_artifact.json
+```
+
+Ele representa a fila pronta para disparo por destino logico, ainda em
+`dry-run`.
+
+Na operacao integrada ao `n8n`, esses mesmos artefatos devem existir dentro do
+ambiente do `n8n`, preservando o mesmo contrato de nomes e estrutura por
+`profile`.
 
 ## Etapa prepare
 

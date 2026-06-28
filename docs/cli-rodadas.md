@@ -13,6 +13,9 @@ O ponto de entrada recomendado e `ofertas_bot.local_flow_cli`:
 O `harness` permanece como ferramenta interna para teste e debug, quando for
 necessario controlar artefatos individuais com flags `--save-*`.
 
+O contrato recomendado para automacao externa via `n8n` esta em
+[`docs/contrato-n8n-whatsapp.md`](contrato-n8n-whatsapp.md).
+
 ## Comando operacional
 
 Os tres nichos usam o mesmo comando. Somente o valor de `--profile` muda:
@@ -117,6 +120,24 @@ O `prepare` grava por padrao em `.data/<profile>/`:
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.local_flow_cli --stage finalize --profile feminino
 ```
+
+## Contrato para n8n
+
+Para automacao, o `n8n` deve tratar o fluxo assim:
+
+1. chamar `prepare` por `profile`;
+2. aguardar a revisao humana da `review_queue.json`;
+3. chamar `finalize` no mesmo `profile`;
+4. consumir `.data/<profile>/dispatch_artifact.json` como artefato final da rodada.
+
+O `n8n` nao deve recriar score, copy, compliance ou manifesto.
+
+Canal real inicial registrado:
+
+- `WhatsApp`
+
+Mesmo assim, o estado atual do projeto continua em `dry-run` ate a implementacao
+do publisher real.
 
 ## Contrato horizontal
 
