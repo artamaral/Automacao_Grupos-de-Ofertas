@@ -123,8 +123,14 @@ Para avaliar o resultado final com apenas um grupo controlado:
 Observacao de estabilidade:
 
 - `Quick Tunnel` da Cloudflare serve para validacao;
-- para rodar isso de forma repetivel, o recomendado e usar `named tunnel` ou
-  hospedar o runner em ambiente proprio com URL estavel.
+- `named tunnel` com hostname estavel exige uma decisao adicional de dominio e
+  operacao;
+- como isso pode gerar custo ou antecipar uma decisao de infra, nao e
+  pre-requisito desta fase;
+- a linha pragmatica atual e continuar a validacao com `Quick Tunnel` enquanto
+  o fluxo real controlado estiver sendo provado;
+- `named tunnel` ou URL estavel ficam como evolucao posterior, quando houver
+  decisao explicita de seguir para operacao repetivel.
 
 ### Payload base do workflow hosted
 
@@ -184,3 +190,4 @@ Hoje o repositorio fica assim:
 - o `n8n` ja pode executar o envio real controlado usando `deliveries[]`;
 - o runner HTTP ja consegue receber a confirmacao das mensagens realmente
   enviadas.
+- dominio proprio e hostname estavel nao sao obrigatorios nesta fase.

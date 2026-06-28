@@ -233,3 +233,14 @@ Usar quando houver:
 - `n8n` hospedado
 - necessidade de orquestracao autonoma por HTTP
 - possibilidade de expor ou publicar um runner do projeto em ambiente proprio
+
+## Decisao pragmatica desta fase
+
+Para evitar custo, acoplamento prematuro ou decisao antecipada de dominio:
+
+- `Quick Tunnel` continua aceito para validacao e prova do fluxo;
+- dominio proprio e hostname estavel nao sao obrigatorios nesta etapa;
+- `named tunnel` com URL estavel deve entrar apenas quando a operacao pedir
+  repetibilidade suficiente para justificar essa decisao;
+- enquanto isso, a referencia oficial continua sendo o contrato HTTP do runner,
+  e nao uma tecnologia especifica de exposicao.

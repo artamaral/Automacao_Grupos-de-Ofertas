@@ -282,6 +282,15 @@ implementacao passa a ser:
 6. o publisher Python continua em `dry-run` como camada local de validacao;
 7. a expansao para mais grupos continua dependente de allowlist e checklist.
 
+Regra pragmatica desta fase:
+
+- nao introduzir custo de dominio, hostname estavel ou infra adicional antes de
+  validar o resultado operacional;
+- `Quick Tunnel` ou mecanismo equivalente continuam suficientes para a etapa de
+  prova controlada;
+- a decisao de URL estavel fica adiada ate existir necessidade real de
+  repeticao e escala.
+
 ## Regra obrigatoria
 
 Enquanto o publisher real de `WhatsApp` dentro do Python nao existir e nao for
