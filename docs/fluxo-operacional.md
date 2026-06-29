@@ -2,13 +2,14 @@
 
 Este projeto deve ser operado por automação, agendador ou orquestrador. O objetivo é evitar execução manual de vários scripts pequenos.
 
-Decisao operacional complementar:
+Decisao operacional vigente:
 
-- na implantacao alvo, os dados da rodada, os catalogos operacionais e os
-  scripts chamados pela automacao devem ficar no ambiente do `n8n` desde o
-  inicio da integracao;
-- o repositorio continua como fonte de codigo, contrato e configuracao
-  versionada.
+- descoberta, limpeza, curadoria e validacao do catalogo permanecem locais;
+- o Supabase recebe apenas catalogos curados por importacao controlada;
+- Supabase persiste ranking, estado, mensagens e historico;
+- Cloud Run executa geracao e disparo, sem executar descoberta;
+- o repositorio continua como fonte de codigo, contrato, migrations e
+  configuracao versionada.
 
 ## Comando principal
 
@@ -21,15 +22,8 @@ Use o orquestrador local:
 Os comandos completos, flags de debug, entradas e saidas estao em
 [`docs/cli-rodadas.md`](cli-rodadas.md).
 
-O contrato externo para `n8n` e a decisao de iniciar a integracao real por
-`WhatsApp` estao registrados em
-[`docs/contrato-n8n-whatsapp.md`](contrato-n8n-whatsapp.md).
-
 A decisao arquitetural consolidada da fase esta em
-[`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
-
-O passo a passo operacional de implantacao no `n8n` esta em
-[`docs/runbook-n8n.md`](runbook-n8n.md).
+[`docs/decisao-supabase-cloud-run.md`](decisao-supabase-cloud-run.md).
 
 O perfil deve ser mantido em [`config/discovery_profiles.toml`](../config/discovery_profiles.toml)
 e está documentado em [`docs/discovery-profiles.md`](discovery-profiles.md).
@@ -46,22 +40,21 @@ Quando uma capacidade compartilhada avanca em um nicho, ela deve ser entregue
 para todos os profiles operacionais no mesmo bloco. Nao devem existir versoes
 do fluxo ou ramificacoes de codigo exclusivas por nicho.
 
-As diferencas permitidas sao dados versionados:
+As diferencas permitidas sao dados e regras controlados:
 
-- caminho do catalogo, destino e limite em Google Planilha
-  `discovery_profiles`;
-- bandas por subnicho em Google Planilha `selection_profiles`;
-- roteamento em Google Planilha `group_profiles`.
+- descoberta local e caminho do catalogo em `config/discovery_profiles.toml`;
+- bandas por subnicho em configuracao versionada e, na operacao em nuvem, no
+  Supabase;
+- roteamento de grupos em configuracao controlada e, na operacao em nuvem, no
+  Supabase.
 
 Decisao complementar:
 
-- os arquivos de regras nao devem permanecer em `toml`/`txt` como formato final
-  de operacao;
-- a fonte de verdade operacional deve migrar para Google Planilhas;
-- isso facilita manutencao direta no `n8n` e posterior geracao de scripts de
-  alteracao.
-- a trilha local permanece apenas como apoio enquanto a operacao nativa no
-  `n8n` absorve regras, catalogos, logs e estado.
+- arquivos locais continuam sendo a superficie da descoberta e da curadoria;
+- catalogos validados sao publicados no Supabase de forma explicita,
+  auditavel e idempotente;
+- a operacao em nuvem nao reexecuta descoberta nem limpeza ampla;
+- `n8n` e Google Planilhas permanecem apenas como legado de transicao.
 
 Todo profile operacional deve usar Shopee, catalogo curado, politica de 20
 itens, no maximo 4 itens sem venda, template estatico Shopee, compliance e
@@ -127,9 +120,9 @@ Para automacao externa, o arquivo principal de consumo da rodada finalizada e:
 Ele representa a fila pronta para disparo por destino logico, ainda em
 `dry-run`.
 
-Na operacao integrada ao `n8n`, esses mesmos artefatos devem existir dentro do
-ambiente do `n8n`, preservando o mesmo contrato de nomes e estrutura por
-`profile`.
+Na operacao em nuvem, o conteudo operacional equivalente deve ser persistido no
+Supabase. Os arquivos locais continuam como apoio de desenvolvimento, validacao
+e migracao, sem se tornarem estado duravel do Cloud Run.
 
 ## Etapa prepare
 

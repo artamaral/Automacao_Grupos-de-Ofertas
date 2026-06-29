@@ -2,14 +2,17 @@
 
 ## Decisao principal
 
-O destino oficial do projeto passa a ser `n8n cloud` com operacao nativa.
+O destino oficial do projeto passa a ser descoberta local com operacao em
+Supabase e Cloud Run.
 
 Isso significa:
 
-- nada critico deve depender do computador local ligado;
-- nada critico deve depender de `self-hosted` como modelo definitivo;
-- regras, estado e artefatos devem ser legiveis pela automacao;
-- a manutencao operacional deve ser simples para o operador.
+- descoberta, limpeza e curadoria dependem de execucao local deliberada;
+- a operacao diaria em nuvem nao depende do computador local ligado;
+- somente catalogos curados e validados podem ser publicados no Supabase;
+- ranking, estado, mensagens e auditoria ficam persistidos no Supabase;
+- geracao e disparo de mensagens rodam no Cloud Run;
+- agendamentos simples usam Cloud Scheduler.
 
 ## Separacao de responsabilidades
 
@@ -19,24 +22,32 @@ Isso significa:
 - testes
 - contratos
 - documentacao
-- fallback de transicao
+- migrations e referencia das regras
 
-### Google Planilhas
+### Ambiente local
 
 - descoberta
-- selecao
-- grupos
-- cupons
-- templates
+- paginacao e inspecao da API
+- limpeza e curadoria
+- validacao dos catalogos
+- publicacao controlada no Supabase
 
-### n8n
+### Supabase
 
-- orquestracao
-- execucao operacional
-- leitura de regras
-- leitura de catalogos ativos
-- consolidacao dos artefatos da rodada
+- catalogos operacionais publicados
+- snapshots e rastreabilidade
+- ranking e elegibilidade
+- estado de selecao e cooldown
+- mensagens e aprovacao
+- historico de disparos
+
+### Cloud Run
+
+- geracao de mensagens
+- compliance
+- reivindicacao atomica de mensagens aprovadas
 - disparo controlado por canal
+- registro de sucesso ou falha
 
 ## Camadas legadas
 
@@ -44,12 +55,12 @@ Ainda existem no repositorio, mas nao fazem parte do fluxo oficial:
 
 - `self-hosted/local`
 - `cloud runner` HTTP
-- arquivos locais em `config/`
+- `n8n cloud`
+- Google Planilhas operacionais
 
 Regra de leitura:
 
-- nao usar essas camadas para desenhar o workflow principal do `n8n`;
-- nao referenciar `C:\...`, `app_dir`, `root_dir` ou URL de runner no contrato
-  operacional oficial;
-- manter essas trilhas apenas como legado tecnico e apoio de debug enquanto a
-  migracao total nao estiver concluida.
+- nao usar essas camadas para novas implementacoes;
+- manter os artefatos apenas como historico, apoio de debug e migracao;
+- seguir [`../decisao-supabase-cloud-run.md`](../decisao-supabase-cloud-run.md)
+  quando houver conflito.

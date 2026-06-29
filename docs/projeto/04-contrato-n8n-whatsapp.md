@@ -1,5 +1,10 @@
 # Contrato n8n e WhatsApp
 
+> **Status: legado.** O papel de orquestracao do n8n foi substituido pela
+> arquitetura definida em
+> [`../decisao-supabase-cloud-run.md`](../decisao-supabase-cloud-run.md).
+> As regras de seguranca do canal continuam validas.
+
 ## Canal real inicial
 
 O primeiro canal real alvo continua sendo `WhatsApp`.

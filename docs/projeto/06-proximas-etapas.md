@@ -2,21 +2,26 @@
 
 ## Prioridade imediata
 
-Implementar a trilha `n8n-native` sem dependencia de runner, path local ou PC
-do operador.
+Implementar a fundacao de dados no Supabase sem mover a descoberta local para
+o runtime em nuvem.
 
 ## Sequencia recomendada
 
-1. ler regras operacionais diretamente de Google Sheets
-2. ler o `catalog_registry` diretamente de Google Sheets
-3. baixar o CSV ativo de cada `profile` diretamente no `n8n`
-4. persistir estado e artefatos da rodada em superficie acessivel ao `n8n`
-5. remover do fluxo oficial qualquer referencia a path local e runner HTTP
+1. definir schema e migrations do Supabase
+2. criar importacao idempotente do catalogo local curado
+3. registrar versao, hash, profile e validacao de cada importacao
+4. criar view de ranking e elegibilidade
+5. migrar estado de selecao e cooldown
+6. conectar geracao de mensagens ao Supabase
+7. implementar launcher de mensagens no Cloud Run
+8. remover o `n8n` do fluxo oficial
 
 ## Resultado esperado
 
 Ao final desse bloco:
 
-- o Drive vira a origem canônica dos catalogos operacionais;
-- o `n8n` passa a ter uma pasta espelho previsivel para consumo;
-- o fluxo fica mais proximo de operar sem dependencia manual de catalogo local.
+- a descoberta continua local e independente da operacao diaria em nuvem;
+- o Supabase vira a fonte canonica do catalogo operacional publicado;
+- ranking, estado e mensagens ficam auditaveis;
+- o Cloud Run gera e dispara mensagens sem carregar a responsabilidade de
+  descoberta.

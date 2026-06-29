@@ -11,6 +11,22 @@ principais:
 
 Ferramentas auxiliares já criadas continuam disponíveis, mas não devem guiar novas implementações.
 
+## Fronteira de execucao vigente
+
+A descoberta ampla, a limpeza e a curadoria dos catalogos permanecem locais.
+Elas nao fazem parte do runtime do Supabase ou do Cloud Run.
+
+O fluxo em nuvem comeca somente depois que um catalogo curado e validado e
+importado de forma controlada no Supabase. A partir desse ponto:
+
+- Supabase persiste catalogo, ranking, estado e auditoria;
+- Cloud Run gera mensagens e executa disparos controlados;
+- Cloud Scheduler agenda apenas os jobs necessarios;
+- `n8n` nao faz parte da arquitetura alvo.
+
+A decisao completa esta em
+[`docs/decisao-supabase-cloud-run.md`](decisao-supabase-cloud-run.md).
+
 ## 1. Comunicador com API
 
 ### O que já existe
@@ -206,15 +222,14 @@ Essas peças só devem receber correção de bug, lint ou teste.
 
 A ordem recomendada é:
 
-1. Criar uma camada operacional de descoberta ampla por `profile`.
+1. Manter e evoluir localmente a descoberta ampla por `profile`.
 2. Criar uma camada operacional de classificação e roteamento das ofertas
    coletadas.
 3. Criar uma camada operacional para gerar lista de ofertas selecionadas com
    `offer + score + classification + routing`.
 4. Criar uma camada operacional para gerar mensagens a partir dessa lista.
-5. Unificar o fluxo principal para automação chamar essas camadas com poucos
-   parâmetros.
-6. Só depois retomar persistência, histórico e integrações reais.
+5. Publicar o catalogo curado no Supabase por importacao controlada.
+6. Unificar o fluxo em nuvem para ranking, mensagens e disparo controlado.
 
 ## Próxima etapa de maior valor operacional
 

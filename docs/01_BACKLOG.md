@@ -12,8 +12,10 @@ Regras:
 
 ## Descoberta, classificação e roteamento
 
-- Criar uma camada de descoberta ampla por `profile`, sem depender de
-  `subgroup` como entrada principal da automação.
+- Manter local a camada de descoberta ampla por `profile`, sem depender de
+  `subgroup` como entrada principal.
+- Criar importacao idempotente dos catalogos locais validados para o Supabase,
+  sem executar descoberta no runtime em nuvem.
 - Criar uma camada de classificação que atribua `subgroup`, categorias,
   aderência e sinais de contexto a cada oferta coletada.
 - Criar uma camada de roteamento que decida para quais grupos uma oferta pode
@@ -78,9 +80,13 @@ Regras:
 - Planejar evolução do config para suportar perfis ativos/inativos e prioridade.
 - Decidir quando perfis e grupos saem de arquivo versionado para banco/interface.
 - Definir observabilidade mínima do fluxo operacional.
-- Deixar essa sincronizacao de catalogo mais ergonomica no fluxo operacional do
-  `n8n`, reduzindo dependencia de passos manuais e tratando isso como melhoria
-  operacional ainda em aberto.
+- Tornar a publicacao do catalogo curado no Supabase uma operacao local
+  explicita, validada, auditavel e idempotente.
+- Modelar no Supabase catalogo, snapshots, estado de selecao, mensagens e
+  tentativas de disparo.
+- Criar view de ranking e elegibilidade com componentes e versao do score.
+- Implementar no Cloud Run geracao e disparo de mensagens sem incluir
+  descoberta.
 - Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
   interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
   idempotência e reconciliação posterior no fluxo local.

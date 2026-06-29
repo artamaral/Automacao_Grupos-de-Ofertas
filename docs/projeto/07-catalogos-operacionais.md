@@ -1,5 +1,12 @@
 # Catalogos operacionais
 
+> **Status: parcialmente vigente.** Os contratos locais de CSV e validacao
+> continuam uteis. As referencias a n8n, Google Drive e Google Planilhas foram
+> substituidas por
+> [`../decisao-supabase-cloud-run.md`](../decisao-supabase-cloud-run.md):
+> descoberta e curadoria ficam locais, e somente o catalogo validado e
+> publicado no Supabase.
+
 ## Decisao
 
 Os catalogos operacionais do projeto devem ficar em `CSV`, nao em Google

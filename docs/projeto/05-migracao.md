@@ -1,5 +1,9 @@
 # Migracao
 
+> **Status: substituida.** Este plano de migracao para n8n e Google Planilhas
+> permanece apenas como historico. O plano vigente esta em
+> [`06-proximas-etapas.md`](06-proximas-etapas.md).
+
 ## Objetivo
 
 Migrar do modelo baseado em arquivo local para o modelo baseado em:

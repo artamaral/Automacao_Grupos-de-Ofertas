@@ -9,12 +9,12 @@ Construir uma operacao propria, auditavel e automatizavel para:
 - selecionar os melhores itens;
 - gerar mensagens por template;
 - preparar o disparo controlado por canal;
-- operar isso de forma autonoma com `n8n`.
+- operar ranking, mensagens e disparo com Supabase e Cloud Run.
 
 ## Pipeline principal
 
 ```text
-Catalogo curado -> Collector -> Scorer -> Selecao -> Copy -> Compliance -> Dispatch
+Descoberta local -> Catalogo curado -> Supabase -> Ranking -> Copy -> Compliance -> Dispatch no Cloud Run
 ```
 
 ## Regra operacional atual
@@ -25,11 +25,15 @@ Catalogo curado -> Collector -> Scorer -> Selecao -> Copy -> Compliance -> Dispa
   - `auto-e-moto`
 - a diferenca entre perfis deve estar em regra e dados, nao em desvio de
   implementacao;
-- o fluxo default nao depende de revisao humana obrigatoria;
-- o `n8n` e o ambiente alvo da operacao.
+- a descoberta e a curadoria permanecem locais;
+- o fluxo em nuvem comeca no catalogo curado publicado no Supabase;
+- publicacao real depende de aprovacao humana;
+- Supabase e Cloud Run formam o ambiente alvo da operacao.
 
 ## Leitura correta da fase
 
 - o repositorio continua sendo a fonte de codigo;
-- o `n8n cloud` passa a ser o alvo da execucao;
-- Google Planilhas passam a ser a superficie de manutencao das regras.
+- os catalogos locais validados continuam sendo a origem da publicacao;
+- o Supabase passa a ser a fonte de verdade operacional em nuvem;
+- o Cloud Run executa geracao e disparo, sem executar descoberta;
+- o `n8n` permanece apenas como legado de transicao.

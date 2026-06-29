@@ -18,6 +18,7 @@ O projeto deve priorizar simplicidade operacional. A partir desta decisão, o fo
 
 A definição oficial de objetivo, escopo e modelo operacional está em [`docs/objetivo-operacional.md`](docs/objetivo-operacional.md).
 A análise oficial que orienta as próximas decisões está em [`docs/analise-operacional.md`](docs/analise-operacional.md).
+A decisão arquitetural vigente está em [`docs/decisao-supabase-cloud-run.md`](docs/decisao-supabase-cloud-run.md).
 
 Diretrizes obrigatórias:
 
@@ -29,6 +30,15 @@ Diretrizes obrigatórias:
 - A próxima prioridade de implementação é simplificar o fluxo principal em torno de API -> lista de ofertas -> mensagens.
 - Documentação deve destacar o fluxo recomendado e mover detalhes avançados para seções de apoio ou debug.
 - Segurança continua obrigatória: nada de envio real, HTTP real, credenciais ou publicação real sem configuração explícita, canal permitido e aprovação humana.
+- Descoberta, paginação ampla, limpeza e curadoria de catálogos permanecem
+  locais e fora do runtime em nuvem.
+- O fluxo em nuvem começa na importação controlada do catálogo curado para o
+  Supabase.
+- Supabase é a fonte de verdade operacional para catálogo publicado, ranking,
+  estado, mensagens e histórico.
+- Cloud Run executa geração e disparo de mensagens; não executa descoberta.
+- `n8n` deixa de ser destino arquitetural e permanece apenas como legado de
+  transição.
 
 ## Regra de trabalho GitHub/local
 
