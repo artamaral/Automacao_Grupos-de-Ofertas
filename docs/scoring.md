@@ -113,7 +113,11 @@ Ao mesmo tempo, eles nao podem dominar a rodada.
 
 Decisao registrada para a saida padrao de `mae-e-bebe`:
 
-- itens com `sales = 0` podem entrar normalmente se estiverem bem rankeados;
+- no desenho teorico de selecao, itens com `sales = 0` podem entrar se
+  estiverem bem rankeados;
+- no catalogo operacional atual consumido pelo `n8n cloud`, essa exploracao
+  esta temporariamente desligada porque o CSV ativo aplica `sales > 1` antes da
+  rodada para reduzir volume e memoria;
 - a selecao nao deve forcar preenchimento com itens sem venda;
 - se a selecao natural produzir ate `4` itens sem venda, a regra segue sem
   interferencia;

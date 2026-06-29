@@ -90,6 +90,23 @@ Campos mantidos:
 
 Campos fora desse bloco nao devem voltar ao CSV operacional ativo.
 
+## Regra minima de vendas
+
+Para o catalogo operacional ativo consumido pelo `n8n`, a regra atual e:
+
+- manter apenas itens com `sales > 1`.
+
+Itens com `sales = 0` ou `sales = 1` nao entram no CSV operacional ativo.
+
+Motivo operacional atual:
+
+- reduzir massa de linhas carregadas no `n8n cloud`;
+- preservar apenas candidatos com sinal minimo de tracao;
+- evitar estouro de memoria ja na etapa de leitura do CSV.
+
+Essa regra vale para os tres `profiles` operacionais enquanto o fluxo oficial
+depender do `n8n cloud` para leitura direta do catalogo.
+
 ## Contrato operacional atual
 
 Leitura correta desta fase:

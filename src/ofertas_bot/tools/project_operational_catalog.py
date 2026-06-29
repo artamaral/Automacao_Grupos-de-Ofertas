@@ -40,7 +40,11 @@ def run(argv: Sequence[str] | None = None) -> int:
     assert target_path is not None
 
     rows = _load_rows(input_path)
-    projected_rows = [project_operational_catalog_row(row) for row in rows]
+    projected_rows = [
+        project_operational_catalog_row(row)
+        for row in rows
+        if _sales_is_greater_than_one(row.get("sales"))
+    ]
     _write_catalog_csv(
         target_path,
         projected_rows,
@@ -58,6 +62,15 @@ def run(argv: Sequence[str] | None = None) -> int:
 def _load_rows(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+def _sales_is_greater_than_one(value: str | None) -> bool:
+    if value is None:
+        return False
+    try:
+        return float(value) > 1
+    except ValueError:
+        return False
 
 
 def main() -> None:

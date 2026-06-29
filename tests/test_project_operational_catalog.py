@@ -32,3 +32,34 @@ def test_project_operational_catalog_rewrites_csv_with_minimal_schema(tmp_path) 
     assert rows[0]["itemId"] == "1"
     assert "shopId" not in rows[0]
     assert "shopName" not in rows[0]
+
+
+def test_project_operational_catalog_filters_sales_less_or_equal_one(tmp_path) -> None:
+    input_path = tmp_path / "input.csv"
+    output_path = tmp_path / "output.csv"
+    input_path.write_text(
+        "\n".join(
+            [
+                "itemId,productName,productLink,offerLink,imageUrl,price,priceMax,sales,ratingStar,shopType,sellerCommissionRate,shopeeCommissionRate,subniches",
+                '1,Produto A,https://example.com/product-a,https://example.com/offer-a,https://example.com/image-a.jpg,100,120,0,4.9,"[2]",0.12,0.03,"[""teste""]"',
+                '2,Produto B,https://example.com/product-b,https://example.com/offer-b,https://example.com/image-b.jpg,100,120,1,4.9,"[2]",0.12,0.03,"[""teste""]"',
+                '3,Produto C,https://example.com/product-c,https://example.com/offer-c,https://example.com/image-c.jpg,100,120,2,4.9,"[2]",0.12,0.03,"[""teste""]"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = project_operational_catalog.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    with output_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert exit_code == 0
+    assert [row["itemId"] for row in rows] == ["3"]

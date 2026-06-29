@@ -90,6 +90,7 @@ def test_build_catalog_summary_counts_raw_deduplicated_and_clean(tmp_path) -> No
         "1:1": {
             "shopId": 1,
             "itemId": 1,
+            "sales": 2,
             "productName": "Fralda premium",
             "shopName": "Loja Bebe",
             "productLink": "",
@@ -99,6 +100,7 @@ def test_build_catalog_summary_counts_raw_deduplicated_and_clean(tmp_path) -> No
         "2:2": {
             "shopId": 2,
             "itemId": 2,
+            "sales": 0,
             "productName": "Cama pet",
             "shopName": "Loja Pet",
             "productLink": "",
@@ -107,9 +109,9 @@ def test_build_catalog_summary_counts_raw_deduplicated_and_clean(tmp_path) -> No
         },
     }
     raw_rows = [
-        {"shopId": 1, "itemId": 1, "productName": "Fralda premium", "shopName": "Loja Bebe", "productLink": "", "offerLink": "", "source_hits": ["keyword:fralda"]},
-        {"shopId": 2, "itemId": 2, "productName": "Cama pet", "shopName": "Loja Pet", "productLink": "", "offerLink": "", "source_hits": ["keyword:pet"]},
-        {"shopId": 1, "itemId": 1, "productName": "Fralda premium", "shopName": "Loja Bebe", "productLink": "", "offerLink": "", "source_hits": ["matchId:100632"]},
+        {"shopId": 1, "itemId": 1, "sales": 2, "productName": "Fralda premium", "shopName": "Loja Bebe", "productLink": "", "offerLink": "", "source_hits": ["keyword:fralda"]},
+        {"shopId": 2, "itemId": 2, "sales": 0, "productName": "Cama pet", "shopName": "Loja Pet", "productLink": "", "offerLink": "", "source_hits": ["keyword:pet"]},
+        {"shopId": 1, "itemId": 1, "sales": 2, "productName": "Fralda premium", "shopName": "Loja Bebe", "productLink": "", "offerLink": "", "source_hits": ["matchId:100632"]},
     ]
     summary = _build_catalog_summary(
         profile=profile,

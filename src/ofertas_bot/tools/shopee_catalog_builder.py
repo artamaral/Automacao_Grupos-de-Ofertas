@@ -526,12 +526,20 @@ def _build_clean_items(
         dict(item)
         for item in deduplicated_items
         if not _matches_negative_terms(item=item, negative_terms=profile.negative_terms)
+        and _sales_is_greater_than_one(item.get("sales"))
     ]
     for item in clean_items:
         item["catalog_profile_slug"] = profile.slug
         item["catalog_profile_name"] = profile.name
         item["subniches"] = _classify_subniches(item=item, subniches=profile.subniches)
     return clean_items
+
+
+def _sales_is_greater_than_one(value: Any) -> bool:
+    try:
+        return float(value) > 1
+    except (TypeError, ValueError):
+        return False
 
 
 def main() -> None:
