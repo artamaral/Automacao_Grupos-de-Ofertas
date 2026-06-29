@@ -10,19 +10,16 @@ o runtime em nuvem.
 - [x] definir schema e migrations do Supabase;
 - [x] criar view de ranking e elegibilidade;
 - [x] criar estado persistente para selecao, cooldown e refresh;
-- [ ] criar importacao idempotente do catalogo local curado;
-- [ ] importar e validar os tres profiles reais;
+- [x] criar importacao idempotente do catalogo local curado;
+- [x] importar e validar os tres profiles reais;
 - [ ] conectar geracao de mensagens ao Supabase;
 - [ ] implementar launcher de mensagens no Cloud Run.
 
 ## Sequencia recomendada
 
-1. criar importacao idempotente do catalogo local curado
-2. registrar versao, hash, profile e validacao de cada importacao
-3. importar e validar os catalogos dos tres profiles
-4. conectar geracao de mensagens ao Supabase
-5. implementar launcher de mensagens no Cloud Run
-6. remover o `n8n` do fluxo oficial
+1. conectar geracao de mensagens ao Supabase
+2. implementar launcher de mensagens no Cloud Run
+3. remover o `n8n` do fluxo oficial
 
 ## Resultado esperado
 

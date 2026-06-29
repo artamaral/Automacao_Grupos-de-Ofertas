@@ -151,6 +151,65 @@ def validate_security(connection: psycopg.Connection) -> None:
         raise AssertionError(f"unexpected public offers grants: {public_grants!r}")
 
 
+def validate_active_catalogs(
+    connection: psycopg.Connection,
+) -> list[tuple[str, int, int, int, int, int, str]]:
+    rows = connection.execute(
+        """
+        select
+          imp.profile,
+          imp.row_count,
+          (select count(*) from offers.catalog_items item where item.import_id = imp.id),
+          (
+            select count(*)
+            from offers.v_offer_ranking_current ranking
+            where ranking.import_id = imp.id
+          ),
+          (
+            select count(*)
+            from offers.v_offer_ranking_current ranking
+            where ranking.import_id = imp.id
+              and ranking.is_eligible
+          ),
+          (
+            select count(distinct ranking.primary_subniche)
+            from offers.v_offer_ranking_current ranking
+            where ranking.import_id = imp.id
+          ),
+          left(imp.source_sha256, 12)
+        from offers.catalog_imports imp
+        where imp.status = 'active'
+        order by imp.profile
+        """
+    ).fetchall()
+
+    for profile, declared, stored, ranked, eligible, _, _ in rows:
+        if declared != stored or stored != ranked:
+            raise AssertionError(
+                f"catalog count mismatch for {profile}: "
+                f"declared={declared} stored={stored} ranked={ranked}"
+            )
+        rank_stats = connection.execute(
+            """
+            select count(rank_profile), count(distinct rank_profile), max(rank_profile)
+            from offers.v_offer_ranking_current
+            where profile = %s
+              and is_eligible
+            """,
+            (profile,),
+        ).fetchone()
+        ranked_count, distinct_rank_count, max_rank = rank_stats
+        if (ranked_count, distinct_rank_count, max_rank) != (
+            eligible,
+            eligible,
+            eligible,
+        ):
+            raise AssertionError(
+                f"profile ranking is not contiguous for {profile}: {rank_stats!r}"
+            )
+    return rows
+
+
 def validate_score_fixture(connection: psycopg.Connection) -> None:
     stable_key = "a" * 64
     source_sha256 = "b" * 64
@@ -313,6 +372,7 @@ def main() -> int:
         validate_control_columns(connection)
         validate_score_columns(connection)
         validate_security(connection)
+        active_catalogs = validate_active_catalogs(connection)
         validate_score_fixture(connection)
         connection.rollback()
     except Exception:
@@ -326,6 +386,17 @@ def main() -> int:
     print(f"CONNECTION_KIND={host_kind}")
     for relation_name, relation_type in relations:
         print(f"offers.{relation_name} [{relation_type}]")
+    for profile, declared, stored, ranked, eligible, subniches, sha_prefix in active_catalogs:
+        print(
+            "ACTIVE_CATALOG=OK "
+            f"profile={profile} "
+            f"declared={declared} "
+            f"stored={stored} "
+            f"ranked={ranked} "
+            f"eligible={eligible} "
+            f"subniches={subniches} "
+            f"sha256={sha_prefix}..."
+        )
     print("SCHEMA_VALIDATION=OK")
     print("ROLLBACK_ONLY_FIXTURE=OK")
     return 0

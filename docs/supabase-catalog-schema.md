@@ -20,8 +20,30 @@ Objetos criados no schema `offers`:
 - `v_offer_ranking_current`;
 - funcao `activate_catalog_import(uuid)`.
 
-Nenhum catalogo real foi importado nesta etapa. A validacao do score usou uma
-fixture transacional que foi revertida ao final do teste.
+Os tres catalogos reais foram importados e ativados em `2026-06-29`. A
+validacao isolada da formula de score tambem usa uma fixture transacional que e
+revertida ao final do teste.
+
+## Carga operacional validada
+
+| Profile | Linhas | Subnichos | SHA-256 |
+| --- | ---: | ---: | --- |
+| `auto-e-moto` | 11.560 | 10 | `389873b60e6f...` |
+| `feminino` | 27.292 | 31 | `ddf26fa26018...` |
+| `mae-e-bebe` | 7.164 | 39 | `1c27182e6ebe...` |
+| **Total** | **46.016** | **80 somados** |  |
+
+Para cada profile, a auditoria confirmou:
+
+- `row_count` declarado igual ao total armazenado;
+- total armazenado igual ao total retornado pela view;
+- todos os itens elegiveis no momento da carga;
+- `rank_profile` continuo, sem lacunas ou duplicacoes;
+- hash local igual ao hash registrado no Supabase;
+- uma unica importacao ativa por `profile + marketplace`.
+
+A segunda execucao de `feminino` reutilizou o mesmo `import_id`, comprovando que
+o hash impede duplicacao da carga.
 
 ## Fronteira operacional
 
@@ -208,14 +230,26 @@ Validacao do schema e score com rollback:
 .\.venv\Scripts\python.exe scripts\supabase\validate_catalog_schema.py
 ```
 
+Validacao local de um catalogo, sem escrita remota:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\supabase\import_catalog.py `
+  --profile feminino `
+  --catalog-file catalogs\clean\feminino\clean_catalog_rating_4_8_plus.csv
+```
+
+Importacao e ativacao explicitas:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\supabase\import_catalog.py `
+  --profile feminino `
+  --catalog-file catalogs\clean\feminino\clean_catalog_rating_4_8_plus.csv `
+  --apply `
+  --activate `
+  --confirm-remote-write IMPORT_CURATED_CATALOG
+```
+
 ## Proxima etapa
 
-Criar o importador idempotente que:
-
-1. valida o CSV local;
-2. calcula SHA-256;
-3. cria `catalog_imports` como `staged`;
-4. insere os itens preservando linha e payload de origem;
-5. compara contagem e qualidade;
-6. ativa a importacao em transacao unica;
-7. comprova o ranking dos tres profiles.
+Conectar a geracao de mensagens ao catalogo ativo e ao ranking persistido,
+mantendo o Cloud Run fora da descoberta local.
