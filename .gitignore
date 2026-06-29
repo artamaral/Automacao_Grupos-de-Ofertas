@@ -20,6 +20,9 @@ venv/
 .data/
 logs/
 exports/
+n8n/root/data/
+src/*.egg-info/
+src/ofertas_bot.egg-info/
 
 # OS/editor
 .DS_Store
