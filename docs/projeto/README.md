@@ -15,6 +15,7 @@ Objetivo:
 2. [`02-arquitetura-alvo.md`](02-arquitetura-alvo.md)
 3. [`06-proximas-etapas.md`](06-proximas-etapas.md)
 4. [`../decisao-supabase-cloud-run.md`](../decisao-supabase-cloud-run.md)
+5. [`../supabase-catalog-schema.md`](../supabase-catalog-schema.md)
 
 Documentos `03`, `04` e `05` registram a arquitetura anterior baseada em n8n e
 Google Planilhas. O documento `07` ainda preserva referencias uteis sobre os

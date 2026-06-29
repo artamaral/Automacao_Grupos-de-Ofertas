@@ -154,3 +154,6 @@ Continuam obrigatorias:
 
 As regras finas de score nao precisam ser redefinidas durante a criacao da
 fundacao de dados.
+
+O contrato fisico implementado para catalogo, estado e ranking esta em
+[`docs/supabase-catalog-schema.md`](supabase-catalog-schema.md).
