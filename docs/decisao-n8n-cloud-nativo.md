@@ -160,6 +160,26 @@ O estado por item continua necessario:
 Mas a persistencia desse estado deve acompanhar a migracao para a operacao
 nativa no `n8n`.
 
+## Regra de volume e processamento
+
+Esta fase consolidou outra decisao importante:
+
+- o `n8n cloud` nao deve concentrar parse e score dos tres nichos no mesmo
+  bloco pesado;
+- o workflow nativo deve expandir a janela em items por `profile`;
+- cada `profile` processa seu proprio catalogo, seu proprio score e sua propria
+  selecao;
+- a consolidacao entre nichos acontece so depois que os tres resultados
+  unitarios existirem.
+
+Implicacao pratica:
+
+- a unidade de escala do workflow passa a ser `profile`;
+- adicionar um novo nicho significa adicionar mais um item ao pipeline
+  reutilizavel;
+- nao significa aumentar um bloco central que tenta carregar todos os catalogos
+  juntos.
+
 ## Revisao humana
 
 A revisao humana deixa de ser obrigatoria no contrato minimo.
@@ -193,8 +213,9 @@ Mas, a partir desta decisao:
 2. modelar leitura dessas planilhas no fluxo do `n8n`;
 3. mover catalogos e estado operacional para a superficie de dados usada pelo
    `n8n`;
-4. preservar o contrato dos artefatos finais;
-5. usar a trilha local apenas como apoio enquanto a trilha nativa nao assume.
+4. estruturar o workflow nativo com processamento pesado por `profile`;
+5. preservar o contrato dos artefatos finais;
+6. usar a trilha local apenas como apoio enquanto a trilha nativa nao assume.
 
 ## Regra pragmatica de custo
 

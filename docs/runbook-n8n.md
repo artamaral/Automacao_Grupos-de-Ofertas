@@ -51,6 +51,27 @@ Portanto:
 - `mae-e-bebe`
 - `auto-e-moto`
 
+## 2.1 Regra de execucao por profile
+
+No `n8n cloud`, as etapas de maior volume nao devem processar os tres catalogos
+em um unico bloco.
+
+Regra obrigatoria desta fase:
+
+- a janela continua sendo `1` execucao;
+- os `profiles` devem ser expandidos para `N` items logo no inicio;
+- cada item do workflow passa a representar exatamente `1 profile`;
+- `parser`, `scorer`, `selecao` e `copy` rodam nesse item isolado;
+- o merge dos resultados acontece so no fim da janela.
+
+Motivo:
+
+- `feminino` sozinho ja pode passar de `45k` linhas;
+- o timeout apareceu quando o fluxo tentava concentrar volume demais no mesmo
+  bloco;
+- separar por `profile` acompanha a escala natural do projeto, que cresce com
+  novos nichos.
+
 ## 3. Trilha self-hosted/local
 
 Use esta trilha quando o `n8n` conseguir acessar o host e executar comandos.
@@ -111,6 +132,15 @@ ofertas-cloud-runner
 3. importar `ofertas-rodada-skeleton.json`
 4. configurar `runner_base_url`
 5. disparar a rodada pelo payload da janela
+
+Na versao nativa em construcao, a ordem equivalente deve ser:
+
+1. validar contexto da janela;
+2. expandir `profiles`;
+3. ler regras e catalogo do `profile`;
+4. executar `parser -> scorer -> selecao -> copy` para aquele `profile`;
+5. persistir os artefatos do `profile`;
+6. consolidar a janela apenas depois dos tres `profiles`.
 
 ### Modo real controlado
 
@@ -182,6 +212,14 @@ Toda evolucao do fluxo principal deve respeitar:
   - script local
   - HTTP
 - melhorias em score, selecao, copy e dispatch devem refletir nas duas.
+
+Complemento obrigatorio desta fase:
+
+- a horizontalizacao acontece por contrato, nao por monobloco;
+- o workflow deve escalar adicionando novos `profiles`, e nao tornando um unico
+  node de `scorer` cada vez maior;
+- quando um novo nicho entrar, ele deve reutilizar o mesmo pipeline unitario
+  por `profile`.
 
 ## 7. Estado desta fase
 

@@ -2,7 +2,7 @@
   "name": "ofertas-rodada-n8n-native-skeleton",
   "meta": {
     "templateCredsSetupCompleted": false,
-    "description": "Workflow oficial n8n-native. Nao referencia paths locais nem runner HTTP. Regras e dependencias externas devem estar no ecossistema do n8n e Google."
+    "description": "Workflow oficial n8n-native. Processa uma janela unica expandindo os profiles em items independentes; parse, score, selecao e copy rodam por profile e a consolidacao acontece no fim."
   },
   "active": false,
   "tags": [],
@@ -51,10 +51,21 @@
     },
     {
       "id": "4",
+      "name": "Expandir Profiles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const base = $json;\nreturn (base.profiles || []).map((profile) => ({\n  json: {\n    ...base,\n    profile,\n    processing_unit: 'profile',\n  }\n}));"
+      }
+    },
+    {
+      "id": "5",
       "name": "Ler Regras Google Sheets",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [800, 0],
+      "position": [1080, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
@@ -65,11 +76,11 @@
       }
     },
     {
-      "id": "5",
+      "id": "6",
       "name": "Ler Catalog Registry",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1080, 0],
+      "position": [1360, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
@@ -80,23 +91,8 @@
       }
     },
     {
-      "id": "6",
-      "name": "Sync Catalogos Google Drive",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1360, 0],
-      "parameters": {
-        "keepOnlySet": false,
-        "values": {
-          "string": [
-            { "name": "catalog_sync_status", "value": "pending_google_drive_download_into_n8n_storage" }
-          ]
-        }
-      }
-    },
-    {
       "id": "7",
-      "name": "Selecionar Ofertas",
+      "name": "Sync Catalogos Google Drive",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [1640, 0],
@@ -104,14 +100,14 @@
         "keepOnlySet": false,
         "values": {
           "string": [
-            { "name": "selection_status", "value": "pending_n8n_native_selection_logic" }
+            { "name": "catalog_sync_status", "value": "pending_google_drive_download_into_n8n_storage_per_profile" }
           ]
         }
       }
     },
     {
       "id": "8",
-      "name": "Gerar Copy",
+      "name": "Parse Catalogo CSV",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [1920, 0],
@@ -119,14 +115,14 @@
         "keepOnlySet": false,
         "values": {
           "string": [
-            { "name": "copy_status", "value": "pending_n8n_native_message_render" }
+            { "name": "parse_status", "value": "pending_n8n_native_csv_parse_per_profile" }
           ]
         }
       }
     },
     {
       "id": "9",
-      "name": "Montar Dispatch",
+      "name": "Rodar Scorer",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [2200, 0],
@@ -134,17 +130,73 @@
         "keepOnlySet": false,
         "values": {
           "string": [
-            { "name": "dispatch_status", "value": "pending_n8n_native_dispatch_artifact" }
+            { "name": "scorer_status", "value": "pending_n8n_native_scoring_per_profile" }
           ]
         }
       }
     },
     {
       "id": "10",
-      "name": "Persistir Log da Rodada",
+      "name": "Selecionar Ofertas",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [2480, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "selection_status", "value": "pending_n8n_native_selection_per_profile" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "11",
+      "name": "Gerar Copy",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2760, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "copy_status", "value": "pending_n8n_native_message_render_per_profile" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "12",
+      "name": "Montar Dispatch do Profile",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [3040, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "string": [
+            { "name": "dispatch_status", "value": "pending_n8n_native_dispatch_artifact_per_profile" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "13",
+      "name": "Consolidar Janela",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3320, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(item => item.json);\nreturn [{\n  json: {\n    run_id: rows[0]?.run_id || null,\n    total_profiles: rows.length,\n    profiles_processed: rows.map(row => row.profile),\n    processing_mode: 'per-profile-heavy-stages',\n    profiles: rows,\n  }\n}];"
+      }
+    },
+    {
+      "id": "14",
+      "name": "Persistir Log da Rodada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [3600, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
@@ -155,11 +207,11 @@
       }
     },
     {
-      "id": "11",
+      "id": "15",
       "name": "Notificar Conclusao",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [2760, 0],
+      "position": [3880, 0],
       "parameters": {
         "keepOnlySet": false,
         "values": {
@@ -173,18 +225,22 @@
   "connections": {
     "Trigger Rodada": { "main": [[{ "node": "Set Contexto Base", "type": "main", "index": 0 }]] },
     "Set Contexto Base": { "main": [[{ "node": "Validar Contexto", "type": "main", "index": 0 }]] },
-    "Validar Contexto": { "main": [[{ "node": "Ler Regras Google Sheets", "type": "main", "index": 0 }]] },
+    "Validar Contexto": { "main": [[{ "node": "Expandir Profiles", "type": "main", "index": 0 }]] },
+    "Expandir Profiles": { "main": [[{ "node": "Ler Regras Google Sheets", "type": "main", "index": 0 }]] },
     "Ler Regras Google Sheets": { "main": [[{ "node": "Ler Catalog Registry", "type": "main", "index": 0 }]] },
     "Ler Catalog Registry": { "main": [[{ "node": "Sync Catalogos Google Drive", "type": "main", "index": 0 }]] },
-    "Sync Catalogos Google Drive": { "main": [[{ "node": "Selecionar Ofertas", "type": "main", "index": 0 }]] },
+    "Sync Catalogos Google Drive": { "main": [[{ "node": "Parse Catalogo CSV", "type": "main", "index": 0 }]] },
+    "Parse Catalogo CSV": { "main": [[{ "node": "Rodar Scorer", "type": "main", "index": 0 }]] },
+    "Rodar Scorer": { "main": [[{ "node": "Selecionar Ofertas", "type": "main", "index": 0 }]] },
     "Selecionar Ofertas": { "main": [[{ "node": "Gerar Copy", "type": "main", "index": 0 }]] },
-    "Gerar Copy": { "main": [[{ "node": "Montar Dispatch", "type": "main", "index": 0 }]] },
-    "Montar Dispatch": { "main": [[{ "node": "Persistir Log da Rodada", "type": "main", "index": 0 }]] },
+    "Gerar Copy": { "main": [[{ "node": "Montar Dispatch do Profile", "type": "main", "index": 0 }]] },
+    "Montar Dispatch do Profile": { "main": [[{ "node": "Consolidar Janela", "type": "main", "index": 0 }]] },
+    "Consolidar Janela": { "main": [[{ "node": "Persistir Log da Rodada", "type": "main", "index": 0 }]] },
     "Persistir Log da Rodada": { "main": [[{ "node": "Notificar Conclusao", "type": "main", "index": 0 }]] }
   },
   "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "ofertas-rodada-n8n-native-skeleton-v1"
+  "versionId": "ofertas-rodada-n8n-native-skeleton-v2"
 }

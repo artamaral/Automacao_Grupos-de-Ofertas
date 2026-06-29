@@ -27,6 +27,8 @@ Regra operacional:
 - o workflow do `n8n` deve rodar uma unica vez por janela operacional;
 - dentro desse run, ele processa uma lista de `profiles`;
 - cada `profile` gera sua propria rodada;
+- cada `profile` deve atravessar sozinho os blocos pesados de parse, score,
+  selecao e copy;
 - cada rodada usa o mesmo contrato de artefatos;
 - os grupos e destinos ativos sao resolvidos por config.
 
@@ -49,12 +51,20 @@ Trigger unico
   -> carregar lista de profiles ativos
   -> para cada profile:
        validar catalogo ativo
-       rodar prepare
-       aguardar revisao
-       rodar finalize
-       coletar dispatch_artifact do profile
+       baixar catalogo do profile
+       parsear catalogo do profile
+       aplicar score do profile
+       selecionar os 20 do profile
+       gerar copy do profile
+       montar dispatch do profile
   -> consolidar resumo final da janela
 ```
+
+Regra adicional desta fase:
+
+- `1 item pesado = 1 profile`;
+- nao agrupar as linhas dos tres nichos no mesmo `scorer`;
+- o merge existe apenas no resumo da janela e nos artefatos consolidados.
 
 ## Unidade de orquestracao
 

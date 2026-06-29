@@ -67,6 +67,12 @@ Caracteristicas:
 - funciona como ponte para a operacao cloud enquanto a versao nativa no `n8n`
   nao absorve regras, catalogos, estado e logs.
 
+Na trilha nativa em construcao, a regra de volume desta fase e:
+
+- expandir a janela em items por `profile`;
+- processar `parser -> scorer -> selecao -> copy` por `profile`;
+- consolidar os resultados da janela apenas depois que cada nicho terminar.
+
 ## Contrato minimo comum
 
 As duas trilhas devem produzir a mesma ideia operacional:
@@ -119,6 +125,27 @@ Trigger
   -> Executar finalize local
   -> Validar artefatos finais
   -> Consolidar resumo
+```
+
+## Desenho logico da trilha nativa por profile
+
+```text
+Trigger
+  -> Set Contexto Base
+  -> Validar Contexto
+  -> Expandir profiles
+  -> para cada profile:
+       Ler regras
+       Ler catalog registry
+       Sync catalogo do profile
+       Parse Catalogo CSV
+       Rodar Scorer
+       Selecionar Ofertas
+       Gerar Copy
+       Montar Dispatch do Profile
+  -> Consolidar Janela
+  -> Persistir Log
+  -> Notificar conclusao
 ```
 
 ## Perfis permitidos

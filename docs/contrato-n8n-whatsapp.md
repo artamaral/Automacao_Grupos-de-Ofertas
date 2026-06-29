@@ -66,6 +66,7 @@ Regra pratica:
 O `n8n` pode:
 
 - disparar a rodada por `profile`;
+- expandir a janela em `N` items, um por `profile`, antes das etapas pesadas;
 - manter os arquivos da rodada no proprio ambiente;
 - manter os catalogos ativos no proprio ambiente;
 - executar os scripts do fluxo no proprio ambiente;
@@ -82,6 +83,30 @@ O `n8n` nao deve:
 - montar copy;
 - alterar manifesto manualmente;
 - decidir compliance.
+
+## Regra de processamento por profile
+
+Para evitar timeout e excesso de memoria no `n8n cloud`, as etapas pesadas do
+fluxo nativo devem rodar por `profile`, e nao sobre os tres catalogos juntos no
+mesmo item de execucao.
+
+Leitura correta:
+
+- a janela operacional continua sendo `1` execucao do workflow;
+- dentro dessa execucao, o `n8n` expande a lista de `profiles`;
+- cada item expandido carrega apenas o seu proprio catalogo e o seu proprio
+  estado;
+- `parser`, `scorer`, `selecao`, `copy` e `dispatch` devem operar sobre um
+  unico `profile` por vez;
+- a consolidacao da janela acontece apenas depois que cada `profile` terminar a
+  sua propria rodada.
+
+Regra pratica:
+
+- nao processar `feminino`, `mae-e-bebe` e `auto-e-moto` dentro do mesmo bloco
+  pesado de parse ou score;
+- o caminho recomendado e `1 item = 1 profile`;
+- a agregacao dos tres nichos deve acontecer apenas no resumo final.
 
 ## Contrato operacional atual
 
