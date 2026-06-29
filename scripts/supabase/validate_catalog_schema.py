@@ -12,6 +12,7 @@ EXPECTED_RELATIONS = {
     ("catalog_imports", "BASE TABLE"),
     ("catalog_items", "BASE TABLE"),
     ("offer_selection_state", "BASE TABLE"),
+    ("publication_events", "BASE TABLE"),
     ("schema_migrations", "BASE TABLE"),
     ("v_offer_ranking_current", "VIEW"),
 }
@@ -45,6 +46,29 @@ EXPECTED_SCORE_COLUMNS = {
     "ineligibility_reasons",
     "rank_profile",
     "rank_subniche",
+}
+
+EXPECTED_PUBLICATION_EVENT_COLUMNS = {
+    "publish_id",
+    "profile",
+    "marketplace",
+    "stable_key",
+    "item_id",
+    "target",
+    "channel_adapter",
+    "delivery_status",
+    "manifest_item_number",
+    "artifact_generated_at",
+    "manifest_created_at",
+    "planned_at",
+    "sent_at",
+    "offer_title",
+    "offer_url",
+    "offer_price",
+    "message_text",
+    "payload",
+    "created_at",
+    "updated_at",
 }
 
 
@@ -119,6 +143,21 @@ def validate_score_columns(connection: psycopg.Connection) -> None:
         raise AssertionError(f"missing score view columns: {sorted(missing)}")
 
 
+def validate_publication_event_columns(connection: psycopg.Connection) -> None:
+    rows = connection.execute(
+        """
+        select column_name
+        from information_schema.columns
+        where table_schema = 'offers'
+          and table_name = 'publication_events'
+        """
+    ).fetchall()
+    actual = {row[0] for row in rows}
+    missing = EXPECTED_PUBLICATION_EVENT_COLUMNS - actual
+    if missing:
+        raise AssertionError(f"missing publication event columns: {sorted(missing)}")
+
+
 def validate_security(connection: psycopg.Connection) -> None:
     rows = connection.execute(
         """
@@ -130,7 +169,8 @@ def validate_security(connection: psycopg.Connection) -> None:
             'schema_migrations',
             'catalog_imports',
             'catalog_items',
-            'offer_selection_state'
+            'offer_selection_state',
+            'publication_events'
           )
         """
     ).fetchall()
@@ -371,6 +411,7 @@ def main() -> int:
         relations = validate_relations(connection)
         validate_control_columns(connection)
         validate_score_columns(connection)
+        validate_publication_event_columns(connection)
         validate_security(connection)
         active_catalogs = validate_active_catalogs(connection)
         validate_score_fixture(connection)

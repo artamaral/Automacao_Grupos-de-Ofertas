@@ -16,6 +16,7 @@ Objetos criados no schema `offers`:
 - `catalog_imports`;
 - `catalog_items`;
 - `offer_selection_state`;
+- `publication_events`;
 - `schema_migrations`;
 - `v_offer_ranking_current`;
 - funcao `activate_catalog_import(uuid)`.
@@ -144,6 +145,43 @@ Campos exigidos pelos contratos de selecao:
 - `updated_at`.
 
 O estado e isolado por `profile + marketplace + stable_key`.
+
+## publication_events
+
+Mantem o ledger auditavel de entregas confirmadas pelo worker.
+
+Campos principais:
+
+- `publish_id`;
+- `profile`;
+- `marketplace`;
+- `stable_key`;
+- `item_id`;
+- `target`;
+- `channel_adapter`;
+- `delivery_status`;
+- `manifest_item_number`;
+- `artifact_generated_at`;
+- `manifest_created_at`;
+- `planned_at`;
+- `sent_at`;
+- `offer_title`;
+- `offer_url`;
+- `offer_price`;
+- `message_text`;
+- `payload`;
+- `created_at`;
+- `updated_at`.
+
+Regra operacional:
+
+- a linha nasce na confirmacao do worker;
+- `publish_id` e o identificador global da publicacao;
+- retries do mesmo artifact nao duplicam entrega;
+- a unicidade operacional e `profile + target + manifest_item_number + artifact_generated_at`.
+
+O detalhamento de uso e consultas esta em
+`docs/supabase-publication-events.md`.
 
 ## v_offer_ranking_current
 
