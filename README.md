@@ -12,6 +12,7 @@ A versão atual usa um **fluxo local dry-run**: busca ofertas mockadas ou provid
 - Nenhum segredo versionado.
 - Integrações externas isoladas atrás de providers.
 - Nada de automação para burlar políticas, limites ou detecção de plataformas.
+- Mudanças de comportamento devem ser descritas em `specs/` antes da implementação.
 
 ## Requisitos
 
@@ -82,6 +83,24 @@ O fluxo operacional local:
 - aplica gate antes de consolidar aprovadas;
 - gera bundle local auditável.
 
+## Fluxo de specs
+
+O projeto passa a usar specs versionadas para reduzir ambiguidade entre planejamento, GPT, Codex e implementação.
+
+Fluxo recomendado:
+
+```text
+ideia -> spec em specs/ -> revisão humana -> implementação -> testes -> documentação atualizada
+```
+
+Regras principais:
+
+- specs ficam em [`specs/`](specs/);
+- a numeração e os locais oficiais ficam em [`docs/regras-de-arquivos.md`](docs/regras-de-arquivos.md);
+- uma spec deve ser revisada antes de virar código;
+- mudanças permanentes de regra devem atualizar `docs/`;
+- mudanças no modo de trabalho do agente devem atualizar `AGENTS.md`.
+
 ## Ferramentas auxiliares
 
 Os comandos menores continuam disponíveis para debug, auditoria e manutenção, mas não são o caminho operacional principal.
@@ -122,10 +141,16 @@ $env:PYTHONUTF8='1'
 ## Documentação
 
 - [`docs/objetivo-operacional.md`](docs/objetivo-operacional.md): objetivo do projeto, escopo atual e modelo operacional alvo.
+- [`docs/architecture.md`](docs/architecture.md): visão de arquitetura e camadas do pipeline.
 - [`docs/fluxo-operacional.md`](docs/fluxo-operacional.md): fluxo operacional local simplificado.
 - [`docs/environment.md`](docs/environment.md): variáveis de ambiente e execução local segura.
 - [`docs/provider-fake-flow.md`](docs/provider-fake-flow.md): fluxo fake/injetável dos providers.
 - [`docs/scoring.md`](docs/scoring.md): regra operacional atual do scorer.
+- [`docs/catalog-quality.md`](docs/catalog-quality.md): regras de qualidade, limpeza e deduplicação do catálogo.
+- [`docs/affiliate-compliance.md`](docs/affiliate-compliance.md): regras de transparência e links de afiliado.
+- [`docs/whatsapp-posting-policy.md`](docs/whatsapp-posting-policy.md): política de postagem responsável em canais/grupos.
+- [`docs/media-guidelines.md`](docs/media-guidelines.md): diretrizes para imagens, vídeos e fallback de mídia.
+- [`docs/regras-de-arquivos.md`](docs/regras-de-arquivos.md): locais oficiais e numeração de arquivos/specs.
 - [`docs/production-checklist.md`](docs/production-checklist.md): checklist antes de chamadas reais ou publicação real.
 - [`docs/status-implantacao.md`](docs/status-implantacao.md): status atual da implantação e backlog.
 - [`docs/status-integracao-shopee.md`](docs/status-integracao-shopee.md): ponto de retomada da integração Shopee.
@@ -134,17 +159,30 @@ $env:PYTHONUTF8='1'
 - [`docs/commit-pattern.md`](docs/commit-pattern.md): padrão de commits.
 - [`docs/ci.md`](docs/ci.md): validação automática com GitHub Actions.
 
+## Specs iniciais
+
+- [`specs/001_catalog_ingestion.md`](specs/001_catalog_ingestion.md): ingestão e limpeza de catálogo.
+- [`specs/002_product_scoring.md`](specs/002_product_scoring.md): scoring e priorização de produtos.
+- [`specs/003_copywriter_agent.md`](specs/003_copywriter_agent.md): contrato do agente de copy.
+- [`specs/004_affiliate_link_converter.md`](specs/004_affiliate_link_converter.md): conversão e validação de links afiliados.
+- [`specs/005_media_mapper.md`](specs/005_media_mapper.md): mapeamento de mídia.
+- [`specs/006_local_flow_orchestrator.md`](specs/006_local_flow_orchestrator.md): contrato do orquestrador local.
+
 ## Estrutura
 
 ```text
+AGENTS.md              # regras para GPT/Codex e agentes do projeto
+README.md              # entrada humana do projeto
+docs/                  # documentação permanente e políticas
+specs/                 # contratos implementáveis numerados
 src/ofertas_bot/
-  agents/        # agentes funcionais do pipeline
-  providers/     # integrações Shopee, Amazon, transport e mappers
-  harness.py     # CLI de simulação
-  models.py      # modelos de domínio
-  settings.py    # configuração via ambiente
-tests/
-docs/
+  agents/              # agentes funcionais do pipeline
+  providers/           # integrações Shopee, Amazon, transport e mappers
+  harness.py           # CLI de simulação
+  models.py            # modelos de domínio
+  settings.py          # configuração via ambiente
+tests/                 # testes automatizados
+.data/                 # artefatos locais não versionados
 ```
 
 ## Estado dos providers
@@ -159,8 +197,9 @@ docs/
 2. Providers Shopee e Amazon com fluxo fake/injetável. Concluído.
 3. Status de retomada da integração Shopee. Concluído.
 4. Fluxo operacional local simplificado. Em andamento.
-5. Persistência SQLite para histórico.
-6. Fixtures anonimizadas com payloads reais.
-7. Assinatura real da Amazon PA API.
-8. Configuração controlada para HTTP real.
-9. Publicação controlada em canal permitido e auditável.
+5. Revisão das specs iniciais em `specs/`. Em andamento.
+6. Persistência SQLite para histórico.
+7. Fixtures anonimizadas com payloads reais.
+8. Assinatura real da Amazon PA API.
+9. Configuração controlada para HTTP real.
+10. Publicação controlada em canal permitido e auditável.
