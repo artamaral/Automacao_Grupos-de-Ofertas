@@ -11,6 +11,29 @@ Este arquivo define os agentes internos, o fluxo de implementação e o harness 
 - Não implementar mecanismos para burlar políticas, limites ou detecção de plataformas.
 - Publicação real só deve existir após aprovação humana, logs e configuração explícita.
 - Mensagens de commit devem seguir `docs/commit-pattern.md`.
+- Mudanças de comportamento devem nascer em `specs/` antes de serem implementadas, salvo correções pequenas e óbvias de bug, lint ou documentação.
+- Regras de numeração, locais e criação de arquivos devem seguir `docs/regras-de-arquivos.md`.
+
+## Fluxo por specs
+
+O projeto deve usar specs versionadas para reduzir ambiguidade entre planejamento, GPT, Codex e implementação.
+
+Fluxo oficial para novas funcionalidades:
+
+```text
+ideia -> spec em specs/ -> revisão humana -> implementação -> testes -> documentação atualizada
+```
+
+Regras obrigatórias:
+
+- Specs implementáveis ficam em `specs/NNN_nome_curto.md`.
+- O número da spec tem três dígitos e nunca deve ser reutilizado.
+- Não renumerar specs antigas.
+- Não implementar comportamento fora do escopo aprovado na spec.
+- Cada spec deve conter objetivo, entrada, saída, regras obrigatórias, fora de escopo, critérios de aceite, testes esperados e validação local.
+- Specs em status `Rascunho` podem ser usadas para discussão, mas não devem ser tratadas como aprovação final de implementação.
+- Quando uma spec virar código, atualizar seu status e a documentação permanente relacionada.
+- Documentação permanente fica em `docs/`; contratos implementáveis ficam em `specs/`.
 
 ## Decisão operacional atual
 
@@ -203,11 +226,15 @@ docs(workflow): adiciona padrao de commits
 - Mensagens contêm aviso de afiliado.
 - Código organizado por agentes/providers.
 - Fluxo operacional simplificado e automatizável.
+- Specs e documentação permanente são atualizadas quando uma mudança altera comportamento esperado.
 
 ## Próximas issues sugeridas
 
-1. Consolidar geração de lista de ofertas selecionadas.
-2. Consolidar geração de mensagens a partir das ofertas selecionadas.
-3. Simplificar o comunicador de API por contrato único.
-4. Reduzir documentação operacional para o caminho recomendado.
-5. Retomar Shopee/Amazon reais apenas após credenciais e aprovações formais.
+1. Revisar `specs/001_catalog_ingestion.md`.
+2. Revisar `specs/002_product_scoring.md`.
+3. Revisar `specs/003_copywriter_agent.md`.
+4. Consolidar geração de lista de ofertas selecionadas.
+5. Consolidar geração de mensagens a partir das ofertas selecionadas.
+6. Simplificar o comunicador de API por contrato único.
+7. Reduzir documentação operacional para o caminho recomendado.
+8. Retomar Shopee/Amazon reais apenas após credenciais e aprovações formais.
