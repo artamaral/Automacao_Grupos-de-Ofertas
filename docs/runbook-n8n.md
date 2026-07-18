@@ -93,6 +93,98 @@ Validacao minima dessa conexao:
    `offers.publication_events`;
 4. repetir o mesmo registro e confirmar que a idempotencia nao duplica a linha.
 
+## Etapa 1: pacote versionado
+
+Arquivo importavel:
+
+- [`n8n/workflows/ofertas-mvp-supabase.json`](../n8n/workflows/ofertas-mvp-supabase.json)
+
+Payload seguro de referencia:
+
+- [`n8n/payloads/ofertas-mvp-supabase-context.example.json`](../n8n/payloads/ofertas-mvp-supabase-context.example.json)
+
+Objetivo desta etapa:
+
+- validar o fluxo MVP sem depender de VPS, Cloud Run, Google Sheets ou runner
+  HTTP;
+- manter `dry_run=true` como padrao;
+- consultar o ranking atual no Supabase;
+- montar uma mensagem minima com disclosure;
+- bloquear destinos fora da allowlist;
+- registrar a tentativa ou bloqueio em `offers.publication_events`.
+
+### Como importar
+
+1. Abrir o n8n.
+2. Importar `n8n/workflows/ofertas-mvp-supabase.json`.
+3. Criar ou selecionar uma credencial Postgres apontando para o Supabase.
+4. Associar essa credencial aos nodes:
+   - `Consultar Ranking Supabase`;
+   - `Registrar Resultado Supabase`.
+5. Confirmar que o workflow permanece inativo ate o teste manual controlado.
+
+Credenciais reais devem ficar apenas no painel do n8n. O arquivo exportado do
+workflow pode referenciar o nome logico da credencial, mas nao deve carregar
+host privado, usuario, senha, service role key, token ou cookie.
+
+### Teste controlado
+
+Executar com o contexto minimo:
+
+```json
+{
+  "profile": "feminino",
+  "marketplace": "shopee",
+  "limit": 1,
+  "target": "teste-whatsapp",
+  "allowed_targets_csv": "teste-whatsapp",
+  "channel_adapter": "whatsapp",
+  "dry_run": true,
+  "artifact_generated_at": "2026-07-18T00:00:00.000Z",
+  "run_id": "manual-YYYY-MM-DD-001"
+}
+```
+
+Resultado esperado:
+
+- a query retorna no maximo 1 oferta elegivel;
+- `message_text` contem produto, preco, avaliacao, link e disclosure;
+- `send_result` fica como `dry_run_not_sent`;
+- `delivery_status` fica como `cancelled`, porque nao houve envio real;
+- uma linha e registrada em `offers.publication_events`.
+
+### Teste de bloqueio
+
+Repetir o teste com:
+
+```json
+{
+  "target": "destino-nao-permitido",
+  "allowed_targets_csv": "teste-whatsapp"
+}
+```
+
+Resultado esperado:
+
+- o envio e bloqueado antes de qualquer node de canal real;
+- `blocked_reason` fica como `target_not_allowlisted`;
+- o bloqueio tambem e registrado em `offers.publication_events`.
+
+### Teste de idempotencia
+
+Reexecutar o mesmo teste mantendo iguais:
+
+- `profile`;
+- `target`;
+- `manifest_item_number`;
+- `artifact_generated_at`.
+
+Resultado esperado:
+
+- o `on conflict` atualiza a linha existente;
+- `publish_id` permanece o mesmo;
+- nao surge uma segunda publicacao para a mesma mensagem da rodada.
+
 ## Query MVP
 
 O node do Supabase deve consultar:
