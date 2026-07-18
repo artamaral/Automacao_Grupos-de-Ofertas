@@ -1,66 +1,67 @@
-# Arquitetura alvo
+# Arquitetura alvo do MVP
 
 ## Decisao principal
 
-O destino oficial do projeto passa a ser descoberta local com operacao em
-Supabase e Cloud Run.
+O destino oficial do MVP e Supabase + n8n direto.
 
 Isso significa:
 
-- descoberta, limpeza e curadoria dependem de execucao local deliberada;
-- a operacao diaria em nuvem nao depende do computador local ligado;
-- somente catalogos curados e validados podem ser publicados no Supabase;
-- ranking, estado, mensagens e auditoria ficam persistidos no Supabase;
-- geracao e disparo de mensagens rodam no Cloud Run;
-- agendamentos simples usam Cloud Scheduler.
+- Supabase guarda o catalogo ativo, ranking, estado minimo e historico;
+- n8n consulta o ranking diretamente no Supabase;
+- n8n monta a mensagem por template simples;
+- n8n executa o envio apenas para destinos em allowlist;
+- n8n registra o resultado no Supabase;
+- Cloud Run fica fora do caminho obrigatorio do MVP.
 
 ## Separacao de responsabilidades
 
 ### Repositorio
 
-- codigo Python
-- testes
-- contratos
-- documentacao
-- migrations e referencia das regras
+- migrations e contrato do Supabase;
+- documentacao canonicamente curta;
+- scripts de apoio para importar catalogos curados;
+- referencias de templates e regras, quando uteis para versionamento.
 
 ### Ambiente local
 
-- descoberta
-- paginacao e inspecao da API
-- limpeza e curadoria
-- validacao dos catalogos
-- publicacao controlada no Supabase
+- descoberta exploratoria;
+- limpeza e curadoria dos catalogos;
+- validacao dos CSVs;
+- importacao controlada do catalogo curado no Supabase.
 
 ### Supabase
 
-- catalogos operacionais publicados
-- snapshots e rastreabilidade
-- ranking e elegibilidade
-- estado de selecao e cooldown
-- mensagens e aprovacao
-- historico de disparos
+- `catalog_imports`;
+- `catalog_items`;
+- `offer_selection_state`;
+- `v_offer_ranking_current`;
+- `publication_events`.
 
-### Cloud Run
+### n8n
 
-- geracao de mensagens
-- compliance
-- reivindicacao atomica de mensagens aprovadas
-- disparo controlado por canal
-- registro de sucesso ou falha
+- agendamento ou gatilho manual da rodada;
+- leitura de ofertas elegiveis no Supabase;
+- aplicacao de limite por rodada;
+- montagem de mensagens;
+- bloqueio por allowlist;
+- envio pelo canal configurado;
+- registro do resultado em `publication_events`.
 
-## Camadas legadas
+## Evolucoes futuras
 
-Ainda existem no repositorio, mas nao fazem parte do fluxo oficial:
+As proximas camadas entram somente depois do MVP rodar:
 
-- `self-hosted/local`
-- `cloud runner` HTTP
-- `n8n cloud`
-- Google Planilhas operacionais
+- automatizar coleta e atualizacao do catalogo;
+- revisar e melhorar nichos/subnichos;
+- criar interface de aprovacao ou revisao;
+- mover parte da logica do n8n para Cloud Run, se o workflow ficar pesado;
+- ampliar roteamento por grupo;
+- adicionar metricas de desempenho.
 
-Regra de leitura:
+## Regra de leitura
 
-- nao usar essas camadas para novas implementacoes;
-- manter os artefatos apenas como historico, apoio de debug e migracao;
-- seguir [`../decisao-supabase-cloud-run.md`](../decisao-supabase-cloud-run.md)
-  quando houver conflito.
+Quando houver conflito, seguir
+[`../decisao-mvp-supabase-n8n.md`](../decisao-mvp-supabase-n8n.md).
+
+Documentos sobre Cloud Run, runner HTTP, n8n antigo, Google Planilhas e JSON
+local sao referencia de transicao, nao arquitetura obrigatoria do MVP.

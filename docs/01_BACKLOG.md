@@ -12,6 +12,9 @@ Regras:
 
 ## Descoberta, classificação e roteamento
 
+- Reaproveitar os codigos existentes de descoberta e classificacao semantica
+  quando essa frente sair do backlog; eles ja rodam, mas devem ser simplificados
+  e melhorados antes de virar parte do fluxo operacional recorrente.
 - Manter local a camada de descoberta ampla por `profile`, sem depender de
   `subgroup` como entrada principal.
 - Criar importacao idempotente dos catalogos locais validados para o Supabase,

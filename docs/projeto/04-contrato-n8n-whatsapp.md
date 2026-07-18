@@ -1,9 +1,9 @@
 # Contrato n8n e WhatsApp
 
-> **Status: legado.** O papel de orquestracao do n8n foi substituido pela
-> arquitetura definida em
-> [`../decisao-supabase-cloud-run.md`](../decisao-supabase-cloud-run.md).
-> As regras de seguranca do canal continuam validas.
+> **Status: referencia/legado.** Este contrato registra um desenho anterior do
+> n8n. No MVP atual, o n8n volta a ser orquestrador, mas pelo caminho simples
+> definido em [`../runbook-n8n.md`](../runbook-n8n.md): consultar Supabase,
+> montar mensagem, validar allowlist, enviar e registrar historico.
 
 ## Canal real inicial
 

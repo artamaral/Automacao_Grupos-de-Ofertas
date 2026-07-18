@@ -287,7 +287,46 @@ Importacao e ativacao explicitas:
   --confirm-remote-write IMPORT_CURATED_CATALOG
 ```
 
+## Uso no MVP
+
+No MVP, o n8n consome diretamente `offers.v_offer_ranking_current`.
+
+Query minima recomendada:
+
+```sql
+select
+  profile,
+  marketplace,
+  stable_key,
+  item_id,
+  product_name,
+  offer_link,
+  price,
+  reference_price,
+  rating,
+  sales_count,
+  primary_subniche,
+  commercial_score,
+  score_reasons,
+  rank_profile,
+  rank_subniche
+from offers.v_offer_ranking_current
+where is_eligible = true
+  and profile = :profile
+  and marketplace = :marketplace
+order by
+  rank_profile nulls last,
+  commercial_score desc,
+  sales_count desc,
+  rating desc nulls last,
+  item_id
+limit :limit;
+```
+
+O n8n nao deve alterar ranking, score ou elegibilidade no MVP. Ele apenas
+aplica o limite da rodada, monta a mensagem e registra o resultado.
+
 ## Proxima etapa
 
-Conectar a geracao de mensagens ao catalogo ativo e ao ranking persistido,
-mantendo o Cloud Run fora da descoberta local.
+Validar o workflow n8n consultando o catalogo ativo no Supabase para 1 profile,
+com envio bloqueado por allowlist e registro em `publication_events`.

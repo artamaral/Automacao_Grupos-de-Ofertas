@@ -1,5 +1,10 @@
 # Fluxo fake e injetável dos providers
 
+> **Status: referencia/legado.**
+>
+> Providers fake continuam uteis para testes, mas nao definem a operacao minima.
+> O MVP parte do catalogo ativo ja publicado no Supabase.
+
 ## Objetivo
 
 Este documento descreve como os providers de marketplace funcionam na fase atual da implantação.

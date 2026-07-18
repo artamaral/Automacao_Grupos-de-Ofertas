@@ -1,5 +1,13 @@
 # Objetivo e modelo operacional
 
+> **Status: referencia de contexto.**
+>
+> Para execucao do MVP atual, seguir
+> [`docs/decisao-mvp-supabase-n8n.md`](decisao-mvp-supabase-n8n.md). Este
+> documento preserva visao ampla do produto, mas nao substitui o caminho minimo:
+> Supabase como base, n8n direto no ranking, envio por allowlist e historico no
+> Supabase.
+
 Este documento define o objetivo do projeto e como ele deve ser operado. Ele
 deve ser lido junto com `docs/analise-operacional.md`, que orienta as próximas
 decisões de implementação.

@@ -1,5 +1,10 @@
 # Cloud Runner n8n
 
+> **Status: referencia/legado.**
+>
+> Runner HTTP e Cloud Run nao fazem parte do caminho obrigatorio do MVP. A
+> operacao minima usa n8n direto no Supabase.
+
 ## Status atual
 
 O `cloud runner` deixa de ser a referencia principal do projeto.

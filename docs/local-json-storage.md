@@ -1,5 +1,10 @@
 # Persistência local opcional em JSON
 
+> **Status: referencia/legado.**
+>
+> JSON local e apoio de desenvolvimento/debug. O MVP operacional usa Supabase
+> como base e historico, com n8n consultando e registrando diretamente.
+
 ## Objetivo
 
 A persistência local em JSON permite salvar ofertas já normalizadas em arquivo local para inspeção, depuração e testes futuros.

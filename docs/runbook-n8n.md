@@ -1,234 +1,147 @@
-# Runbook n8n
+# Runbook n8n MVP
 
-Este runbook descreve o estado atual da integracao com `n8n`.
+Este runbook descreve apenas o fluxo MVP.
 
-Leitura correta:
+Fluxos antigos com runner HTTP, self-hosted/local, Cloud Run ou Google
+Planilhas como fonte principal ficam como referencia historica. Eles nao devem
+guiar a primeira operacao minima.
 
-- `self-hosted/local` continua existindo apenas como apoio;
-- `hosted/cloud` por `cloud runner` continua existindo como ponte tecnica;
-- o alvo oficial do projeto passa a ser `n8n cloud` com operacao nativa.
-
-Documentos complementares:
-
-- [`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md)
-- [`docs/n8n-workflow.md`](n8n-workflow.md)
-- [`docs/n8n-workflow-implementavel.md`](n8n-workflow-implementavel.md)
-- [`docs/n8n-cloud-runner.md`](n8n-cloud-runner.md)
-- [`docs/n8n-validation.md`](n8n-validation.md)
-
-## Decisao operacional atual
-
-O fluxo principal e automatico.
-
-Portanto:
-
-- `review_queue.json` permanece como artefato tecnico;
-- `prepare` nao cria mais dependencia de validacao humana;
-- `finalize` pode seguir automaticamente no contrato default;
-- qualquer gate manual futuro sera opcional.
-
-## 1. Artefatos oficiais
-
-### Workflow hosted/cloud
-
-- [`n8n/workflows/ofertas-rodada-skeleton.json`](../n8n/workflows/ofertas-rodada-skeleton.json)
-
-### Workflow self-hosted/local
-
-- [`n8n/workflows/ofertas-rodada-self-hosted-skeleton.json`](../n8n/workflows/ofertas-rodada-self-hosted-skeleton.json)
-
-### Payloads de exemplo
-
-- [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
-- [`n8n/payloads/prepare-window-runner.example.json`](../n8n/payloads/prepare-window-runner.example.json)
-- [`n8n/payloads/finalize-window-runner.example.json`](../n8n/payloads/finalize-window-runner.example.json)
-- [`n8n/payloads/run-window-runner.example.json`](../n8n/payloads/run-window-runner.example.json)
-- [`n8n/payloads/confirm-window-deliveries-runner.example.json`](../n8n/payloads/confirm-window-deliveries-runner.example.json)
-
-## 2. Perfis permitidos
-
-- `feminino`
-- `mae-e-bebe`
-- `auto-e-moto`
-
-## 2.1 Regra de execucao por profile
-
-No `n8n cloud`, as etapas de maior volume nao devem processar os tres catalogos
-em um unico bloco.
-
-Regra obrigatoria desta fase:
-
-- a janela continua sendo `1` execucao;
-- os `profiles` devem ser expandidos para `N` items logo no inicio;
-- cada item do workflow passa a representar exatamente `1 profile`;
-- `parser`, `scorer`, `selecao` e `copy` rodam nesse item isolado;
-- o merge dos resultados acontece so no fim da janela.
-
-Motivo:
-
-- `feminino` sozinho ja pode passar de `45k` linhas;
-- o timeout apareceu quando o fluxo tentava concentrar volume demais no mesmo
-  bloco;
-- separar por `profile` acompanha a escala natural do projeto, que cresce com
-  novos nichos.
-
-## 3. Trilha self-hosted/local
-
-Use esta trilha quando o `n8n` conseguir acessar o host e executar comandos.
-
-### Estrutura base
+## Fluxo oficial
 
 ```text
-C:\Automacao_Grupos-de-Ofertas\n8n\root\
-  catalogs\<profile>\clean_catalog_rating_4_8_plus.csv
-  data\<profile>\
-  logs\
+Trigger
+  -> Definir contexto
+  -> Consultar Supabase
+  -> Montar mensagens
+  -> Validar allowlist
+  -> Enviar ou simular envio
+  -> Registrar resultado no Supabase
 ```
 
-### Variaveis base
+## Entradas minimas
+
+O workflow deve receber ou definir:
+
+- `profile`: exemplo `feminino`;
+- `marketplace`: exemplo `shopee`;
+- `limit`: quantidade maxima de ofertas da rodada;
+- `target`: destino logico do envio;
+- `dry_run`: `true` por padrao;
+- `run_id`: identificador da rodada.
+
+## Credenciais
+
+Configurar no n8n, fora do Git:
+
+- conexao segura com Supabase;
+- credencial do canal de envio;
+- allowlist de destinos permitidos;
+- template ou texto-base da mensagem.
+
+## Query MVP
+
+O node do Supabase deve consultar:
+
+```sql
+select
+  profile,
+  marketplace,
+  stable_key,
+  item_id,
+  product_name,
+  offer_link,
+  price,
+  reference_price,
+  rating,
+  sales_count,
+  primary_subniche,
+  commercial_score,
+  score_reasons,
+  rank_profile,
+  rank_subniche
+from offers.v_offer_ranking_current
+where is_eligible = true
+  and profile = :profile
+  and marketplace = :marketplace
+order by
+  rank_profile nulls last,
+  commercial_score desc,
+  sales_count desc,
+  rating desc nulls last,
+  item_id
+limit :limit;
+```
+
+Regra: nao adicionar filtros escondidos. Qualquer filtro novo precisa aparecer
+no workflow e na documentacao.
+
+## Template minimo
+
+O n8n deve montar `message_text` com os campos da query.
+
+Template minimo:
 
 ```text
-N8N_OFERTAS_ROOT=C:\Automacao_Grupos-de-Ofertas\n8n\root
-N8N_OFERTAS_APP=C:\Automacao_Grupos-de-Ofertas
-N8N_OFERTAS_CATALOGS=C:\Automacao_Grupos-de-Ofertas\n8n\root\catalogs
-N8N_OFERTAS_DATA=C:\Automacao_Grupos-de-Ofertas\n8n\root\data
+{{product_name}}
+
+Preco: R$ {{price}}
+Avaliacao: {{rating}}
+
+Link: {{offer_link}}
+
+Aviso: este link pode gerar comissao de afiliado. Preco e disponibilidade
+podem mudar.
 ```
 
-### Passos
+## Allowlist
 
-1. importar `ofertas-rodada-self-hosted-skeleton.json`
-2. subir catalogos ativos em `n8n/root/catalogs/<profile>/`
-3. executar `prepare`
-4. validar artefatos
-5. executar `finalize`
-6. validar `dispatch_artifact.json`
+Antes de qualquer envio real, o workflow deve verificar:
 
-## 4. Trilha hosted/cloud
+- `target` existe na allowlist;
+- canal do target esta ativo;
+- `dry_run` esta coerente com a etapa da rodada.
 
-Use esta trilha quando o `n8n` for hospedado e nao tiver `Execute Command`.
+Se o destino nao estiver na allowlist, o workflow deve bloquear o envio e
+registrar o bloqueio como resultado da rodada.
 
-### Contrato
+## Registro em publication_events
 
-O `n8n` fala com um runner HTTP do projeto:
+Apos tentativa de envio, o n8n deve gravar em `offers.publication_events`:
 
-- `GET /health`
-- `POST /prepare-window`
-- `POST /finalize-window`
-- `POST /dispatch-window`
-- `POST /run-window`
-- `POST /confirm-delivery`
-- `POST /confirm-window-deliveries`
+- `profile`;
+- `marketplace`;
+- `stable_key`;
+- `item_id`;
+- `target`;
+- `channel_adapter`;
+- `delivery_status`;
+- `manifest_item_number`;
+- `artifact_generated_at`;
+- `sent_at`;
+- `offer_title`;
+- `offer_url`;
+- `offer_price`;
+- `message_text`;
+- `payload`.
 
-### Entry point do runner
+Retries nao devem duplicar publicacao. A chave operacional documentada em
+[`supabase-publication-events.md`](supabase-publication-events.md) deve ser
+preservada.
 
-```text
-ofertas-cloud-runner
-```
+## Validacao minima
 
-### Passos
+1. Rodar a query para 1 profile e confirmar ofertas elegiveis.
+2. Rodar o workflow em `dry_run=true` para 1 destino allowlisted.
+3. Testar destino fora da allowlist e confirmar bloqueio.
+4. Rodar envio controlado para 1 destino allowlisted.
+5. Registrar o resultado em `publication_events`.
+6. Repetir o mesmo registro e confirmar que nao duplica.
 
-1. publicar o runner HTTP em um ambiente proprio
-2. garantir acesso do runner ao app e aos catalogos
-3. importar `ofertas-rodada-skeleton.json`
-4. configurar `runner_base_url`
-5. disparar a rodada pelo payload da janela
+## Fora do MVP
 
-Na versao nativa em construcao, a ordem equivalente deve ser:
-
-1. validar contexto da janela;
-2. expandir `profiles`;
-3. ler regras e catalogo do `profile`;
-4. executar `parser -> scorer -> selecao -> copy` para aquele `profile`;
-5. persistir os artefatos do `profile`;
-6. consolidar a janela apenas depois dos tres `profiles`.
-
-### Modo real controlado
-
-Para avaliar o resultado final com apenas um grupo controlado:
-
-1. preencher `allowed_targets_csv` no workflow com o destino de teste;
-2. executar `dispatch-window` ou `run-window`;
-3. enviar no provedor real do `WhatsApp` apenas as mensagens devolvidas em
-   `deliveries[]`;
-4. confirmar cada sucesso em `confirm-delivery` ou fechar em lote com
-   `confirm-window-deliveries`.
-
-Observacao de estabilidade:
-
-- `Quick Tunnel` da Cloudflare serve para validacao;
-- `named tunnel` com hostname estavel exige uma decisao adicional de dominio e
-  operacao;
-- como isso pode gerar custo ou antecipar uma decisao de infra, nao e
-  pre-requisito desta fase;
-- a linha pragmatica atual e continuar a validacao com `Quick Tunnel` enquanto
-  o fluxo real controlado estiver sendo provado;
-- `named tunnel` ou URL estavel ficam como evolucao posterior, quando houver
-  decisao explicita de seguir para operacao repetivel.
-
-### Payload base do workflow hosted
-
-```json
-{
-  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
-  "run_id": "2026-06-28-janela-01",
-  "requested_by": "arthur",
-  "notes": "rodada controlada",
-  "allowed_targets_csv": "grupo-teste-controlado",
-  "runner_base_url": "https://SEU-RUNNER-HTTP",
-  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
-  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
-}
-```
-
-## 5. Saidas esperadas
-
-### Prepare
-
-- `offers.json`
-- `selection_state.json`
-- `copy_briefs.json`
-- `messages_preview.html`
-- `review_queue.json`
-
-### Finalize
-
-- `approved_messages.json`
-- `publication_manifest.json`
-- `dispatch_artifact.json`
-- `dispatch_report.json`
-
-### Dispatch real controlado
-
-- `deliveries[]` no retorno do runner
-- confirmacao por mensagem em `confirm-delivery`
-- confirmacao em lote por `confirm-window-deliveries`
-
-## 6. Regra de horizontalizacao
-
-Toda evolucao do fluxo principal deve respeitar:
-
-- o contrato funcional precisa permanecer equivalente nas duas trilhas;
-- a unica diferenca estrutural aceita e o meio de execucao:
-  - script local
-  - HTTP
-- melhorias em score, selecao, copy e dispatch devem refletir nas duas.
-
-Complemento obrigatorio desta fase:
-
-- a horizontalizacao acontece por contrato, nao por monobloco;
-- o workflow deve escalar adicionando novos `profiles`, e nao tornando um unico
-  node de `scorer` cada vez maior;
-- quando um novo nicho entrar, ele deve reutilizar o mesmo pipeline unitario
-  por `profile`.
-
-## 7. Estado desta fase
-
-Hoje o repositorio fica assim:
-
-- a solucao local continua sendo a oficial e operacional;
-- a solucao cloud foi criada em paralelo para uso futuro;
-- nenhuma das duas depende de validacao humana obrigatoria;
-- o `n8n` ja pode executar o envio real controlado usando `deliveries[]`;
-- o runner HTTP ja consegue receber a confirmacao das mensagens realmente
-  enviadas.
-- dominio proprio e hostname estavel nao sao obrigatorios nesta fase.
+- Cloud Run.
+- Runner HTTP.
+- Revisao humana item a item.
+- Coleta automatica do catalogo.
+- Revisao completa dos nichos.
+- Roteamento complexo por multiplos grupos.

@@ -1,5 +1,11 @@
 # Fluxo operacional local
 
+> **Status: referencia/legado.**
+>
+> O fluxo local por arquivos e CLI e apoio de desenvolvimento. A operacao minima
+> do MVP usa Supabase + n8n direto, conforme
+> [`decisao-mvp-supabase-n8n.md`](decisao-mvp-supabase-n8n.md).
+
 Este projeto deve ser operado por automação, agendador ou orquestrador. O objetivo é evitar execução manual de vários scripts pequenos.
 
 Decisao operacional vigente:

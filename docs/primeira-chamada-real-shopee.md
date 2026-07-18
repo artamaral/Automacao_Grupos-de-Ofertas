@@ -4,6 +4,12 @@
 > Para a proxima chamada real, use `docs/checklist-operacional-pre-chamada-real.md`,
 > que esta atualizado para Shopee GraphQL.
 
+> **Status: referencia/legado.**
+>
+> A primeira chamada real Shopee nao e requisito do MVP atual. Coleta
+> automatica e integracao real de marketplace ficam para depois da operacao
+> minima com Supabase e n8n.
+
 ## Objetivo
 
 Preparar a primeira chamada real controlada na Shopee com o menor risco possÃ­vel.

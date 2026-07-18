@@ -3,7 +3,7 @@
 > **Status: parcialmente vigente.** Os contratos locais de CSV e validacao
 > continuam uteis. As referencias a n8n, Google Drive e Google Planilhas foram
 > substituidas por
-> [`../decisao-supabase-cloud-run.md`](../decisao-supabase-cloud-run.md):
+> [`../decisao-mvp-supabase-n8n.md`](../decisao-mvp-supabase-n8n.md):
 > descoberta e curadoria ficam locais, e somente o catalogo validado e
 > publicado no Supabase.
 

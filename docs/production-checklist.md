@@ -1,5 +1,10 @@
 # Checklist antes de habilitar chamadas reais
 
+> **Status: referencia/legado.**
+>
+> Este checklist e apoio para evolucao de producao. O MVP atual exige apenas
+> Supabase como base, n8n como orquestrador, allowlist e registro auditavel.
+
 Este checklist bloqueia a ativação de qualquer chamada HTTP real para marketplaces e qualquer publicação fora de dry-run.
 
 Enquanto todos os itens obrigatórios não estiverem concluídos, `enable_real_http` e `enable_real_publish` devem permanecer `False`.

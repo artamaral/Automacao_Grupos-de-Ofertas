@@ -1,5 +1,12 @@
 # Decisao de arquitetura Supabase e Cloud Run
 
+> **Status: referencia/legado.**
+>
+> Esta decisao foi substituida, para o MVP atual, por
+> [`docs/decisao-mvp-supabase-n8n.md`](decisao-mvp-supabase-n8n.md).
+> Cloud Run permanece como evolucao futura ou ponte tecnica opcional, mas nao
+> e requisito para a operacao minima.
+
 Este documento registra a arquitetura operacional atual do projeto.
 
 Ele substitui a decisao que definia `n8n cloud` como ambiente operacional

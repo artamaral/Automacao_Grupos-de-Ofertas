@@ -3,7 +3,7 @@
 > **Status: substituida.**
 >
 > Esta decisao foi substituida por
-> [`docs/decisao-supabase-cloud-run.md`](decisao-supabase-cloud-run.md).
+> [`docs/decisao-mvp-supabase-n8n.md`](decisao-mvp-supabase-n8n.md).
 > O documento abaixo permanece apenas como historico e nao deve orientar novas
 > implementacoes.
 

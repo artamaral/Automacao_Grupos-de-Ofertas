@@ -1,5 +1,10 @@
 # Resumo operacional atual
 
+> **Status: referencia/legado.**
+>
+> Este resumo descreve uma fase local anterior. O resumo operacional vigente do
+> MVP esta em [`projeto/01-visao-geral.md`](projeto/01-visao-geral.md).
+
 ## Objetivo
 
 Este documento resume o estado prático do projeto: o que já pode ser usado localmente, o que ainda é fake/controlado e o que falta antes de ativar HTTP real ou publicação real.

@@ -1,5 +1,11 @@
 # Google Planilhas operacionais
 
+> **Status: referencia/legado.**
+>
+> Google Planilhas nao e fonte de verdade do MVP. O catalogo operacional vem do
+> Supabase e o n8n usa apenas configuracao minima propria para template,
+> credencial e allowlist.
+
 Este documento define o pacote inicial de arquivos para migrar as regras
 operacionais para Google Planilhas.
 

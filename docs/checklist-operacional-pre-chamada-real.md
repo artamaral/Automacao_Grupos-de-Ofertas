@@ -1,5 +1,10 @@
 ﻿# Checklist operacional prÃ©-chamada real
 
+> **Status: referencia/legado.**
+>
+> Este checklist de chamada real Shopee nao e pre-requisito do MVP. A operacao
+> minima usa o catalogo ativo no Supabase e n8n com destino em allowlist.
+
 ## Objetivo
 
 Consolidar a ordem final de execuÃ§Ã£o antes de qualquer chamada real controlada.

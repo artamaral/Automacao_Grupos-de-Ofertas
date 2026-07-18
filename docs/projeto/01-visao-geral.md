@@ -1,39 +1,45 @@
 # Visao geral
 
-## Objetivo do projeto
+## Objetivo do MVP
 
-Construir uma operacao propria, auditavel e automatizavel para:
+Colocar em operacao minima uma esteira propria de ofertas usando o que ja esta
+validado:
 
-- receber catalogos curados;
-- pontuar ofertas;
-- selecionar os melhores itens;
-- gerar mensagens por template;
-- preparar o disparo controlado por canal;
-- operar ranking, mensagens e disparo com Supabase e Cloud Run.
+- catalogos ativos no Supabase;
+- ranking e elegibilidade em `offers.v_offer_ranking_current`;
+- n8n como orquestrador e executor do disparo;
+- allowlist explicita de destinos;
+- historico de envios em `offers.publication_events`.
+
+O objetivo nao e fechar a arquitetura final. O objetivo e provar o ciclo
+operacional mais curto possivel antes de ampliar automacao, coleta e regras de
+nicho.
 
 ## Pipeline principal
 
 ```text
-Descoberta local -> Catalogo curado -> Supabase -> Ranking -> Copy -> Compliance -> Dispatch no Cloud Run
+Catalogo ativo no Supabase
+  -> n8n consulta ranking
+  -> n8n monta mensagem
+  -> n8n envia para allowlist
+  -> Supabase registra historico
 ```
 
 ## Regra operacional atual
 
-- os tres perfis operacionais principais devem avancar juntos:
-  - `feminino`
-  - `mae-e-bebe`
-  - `auto-e-moto`
-- a diferenca entre perfis deve estar em regra e dados, nao em desvio de
-  implementacao;
-- a descoberta e a curadoria permanecem locais;
-- o fluxo em nuvem comeca no catalogo curado publicado no Supabase;
-- publicacao real depende de aprovacao humana;
-- Supabase e Cloud Run formam o ambiente alvo da operacao.
+- Supabase e a base operacional do catalogo publicado.
+- n8n consulta o Supabase diretamente, sem worker intermediario no MVP.
+- n8n monta `message_text` com template simples controlado no workflow ou em
+  configuracao segura do proprio n8n.
+- n8n so pode enviar para destinos explicitamente allowlisted.
+- O registro de tentativa e resultado volta para `offers.publication_events`.
+- Descoberta, limpeza e curadoria de catalogo continuam fora da rodada diaria.
 
-## Leitura correta da fase
+## Fora do MVP
 
-- o repositorio continua sendo a fonte de codigo;
-- os catalogos locais validados continuam sendo a origem da publicacao;
-- o Supabase passa a ser a fonte de verdade operacional em nuvem;
-- o Cloud Run executa geracao e disparo, sem executar descoberta;
-- o `n8n` permanece apenas como legado de transicao.
+- Cloud Run como executor principal.
+- Coleta automatica para atualizar catalogos.
+- Revisao semantica completa dos nichos e subnichos.
+- Regras finas de roteamento por grupo.
+- Revisao humana item a item obrigatoria.
+- Integracao real Shopee/Amazon dentro da rodada diaria.
