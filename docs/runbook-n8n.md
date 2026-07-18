@@ -38,6 +38,61 @@ Configurar no n8n, fora do Git:
 - allowlist de destinos permitidos;
 - template ou texto-base da mensagem.
 
+## Acessos para iniciar
+
+Antes de criar arquivos na VPS ou executar o fluxo real, separar os acessos por
+responsabilidade.
+
+### VSCode/Codex para VPS
+
+O acesso recomendado e VSCode Remote SSH usando chave local.
+
+Objetivo:
+
+- abrir a VPS como ambiente remoto;
+- criar ou editar arquivos operacionais no servidor;
+- manter segredos fora do repositorio;
+- evitar copiar artefatos manualmente entre PC local e servidor.
+
+O repositorio continua sendo a fonte versionada. Arquivos com segredo, sessoes,
+tokens, QR codes ou credenciais ficam apenas na VPS ou no painel seguro do
+servico correspondente.
+
+### Codex para n8n
+
+Codex nao deve depender de acesso direto ao painel do n8n para gerar a primeira
+versao do fluxo.
+
+O caminho inicial recomendado e:
+
+- versionar no repositorio um workflow exportavel;
+- importar esse workflow no n8n;
+- configurar credenciais e destinos manualmente no painel do n8n;
+- validar o fluxo em `dry_run=true` antes de qualquer envio real.
+
+Se houver necessidade de operar o painel, o acesso deve acontecer por sessao
+autorizada pelo operador, sem registrar credenciais no Git.
+
+### n8n para Supabase
+
+O n8n precisa de credencial segura para:
+
+- consultar `offers.v_offer_ranking_current`;
+- registrar eventos em `offers.publication_events`.
+
+Essa credencial deve ficar configurada no proprio n8n. Ela nao deve aparecer em
+workflow versionado, arquivo `.env` commitado, print, log publico ou documento
+do repositorio.
+
+Validacao minima dessa conexao:
+
+1. consultar `offers.v_offer_ranking_current` com `profile`, `marketplace` e
+   `limit` explicitos;
+2. montar `message_text` com disclosure;
+3. registrar um evento de `dry_run` ou bloqueio em
+   `offers.publication_events`;
+4. repetir o mesmo registro e confirmar que a idempotencia nao duplica a linha.
+
 ## Query MVP
 
 O node do Supabase deve consultar:
