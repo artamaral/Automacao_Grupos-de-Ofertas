@@ -88,6 +88,14 @@ Regras:
 - Modelar no Supabase catalogo, snapshots, estado de selecao, mensagens e
   tentativas de disparo.
 - Criar view de ranking e elegibilidade com componentes e versao do score.
+- Ajustar o workflow MVP do n8n para nao registrar `delivery_status=confirmed`
+  antes de existir envio real confirmado pelo canal; enquanto o envio real nao
+  estiver conectado, `dry_run=false` deve ficar bloqueado ou retornar status
+  operacional que nao pareca confirmacao de entrega.
+- Atualizar `offers.offer_selection_state` no MVP apos envio confirmado,
+  registrando `selected_at`, `last_sent_at`, `cooldown_until` e
+  `selection_count`, para evitar que a mesma oferta elegivel volte em loop em
+  toda rodada.
 - Implementar no Cloud Run geracao e disparo de mensagens sem incluir
   descoberta.
 - Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
