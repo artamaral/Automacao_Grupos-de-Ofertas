@@ -98,6 +98,11 @@ Regras:
   toda rodada.
 - Implementar no Cloud Run geracao e disparo de mensagens sem incluir
   descoberta.
+- Endurecer a operacao do n8n apos a primeira subida do MVP: revisar firewall
+  sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do
+  Traefik, configurar backup externo com teste de restore e remover a stack
+  legada depois do periodo de estabilizacao. Manter a porta `5678` restrita ao
+  loopback; dominio, HTTPS e `WEBHOOK_URL` ja estao configurados.
 - Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
   interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
   idempotência e reconciliação posterior no fluxo local.

@@ -66,6 +66,55 @@ Leitura operacional:
   workflow, nunca secrets versionados;
 - acesso SSH deve usar chave local, nao senha colocada em documento.
 
+### Implantacao atual da VPS
+
+Estado implantado em 2026-08-08:
+
+- diretorio operacional: `/opt/automacao_grupo_compras/n8n`;
+- Compose com `n8n` 2.32.6, `n8nio/runners` 2.32.6 e Postgres
+  16.14 Alpine;
+- dados persistentes em `data/n8n` e `data/postgres`;
+- `.env` local com modo `0600`, fora do repositorio;
+- timezone `America/Sao_Paulo` em `TZ` e `GENERIC_TIMEZONE`;
+- painel em `https://n8n-owco.srv1805131.hstgr.cloud/`, servido pelo
+  Traefik existente;
+- porta `5678` publicada somente em `127.0.0.1`; Postgres sem porta publicada;
+- workflow `ofertas-mvp-supabase` importado e inativo;
+- credencial do Supabase ainda deve ser criada no painel antes do primeiro
+  `dry_run`.
+
+O Postgres local guarda somente o estado interno do n8n. O Supabase continua
+como fonte de verdade para catalogo, ranking e historico de publicacao.
+
+Comandos operacionais:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+docker compose --env-file .env -f docker-compose.yml ps
+docker compose --env-file .env -f docker-compose.yml logs --tail=200 n8n n8n-runner postgres
+docker compose --env-file .env -f docker-compose.yml up -d --wait
+```
+
+O acesso bootstrap fica em
+`/opt/automacao_grupo_compras/n8n/bootstrap-owner.txt`, com modo `0600`.
+Trocar email e senha no primeiro acesso e remover esse arquivo depois da
+rotacao.
+
+### Backup e rollback da instalacao anterior
+
+O backup verificado da instalacao anterior esta em
+`/opt/automacao_grupo_compras/backups/legacy-n8n/20260808T220448Z` e inclui
+configuracao, volume e `SHA256SUMS`. O projeto antigo em `/docker/n8n-owco`
+permanece parado, sem remocao do volume.
+
+Para rollback:
+
+1. Desativar a label Traefik da stack nova e recriar o servico `n8n`.
+2. Subir `/docker/n8n-owco/docker-compose.yml` com o project directory
+   `/docker/n8n-owco`.
+3. Validar `/healthz` pelo dominio HTTPS.
+4. Nao usar `down -v` em nenhuma das stacks.
+
 Checklist antes de instalar/configurar n8n:
 
 1. Confirmar IP/host da VPS Hostinger, usuario SSH e porta.
