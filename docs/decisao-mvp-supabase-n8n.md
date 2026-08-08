@@ -54,6 +54,15 @@ n8n e o orquestrador do MVP para:
 - enviar pelo canal configurado;
 - gravar resultado em `offers.publication_events`.
 
+Hospedagem proposta para o MVP:
+
+- n8n self-hosted em VPS da Hostinger;
+- acesso operacional ao servidor via VSCode Remote SSH;
+- credenciais, `.env`, chaves, sessoes, QR codes e tokens ficam apenas na VPS
+  ou no painel seguro do servico correspondente;
+- o repositorio versiona workflow exportavel, payloads de exemplo,
+  documentacao e scripts de apoio, mas nao segredos.
+
 ### Repositorio
 
 O repositorio guarda:

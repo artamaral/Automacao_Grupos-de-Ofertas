@@ -43,6 +43,40 @@ Configurar no n8n, fora do Git:
 Antes de criar arquivos na VPS ou executar o fluxo real, separar os acessos por
 responsabilidade.
 
+## Hospedagem proposta: Hostinger VPS
+
+Para o MVP, a proposta e rodar o n8n self-hosted em uma VPS da Hostinger.
+
+Objetivo:
+
+- manter o n8n em ambiente sempre disponivel;
+- evitar dependencia do PC local ligado;
+- permitir manutencao pelo VSCode Remote SSH;
+- manter segredos fora do repositorio;
+- importar o workflow versionado do projeto no painel do n8n.
+
+Leitura operacional:
+
+- a VPS hospeda o n8n e seus dados persistentes;
+- o repositorio continua sendo a fonte de workflows exportaveis, payloads de
+  exemplo, docs e scripts de apoio;
+- credenciais reais ficam no painel do n8n, no banco/volume persistente do n8n
+  ou em arquivos locais da VPS excluidos do Git;
+- a conexao com Supabase deve usar credencial especifica para a operacao do
+  workflow, nunca secrets versionados;
+- acesso SSH deve usar chave local, nao senha colocada em documento.
+
+Checklist antes de instalar/configurar n8n:
+
+1. Confirmar IP/host da VPS Hostinger, usuario SSH e porta.
+2. Criar ou selecionar chave SSH local para VSCode Remote SSH.
+3. Registrar a chave publica no painel/servidor da Hostinger.
+4. Conectar no VSCode Remote SSH.
+5. Validar persistencia da VPS antes de subir o n8n.
+6. Configurar n8n com armazenamento persistente e credenciais fora do Git.
+7. Importar `n8n/workflows/ofertas-mvp-supabase.json`.
+8. Rodar primeiro teste com `dry_run=true`.
+
 ### VSCode/Codex para VPS
 
 O acesso recomendado e VSCode Remote SSH usando chave local.

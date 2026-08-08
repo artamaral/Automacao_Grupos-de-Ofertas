@@ -47,6 +47,14 @@ Isso significa:
 - envio pelo canal configurado;
 - registro do resultado em `publication_events`.
 
+Hospedagem proposta:
+
+- n8n self-hosted em VPS da Hostinger;
+- manutencao pelo VSCode Remote SSH;
+- credenciais configuradas no painel do n8n ou em arquivos locais da VPS fora
+  do Git;
+- workflow exportavel versionado no repositorio.
+
 ## Evolucoes futuras
 
 As proximas camadas entram somente depois do MVP rodar:
