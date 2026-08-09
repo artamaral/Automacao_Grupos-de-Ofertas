@@ -92,6 +92,15 @@ Regras:
   antes de existir envio real confirmado pelo canal; enquanto o envio real nao
   estiver conectado, `dry_run=false` deve ficar bloqueado ou retornar status
   operacional que nao pareca confirmacao de entrega.
+- Atualizar o JSON versionado do workflow `ofertas-mvp-supabase` para substituir
+  os nodes `Set` que importaram com output vazio no n8n 2.32.6 por nodes `Code`
+  equivalentes, preservando os nomes `Set Contexto MVP` e `Simular Envio MVP`.
+- Ajustar `sent_at` no workflow MVP para permanecer `null` quando
+  `dry_run=true`; hoje o dry-run registra `delivery_status=cancelled` e
+  `send_result=dry_run_not_sent`, mas ainda preenche `sent_at`.
+- Endurecer TLS da credencial Postgres do Supabase no n8n: substituir
+  `Ignore SSL Issues (Insecure)` por validacao completa da cadeia via CA
+  confiavel quando a UI/container permitir.
 - Atualizar `offers.offer_selection_state` no MVP apos envio confirmado,
   registrando `selected_at`, `last_sent_at`, `cooldown_until` e
   `selection_count`, para evitar que a mesma oferta elegivel volte em loop em

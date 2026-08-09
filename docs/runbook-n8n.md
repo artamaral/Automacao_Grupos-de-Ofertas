@@ -81,8 +81,8 @@ Estado implantado em 2026-08-08:
   Traefik existente;
 - porta `5678` publicada somente em `127.0.0.1`; Postgres sem porta publicada;
 - workflow `ofertas-mvp-supabase` importado e inativo;
-- credencial do Supabase ainda deve ser criada no painel antes do primeiro
-  `dry_run`.
+- credencial Postgres para o Supabase criada no painel do n8n;
+- primeiro `dry_run` manual executado com sucesso em 2026-08-09.
 
 O Postgres local guarda somente o estado interno do n8n. O Supabase continua
 como fonte de verdade para catalogo, ranking e historico de publicacao.
@@ -168,6 +168,17 @@ Essa credencial deve ficar configurada no proprio n8n. Ela nao deve aparecer em
 workflow versionado, arquivo `.env` commitado, print, log publico ou documento
 do repositorio.
 
+Na validacao de 2026-08-09, a credencial foi criada como credencial `Postgres`
+do n8n, apontando para o Postgres do Supabase. Para o pooler do Supabase, o
+campo SSL precisou ficar em `require` com `Ignore SSL Issues (Insecure)`
+habilitado, pois apenas `allow`/`require`/`disable` sem ignorar a cadeia gerou
+erro de certificado autoassinado na cadeia.
+
+Essa configuracao desbloqueia o MVP mantendo transporte criptografado, mas
+ainda nao e o estado ideal de seguranca porque desabilita validacao completa da
+cadeia TLS. Endurecimento futuro: configurar CA confiavel no container/n8n ou
+ajustar a credencial quando a UI permitir fornecer o certificado CA.
+
 Validacao minima dessa conexao:
 
 1. consultar `offers.v_offer_ranking_current` com `profile`, `marketplace` e
@@ -206,10 +217,29 @@ Objetivo desta etapa:
    - `Consultar Ranking Supabase`;
    - `Registrar Resultado Supabase`.
 5. Confirmar que o workflow permanece inativo ate o teste manual controlado.
+6. Se os nodes `Set` importarem com output vazio, substituir manualmente por
+   nodes `Code` preservando os nomes:
+   - `Set Contexto MVP`;
+   - `Simular Envio MVP`.
 
 Credenciais reais devem ficar apenas no painel do n8n. O arquivo exportado do
 workflow pode referenciar o nome logico da credencial, mas nao deve carregar
 host privado, usuario, senha, service role key, token ou cookie.
+
+### Observacao de compatibilidade da importacao
+
+Na instancia `n8n` 2.32.6 da VPS, os nodes `Set` do workflow importado
+produziram output vazio (`[{}]`) durante o teste manual. O contorno operacional
+foi substituir esses nodes por `Code` nodes diretamente no painel:
+
+- `Set Contexto MVP`: preenche `dry_run`, `limit`, `profile`, `marketplace`,
+  `target`, `allowed_targets_csv`, `channel_adapter` e `run_id`;
+- `Simular Envio MVP`: preserva o item recebido e adiciona `send_result` e
+  `sent_at`.
+
+O arquivo versionado `n8n/workflows/ofertas-mvp-supabase.json` ainda deve ser
+atualizado para refletir essa correcao e evitar que uma nova importacao repita
+o problema.
 
 ### Teste controlado
 
@@ -367,6 +397,37 @@ preservada.
 4. Rodar envio controlado para 1 destino allowlisted.
 5. Registrar o resultado em `publication_events`.
 6. Repetir o mesmo registro e confirmar que nao duplica.
+
+## Resultado do primeiro dry-run manual
+
+Validacao manual realizada em 2026-08-09:
+
+- contexto efetivo:
+  - `dry_run=true`;
+  - `limit=1`;
+  - `profile=feminino`;
+  - `marketplace=shopee`;
+  - `target=teste-whatsapp`;
+  - `allowed_targets_csv=teste-whatsapp`;
+  - `channel_adapter=whatsapp`;
+- query executada contra `offers.v_offer_ranking_current`;
+- oferta retornada:
+  - `item_id=58211202356`;
+  - `offer_title=Bolsa Feminina Clutch De Ombro Pequena Sofisticada Alça Regulável`;
+  - `offer_price=16.99`;
+  - `rank_profile=1`;
+  - `rank_subniche=1`;
+- registro criado em `offers.publication_events`:
+  - `publish_id=461e54bf-aff6-4907-870d-3eedc15d047d`;
+  - `delivery_status=cancelled`;
+  - `payload.dry_run=true`;
+  - `payload.send_result=dry_run_not_sent`;
+  - `payload.target_allowed=true`;
+  - `payload.blocked_reason=null`.
+
+Esse resultado confirma consulta, montagem de mensagem, allowlist e auditoria em
+modo dry-run. O workflow deve permanecer inativo ate a correcao versionada dos
+nodes importados e novo dry-run limpo.
 
 ## Fora do MVP
 
