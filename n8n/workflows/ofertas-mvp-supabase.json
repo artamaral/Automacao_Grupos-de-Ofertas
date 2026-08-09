@@ -23,54 +23,15 @@
     {
       "id": "2",
       "name": "Set Contexto MVP",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         260,
         0
       ],
       "parameters": {
-        "keepOnlySet": false,
-        "values": {
-          "boolean": [
-            {
-              "name": "dry_run",
-              "value": "={{ $json.dry_run === undefined ? true : $json.dry_run }}"
-            }
-          ],
-          "number": [
-            {
-              "name": "limit",
-              "value": "={{ Number($json.limit || 1) }}"
-            }
-          ],
-          "string": [
-            {
-              "name": "profile",
-              "value": "={{ $json.profile || 'feminino' }}"
-            },
-            {
-              "name": "marketplace",
-              "value": "={{ $json.marketplace || 'shopee' }}"
-            },
-            {
-              "name": "target",
-              "value": "={{ $json.target || 'teste-whatsapp' }}"
-            },
-            {
-              "name": "allowed_targets_csv",
-              "value": "={{ $json.allowed_targets_csv || 'teste-whatsapp' }}"
-            },
-            {
-              "name": "channel_adapter",
-              "value": "={{ $json.channel_adapter || 'whatsapp' }}"
-            },
-            {
-              "name": "run_id",
-              "value": "={{ $json.run_id || $now.toFormat('yyyy-LL-dd-HHmmss') + '-mvp-supabase' }}"
-            }
-          ]
-        }
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = items[0]?.json || {};\n\nreturn [\n  {\n    json: {\n      ...input,\n      dry_run: input.dry_run === undefined ? true : input.dry_run,\n      limit: Number(input.limit || 1),\n      profile: input.profile || 'feminino',\n      marketplace: input.marketplace || 'shopee',\n      target: input.target || 'teste-whatsapp',\n      allowed_targets_csv: input.allowed_targets_csv || 'teste-whatsapp',\n      channel_adapter: input.channel_adapter || 'whatsapp',\n      run_id: input.run_id || new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-mvp-supabase',\n    },\n  },\n];"
       }
     },
     {
@@ -133,26 +94,15 @@
     {
       "id": "7",
       "name": "Simular Envio MVP",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         1640,
         0
       ],
       "parameters": {
-        "keepOnlySet": false,
-        "values": {
-          "string": [
-            {
-              "name": "send_result",
-              "value": "={{ $json.target_allowed && !$json.dry_run ? 'ready_for_real_channel_node' : ($json.target_allowed ? 'dry_run_not_sent' : 'blocked_by_allowlist') }}"
-            },
-            {
-              "name": "sent_at",
-              "value": "={{ $now.toISO() }}"
-            }
-          ]
-        }
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\n\nreturn {\n  json: {\n    ...item,\n    send_result:\n      item.target_allowed && !item.dry_run\n        ? 'ready_for_real_channel_node'\n        : item.target_allowed\n          ? 'dry_run_not_sent'\n          : 'blocked_by_allowlist',\n    sent_at: item.dry_run ? null : new Date().toISOString(),\n  },\n};"
       }
     },
     {
