@@ -341,7 +341,7 @@ docker compose --env-file .env -f docker-compose.yml exec -T n8n wget -qO- http:
 Tunel local para dashboard WAHA:
 
 ```bash
-ssh -L 3000:127.0.0.1:3000 <usuario>@<host-da-vps>
+ssh -N -L 3000:127.0.0.1:3000 <usuario>@<host-da-vps>
 ```
 
 Abrir:
@@ -349,6 +349,57 @@ Abrir:
 ```text
 http://127.0.0.1:3000/dashboard
 ```
+
+Antes do dashboard, validar o tunel no navegador local:
+
+```text
+http://127.0.0.1:3000/health
+```
+
+Retorno esperado: JSON com `status: ok`.
+
+No dashboard, configurar a conexao do servidor como:
+
+```text
+WAHA VPS URL: http://127.0.0.1:3000
+```
+
+Nao usar `/dashboard` nesse campo.
+
+As credenciais estao em:
+
+```text
+/opt/automacao_grupo_compras/n8n/waha-operator.txt
+```
+
+Usar usuario/senha para abrir a interface. Para o dashboard carregar sessoes,
+chats e grupos, usar a linha `X-Api-Key:` como API key da conexao. A senha do
+dashboard nao substitui a `X-Api-Key`.
+
+Se aparecer `Server connection failed` com `/health` respondendo `status: ok`,
+o WAHA esta acessivel pelo navegador e a causa provavel e URL de conexao errada
+ou API key ausente/incorreta no dashboard.
+
+Para envio manual em grupo WhatsApp, usar `target` como nome logico auditavel e
+`target_chat_id` como chat id real do WAHA, normalmente terminado em `@g.us`.
+Exemplo de entrada manual:
+
+```json
+{
+  "dry_run": false,
+  "limit": 1,
+  "profile": "feminino",
+  "marketplace": "shopee",
+  "target": "grupo-ofertas-feminino",
+  "target_chat_id": "120363XXXXXXXXXXXX@g.us",
+  "allowed_targets_csv": "grupo-ofertas-feminino",
+  "channel_adapter": "whatsapp"
+}
+```
+
+O `target` deve estar em `allowed_targets_csv`. O `target_chat_id` substitui o
+destino somente na chamada da WAHA. Apos o teste, restaurar `dry_run=true` e o
+destino de teste.
 
 Query de verificacao no Supabase:
 

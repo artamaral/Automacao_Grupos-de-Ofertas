@@ -106,6 +106,79 @@ http://127.0.0.1:3000/dashboard
 Usar as credenciais de `/opt/automacao_grupo_compras/n8n/waha-operator.txt`.
 Esse arquivo nao deve ser copiado para o repositorio.
 
+#### Conexao do dashboard WAHA
+
+O dashboard tem duas camadas de credencial:
+
+- usuario/senha do dashboard: apenas abre a interface web;
+- `X-Api-Key`: autoriza as chamadas da interface para a API WAHA.
+
+Ao abrir o dashboard pelo tunel local, configurar a conexao do servidor como:
+
+```text
+WAHA VPS URL: http://127.0.0.1:3000
+```
+
+Nao incluir `/dashboard` nesse campo.
+
+No campo de API key, usar o valor plain da linha `X-Api-Key:` do arquivo
+operacional:
+
+```text
+/opt/automacao_grupo_compras/n8n/waha-operator.txt
+```
+
+Esse valor nao deve ser colado em issues, logs, mensagens, commits ou docs.
+
+Se o dashboard mostrar:
+
+```text
+Server connection failed
+WAHA VPS (http://127.0.0.1:3000) is not connected.
+Please make sure it's online and set right API key in the configuration.
+```
+
+validar na ordem:
+
+1. manter o tunel SSH aberto no computador local:
+
+```bash
+ssh -N -L 3000:127.0.0.1:3000 <usuario>@<host-da-vps>
+```
+
+2. abrir no navegador local:
+
+```text
+http://127.0.0.1:3000/health
+```
+
+3. confirmar que o retorno contem `status: ok`;
+4. voltar ao dashboard e conferir se a URL esta como
+   `http://127.0.0.1:3000`;
+5. conferir se a API key usada no dashboard e o valor de `X-Api-Key`, nao a
+   senha do dashboard.
+
+Se `/health` responder `status: ok`, o tunel e o servico estao acessiveis pelo
+navegador. Nesse caso, a causa mais provavel do erro e API key ausente ou
+incorreta na configuracao do dashboard.
+
+Para verificar a sessao pela VPS sem depender do dashboard:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+WAHA_KEY=$(awk -F': ' '/^X-Api-Key:/ {print $2}' waha-operator.txt)
+curl -fsSL -H "X-Api-Key: ${WAHA_KEY}" \
+  http://127.0.0.1:3000/api/sessions/default
+```
+
+Estado esperado para a sessao principal:
+
+```text
+name: default
+status: WORKING
+engine.state: CONNECTED
+```
+
 ### Acoplamento WAHA no workflow
 
 O workflow `ofertas-mvp-supabase` chama a WAHA somente depois de:
@@ -160,6 +233,66 @@ O node `Preparar Envio WAHA` bloqueia envio real com
 `adapter_missing_image_url` quando `image_url` estiver ausente ou nao for uma
 URL `http(s)`. O bloqueio e registrado no Supabase como `delivery_status =
 failed`, sem chamar a WAHA.
+
+### Envio manual para grupo WhatsApp
+
+Para enviar para um grupo, o workflow usa dois conceitos separados:
+
+- `target`: nome logico versionado/auditavel do destino;
+- `target_chat_id`: id real do chat WAHA, normalmente terminado em `@g.us`.
+
+O `target` precisa estar autorizado por `allowed_targets_csv`. O
+`target_chat_id`, quando informado, substitui o `target` somente no envio para a
+WAHA. Assim o log continua usando o nome logico, enquanto o adapter recebe o id
+real do grupo.
+
+Exemplo de `pinData` para execucao manual controlada:
+
+```json
+{
+  "Trigger Manual": [
+    {
+      "json": {
+        "dry_run": false,
+        "limit": 1,
+        "profile": "feminino",
+        "marketplace": "shopee",
+        "target": "grupo-ofertas-feminino",
+        "target_chat_id": "120363XXXXXXXXXXXX@g.us",
+        "allowed_targets_csv": "grupo-ofertas-feminino",
+        "channel_adapter": "whatsapp"
+      }
+    }
+  ]
+}
+```
+
+Checklist antes de executar manualmente para grupo:
+
+1. confirmar que o grupo e opt-in;
+2. obter o `chatId` real do grupo no WAHA;
+3. usar um `target` logico claro e estavel;
+4. incluir o mesmo `target` em `allowed_targets_csv`;
+5. manter `limit=1` no primeiro teste;
+6. restaurar `dry_run=true` e o destino de teste apos a execucao.
+
+Para descobrir grupos pela API WAHA, com a sessao `default` conectada, consultar
+os endpoints disponiveis no Swagger local:
+
+```text
+http://127.0.0.1:3000/swagger
+```
+
+ou no JSON da especificacao:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+WAHA_KEY=$(awk -F': ' '/^X-Api-Key:/ {print $2}' waha-operator.txt)
+curl -fsSL -H "X-Api-Key: ${WAHA_KEY}" \
+  http://127.0.0.1:3000/api-docs-json
+```
+
+O id usado pelo n8n deve ser o chat id do grupo, nao o nome exibido do grupo.
 
 ### Template Shopee
 
