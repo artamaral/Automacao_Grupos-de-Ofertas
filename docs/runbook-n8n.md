@@ -609,7 +609,7 @@ dois nodes como `Code`.
 Antes de testar envios reais, reaplicar e validar o workflow versionado com:
 
 ```bash
-python3 scripts/n8n/deploy_workflow_guard.py
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
 ```
 
 Esse comando atualiza o workflow `OfertasMvpSupab1` diretamente no banco do
@@ -622,10 +622,18 @@ n8n a partir de `n8n/workflows/ofertas-mvp-supabase.json`, mantendo
 - o `pinData` esta pronto para execucao manual do grupo real com
   `dry_run=false`, `limit=1` e `target_chat_id` terminado em `@g.us`.
 
+Modos operacionais:
+
+- `grupo-real`: prepara envio real para `grupo-ofertas-feminino`;
+- `teste-telefone`: prepara envio real para o telefone de teste
+  `5511975235421`;
+- `dry-run`: prepara `dry_run=true` com `target=teste-whatsapp`;
+- `preserve-pindata`: reaplica o workflow sem alterar `pinData`.
+
 Para validar sem alterar o n8n:
 
 ```bash
-python3 scripts/n8n/deploy_workflow_guard.py --dry-run
+python3 scripts/n8n/deploy_workflow_guard.py --dry-run --mode grupo-real
 ```
 
 Modos alternativos:
@@ -635,9 +643,9 @@ python3 scripts/n8n/deploy_workflow_guard.py --safe-pindata
 python3 scripts/n8n/deploy_workflow_guard.py --preserve-pindata
 ```
 
-`--safe-pindata` deixa `dry_run=true` e `target=teste-whatsapp`.
-`--preserve-pindata` reaplica nodes/connections/settings, mas nao altera o
-`pinData` salvo no n8n.
+`--safe-pindata` deixa `dry_run=true` e `target=teste-whatsapp`. Essa flag e
+mantida por compatibilidade; preferir `--mode dry-run` em novos comandos.
+`--preserve-pindata` e equivalente a `--mode preserve-pindata`.
 
 Se uma aba antiga do editor n8n estiver aberta, ela pode salvar uma versao
 antiga por cima do workflow correto. Antes de executar testes reais:
@@ -647,6 +655,59 @@ antiga por cima do workflow correto. Antes de executar testes reais:
 3. abrir o workflow novamente pela lista do n8n;
 4. executar manualmente;
 5. conferir no log da WAHA se houve `POST /api/sendImage`.
+
+### Checklist operacional por rodada
+
+Rodada manual pelo painel n8n:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
+```
+
+Confirmar WAHA:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+WAHA_KEY=$(awk -F': ' '/^X-Api-Key:/ {print $2}' waha-operator.txt)
+curl -fsSL -H "X-Api-Key: ${WAHA_KEY}" \
+  http://127.0.0.1:3000/api/sessions/default
+```
+
+Estado esperado: `WORKING` / `CONNECTED`.
+
+Depois executar manualmente no painel n8n e checar:
+
+```bash
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+Resultado esperado:
+
+```text
+status=success
+endpoint=sendImage
+delivery_status=confirmed
+adapter_response_type=image
+copy_template=novo
+publish_id=<uuid>
+```
+
+Para reduzir dependencia do painel e de abas antigas do editor, executar via
+API local do n8n:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
+python3 scripts/n8n/run_workflow_manual.py --mode grupo-real
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+O script `run_workflow_manual.py` exige `--mode` explicitamente. Ele atualiza o
+`pinData`, autentica no n8n usando
+`/opt/automacao_grupo_compras/n8n/bootstrap-owner.txt` e chama
+`POST /rest/workflows/OfertasMvpSupab1/run` ate o node
+`Registrar Resultado Supabase`. O script usa a URL HTTPS publica do n8n por
+padrao, porque o cookie `n8n-auth` e seguro e nao e reenviado em chamadas HTTP
+locais. O script nao imprime senha, cookie ou token.
 
 ### Teste controlado
 
