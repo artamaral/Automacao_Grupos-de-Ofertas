@@ -719,6 +719,40 @@ copy_template=novo
 publish_id=<uuid>
 ```
 
+### Evidencia operacional atual
+
+Validacao executada em 2026-08-09 na branch `feat/supabase-cloud-run`, com
+workflow inativo e wrapper operacional:
+
+```bash
+.venv/bin/python -m ruff check .
+.venv/bin/python -m pytest
+python3 scripts/n8n/run_operational_round.py --mode dry-run
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+python3 scripts/n8n/run_operational_round.py --mode grupo-real
+```
+
+Resultado da validacao local:
+
+- `ruff check .`: passou;
+- `pytest`: `451 passed`.
+
+Rodadas n8n validadas:
+
+- `dry-run`: execucao `44`, `delivery_status=cancelled`,
+  `send_result=dry_run_not_sent`, `copy_template=novo`;
+- `teste-telefone`: execucao `45`, `endpoint=sendImage`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`;
+- `grupo-real`: execucao `46`, `endpoint=sendImage`,
+  `publish_id=029c13e7-8236-4a73-8beb-cbb797b2a576`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`.
+
+O envio real para `grupo-ofertas-feminino` foi aceito pelo adapter WAHA como
+imagem com legenda. O workflow permaneceu `active=false`; a operacao foi
+manual/controlada via API do n8n.
+
 Para reduzir dependencia do painel e de abas antigas do editor, executar via
 API local do n8n:
 

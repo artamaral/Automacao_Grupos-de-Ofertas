@@ -359,7 +359,26 @@ Resultado esperado:
 - uma nova execucao para o mesmo `target` nao deve reenviar a mesma oferta ja
   confirmada.
 
-Resultado validado em 2026-08-09:
+Resultado atual validado em 2026-08-09:
+
+- branch operacional: `feat/supabase-cloud-run`;
+- validacao local: `ruff check .` passou e `pytest` retornou `451 passed`;
+- wrapper usado: `scripts/n8n/run_operational_round.py`;
+- `dry-run`: execucao `44`, `delivery_status=cancelled`,
+  `send_result=dry_run_not_sent`, `copy_template=novo`;
+- `teste-telefone`: execucao `45`, `endpoint=sendImage`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`;
+- `grupo-real`: execucao `46`, `endpoint=sendImage`,
+  `publish_id=029c13e7-8236-4a73-8beb-cbb797b2a576`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`;
+- envio real para `grupo-ofertas-feminino` aceito pela WAHA como imagem com
+  legenda;
+- workflow mantido `active=false`, com operacao manual/controlada via API do
+  n8n.
+
+Resultado historico validado em 2026-08-09:
 
 - execucao n8n: `23`;
 - status da execucao: `success`;
