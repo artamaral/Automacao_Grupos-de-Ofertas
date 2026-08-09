@@ -234,10 +234,8 @@ Objetivo desta etapa:
    - `Consultar Ranking Supabase`;
    - `Registrar Resultado Supabase`.
 5. Confirmar que o workflow permanece inativo ate o teste manual controlado.
-6. Se os nodes `Set` importarem com output vazio, substituir manualmente por
-   nodes `Code` preservando os nomes:
-   - `Set Contexto MVP`;
-   - `Simular Envio MVP`.
+6. Conferir que `Set Contexto MVP` e `Simular Envio MVP` estao como nodes
+   `Code`.
 
 Credenciais reais devem ficar apenas no painel do n8n. O arquivo exportado do
 workflow pode referenciar o nome logico da credencial, mas nao deve carregar
@@ -254,9 +252,9 @@ foi substituir esses nodes por `Code` nodes diretamente no painel:
 - `Simular Envio MVP`: preserva o item recebido e adiciona `send_result` e
   `sent_at`.
 
-O arquivo versionado `n8n/workflows/ofertas-mvp-supabase.json` ainda deve ser
-atualizado para refletir essa correcao e evitar que uma nova importacao repita
-o problema.
+O arquivo versionado `n8n/workflows/ofertas-mvp-supabase.json` ja foi
+atualizado para refletir essa correcao. Novas importacoes devem preservar esses
+dois nodes como `Code`.
 
 ### Teste controlado
 
@@ -337,10 +335,20 @@ select
   score_reasons,
   rank_profile,
   rank_subniche
-from offers.v_offer_ranking_current
-where is_eligible = true
-  and profile = :profile
-  and marketplace = :marketplace
+from offers.v_offer_ranking_current ranking
+where ranking.is_eligible = true
+  and ranking.profile = :profile
+  and ranking.marketplace = :marketplace
+  and not exists (
+    select 1
+    from offers.publication_events event
+    where event.profile = ranking.profile
+      and event.marketplace = ranking.marketplace
+      and event.stable_key = ranking.stable_key
+      and event.target = :target
+      and event.channel_adapter = :channel_adapter
+      and event.delivery_status = 'confirmed'
+  )
 order by
   rank_profile nulls last,
   commercial_score desc,
@@ -350,8 +358,13 @@ order by
 limit :limit;
 ```
 
-Regra: nao adicionar filtros escondidos. Qualquer filtro novo precisa aparecer
-no workflow e na documentacao.
+Regra: `delivery_status = 'confirmed'` bloqueia nova selecao do mesmo
+`stable_key` para o mesmo `target` e `channel_adapter`. Registros `cancelled`,
+incluindo dry-run e bloqueio por allowlist, nao retiram a oferta do ranking
+futuro.
+
+Nao adicionar filtros escondidos. Qualquer filtro novo precisa aparecer no
+workflow e na documentacao.
 
 ## Template minimo
 
@@ -442,9 +455,18 @@ Validacao manual realizada em 2026-08-09:
   - `payload.target_allowed=true`;
   - `payload.blocked_reason=null`.
 
-Esse resultado confirma consulta, montagem de mensagem, allowlist e auditoria em
-modo dry-run. O workflow deve permanecer inativo ate a correcao versionada dos
-nodes importados e novo dry-run limpo.
+Esse resultado confirmou consulta, montagem de mensagem, allowlist e auditoria
+em modo dry-run. Depois da correcao dos nodes `Code`, tambem foram validados:
+
+- `sent_at = null` em dry-run;
+- idempotencia sem duplicatas;
+- anti-repost para ofertas ja confirmadas no mesmo `target` e
+  `channel_adapter`;
+- teste logico com `dry_run=false`, registrando
+  `send_result=ready_for_real_channel_node`.
+
+O workflow deve permanecer inativo ate o node real WAHA ser acoplado e passar
+por teste minimo controlado com allowlist.
 
 ## Fora do MVP
 
