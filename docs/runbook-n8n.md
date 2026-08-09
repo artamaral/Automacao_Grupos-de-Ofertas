@@ -75,6 +75,7 @@ Estado implantado em 2026-08-08:
   16.14 Alpine;
 - dados persistentes em `data/n8n` e `data/postgres`;
 - `.env` local com modo `0600`, fora do repositorio;
+- URL publica de webhooks configurada via `N8N_WEBHOOK_URL`;
 - timezone `America/Sao_Paulo` em `TZ` e `GENERIC_TIMEZONE`;
 - painel em `https://n8n-owco.srv1805131.hstgr.cloud/`, servido pelo
   Traefik existente;

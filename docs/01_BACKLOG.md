@@ -102,7 +102,7 @@ Regras:
   sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do
   Traefik, configurar backup externo com teste de restore e remover a stack
   legada depois do periodo de estabilizacao. Manter a porta `5678` restrita ao
-  loopback; dominio, HTTPS e `WEBHOOK_URL` ja estao configurados.
+  loopback; dominio, HTTPS e `N8N_WEBHOOK_URL` ja estao configurados.
 - Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
   interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
   idempotência e reconciliação posterior no fluxo local.
