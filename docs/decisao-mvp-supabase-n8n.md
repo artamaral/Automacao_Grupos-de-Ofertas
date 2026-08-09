@@ -86,7 +86,10 @@ Ele pode voltar depois se houver necessidade de:
 
 ## Contrato da query MVP
 
-O n8n deve consultar `offers.v_offer_ranking_current` com filtros explicitos:
+O n8n deve consultar `offers.v_offer_ranking_current` com filtros explicitos e
+excluir ofertas ja confirmadas para o mesmo destino logico e canal. Isso evita
+repostar o mesmo `stable_key` quando o topo do ranking permanece igual entre
+rodadas.
 
 ```sql
 select
@@ -105,10 +108,20 @@ select
   score_reasons,
   rank_profile,
   rank_subniche
-from offers.v_offer_ranking_current
-where is_eligible = true
-  and profile = :profile
-  and marketplace = :marketplace
+from offers.v_offer_ranking_current ranking
+where ranking.is_eligible = true
+  and ranking.profile = :profile
+  and ranking.marketplace = :marketplace
+  and not exists (
+    select 1
+    from offers.publication_events event
+    where event.profile = ranking.profile
+      and event.marketplace = ranking.marketplace
+      and event.stable_key = ranking.stable_key
+      and event.target = :target
+      and event.channel_adapter = :channel_adapter
+      and event.delivery_status = 'confirmed'
+  )
 order by
   rank_profile nulls last,
   commercial_score desc,
@@ -117,6 +130,10 @@ order by
   item_id
 limit :limit;
 ```
+
+`delivery_status = 'confirmed'` e a fronteira anti-repost do MVP. Dry-runs e
+bloqueios de allowlist gravados como `cancelled` nao devem retirar a oferta do
+ranking futuro.
 
 O workflow nao deve inventar filtros escondidos. Qualquer filtro novo precisa
 ser explicito e documentado.
@@ -128,6 +145,8 @@ ser explicito e documentado.
 - O workflow deve bloquear destino ausente da allowlist.
 - O texto deve conter disclosure de afiliado.
 - O registro em `publication_events` deve ser idempotente.
+- Ofertas ja confirmadas para o mesmo `target` e `channel_adapter` nao devem
+  ser selecionadas novamente pelo MVP.
 
 ## Melhorias fora do MVP
 
