@@ -25,6 +25,13 @@ Data da retomada: 2026-08-09.
   migration `supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql`.
 - Adapter WhatsApp definido para uso agora: WAHA self-hosted, conforme
   [`docs/decisao-waha-whatsapp-n8n.md`](decisao-waha-whatsapp-n8n.md).
+- WAHA implantado na VPS em 2026-08-09 como servico `waha` no Compose
+  operacional, usando `devlikeapro/waha`, porta local `127.0.0.1:3000`, volume
+  persistente `data/waha/.sessions` e API protegida por `X-Api-Key`.
+- Credenciais operacionais do WAHA ficam somente em
+  `/opt/automacao_grupo_compras/n8n/waha-operator.txt` com modo `0600`.
+- Sessao WAHA `default` criada e iniciada; estado atual antes do pareamento:
+  `SCAN_QR_CODE`.
 
 ## Credencial Supabase no n8n
 
@@ -201,10 +208,13 @@ Aviso: este link pode gerar comissao de afiliado. Preco e disponibilidade podem 
 ## Pendencias antes de ativar o workflow
 
 1. Endurecer TLS da credencial Postgres do Supabase, se viavel.
-2. Acoplar o node real WAHA protegido por `dry_run=false` e allowlist,
+2. Parear a sessao WAHA `default` via QR Code.
+3. Fazer envio manual minimo pelo WAHA para destino controlado.
+4. Acoplar o node real WAHA protegido por `dry_run=false` e allowlist,
    registrando erro/status do adapter no payload.
-3. Fazer teste real minimo apenas com destino controlado e allowlist.
-4. Ativar o workflow somente depois do teste real minimo passar.
+5. Fazer teste real minimo pelo workflow apenas com destino controlado e
+   allowlist.
+6. Ativar o workflow somente depois do teste real minimo passar.
 
 ## Comandos uteis
 
@@ -220,6 +230,7 @@ Logs:
 ```bash
 cd /opt/automacao_grupo_compras/n8n
 docker compose --env-file .env -f docker-compose.yml logs --tail=200 n8n n8n-runner postgres
+docker compose --env-file .env -f docker-compose.yml logs --tail=200 waha
 ```
 
 Healthcheck interno:
@@ -227,6 +238,19 @@ Healthcheck interno:
 ```bash
 cd /opt/automacao_grupo_compras/n8n
 docker compose --env-file .env -f docker-compose.yml exec -T n8n wget -qO- http://127.0.0.1:5678/healthz
+docker compose --env-file .env -f docker-compose.yml exec -T n8n wget -qO- http://waha:3000/health
+```
+
+Tunel local para dashboard WAHA:
+
+```bash
+ssh -L 3000:127.0.0.1:3000 <usuario>@<host-da-vps>
+```
+
+Abrir:
+
+```text
+http://127.0.0.1:3000/dashboard
 ```
 
 Query de verificacao no Supabase:

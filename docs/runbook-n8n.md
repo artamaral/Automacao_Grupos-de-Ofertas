@@ -55,6 +55,51 @@ Leitura operacional:
 - nao versionar API key, QR Code, sessoes, cookies, tokens ou `.env`;
 - nao tratar aceite do adapter como prova absoluta de entrega final.
 
+### Implantacao WAHA na VPS
+
+Estado implantado em 2026-08-09:
+
+- servico `waha` adicionado ao Compose operacional em
+  `/opt/automacao_grupo_compras/n8n/docker-compose.yml`;
+- imagem: `devlikeapro/waha`;
+- porta publicada somente em `127.0.0.1:3000`;
+- volume persistente de sessao:
+  `/opt/automacao_grupo_compras/n8n/data/waha/.sessions`;
+- API protegida por `X-Api-Key`;
+- valor hash da API key no `.env`; valor plain apenas em
+  `/opt/automacao_grupo_compras/n8n/waha-operator.txt` com modo `0600`;
+- dashboard e Swagger protegidos por credenciais locais no `.env`;
+- `health` e `ping` liberados sem API key para healthcheck;
+- sessao `default` criada e iniciada;
+- status atual esperado antes do pareamento: `SCAN_QR_CODE`.
+
+Base URL para o n8n:
+
+```text
+http://waha:3000
+```
+
+Base URL local na VPS:
+
+```text
+http://127.0.0.1:3000
+```
+
+Para acessar o dashboard sem expor a API publicamente, abrir tunel SSH local:
+
+```bash
+ssh -L 3000:127.0.0.1:3000 <usuario>@<host-da-vps>
+```
+
+Depois abrir no navegador local:
+
+```text
+http://127.0.0.1:3000/dashboard
+```
+
+Usar as credenciais de `/opt/automacao_grupo_compras/n8n/waha-operator.txt`.
+Esse arquivo nao deve ser copiado para o repositorio.
+
 ## Acessos para iniciar
 
 Antes de criar arquivos na VPS ou executar o fluxo real, separar os acessos por
@@ -110,6 +155,7 @@ Comandos operacionais:
 cd /opt/automacao_grupo_compras/n8n
 docker compose --env-file .env -f docker-compose.yml ps
 docker compose --env-file .env -f docker-compose.yml logs --tail=200 n8n n8n-runner postgres
+docker compose --env-file .env -f docker-compose.yml logs --tail=200 waha
 docker compose --env-file .env -f docker-compose.yml up -d --wait
 ```
 
