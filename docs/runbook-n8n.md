@@ -16,7 +16,7 @@ Trigger
   -> Validar allowlist
   -> Simular envio logico
   -> Preparar envio WAHA
-  -> Enviar WhatsApp WAHA quando dry_run=false e target allowlisted
+  -> Enviar imagem + legenda WhatsApp WAHA quando dry_run=false e target allowlisted
   -> Registrar resultado no Supabase
 ```
 
@@ -112,6 +112,7 @@ O workflow `ofertas-mvp-supabase` chama a WAHA somente depois de:
 
 - ranking consultar uma oferta elegivel ainda nao confirmada para o mesmo
   `target` e `channel_adapter`;
+- ranking retornar `image_url` publica valida;
 - allowlist aprovar o destino;
 - `dry_run` ser `false`;
 - `send_result` estar como `ready_for_real_channel_node`.
@@ -131,7 +132,7 @@ Simular Envio MVP
 Configuracao esperada do node `Enviar WhatsApp WAHA`:
 
 - metodo: `POST`;
-- URL: `http://waha:3000/api/sendText`;
+- URL: `http://waha:3000/api/sendImage`;
 - autenticacao: credencial n8n `WAHA Header Auth` do tipo `httpHeaderAuth`;
 - body JSON:
 
@@ -139,7 +140,12 @@ Configuracao esperada do node `Enviar WhatsApp WAHA`:
 JSON.stringify({
   session: 'default',
   chatId: $json.waha_chat_id,
-  text: $json.message_text,
+  file: {
+    mimetype: 'image/jpeg',
+    url: $json.waha_image_url,
+    filename: $json.waha_image_filename || 'oferta.jpg',
+  },
+  caption: $json.message_text,
 })
 ```
 
@@ -149,6 +155,11 @@ O node `Normalizar Resultado WAHA` registra no payload:
 - `adapter_message_id`;
 - `adapter_ack`;
 - `adapter_response_type`.
+
+O node `Preparar Envio WAHA` bloqueia envio real com
+`adapter_missing_image_url` quando `image_url` estiver ausente ou nao for uma
+URL `http(s)`. O bloqueio e registrado no Supabase como `delivery_status =
+failed`, sem chamar a WAHA.
 
 ### Template Shopee
 
@@ -220,6 +231,7 @@ select
   payload->>'send_result' as send_result,
   payload->>'adapter_status' as adapter_status,
   payload->>'adapter_message_id' as adapter_message_id,
+  payload->>'waha_image_url' as waha_image_url,
   created_at
 from offers.publication_events
 where target = '55DDDNUMERO'
@@ -229,7 +241,7 @@ limit 5;
 
 Resultado esperado: `delivery_status = confirmed`,
 `send_result = sent_to_adapter`, `adapter_status = sent_to_adapter` e envio
-recebido no WhatsApp de teste.
+recebido no WhatsApp de teste como imagem com legenda.
 
 Ultimo teste real validado em 2026-08-09:
 
@@ -247,7 +259,9 @@ Ultimo teste real validado em 2026-08-09:
 
 Observacao: esse teste validou a integracao n8n -> WAHA -> Supabase usando o
 template minimo anterior. Apos a validacao de canal, o workflow foi alinhado ao
-template Shopee oficial documentado acima.
+template Shopee oficial documentado acima. Em seguida, o workflow foi ajustado
+para enviar `image_url` via `POST /api/sendImage`, usando `message_text` como
+legenda.
 
 Observacao operacional: neste ambiente o n8n roda com task runners externos.
 Evitar `n8n execute --id ...` dentro do container principal para testes reais,

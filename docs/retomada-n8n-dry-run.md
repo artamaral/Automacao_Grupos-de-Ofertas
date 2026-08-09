@@ -50,6 +50,11 @@ Data da retomada: 2026-08-09.
   ao template Shopee oficial de `config/message_templates/shopee.txt`, usando
   cupom global, preco em BRL, desconto calculado por `reference_price` e
   marcador `(anúncio)`.
+- O workflow foi ajustado para incluir `image_url` na query de ranking e enviar
+  a oferta pelo WAHA como imagem com legenda via `POST /api/sendImage`.
+- Envios reais agora exigem `image_url` valida. Quando ausente, o node
+  `Preparar Envio WAHA` registra `adapter_missing_image_url` e nao chama o
+  adapter.
 
 ## Credencial Supabase no n8n
 
@@ -261,7 +266,7 @@ Padrao atual para novos envios Shopee:
 Antes de executar, confirmar no painel:
 
 - workflow `ofertas-mvp-supabase` ainda inativo;
-- node `Enviar WhatsApp WAHA` usando URL `http://waha:3000/api/sendText`;
+- node `Enviar WhatsApp WAHA` usando URL `http://waha:3000/api/sendImage`;
 - credencial `WAHA Header Auth` selecionada;
 - sessao WAHA `default` em `WORKING` / `CONNECTED`;
 - destino de teste presente em `target` e em `allowed_targets_csv`.
@@ -287,6 +292,7 @@ Resultado esperado:
 - `offers.publication_events.delivery_status = confirmed`;
 - `payload.adapter_status = sent_to_adapter`;
 - `payload.adapter_message_id` preenchido quando a WAHA retornar id;
+- `payload.image_url` e `payload.waha_image_url` preenchidos;
 - uma nova execucao para o mesmo `target` nao deve reenviar a mesma oferta ja
   confirmada.
 
@@ -304,7 +310,8 @@ Resultado validado em 2026-08-09:
 
 Observacao: essa execucao validou o canal WAHA com o template minimo anterior.
 O workflow versionado foi ajustado depois para usar o template Shopee oficial
-nos proximos testes/envios.
+nos proximos testes/envios. Depois disso, o workflow tambem foi ajustado para
+enviar imagem com legenda usando `image_url` e `POST /api/sendImage`.
 
 ## Comandos uteis
 
