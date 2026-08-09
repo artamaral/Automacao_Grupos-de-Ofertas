@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 SCRIPT_DIR = Path(__file__).resolve().parents[1] / "scripts/n8n"
 sys.path.insert(0, str(SCRIPT_DIR))
 
@@ -115,7 +114,9 @@ def test_run_operational_round_stops_on_first_error(monkeypatch: pytest.MonkeyPa
     ]
 
 
-def test_run_operational_round_prints_final_summary(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
+def test_run_operational_round_prints_final_summary(
+    monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
     calls: list[tuple[str, list[str]]] = []
 
     def fake_run_step(name: str, args: list[str]):

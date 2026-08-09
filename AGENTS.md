@@ -62,6 +62,14 @@ Diretrizes obrigatorias:
 - Agrupar mudancas relacionadas em blocos maiores antes de solicitar teste
   local.
 - Executar em sequencia as etapas seguras que nao exigem decisao humana.
+- Apos implementar qualquer mudanca de codigo, sempre rodar os testes
+  relevantes antes de finalizar a tarefa. Se a mudanca tocar comportamento
+  compartilhado ou fluxo operacional, rodar tambem a suite completa quando
+  viavel.
+- Se `pytest` nao estiver disponivel, instalar as dependencias de
+  desenvolvimento em `.venv` com `python3 -m venv .venv` e
+  `.venv/bin/python -m pip install -e '.[dev]'`; depois executar os testes com
+  `.venv/bin/python -m pytest`.
 - Solicitar interacao somente quando houver credencial, aprovacao externa,
   definicao humana, validacao local indispensavel ou alteracao de trava.
 - Quando varios testes validarem o mesmo bloco, solicitar uma unica rodada de

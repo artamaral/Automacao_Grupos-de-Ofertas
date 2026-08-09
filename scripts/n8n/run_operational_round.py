@@ -8,7 +8,6 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 ALLOWED_MODES = ("grupo-real", "teste-telefone", "dry-run")
 SUMMARY_FIELDS = (
