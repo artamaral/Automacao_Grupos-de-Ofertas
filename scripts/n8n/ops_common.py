@@ -11,7 +11,7 @@ DEFAULT_COMPOSE_ENV = Path("/opt/automacao_grupo_compras/n8n/.env")
 DEFAULT_COMPOSE_FILE = Path("/opt/automacao_grupo_compras/n8n/docker-compose.yml")
 DEFAULT_WORKFLOW_ID = "OfertasMvpSupab1"
 DEFAULT_BOOTSTRAP_OWNER = Path("/opt/automacao_grupo_compras/n8n/bootstrap-owner.txt")
-DEFAULT_N8N_BASE_URL = "http://127.0.0.1:5678"
+DEFAULT_N8N_BASE_URL = "https://n8n-owco.srv1805131.hstgr.cloud"
 
 REAL_GROUP_TARGET = "grupo-ofertas-feminino"
 REAL_GROUP_CHAT_ID = "120363412864266334@g.us"

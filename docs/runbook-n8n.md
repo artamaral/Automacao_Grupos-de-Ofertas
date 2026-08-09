@@ -705,7 +705,9 @@ O script `run_workflow_manual.py` exige `--mode` explicitamente. Ele atualiza o
 `pinData`, autentica no n8n usando
 `/opt/automacao_grupo_compras/n8n/bootstrap-owner.txt` e chama
 `POST /rest/workflows/OfertasMvpSupab1/run` ate o node
-`Registrar Resultado Supabase`. O script nao imprime senha, cookie ou token.
+`Registrar Resultado Supabase`. O script usa a URL HTTPS publica do n8n por
+padrao, porque o cookie `n8n-auth` e seguro e nao e reenviado em chamadas HTTP
+locais. O script nao imprime senha, cookie ou token.
 
 ### Teste controlado
 

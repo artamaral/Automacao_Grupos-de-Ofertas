@@ -168,7 +168,7 @@ def login_opener(config: RunConfig) -> urllib.request.OpenerDirector:
     request_json(
         opener,
         f"{config.base_url}/rest/login",
-        {"email": email, "password": password},
+        {"emailOrLdapLoginId": email, "password": password},
         config.timeout_seconds,
     )
     if not cookie_jar:
