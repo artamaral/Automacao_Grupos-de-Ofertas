@@ -12,6 +12,15 @@ Data da retomada: 2026-08-09.
 - Workflow `ofertas-mvp-supabase` importado no painel do n8n e mantido inativo.
 - Credencial Postgres real do Supabase criada no painel do n8n.
 - Primeiro dry-run manual executado com sucesso e registrado no Supabase.
+- `sent_at` foi ajustado para ficar `null` em dry-run.
+- A coluna `offers.publication_events.sent_at` permite `null` via migration
+  `supabase/migrations/202608090001_allow_null_sent_at_publication_events.sql`.
+- Idempotencia do registro em `offers.publication_events` validada sem
+  duplicatas para a chave operacional.
+- Teste logico com `dry_run=false` registrou `delivery_status = confirmed`,
+  `send_result = ready_for_real_channel_node` e `sent_at` preenchido.
+- A selecao anti-repost foi validada: ofertas ja confirmadas para o mesmo
+  `target` e `channel_adapter` deixam de ser selecionadas novamente.
 
 ## Credencial Supabase no n8n
 
@@ -41,7 +50,8 @@ Durante o teste, dois nodes `Set` importados produziram output vazio (`[{}]`):
 1. `Set Contexto MVP`;
 2. `Simular Envio MVP`.
 
-Contorno aplicado: substituir por nodes `Code` no painel do n8n.
+Contorno aplicado: substituir por nodes `Code` no painel do n8n. O JSON
+versionado tambem foi atualizado para manter esses dois nodes como `Code`.
 
 ### Nome correto dos nodes
 
@@ -99,12 +109,37 @@ return {
         : item.target_allowed
           ? 'dry_run_not_sent'
           : 'blocked_by_allowlist',
-    sent_at: new Date().toISOString(),
+    sent_at: item.dry_run ? null : new Date().toISOString(),
   },
 };
 ```
 
-## Evidencia do dry-run
+## Regra anti-repost
+
+O problema observado foi que execucoes sucessivas selecionavam sempre o mesmo
+item, porque a query consumia o topo de `offers.v_offer_ranking_current` sem
+considerar o historico de publicacao.
+
+A regra validada no painel foi excluir da query de ranking ofertas ja
+confirmadas em `offers.publication_events` para o mesmo destino e canal:
+
+```sql
+and not exists (
+  select 1
+  from offers.publication_events event
+  where event.profile = ranking.profile
+    and event.marketplace = ranking.marketplace
+    and event.stable_key = ranking.stable_key
+    and event.target = :target
+    and event.channel_adapter = :channel_adapter
+    and event.delivery_status = 'confirmed'
+)
+```
+
+Essa regra usa `delivery_status = 'confirmed'` como bloqueio anti-repost. Linhas
+`cancelled`, incluindo dry-run, nao bloqueiam nova selecao.
+
+## Evidencia do dry-run inicial
 
 Contexto validado:
 
@@ -135,7 +170,7 @@ payload.target_allowed: true
 payload.blocked_reason: null
 ```
 
-Oferta usada no dry-run:
+Oferta usada no dry-run inicial:
 
 ```text
 item_id: 58211202356
@@ -161,16 +196,11 @@ Aviso: este link pode gerar comissao de afiliado. Preco e disponibilidade podem 
 
 ## Pendencias antes de ativar o workflow
 
-1. Atualizar o JSON versionado
-   `n8n/workflows/ofertas-mvp-supabase.json` para substituir os dois nodes
-   `Set` por `Code`.
-2. Ajustar `sent_at` para ficar `null` quando `dry_run=true`.
-3. Reimportar ou reconciliar o workflow do painel com o JSON versionado.
-4. Rodar novo dry-run limpo.
-5. Validar idempotencia do registro em `offers.publication_events`.
-6. Endurecer TLS da credencial Postgres do Supabase, se viavel.
-7. Fazer teste real minimo apenas com destino controlado e allowlist.
-8. Ativar o workflow somente depois do teste real minimo passar.
+1. Endurecer TLS da credencial Postgres do Supabase, se viavel.
+2. Acoplar o node real do canal WhatsApp protegido por `dry_run=false` e
+   allowlist.
+3. Fazer teste real minimo apenas com destino controlado e allowlist.
+4. Ativar o workflow somente depois do teste real minimo passar.
 
 ## Comandos uteis
 
