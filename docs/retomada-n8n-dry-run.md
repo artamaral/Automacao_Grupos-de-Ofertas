@@ -275,7 +275,7 @@ Antes de abrir/executar o workflow no painel, fechar abas antigas do editor n8n
 e reaplicar o JSON versionado com o guard:
 
 ```bash
-python3 scripts/n8n/deploy_workflow_guard.py
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
 ```
 
 O guard atualiza o workflow `OfertasMvpSupab1` a partir do Git, mantem
@@ -286,8 +286,28 @@ do grupo real com `dry_run=false` e `limit=1`.
 Para validar sem alterar o n8n:
 
 ```bash
-python3 scripts/n8n/deploy_workflow_guard.py --dry-run
+python3 scripts/n8n/deploy_workflow_guard.py --dry-run --mode grupo-real
 ```
+
+Checklist curto por rodada operacional:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
+python3 scripts/n8n/run_workflow_manual.py --mode grupo-real
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+Modos disponiveis:
+
+- `grupo-real`: grupo `grupo-ofertas-feminino`;
+- `teste-telefone`: telefone `5511975235421`;
+- `dry-run`: sem envio real;
+- `preserve-pindata`: somente no deploy guard, sem alterar `pinData`.
+
+O `run_workflow_manual.py` exige `--mode` explicitamente para evitar envio real
+acidental. A checagem final deve mostrar `endpoint=sendImage`,
+`adapter_response_type=image`, `delivery_status=confirmed` e
+`copy_template=novo`.
 
 Payload recomendado para a execucao manual controlada:
 

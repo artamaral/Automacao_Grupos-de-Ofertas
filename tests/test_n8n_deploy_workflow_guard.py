@@ -8,6 +8,7 @@ import pytest
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts/n8n/deploy_workflow_guard.py"
+sys.path.insert(0, str(MODULE_PATH.parent))
 SPEC = importlib.util.spec_from_file_location("deploy_workflow_guard", MODULE_PATH)
 assert SPEC is not None
 guard = importlib.util.module_from_spec(SPEC)
@@ -88,6 +89,16 @@ def test_safe_pindata_uses_dry_run_test_target() -> None:
     assert payload["target"] == "teste-whatsapp"
 
 
+def test_mode_teste_telefone_uses_phone_target() -> None:
+    args = guard.parse_args(["--mode", "teste-telefone"])
+    config = guard.config_from_args(args)
+
+    payload = config.pin_data["Trigger Manual"][0]["json"]
+    assert payload["dry_run"] is False
+    assert payload["target"] == "5511975235421"
+    assert payload["target_chat_id"] == "5511975235421@c.us"
+
+
 def test_preserve_pindata_sets_none() -> None:
     args = guard.parse_args(["--preserve-pindata"])
     config = guard.config_from_args(args)
@@ -95,19 +106,19 @@ def test_preserve_pindata_sets_none() -> None:
     assert config.pin_data is None
 
 
-def test_validate_pin_data_rejects_real_group_without_group_chat_id() -> None:
+def test_validate_pin_data_rejects_real_send_without_supported_chat_id() -> None:
     pin_data = {
         "Trigger Manual": [
             {
                 "json": {
                     "dry_run": False,
-                    "target_chat_id": "5511975235421@c.us",
+                    "target_chat_id": "5511975235421",
                 }
             }
         ]
     }
 
-    with pytest.raises(guard.WorkflowGuardError, match="@g.us"):
+    with pytest.raises(guard.WorkflowGuardError, match="@g.us or @c.us"):
         guard.validate_pin_data(pin_data)
 
 

@@ -8,6 +8,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ops_common import (
+    ComposeConfig,
+    N8nOpsError,
+    REAL_GROUP_PINDATA,
+    SAFE_PINDATA,
+    TEST_PHONE_PINDATA,
+    compact_json,
+    compose_psql_command,
+    dollar_quote,
+    resolve_mode,
+    sql_literal,
+)
+
 DEFAULT_WORKFLOW_JSON = Path("n8n/workflows/ofertas-mvp-supabase.json")
 DEFAULT_COMPOSE_ENV = Path("/opt/automacao_grupo_compras/n8n/.env")
 DEFAULT_COMPOSE_FILE = Path("/opt/automacao_grupo_compras/n8n/docker-compose.yml")
@@ -15,39 +28,6 @@ DEFAULT_WORKFLOW_ID = "OfertasMvpSupab1"
 EXPECTED_TEMPLATE_TEXT = "Resgate o cupom desta página"
 EXPECTED_SEND_IMAGE_PATH = "/api/sendImage"
 FORBIDDEN_SEND_TEXT_PATH = "/api/sendText"
-
-REAL_GROUP_PINDATA = {
-    "Trigger Manual": [
-        {
-            "json": {
-                "dry_run": False,
-                "limit": 1,
-                "profile": "feminino",
-                "marketplace": "shopee",
-                "target": "grupo-ofertas-feminino",
-                "target_chat_id": "120363412864266334@g.us",
-                "allowed_targets_csv": "grupo-ofertas-feminino",
-                "channel_adapter": "whatsapp",
-            }
-        }
-    ]
-}
-
-SAFE_PINDATA = {
-    "Trigger Manual": [
-        {
-            "json": {
-                "dry_run": True,
-                "limit": 1,
-                "profile": "feminino",
-                "marketplace": "shopee",
-                "target": "teste-whatsapp",
-                "allowed_targets_csv": "teste-whatsapp",
-                "channel_adapter": "whatsapp",
-            }
-        }
-    ]
-}
 
 
 class WorkflowGuardError(RuntimeError):
@@ -77,6 +57,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Validate and print a summary without changing n8n.",
     )
+    parser.add_argument(
+        "--mode",
+        choices=("grupo-real", "teste-telefone", "dry-run", "preserve-pindata"),
+        default="grupo-real",
+        help="Operational pinData mode. Defaults to grupo-real.",
+    )
     pin_group = parser.add_mutually_exclusive_group()
     pin_group.add_argument(
         "--safe-pindata",
@@ -98,7 +84,7 @@ def config_from_args(args: argparse.Namespace) -> DeployConfig:
     elif args.safe_pindata:
         pin_data = SAFE_PINDATA
     else:
-        pin_data = REAL_GROUP_PINDATA
+        pin_data = resolve_mode(args.mode).pin_data
     return DeployConfig(
         workflow_json=args.workflow_json,
         workflow_id=args.workflow_id,
@@ -158,25 +144,8 @@ def validate_pin_data(pin_data: dict[str, Any] | None) -> None:
         raise WorkflowGuardError("pinData dry_run must be boolean")
 
     chat_id = payload.get("target_chat_id")
-    if payload.get("dry_run") is False and not str(chat_id).endswith("@g.us"):
-        raise WorkflowGuardError("real pinData target_chat_id must end with @g.us")
-
-
-def dollar_quote(value: str, base_tag: str = "n8njson") -> str:
-    tag = base_tag
-    suffix = 0
-    while f"${tag}$" in value:
-        suffix += 1
-        tag = f"{base_tag}{suffix}"
-    return f"${tag}${value}${tag}$"
-
-
-def sql_literal(value: str) -> str:
-    return "'" + value.replace("'", "''") + "'"
-
-
-def compact_json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    if payload.get("dry_run") is False and not str(chat_id).endswith(("@g.us", "@c.us")):
+        raise WorkflowGuardError("real pinData target_chat_id must end with @g.us or @c.us")
 
 
 def build_update_sql(
@@ -229,31 +198,9 @@ def build_status_query(workflow_id: str) -> str:
     )
 
 
-def compose_psql_command(config: DeployConfig, *extra: str) -> list[str]:
-    return [
-        "docker",
-        "compose",
-        "--env-file",
-        str(config.compose_env),
-        "-f",
-        str(config.compose_file),
-        "exec",
-        "-T",
-        "postgres",
-        "psql",
-        "-U",
-        "n8n",
-        "-d",
-        "n8n",
-        "-v",
-        "ON_ERROR_STOP=1",
-        *extra,
-    ]
-
-
 def run_update(sql: str, config: DeployConfig) -> None:
     completed = subprocess.run(
-        compose_psql_command(config),
+        compose_psql_command(ComposeConfig(config.compose_env, config.compose_file)),
         input=sql,
         text=True,
         check=False,
@@ -269,7 +216,12 @@ def run_update(sql: str, config: DeployConfig) -> None:
 
 def fetch_status(config: DeployConfig) -> dict[str, Any]:
     completed = subprocess.run(
-        compose_psql_command(config, "-At", "-c", build_status_query(config.workflow_id)),
+        compose_psql_command(
+            ComposeConfig(config.compose_env, config.compose_file),
+            "-At",
+            "-c",
+            build_status_query(config.workflow_id),
+        ),
         text=True,
         check=False,
         capture_output=True,
@@ -316,16 +268,29 @@ def validate_deployed_status(status: dict[str, Any], pin_data: dict[str, Any] | 
                 if payload.get("dry_run") is not False and pin_data == REAL_GROUP_PINDATA:
                     errors.append("real group pinData must use dry_run=false")
                 chat_id = payload.get("target_chat_id")
-                if payload.get("dry_run") is False and not str(chat_id).endswith("@g.us"):
-                    errors.append("real group pinData target_chat_id must end with @g.us")
+                if payload.get("dry_run") is False and not str(chat_id).endswith(
+                    ("@g.us", "@c.us")
+                ):
+                    errors.append("real pinData target_chat_id must end with @g.us or @c.us")
 
     if errors:
         raise WorkflowGuardError("; ".join(errors))
 
 
 def print_summary(status: dict[str, Any] | None, pin_data: dict[str, Any] | None) -> None:
+    def pin_mode_name(value: dict[str, Any] | None) -> str:
+        if value is None:
+            return "preserve"
+        if value == SAFE_PINDATA:
+            return "safe"
+        if value == TEST_PHONE_PINDATA:
+            return "teste telefone"
+        if value == REAL_GROUP_PINDATA:
+            return "grupo real"
+        return "custom"
+
     if status is None:
-        mode = "preserve" if pin_data is None else ("safe" if pin_data == SAFE_PINDATA else "grupo real")
+        mode = pin_mode_name(pin_data)
         print("INFO | dry_run=true; no changes applied")
         print(f"INFO | pinData mode={mode}")
         print("INFO | local workflow sendImage=ok")
@@ -333,12 +298,7 @@ def print_summary(status: dict[str, Any] | None, pin_data: dict[str, Any] | None
         print("INFO | local workflow template=ok")
         return
 
-    pin_mode = "preserve"
-    deployed_pin_data = status.get("pinData")
-    if deployed_pin_data == REAL_GROUP_PINDATA:
-        pin_mode = "grupo real"
-    elif deployed_pin_data == SAFE_PINDATA:
-        pin_mode = "safe"
+    pin_mode = pin_mode_name(status.get("pinData"))
     print(f"INFO | workflow_id={status.get('id')}")
     print(f"INFO | versionId={status.get('versionId')}")
     print(f"INFO | versionCounter={status.get('versionCounter')}")
@@ -370,7 +330,7 @@ def run(config: DeployConfig) -> int:
 def main(argv: list[str] | None = None) -> int:
     try:
         return run(config_from_args(parse_args(argv)))
-    except WorkflowGuardError as exc:
+    except (WorkflowGuardError, N8nOpsError) as exc:
         print(f"ERRO | {exc}", file=sys.stderr)
         return 1
 
