@@ -166,7 +166,14 @@ def test_shopee_provider_rejects_invalid_items_shape() -> None:
 def test_shopee_provider_fetches_offer_search_with_explicit_shopee_offer_query() -> None:
     response = HttpResponse(
         status_code=200,
-        data={"data": {"shopeeOfferV2": {"nodes": [], "pageInfo": {"page": 1, "limit": 1, "hasNextPage": False}}}},
+        data={
+            "data": {
+                "shopeeOfferV2": {
+                    "nodes": [],
+                    "pageInfo": {"page": 1, "limit": 1, "hasNextPage": False},
+                }
+            }
+        },
     )
     transport = StaticHttpTransport(response=response)
     signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")
@@ -193,7 +200,14 @@ def test_shopee_provider_fetches_offer_search_with_explicit_shopee_offer_query()
 def test_shopee_provider_fetches_product_match_with_inline_query() -> None:
     response = HttpResponse(
         status_code=200,
-        data={"data": {"productOfferV2": {"nodes": [], "pageInfo": {"page": 1, "limit": 3, "hasNextPage": False}}}},
+        data={
+            "data": {
+                "productOfferV2": {
+                    "nodes": [],
+                    "pageInfo": {"page": 1, "limit": 3, "hasNextPage": False},
+                }
+            }
+        },
     )
     transport = StaticHttpTransport(response=response)
     signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")
@@ -221,7 +235,14 @@ def test_shopee_provider_fetches_product_match_with_inline_query() -> None:
 def test_shopee_provider_fetches_product_match_with_optional_filters() -> None:
     response = HttpResponse(
         status_code=200,
-        data={"data": {"productOfferV2": {"nodes": [], "pageInfo": {"page": 1, "limit": 50, "hasNextPage": False}}}},
+        data={
+            "data": {
+                "productOfferV2": {
+                    "nodes": [],
+                    "pageInfo": {"page": 1, "limit": 50, "hasNextPage": False},
+                }
+            }
+        },
     )
     transport = StaticHttpTransport(response=response)
     signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")
@@ -255,7 +276,14 @@ def test_shopee_provider_fetches_product_match_with_optional_filters() -> None:
 def test_shopee_provider_fetches_product_offer_with_keyword_only() -> None:
     response = HttpResponse(
         status_code=200,
-        data={"data": {"productOfferV2": {"nodes": [], "pageInfo": {"page": 1, "limit": 50, "hasNextPage": False}}}},
+        data={
+            "data": {
+                "productOfferV2": {
+                    "nodes": [],
+                    "pageInfo": {"page": 1, "limit": 50, "hasNextPage": False},
+                }
+            }
+        },
     )
     transport = StaticHttpTransport(response=response)
     signer = ShopeeGraphqlSigner(credential="123", api_secret="abc")

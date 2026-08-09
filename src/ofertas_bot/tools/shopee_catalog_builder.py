@@ -129,8 +129,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     print(f"INFO | output_dir={run_dir}")
     if profile.start_match_ids:
         print(
-            "INFO | reference_match_ids="
-            + ",".join(str(item) for item in profile.start_match_ids)
+            "INFO | reference_match_ids=" + ",".join(str(item) for item in profile.start_match_ids)
         )
 
     for source_type, source_value, params in _iter_collection_sources(profile):
@@ -239,7 +238,14 @@ def _collect_product_offer_pages(
                 continue
             key = _item_key(node)
             unique_keys.add(key)
-            rows.append(_node_to_catalog_row(node=node, page_info=page_info, source_type=source_type, source_value=source_value))
+            rows.append(
+                _node_to_catalog_row(
+                    node=node,
+                    page_info=page_info,
+                    source_type=source_type,
+                    source_value=source_value,
+                )
+            )
 
         if node_count == 0:
             stop_reason = "empty_page"
@@ -428,12 +434,11 @@ def _persist_catalog_run(
     )
     deduplicated_items = _build_deduplicated_items(profile=profile, merged_items=merged_items)
     clean_items = _build_clean_items(profile=profile, deduplicated_items=deduplicated_items)
-    operational_clean_items = [
-        project_operational_catalog_row(item)
-        for item in clean_items
-    ]
+    operational_clean_items = [project_operational_catalog_row(item) for item in clean_items]
     _write_catalog_csv(raw_csv_path, raw_source_rows)
-    raw_json_path.write_text(json.dumps(raw_source_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    raw_json_path.write_text(
+        json.dumps(raw_source_rows, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     _write_catalog_csv(deduplicated_csv_path, deduplicated_items)
     deduplicated_json_path.write_text(
         json.dumps(deduplicated_items, ensure_ascii=False, indent=2),
@@ -448,7 +453,9 @@ def _persist_catalog_run(
         json.dumps(operational_clean_items, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    summary_path.write_text(json.dumps(summary_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    summary_path.write_text(
+        json.dumps(summary_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     print(
         "INFO | "
         f"checkpoint raw={summary_payload['summary']['raw_row_count']} "

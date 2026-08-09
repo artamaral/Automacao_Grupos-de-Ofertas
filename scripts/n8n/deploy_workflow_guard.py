@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Any
 
 from ops_common import (
-    ComposeConfig,
-    N8nOpsError,
     REAL_GROUP_PINDATA,
     SAFE_PINDATA,
     TEST_PHONE_PINDATA,
+    ComposeConfig,
+    N8nOpsError,
     compact_json,
     compose_psql_command,
     dollar_quote,

@@ -326,15 +326,14 @@ def _csv_required_int(value: str | None, field_name: str) -> int:
     try:
         return int(value.strip())
     except ValueError as error:
-        raise SelectionPolicyError(f"selection policy csv field must be integer: {field_name}") from error
+        raise SelectionPolicyError(
+            f"selection policy csv field must be integer: {field_name}"
+        ) from error
 
 
-DEFAULT_SELECTION_POLICIES_BY_NICHE = load_selection_policies(
-    DEFAULT_SELECTION_PROFILES_PATH
-)
+DEFAULT_SELECTION_POLICIES_BY_NICHE = load_selection_policies(DEFAULT_SELECTION_PROFILES_PATH)
 DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {
-    niche: policy.subniche_quotas
-    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
+    niche: policy.subniche_quotas for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
 }
 DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE = {
     niche: policy.max_zero_sales_items

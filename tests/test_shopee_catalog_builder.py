@@ -1,13 +1,11 @@
+from ofertas_bot.shopee_catalog_profiles import ShopeeCatalogProfile, ShopeeCatalogSubniche
 from ofertas_bot.tools.shopee_catalog_builder import (
     _build_catalog_summary,
-    _build_clean_items,
-    _build_deduplicated_items,
     _classify_subniches,
     _iter_collection_sources,
     _matches_negative_terms,
     _merge_items,
 )
-from ofertas_bot.shopee_catalog_profiles import ShopeeCatalogProfile, ShopeeCatalogSubniche
 
 
 def test_merge_items_combines_source_hits_without_duplication() -> None:
@@ -109,9 +107,36 @@ def test_build_catalog_summary_counts_raw_deduplicated_and_clean(tmp_path) -> No
         },
     }
     raw_rows = [
-        {"shopId": 1, "itemId": 1, "sales": 2, "productName": "Fralda premium", "shopName": "Loja Bebe", "productLink": "", "offerLink": "", "source_hits": ["keyword:fralda"]},
-        {"shopId": 2, "itemId": 2, "sales": 0, "productName": "Cama pet", "shopName": "Loja Pet", "productLink": "", "offerLink": "", "source_hits": ["keyword:pet"]},
-        {"shopId": 1, "itemId": 1, "sales": 2, "productName": "Fralda premium", "shopName": "Loja Bebe", "productLink": "", "offerLink": "", "source_hits": ["matchId:100632"]},
+        {
+            "shopId": 1,
+            "itemId": 1,
+            "sales": 2,
+            "productName": "Fralda premium",
+            "shopName": "Loja Bebe",
+            "productLink": "",
+            "offerLink": "",
+            "source_hits": ["keyword:fralda"],
+        },
+        {
+            "shopId": 2,
+            "itemId": 2,
+            "sales": 0,
+            "productName": "Cama pet",
+            "shopName": "Loja Pet",
+            "productLink": "",
+            "offerLink": "",
+            "source_hits": ["keyword:pet"],
+        },
+        {
+            "shopId": 1,
+            "itemId": 1,
+            "sales": 2,
+            "productName": "Fralda premium",
+            "shopName": "Loja Bebe",
+            "productLink": "",
+            "offerLink": "",
+            "source_hits": ["matchId:100632"],
+        },
     ]
     summary = _build_catalog_summary(
         profile=profile,
