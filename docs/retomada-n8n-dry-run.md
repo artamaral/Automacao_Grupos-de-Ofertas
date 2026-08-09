@@ -46,6 +46,10 @@ Data da retomada: 2026-08-09.
   `publish_id = 1e99a91a-9684-4e69-9024-f0c4ae0ea0f3`.
 - Apos o teste, o `pinData` do workflow foi restaurado para `dry_run=true` e
   `target=teste-whatsapp`.
+- Apos revisar a documentacao de copy, o node `Montar Mensagens` foi alinhado
+  ao template Shopee oficial de `config/message_templates/shopee.txt`, usando
+  cupom global, preco em BRL, desconto calculado por `reference_price` e
+  marcador `(anúncio)`.
 
 ## Credencial Supabase no n8n
 
@@ -210,7 +214,8 @@ rank_profile: 1
 rank_subniche: 1
 ```
 
-Mensagem gerada:
+Mensagem gerada no dry-run inicial, antes do alinhamento ao template Shopee
+oficial:
 
 ```text
 Bolsa Feminina Clutch De Ombro Pequena Sofisticada Alça Regulável
@@ -221,6 +226,28 @@ Avaliacao: 4.80
 Link: https://s.shopee.com.br/4LHIXyhV9L
 
 Aviso: este link pode gerar comissao de afiliado. Preco e disponibilidade podem mudar.
+```
+
+Padrao atual para novos envios Shopee:
+
+```text
+🔥 {{facts.title}}
+
+🏪 Loja: {{facts.marketplace}}
+
+💵 {{facts.price | brl}}
+
+🏷️ {{facts.discount_percent | round}}% OFF
+
+⭐ Avaliação: {{facts.rating | rating_br}}/5
+
+🎟️ Resgate o cupom desta página:
+{{coupon_url}}
+
+✅ Link do produto:
+{{facts.url}}
+
+(anúncio)
 ```
 
 ## Pendencias antes de ativar o workflow
@@ -274,6 +301,10 @@ Resultado validado em 2026-08-09:
 - `publish_id`: `1e99a91a-9684-4e69-9024-f0c4ae0ea0f3`;
 - oferta enviada: `58211202356`;
 - `pinData` restaurado para `dry_run=true` depois do teste.
+
+Observacao: essa execucao validou o canal WAHA com o template minimo anterior.
+O workflow versionado foi ajustado depois para usar o template Shopee oficial
+nos proximos testes/envios.
 
 ## Comandos uteis
 

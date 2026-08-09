@@ -32,6 +32,8 @@ O workflow deve receber ou definir:
 - `run_id`: identificador da rodada.
 - `target_chat_id` opcional: chat id WAHA explicito. Se ausente, o workflow
   tenta normalizar `target` para `${digits}@c.us`.
+- `coupon_url` opcional: URL de cupom usada no template Shopee. Se ausente, o
+  workflow usa a URL global versionada em `config/coupon_urls.toml`.
 
 ## Credenciais
 
@@ -148,6 +150,49 @@ O node `Normalizar Resultado WAHA` registra no payload:
 - `adapter_ack`;
 - `adapter_response_type`.
 
+### Template Shopee
+
+O node `Montar Mensagens` deve seguir o template Shopee oficial versionado em
+[`config/message_templates/shopee.txt`](../config/message_templates/shopee.txt).
+
+Formato esperado:
+
+```text
+🔥 {{facts.title}}
+
+🏪 Loja: {{facts.marketplace}}
+
+💵 {{facts.price | brl}}
+
+🏷️ {{facts.discount_percent | round}}% OFF
+
+⭐ Avaliação: {{facts.rating | rating_br}}/5
+
+🎟️ Resgate o cupom desta página:
+{{coupon_url}}
+
+✅ Link do produto:
+{{facts.url}}
+
+(anúncio)
+```
+
+Mapeamento atual do n8n:
+
+- `facts.title`: `product_name`;
+- `facts.marketplace`: `marketplace`, formatado como `Shopee` quando
+  `marketplace = shopee`;
+- `facts.price`: `price`, formatado em BRL;
+- `facts.discount_percent`: calculado a partir de `reference_price` e `price`;
+- `facts.rating`: `rating`;
+- `facts.url`: `offer_link`;
+- `coupon_url`: entrada opcional do workflow ou URL global versionada em
+  `config/coupon_urls.toml`.
+
+O antigo template minimo do MVP foi mantido apenas como historico dos dry-runs
+iniciais. Novos envios devem usar o template Shopee acima, com `(anúncio)` como
+marcador explicito de publicidade/afiliado.
+
 ### Teste real controlado
 
 Manter o workflow inativo e executar manualmente com destino controlado:
@@ -199,6 +244,10 @@ Ultimo teste real validado em 2026-08-09:
 - oferta enviada: `58211202356`;
 - workflow permaneceu inativo e o `pinData` foi restaurado para `dry_run=true`
   depois do teste.
+
+Observacao: esse teste validou a integracao n8n -> WAHA -> Supabase usando o
+template minimo anterior. Apos a validacao de canal, o workflow foi alinhado ao
+template Shopee oficial documentado acima.
 
 Observacao operacional: neste ambiente o n8n roda com task runners externos.
 Evitar `n8n execute --id ...` dentro do container principal para testes reais,
@@ -518,11 +567,10 @@ futuro.
 Nao adicionar filtros escondidos. Qualquer filtro novo precisa aparecer no
 workflow e na documentacao.
 
-## Template minimo
+## Template historico do dry-run inicial
 
-O n8n deve montar `message_text` com os campos da query.
-
-Template minimo:
+O primeiro dry-run do MVP usou o formato minimo abaixo para validar consulta,
+allowlist e auditoria. Ele nao e mais o padrao para novos envios Shopee.
 
 ```text
 {{product_name}}
