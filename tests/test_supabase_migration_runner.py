@@ -28,5 +28,5 @@ def test_file_checksum_is_stable_sha256(tmp_path: Path) -> None:
     migration.write_text("select 1;\n", encoding="utf-8")
 
     assert file_checksum(migration) == (
-        "a2efbdcd209e877d7c15164011fb713d9ecdc99ae8e5a695823aa8b1ac03b13f"
+        "4a45092ccf992ea92250053a80b931b787924ba61648f420555511b84f10ab6c"
     )

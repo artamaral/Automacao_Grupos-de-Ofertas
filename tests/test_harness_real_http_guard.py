@@ -4,10 +4,18 @@ from ofertas_bot.providers.real_http_guard import RealHttpValidationError
 
 
 def test_harness_handles_real_http_guard_error(monkeypatch, capsys) -> None:
-    def raise_guard_error(self, marketplace: Marketplace, niche: str, limit: int):
+    def raise_guard_error(
+        self,
+        *,
+        marketplace: Marketplace,
+        niche: str,
+        limit: int,
+        query: str | None = None,
+        catalog_source_path=None,
+    ):
         raise RealHttpValidationError("Real HTTP for Shopee is blocked")
 
-    monkeypatch.setattr(harness.CollectorAgent, "collect", raise_guard_error)
+    monkeypatch.setattr(harness.CollectorAgent, "collect_with_inspection", raise_guard_error)
 
     exit_code = harness.run(["--marketplace", "mock", "--niche", "maquiagem", "--limit", "1"])
 
