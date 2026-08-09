@@ -378,6 +378,22 @@ Resultado atual validado em 2026-08-09:
 - workflow mantido `active=false`, com operacao manual/controlada via API do
   n8n.
 
+Schedule automatico preparado em 2026-08-09:
+
+- node `Schedule Grupo Real` versionado junto ao `Trigger Manual`;
+- cron: `0 8-21 * * *`;
+- timezone: `America/Sao_Paulo`;
+- frequencia: 1 execucao por hora, das 08:00 as 21:00;
+- contexto fixo em `Set Contexto Schedule Grupo`;
+- destino: `grupo-ofertas-feminino`;
+- chat WAHA: `120363412864266334@g.us`;
+- `dry_run=false`, `limit=1`, `allowed_targets_csv=grupo-ofertas-feminino`;
+- envio esperado: `POST /api/sendImage`;
+- `deploy_workflow_guard.py` valida o schedule e mantem `active=false`;
+- workflow aplicado no n8n com `versionCounter=40` e `active=false`;
+- ativacao e pausa continuam sendo feitas manualmente no painel do n8n;
+- proxima acao para iniciar o teste automatico: ativar o workflow no painel.
+
 Resultado historico validado em 2026-08-09:
 
 - execucao n8n: `23`;

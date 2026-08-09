@@ -753,6 +753,57 @@ O envio real para `grupo-ofertas-feminino` foi aceito pelo adapter WAHA como
 imagem com legenda. O workflow permaneceu `active=false`; a operacao foi
 manual/controlada via API do n8n.
 
+### Schedule automatico controlado
+
+O workflow versionado mantem o `Trigger Manual` e adiciona um schedule para o
+grupo real:
+
+```text
+Schedule Grupo Real
+  -> Set Contexto Schedule Grupo
+  -> Validar Contexto
+```
+
+Configuracao versionada do schedule:
+
+- cron: `0 8-21 * * *`;
+- timezone do workflow: `America/Sao_Paulo`;
+- frequencia: 1 execucao por hora, das 08:00 as 21:00;
+- volume: `limit=1` por execucao;
+- destino: `grupo-ofertas-feminino`;
+- chat WAHA: `120363412864266334@g.us`;
+- `dry_run=false`;
+- `allowed_targets_csv=grupo-ofertas-feminino`;
+- envio por `POST /api/sendImage`.
+
+O `deploy_workflow_guard.py` valida esse schedule e continua gravando
+`active=false`. Para iniciar a automacao, o operador deve ativar o workflow no
+painel do n8n depois do deploy guard. Para pausar, desativar o workflow no
+painel.
+
+Estado aplicado em 2026-08-09:
+
+- workflow `OfertasMvpSupab1` atualizado no n8n com `versionCounter=40`;
+- `active=false` preservado pelo deploy guard;
+- schedule e contexto do grupo real presentes no workflow versionado e no n8n;
+- proxima acao operacional para iniciar o teste automatico: ativar o workflow
+  manualmente no painel do n8n.
+
+Validacao recomendada depois da primeira execucao automatica:
+
+```bash
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+Resultado esperado:
+
+```text
+endpoint=sendImage
+delivery_status=confirmed
+adapter_response_type=image
+copy_template=novo
+```
+
 Para reduzir dependencia do painel e de abas antigas do editor, executar via
 API local do n8n:
 
