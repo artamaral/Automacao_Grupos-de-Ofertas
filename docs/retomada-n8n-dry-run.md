@@ -292,6 +292,29 @@ python3 scripts/n8n/deploy_workflow_guard.py --dry-run --mode grupo-real
 Checklist curto por rodada operacional:
 
 ```bash
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+```
+
+O wrapper executa `deploy_workflow_guard.py --mode <mode>`,
+`run_workflow_manual.py --mode <mode>` e `check_last_execution.py`, parando no
+primeiro erro. Nos modos `grupo-real` e `teste-telefone`, ele chama a checagem
+com `--expect-real-image`; no modo `dry-run`, nao exige
+`adapter_response_type=image`.
+
+Resumo final esperado no terminal:
+
+```text
+execution_id=<id>
+endpoint=sendImage
+publish_id=<uuid>
+delivery_status=confirmed
+adapter_response_type=image
+copy_template=novo
+```
+
+Para depurar passo a passo:
+
+```bash
 python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
 python3 scripts/n8n/run_workflow_manual.py --mode grupo-real
 python3 scripts/n8n/check_last_execution.py --expect-real-image
@@ -301,8 +324,10 @@ Modos disponiveis:
 
 - `grupo-real`: grupo `grupo-ofertas-feminino`;
 - `teste-telefone`: telefone `5511975235421`;
-- `dry-run`: sem envio real;
-- `preserve-pindata`: somente no deploy guard, sem alterar `pinData`.
+- `dry-run`: sem envio real.
+
+`preserve-pindata` existe somente no `deploy_workflow_guard.py`, para reaplicar
+o workflow sem alterar `pinData`.
 
 O `run_workflow_manual.py` exige `--mode` explicitamente para evitar envio real
 acidental. A checagem final deve mostrar `endpoint=sendImage`,

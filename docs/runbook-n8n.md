@@ -658,6 +658,33 @@ antiga por cima do workflow correto. Antes de executar testes reais:
 
 ### Checklist operacional por rodada
 
+Comando principal:
+
+```bash
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+```
+
+O wrapper executa, em ordem:
+
+1. `deploy_workflow_guard.py --mode <mode>`;
+2. `run_workflow_manual.py --mode <mode>`;
+3. `check_last_execution.py`.
+
+Modos aceitos:
+
+- `teste-telefone`: envio real controlado para o telefone de teste;
+- `grupo-real`: envio real controlado para o grupo allowlisted;
+- `dry-run`: sem envio real.
+
+Nos modos `grupo-real` e `teste-telefone`, a checagem final usa
+`--expect-real-image`. No modo `dry-run`, ela nao exige
+`adapter_response_type=image`.
+
+O wrapper para no primeiro erro e imprime resumo final com `execution_id`,
+`endpoint`, `publish_id`, `delivery_status`, `adapter_response_type` e
+`copy_template`. Linhas contendo senha, cookie, token ou API key sao redigidas
+antes de serem impressas.
+
 Rodada manual pelo painel n8n:
 
 ```bash
