@@ -604,6 +604,50 @@ O arquivo versionado `n8n/workflows/ofertas-mvp-supabase.json` ja foi
 atualizado para refletir essa correcao. Novas importacoes devem preservar esses
 dois nodes como `Code`.
 
+### Deploy guard do workflow
+
+Antes de testar envios reais, reaplicar e validar o workflow versionado com:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py
+```
+
+Esse comando atualiza o workflow `OfertasMvpSupab1` diretamente no banco do
+n8n a partir de `n8n/workflows/ofertas-mvp-supabase.json`, mantendo
+`active=false` e validando:
+
+- existe `/api/sendImage`;
+- nao existe `/api/sendText`;
+- o template contem `Resgate o cupom desta página`;
+- o `pinData` esta pronto para execucao manual do grupo real com
+  `dry_run=false`, `limit=1` e `target_chat_id` terminado em `@g.us`.
+
+Para validar sem alterar o n8n:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --dry-run
+```
+
+Modos alternativos:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --safe-pindata
+python3 scripts/n8n/deploy_workflow_guard.py --preserve-pindata
+```
+
+`--safe-pindata` deixa `dry_run=true` e `target=teste-whatsapp`.
+`--preserve-pindata` reaplica nodes/connections/settings, mas nao altera o
+`pinData` salvo no n8n.
+
+Se uma aba antiga do editor n8n estiver aberta, ela pode salvar uma versao
+antiga por cima do workflow correto. Antes de executar testes reais:
+
+1. fechar abas antigas do workflow;
+2. rodar o deploy guard;
+3. abrir o workflow novamente pela lista do n8n;
+4. executar manualmente;
+5. conferir no log da WAHA se houve `POST /api/sendImage`.
+
 ### Teste controlado
 
 Executar com o contexto minimo:

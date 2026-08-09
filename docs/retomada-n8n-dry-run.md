@@ -271,6 +271,24 @@ Antes de executar, confirmar no painel:
 - sessao WAHA `default` em `WORKING` / `CONNECTED`;
 - destino de teste presente em `target` e em `allowed_targets_csv`.
 
+Antes de abrir/executar o workflow no painel, fechar abas antigas do editor n8n
+e reaplicar o JSON versionado com o guard:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py
+```
+
+O guard atualiza o workflow `OfertasMvpSupab1` a partir do Git, mantem
+`active=false`, exige `POST /api/sendImage`, bloqueia `POST /api/sendText`,
+confirma o template Shopee oficial e deixa o `pinData` pronto para envio manual
+do grupo real com `dry_run=false` e `limit=1`.
+
+Para validar sem alterar o n8n:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --dry-run
+```
+
 Payload recomendado para a execucao manual controlada:
 
 ```json
