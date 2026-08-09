@@ -14,7 +14,9 @@ Trigger
   -> Consultar Supabase
   -> Montar mensagens
   -> Validar allowlist
-  -> Enviar ou simular envio
+  -> Simular envio logico
+  -> Preparar envio WAHA
+  -> Enviar WhatsApp WAHA quando dry_run=false e target allowlisted
   -> Registrar resultado no Supabase
 ```
 
@@ -28,6 +30,8 @@ O workflow deve receber ou definir:
 - `target`: destino logico do envio;
 - `dry_run`: `true` por padrao;
 - `run_id`: identificador da rodada.
+- `target_chat_id` opcional: chat id WAHA explicito. Se ausente, o workflow
+  tenta normalizar `target` para `${digits}@c.us`.
 
 ## Credenciais
 
@@ -70,8 +74,8 @@ Estado implantado em 2026-08-09:
   `/opt/automacao_grupo_compras/n8n/waha-operator.txt` com modo `0600`;
 - dashboard e Swagger protegidos por credenciais locais no `.env`;
 - `health` e `ping` liberados sem API key para healthcheck;
-- sessao `default` criada e iniciada;
-- status atual esperado antes do pareamento: `SCAN_QR_CODE`.
+- sessao `default` criada, pareada e conectada;
+- status atual esperado: `WORKING` / `CONNECTED`.
 
 Base URL para o n8n:
 
@@ -99,6 +103,108 @@ http://127.0.0.1:3000/dashboard
 
 Usar as credenciais de `/opt/automacao_grupo_compras/n8n/waha-operator.txt`.
 Esse arquivo nao deve ser copiado para o repositorio.
+
+### Acoplamento WAHA no workflow
+
+O workflow `ofertas-mvp-supabase` chama a WAHA somente depois de:
+
+- ranking consultar uma oferta elegivel ainda nao confirmada para o mesmo
+  `target` e `channel_adapter`;
+- allowlist aprovar o destino;
+- `dry_run` ser `false`;
+- `send_result` estar como `ready_for_real_channel_node`.
+
+Nodes WAHA no workflow:
+
+```text
+Simular Envio MVP
+  -> Preparar Envio WAHA
+  -> IF Pode Enviar WAHA
+     -> true: Enviar WhatsApp WAHA -> Normalizar Resultado WAHA
+     -> false: Montar Upsert Publication Event
+  -> Montar Upsert Publication Event
+  -> Registrar Resultado Supabase
+```
+
+Configuracao esperada do node `Enviar WhatsApp WAHA`:
+
+- metodo: `POST`;
+- URL: `http://waha:3000/api/sendText`;
+- autenticacao: credencial n8n `WAHA Header Auth` do tipo `httpHeaderAuth`;
+- body JSON:
+
+```javascript
+JSON.stringify({
+  session: 'default',
+  chatId: $json.waha_chat_id,
+  text: $json.message_text,
+})
+```
+
+O node `Normalizar Resultado WAHA` registra no payload:
+
+- `adapter_status`;
+- `adapter_message_id`;
+- `adapter_ack`;
+- `adapter_response_type`.
+
+### Teste real controlado
+
+Manter o workflow inativo e executar manualmente com destino controlado:
+
+```json
+{
+  "dry_run": false,
+  "limit": 1,
+  "profile": "feminino",
+  "marketplace": "shopee",
+  "target": "55DDDNUMERO",
+  "allowed_targets_csv": "55DDDNUMERO",
+  "channel_adapter": "whatsapp"
+}
+```
+
+Validar no Supabase:
+
+```sql
+select
+  publish_id,
+  target,
+  delivery_status,
+  sent_at,
+  payload->>'send_result' as send_result,
+  payload->>'adapter_status' as adapter_status,
+  payload->>'adapter_message_id' as adapter_message_id,
+  created_at
+from offers.publication_events
+where target = '55DDDNUMERO'
+order by created_at desc
+limit 5;
+```
+
+Resultado esperado: `delivery_status = confirmed`,
+`send_result = sent_to_adapter`, `adapter_status = sent_to_adapter` e envio
+recebido no WhatsApp de teste.
+
+Ultimo teste real validado em 2026-08-09:
+
+- workflow executado manualmente pelo n8n com `dry_run=false`, `limit=1` e
+  destino explicitamente allowlisted;
+- execucao n8n: `23`;
+- WAHA: `POST /api/sendText` com HTTP 201;
+- `delivery_status`: `confirmed`;
+- `send_result`: `sent_to_adapter`;
+- `adapter_status`: `sent_to_adapter`;
+- `publish_id`: `1e99a91a-9684-4e69-9024-f0c4ae0ea0f3`;
+- oferta enviada: `58211202356`;
+- workflow permaneceu inativo e o `pinData` foi restaurado para `dry_run=true`
+  depois do teste.
+
+Observacao operacional: neste ambiente o n8n roda com task runners externos.
+Evitar `n8n execute --id ...` dentro do container principal para testes reais,
+pois a CLI tenta abrir um broker proprio e pode falhar antes dos nodes `Code`.
+Executar testes controlados pelo painel ou pela API REST local da instancia
+n8n ja em execucao.
 
 ## Acessos para iniciar
 

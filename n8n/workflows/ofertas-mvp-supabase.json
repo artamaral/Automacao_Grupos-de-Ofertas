@@ -10,6 +10,7 @@
   "triggerCount": 0,
   "nodes": [
     {
+      "parameters": {},
       "id": "1",
       "name": "Trigger Manual",
       "type": "n8n-nodes-base.manualTrigger",
@@ -18,37 +19,14 @@
         0,
         0
       ],
-      "parameters": {}
+      "notesInFlow": false
     },
     {
-      "id": "2",
-      "name": "Set Contexto MVP",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        260,
-        0
-      ],
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const input = items[0]?.json || {};\n\nreturn [\n  {\n    json: {\n      ...input,\n      dry_run: input.dry_run === undefined ? true : input.dry_run,\n      limit: Number(input.limit || 1),\n      profile: input.profile || 'feminino',\n      marketplace: input.marketplace || 'shopee',\n      target: input.target || 'teste-whatsapp',\n      allowed_targets_csv: input.allowed_targets_csv || 'teste-whatsapp',\n      channel_adapter: input.channel_adapter || 'whatsapp',\n      run_id: input.run_id || new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-mvp-supabase',\n    },\n  },\n];"
-      }
-    },
-    {
-      "id": "3",
-      "name": "Validar Contexto",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        520,
-        0
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const item = items[0].json;\nconst cleanText = (value, field) => {\n  const text = String(value || '').trim();\n  if (!/^[a-z0-9][a-z0-9_-]{1,80}$/i.test(text)) {\n    throw new Error(`${field} fora do contrato MVP: ${text}`);\n  }\n  return text;\n};\nconst profile = cleanText(item.profile, 'profile');\nconst marketplace = cleanText(item.marketplace, 'marketplace');\nconst target = cleanText(item.target, 'target');\nconst channelAdapter = cleanText(item.channel_adapter, 'channel_adapter');\nconst limit = Number(item.limit || 1);\nif (!Number.isInteger(limit) || limit < 1 || limit > 20) {\n  throw new Error(`limit fora do contrato MVP: ${item.limit}`);\n}\nconst dryRun = item.dry_run === true || item.dry_run === 'true' || item.dry_run === 1 || item.dry_run === '1';\nconst allowedTargets = String(item.allowed_targets_csv || '')\n  .split(',')\n  .map((targetItem) => targetItem.trim())\n  .filter(Boolean);\nif (allowedTargets.length === 0) {\n  throw new Error('allowed_targets_csv obrigatorio');\n}\nconst artifactGeneratedAt = item.artifact_generated_at || new Date().toISOString();\nconst sqlText = (value) => `'${String(value).replace(/'/g, \"''\")}'`;\nconst rankingQuery = `select\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  product_name,\n  offer_link,\n  price,\n  reference_price,\n  rating,\n  sales_count,\n  primary_subniche,\n  commercial_score,\n  score_reasons,\n  rank_profile,\n  rank_subniche\nfrom offers.v_offer_ranking_current ranking\nwhere ranking.is_eligible = true\n  and ranking.profile = ${sqlText(profile)}\n  and ranking.marketplace = ${sqlText(marketplace)}\n  and not exists (\n    select 1\n    from offers.publication_events event\n    where event.profile = ranking.profile\n      and event.marketplace = ranking.marketplace\n      and event.stable_key = ranking.stable_key\n      and event.target = ${sqlText(target)}\n      and event.channel_adapter = ${sqlText(channelAdapter)}\n      and event.delivery_status = 'confirmed'\n  )\norder by\n  rank_profile nulls last,\n  commercial_score desc,\n  sales_count desc,\n  rating desc nulls last,\n  item_id\nlimit ${limit};`;\nreturn [{\n  json: {\n    ...item,\n    profile,\n    marketplace,\n    target,\n    channel_adapter: channelAdapter,\n    limit,\n    dry_run: dryRun,\n    allowed_targets: allowedTargets,\n    artifact_generated_at: artifactGeneratedAt,\n    ranking_query: rankingQuery,\n  }\n}];\n"
-      }
-    },
-    {
+        "operation": "executeQuery",
+        "query": "{{ $json.ranking_query }}",
+        "options": {}
+      },
       "id": "4",
       "name": "Consultar Ranking Supabase",
       "type": "n8n-nodes-base.postgres",
@@ -57,27 +35,31 @@
         800,
         0
       ],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "={{ $json.ranking_query }}",
-        "options": {}
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
       }
     },
     {
+      "parameters": {
+        "jsCode": "const context = $('Validar Contexto').first().json;\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return 'nao informado';\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return numberValue.toFixed(2).replace('.', ',');\n  return String(value);\n};\nreturn items.map((item, index) => {\n  const offer = item.json;\n  const messageText = `${offer.product_name}\\n\\nPreco: R$ ${formatMoney(offer.price)}\\nAvaliacao: ${offer.rating ?? 'nao informada'}\\n\\nLink: ${offer.offer_link}\\n\\nAviso: este link pode gerar comissao de afiliado. Preco e disponibilidade podem mudar.`;\n  return {\n    json: {\n      ...context,\n      ...offer,\n      manifest_item_number: index + 1,\n      message_text: messageText,\n      manifest_created_at: new Date().toISOString(),\n    }\n  };\n});"
+      },
       "id": "5",
       "name": "Montar Mensagens",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1080,
+        1088,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const context = $('Validar Contexto').first().json;\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return 'nao informado';\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return numberValue.toFixed(2).replace('.', ',');\n  return String(value);\n};\nreturn items.map((item, index) => {\n  const offer = item.json;\n  const messageText = `${offer.product_name}\\n\\nPreco: R$ ${formatMoney(offer.price)}\\nAvaliacao: ${offer.rating ?? 'nao informada'}\\n\\nLink: ${offer.offer_link}\\n\\nAviso: este link pode gerar comissao de afiliado. Preco e disponibilidade podem mudar.`;\n  return {\n    json: {\n      ...context,\n      ...offer,\n      manifest_item_number: index + 1,\n      message_text: messageText,\n      manifest_created_at: new Date().toISOString(),\n    }\n  };\n});"
-      }
+      ]
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst allowed = new Set(item.allowed_targets || []);\nconst targetAllowed = allowed.has(item.target);\nconst blockedReason = targetAllowed ? null : 'target_not_allowlisted';\nconst deliveryStatus = targetAllowed ? (item.dry_run ? 'cancelled' : 'confirmed') : 'cancelled';\nreturn {\n  json: {\n    ...item,\n    target_allowed: targetAllowed,\n    blocked_reason: blockedReason,\n    delivery_status: deliveryStatus,\n  }\n};"
+      },
       "id": "6",
       "name": "Validar Allowlist",
       "type": "n8n-nodes-base.code",
@@ -85,54 +67,189 @@
       "position": [
         1360,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const item = $json;\nconst allowed = new Set(item.allowed_targets || []);\nconst targetAllowed = allowed.has(item.target);\nconst blockedReason = targetAllowed ? null : 'target_not_allowlisted';\nconst deliveryStatus = targetAllowed ? (item.dry_run ? 'cancelled' : 'confirmed') : 'cancelled';\nreturn {\n  json: {\n    ...item,\n    target_allowed: targetAllowed,\n    blocked_reason: blockedReason,\n    delivery_status: deliveryStatus,\n  }\n};"
-      }
+      ]
     },
     {
-      "id": "7",
-      "name": "Simular Envio MVP",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1640,
-        0
-      ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const item = $json;\n\nreturn {\n  json: {\n    ...item,\n    send_result:\n      item.target_allowed && !item.dry_run\n        ? 'ready_for_real_channel_node'\n        : item.target_allowed\n          ? 'dry_run_not_sent'\n          : 'blocked_by_allowlist',\n    sent_at: item.dry_run ? null : new Date().toISOString(),\n  },\n};"
-      }
-    },
-    {
+        "jsCode": "const item = $json;\nconst sqlText = (value) => value === null || value === undefined ? 'null' : `'${String(value).replace(/'/g, \"''\")}'`;\nconst sqlNumber = (value) => value === null || value === undefined || value === '' || Number.isNaN(Number(value)) ? 'null' : String(Number(value));\nconst sqlJson = (value) => `${sqlText(JSON.stringify(value))}::jsonb`;\nconst payload = {\n  run_id: item.run_id,\n  dry_run: item.dry_run,\n  target_allowed: item.target_allowed,\n  blocked_reason: item.blocked_reason,\n  send_result: item.send_result,\n  score_reasons: item.score_reasons,\n  rank_profile: item.rank_profile,\n  rank_subniche: item.rank_subniche,\n  adapter_status: item.adapter_status,\n  adapter_message_id: item.adapter_message_id,\n  adapter_ack: item.adapter_ack,\n  adapter_response_type: item.adapter_response_type,\n};\nconst upsertQuery = `insert into offers.publication_events (\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  target,\n  channel_adapter,\n  delivery_status,\n  manifest_item_number,\n  artifact_generated_at,\n  manifest_created_at,\n  planned_at,\n  sent_at,\n  offer_title,\n  offer_url,\n  offer_price,\n  message_text,\n  payload\n)\nvalues (\n  ${sqlText(item.profile)},\n  ${sqlText(item.marketplace)},\n  ${sqlText(item.stable_key)},\n  ${sqlNumber(item.item_id)},\n  ${sqlText(item.target)},\n  ${sqlText(item.channel_adapter)},\n  ${sqlText(item.delivery_status)},\n  ${sqlNumber(item.manifest_item_number)},\n  ${sqlText(item.artifact_generated_at)}::timestamptz,\n  ${sqlText(item.manifest_created_at)}::timestamptz,\n  null,\n  ${sqlText(item.sent_at)}::timestamptz,\n  ${sqlText(item.product_name)},\n  ${sqlText(item.offer_link)},\n  ${sqlNumber(item.price)},\n  ${sqlText(item.message_text)},\n  ${sqlJson(payload)}\n)\non conflict (profile, target, manifest_item_number, artifact_generated_at)\ndo update\nset delivery_status = excluded.delivery_status,\n    sent_at = excluded.sent_at,\n    message_text = excluded.message_text,\n    payload = excluded.payload,\n    updated_at = now()\nreturning publish_id;`;\nreturn { json: { ...item, publication_event_upsert_query: upsertQuery } };"
+      },
       "id": "8",
       "name": "Montar Upsert Publication Event",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1920,
+        3000,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const item = $json;\nconst sqlText = (value) => value === null || value === undefined ? 'null' : `'${String(value).replace(/'/g, \"''\")}'`;\nconst sqlNumber = (value) => value === null || value === undefined || value === '' || Number.isNaN(Number(value)) ? 'null' : String(Number(value));\nconst sqlJson = (value) => `${sqlText(JSON.stringify(value))}::jsonb`;\nconst payload = {\n  run_id: item.run_id,\n  dry_run: item.dry_run,\n  target_allowed: item.target_allowed,\n  blocked_reason: item.blocked_reason,\n  send_result: item.send_result,\n  score_reasons: item.score_reasons,\n  rank_profile: item.rank_profile,\n  rank_subniche: item.rank_subniche,\n};\nconst upsertQuery = `insert into offers.publication_events (\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  target,\n  channel_adapter,\n  delivery_status,\n  manifest_item_number,\n  artifact_generated_at,\n  manifest_created_at,\n  planned_at,\n  sent_at,\n  offer_title,\n  offer_url,\n  offer_price,\n  message_text,\n  payload\n)\nvalues (\n  ${sqlText(item.profile)},\n  ${sqlText(item.marketplace)},\n  ${sqlText(item.stable_key)},\n  ${sqlNumber(item.item_id)},\n  ${sqlText(item.target)},\n  ${sqlText(item.channel_adapter)},\n  ${sqlText(item.delivery_status)},\n  ${sqlNumber(item.manifest_item_number)},\n  ${sqlText(item.artifact_generated_at)}::timestamptz,\n  ${sqlText(item.manifest_created_at)}::timestamptz,\n  null,\n  ${sqlText(item.sent_at)}::timestamptz,\n  ${sqlText(item.product_name)},\n  ${sqlText(item.offer_link)},\n  ${sqlNumber(item.price)},\n  ${sqlText(item.message_text)},\n  ${sqlJson(payload)}\n)\non conflict (profile, target, manifest_item_number, artifact_generated_at)\ndo update\nset delivery_status = excluded.delivery_status,\n    sent_at = excluded.sent_at,\n    message_text = excluded.message_text,\n    payload = excluded.payload,\n    updated_at = now()\nreturning publish_id;`;\nreturn { json: { ...item, publication_event_upsert_query: upsertQuery } };"
-      }
+      ]
     },
     {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.publication_event_upsert_query }}",
+        "options": {}
+      },
       "id": "9",
       "name": "Registrar Resultado Supabase",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        2200,
+        3280,
         0
       ],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "={{ $json.publication_event_upsert_query }}",
-        "options": {}
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\nconst cleanText = (value, field) => {\n  const text = String(value || '').trim();\n  if (!/^[a-z0-9][a-z0-9_-]{1,80}$/i.test(text)) {\n    throw new Error(`${field} fora do contrato MVP: ${text}`);\n  }\n  return text;\n};\nconst profile = cleanText(item.profile, 'profile');\nconst marketplace = cleanText(item.marketplace, 'marketplace');\nconst target = cleanText(item.target, 'target');\nconst channelAdapter = cleanText(item.channel_adapter, 'channel_adapter');\nconst limit = Number(item.limit || 1);\nif (!Number.isInteger(limit) || limit < 1 || limit > 20) {\n  throw new Error(`limit fora do contrato MVP: ${item.limit}`);\n}\nconst dryRun = item.dry_run === true || item.dry_run === 'true' || item.dry_run === 1 || item.dry_run === '1';\nconst allowedTargets = String(item.allowed_targets_csv || '')\n  .split(',')\n  .map((targetItem) => targetItem.trim())\n  .filter(Boolean);\nif (allowedTargets.length === 0) {\n  throw new Error('allowed_targets_csv obrigatorio');\n}\nconst artifactGeneratedAt = item.artifact_generated_at || new Date().toISOString();\nconst sqlText = (value) => `'${String(value).replace(/'/g, \"''\")}'`;\nconst rankingQuery = `select\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  product_name,\n  offer_link,\n  price,\n  reference_price,\n  rating,\n  sales_count,\n  primary_subniche,\n  commercial_score,\n  score_reasons,\n  rank_profile,\n  rank_subniche\nfrom offers.v_offer_ranking_current ranking\n  where ranking.is_eligible = true\n    and ranking.profile = ${sqlText(profile)}\n    and ranking.marketplace = ${sqlText(marketplace)}\n    and not exists (\n      select 1\n      from offers.publication_events event\n      where event.profile = ranking.profile\n        and event.marketplace = ranking.marketplace\n        and event.stable_key = ranking.stable_key\n        and event.target = ${sqlText(target)}\n        and event.channel_adapter = ${sqlText(channelAdapter)}\n        and event.delivery_status = 'confirmed'\n    )\n  order by\n  rank_profile nulls last,\n  commercial_score desc,\n  sales_count desc,\n  rating desc nulls last,\n  item_id\nlimit ${limit};`;\nreturn [{\n  json: {\n    ...item,\n    profile,\n    marketplace,\n    target,\n    channel_adapter: channelAdapter,\n    limit,\n    dry_run: dryRun,\n    allowed_targets: allowedTargets,\n    artifact_generated_at: artifactGeneratedAt,\n    ranking_query: rankingQuery,\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Validar Contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\n\n  return {\n    json: {\n      ...item,\n      send_result:\n        item.target_allowed && !item.dry_run\n          ? 'ready_for_real_channel_node'\n          : item.target_allowed\n            ? 'dry_run_not_sent'\n            : 'blocked_by_allowlist',\n      sent_at: item.dry_run ? null : new Date().toISOString(),\n    },\n  };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        0
+      ],
+      "id": "962ad612-c9bc-46f1-a15a-0e24e25600ac",
+      "name": "Simular Envio MVP"
+    },
+    {
+      "parameters": {
+        "jsCode": "  const input = items[0]?.json || {};\n\n  return [\n    {\n      json: {\n        ...input,\n        dry_run: input.dry_run === undefined ? true : input.dry_run,\n        limit: Number(input.limit || 1),\n        profile: input.profile || 'feminino',\n        marketplace: input.marketplace || 'shopee',\n        target: input.target || 'teste-whatsapp',\n        allowed_targets_csv: input.allowed_targets_csv || 'teste-whatsapp',\n        channel_adapter: input.channel_adapter || 'whatsapp',\n        run_id: input.run_id || new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-mvp-supabase',\n      },\n    },\n  ];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        0
+      ],
+      "id": "4dd3e336-768c-47b1-a62e-f2630dcbe663",
+      "name": "Set Contexto MVP"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\n\nconst shouldSend =\n  item.channel_adapter === 'whatsapp' &&\n  item.target_allowed === true &&\n  item.dry_run === false &&\n  item.send_result === 'ready_for_real_channel_node';\n\nconst normalizeChatId = (value) => {\n  const raw = String(value || '').trim();\n  if (!raw) return null;\n  if (raw.endsWith('@c.us') || raw.endsWith('@g.us') || raw.endsWith('@lid')) return raw;\n  const digits = raw.replace(/[^\\d]/g, '');\n  if (digits.length >= 12 && digits.length <= 15) return `${digits}@c.us`;\n  return null;\n};\n\nconst wahaChatId = normalizeChatId(item.target_chat_id || item.target);\n\nif (shouldSend && !wahaChatId) {\n  return {\n    json: {\n      ...item,\n      waha_should_send: false,\n      waha_chat_id: null,\n      adapter_status: 'adapter_missing_chat_id',\n      send_result: 'adapter_missing_chat_id',\n      delivery_status: 'failed',\n      sent_at: null,\n    },\n  };\n}\n\nreturn {\n  json: {\n    ...item,\n    waha_should_send: shouldSend,\n    waha_chat_id: shouldSend ? wahaChatId : null,\n  },\n};"
+      },
+      "id": "waha-prepare-send",
+      "name": "Preparar Envio WAHA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "waha-should-send",
+              "leftValue": "={{ $json.waha_should_send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "waha-if-can-send",
+      "name": "IF Pode Enviar WAHA",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendText",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $json.waha_chat_id, text: $json.message_text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wahad508ad814402",
+          "name": "WAHA Header Auth"
+        }
+      },
+      "continueOnFail": true,
+      "id": "waha-send-text",
+      "name": "Enviar WhatsApp WAHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Preparar Envio WAHA').item.json;\nconst response = $json || {};\n\nconst messageId =\n  response.id?._serialized ||\n  response._data?.id?._serialized ||\n  response.id?.id ||\n  null;\n\nconst ack = response.ack ?? response._data?.ack ?? null;\nconst accepted = Boolean(messageId || response.fromMe === true || response._data?.fromMe === true);\n\nreturn {\n  json: {\n    ...original,\n    adapter_status: accepted ? 'sent_to_adapter' : 'adapter_send_failed',\n    adapter_message_id: messageId,\n    adapter_ack: ack,\n    adapter_response_type: response.type || response._data?.type || null,\n    send_result: accepted ? 'sent_to_adapter' : 'adapter_send_failed',\n    delivery_status: accepted ? 'confirmed' : 'failed',\n    sent_at: accepted ? (original.sent_at || new Date().toISOString()) : null,\n  },\n};"
+      },
+      "id": "waha-normalize-result",
+      "name": "Normalizar Resultado WAHA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        -120
+      ]
     }
   ],
   "connections": {
@@ -141,28 +258,6 @@
         [
           {
             "node": "Set Contexto MVP",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set Contexto MVP": {
-      "main": [
-        [
-          {
-            "node": "Validar Contexto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validar Contexto": {
-      "main": [
-        [
-          {
-            "node": "Consultar Ranking Supabase",
             "type": "main",
             "index": 0
           }
@@ -202,8 +297,70 @@
         ]
       ]
     },
+    "Montar Upsert Publication Event": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Contexto": {
+      "main": [
+        [
+          {
+            "node": "Consultar Ranking Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Simular Envio MVP": {
       "main": [
+        [
+          {
+            "node": "Preparar Envio WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto MVP": {
+      "main": [
+        [
+          {
+            "node": "Validar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Envio WAHA": {
+      "main": [
+        [
+          {
+            "node": "IF Pode Enviar WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pode Enviar WAHA": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Montar Upsert Publication Event",
@@ -213,11 +370,22 @@
         ]
       ]
     },
-    "Montar Upsert Publication Event": {
+    "Enviar WhatsApp WAHA": {
       "main": [
         [
           {
-            "node": "Registrar Resultado Supabase",
+            "node": "Normalizar Resultado WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Resultado WAHA": {
+      "main": [
+        [
+          {
+            "node": "Montar Upsert Publication Event",
             "type": "main",
             "index": 0
           }

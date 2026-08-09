@@ -30,8 +30,22 @@ Data da retomada: 2026-08-09.
   persistente `data/waha/.sessions` e API protegida por `X-Api-Key`.
 - Credenciais operacionais do WAHA ficam somente em
   `/opt/automacao_grupo_compras/n8n/waha-operator.txt` com modo `0600`.
-- Sessao WAHA `default` criada e iniciada; estado atual antes do pareamento:
-  `SCAN_QR_CODE`.
+- Sessao WAHA `default` criada, pareada e conectada; estado esperado:
+  `WORKING` / `CONNECTED`.
+- Envio manual controlado pelo WAHA validado em 2026-08-09 para destino de
+  teste allowlisted, com resposta HTTP 201.
+- Workflow real do n8n acoplado ao WAHA com os nodes `Preparar Envio WAHA`,
+  `IF Pode Enviar WAHA`, `Enviar WhatsApp WAHA` e
+  `Normalizar Resultado WAHA`.
+- Credencial `WAHA Header Auth` criada no n8n como `httpHeaderAuth`, usando
+  `X-Api-Key`. O valor da chave permanece somente fora do Git.
+- Teste real controlado pelo workflow n8n executado em 2026-08-09 com
+  `dry_run=false`, `limit=1` e destino explicitamente allowlisted. Execucao n8n
+  `23` finalizou com `success`, WAHA respondeu HTTP 201, o payload normalizado
+  registrou `send_result = sent_to_adapter` e Supabase retornou
+  `publish_id = 1e99a91a-9684-4e69-9024-f0c4ae0ea0f3`.
+- Apos o teste, o `pinData` do workflow foi restaurado para `dry_run=true` e
+  `target=teste-whatsapp`.
 
 ## Credencial Supabase no n8n
 
@@ -75,11 +89,15 @@ Trigger Manual
 → Consultar Ranking Supabase
 ```
 
-Final do fluxo:
+Final do fluxo com WAHA:
 
 ```text
 Validar Allowlist
 → Simular Envio MVP
+→ Preparar Envio WAHA
+→ IF Pode Enviar WAHA
+  → true: Enviar WhatsApp WAHA → Normalizar Resultado WAHA
+  → false: Montar Upsert Publication Event
 → Montar Upsert Publication Event
 → Registrar Resultado Supabase
 ```
@@ -208,13 +226,54 @@ Aviso: este link pode gerar comissao de afiliado. Preco e disponibilidade podem 
 ## Pendencias antes de ativar o workflow
 
 1. Endurecer TLS da credencial Postgres do Supabase, se viavel.
-2. Parear a sessao WAHA `default` via QR Code.
-3. Fazer envio manual minimo pelo WAHA para destino controlado.
-4. Acoplar o node real WAHA protegido por `dry_run=false` e allowlist,
-   registrando erro/status do adapter no payload.
-5. Fazer teste real minimo pelo workflow apenas com destino controlado e
-   allowlist.
-6. Ativar o workflow somente depois do teste real minimo passar.
+2. Ativar o workflow somente depois de revisar janela/volume inicial de
+   operacao.
+
+## Teste real controlado pelo n8n
+
+Antes de executar, confirmar no painel:
+
+- workflow `ofertas-mvp-supabase` ainda inativo;
+- node `Enviar WhatsApp WAHA` usando URL `http://waha:3000/api/sendText`;
+- credencial `WAHA Header Auth` selecionada;
+- sessao WAHA `default` em `WORKING` / `CONNECTED`;
+- destino de teste presente em `target` e em `allowed_targets_csv`.
+
+Payload recomendado para a execucao manual controlada:
+
+```json
+{
+  "dry_run": false,
+  "limit": 1,
+  "profile": "feminino",
+  "marketplace": "shopee",
+  "target": "55DDDNUMERO",
+  "allowed_targets_csv": "55DDDNUMERO",
+  "channel_adapter": "whatsapp"
+}
+```
+
+Resultado esperado:
+
+- node `Enviar WhatsApp WAHA` retorna HTTP 201 ou corpo com id de mensagem;
+- node `Normalizar Resultado WAHA` define `send_result = sent_to_adapter`;
+- `offers.publication_events.delivery_status = confirmed`;
+- `payload.adapter_status = sent_to_adapter`;
+- `payload.adapter_message_id` preenchido quando a WAHA retornar id;
+- uma nova execucao para o mesmo `target` nao deve reenviar a mesma oferta ja
+  confirmada.
+
+Resultado validado em 2026-08-09:
+
+- execucao n8n: `23`;
+- status da execucao: `success`;
+- WAHA: `POST /api/sendText` com HTTP 201;
+- `send_result`: `sent_to_adapter`;
+- `adapter_status`: `sent_to_adapter`;
+- `delivery_status`: `confirmed`;
+- `publish_id`: `1e99a91a-9684-4e69-9024-f0c4ae0ea0f3`;
+- oferta enviada: `58211202356`;
+- `pinData` restaurado para `dry_run=true` depois do teste.
 
 ## Comandos uteis
 
