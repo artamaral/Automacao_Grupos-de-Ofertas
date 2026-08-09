@@ -9,10 +9,16 @@ oficial.
 
 ## Status
 
-Migration:
+Migration base:
 
 ```text
 supabase/migrations/202606290002_publication_events.sql
+```
+
+Migration complementar aplicada para dry-run sem envio real:
+
+```text
+supabase/migrations/202608090001_allow_null_sent_at_publication_events.sql
 ```
 
 Tabela criada no schema `offers`:
@@ -25,7 +31,9 @@ O objetivo desta tabela e responder:
 - quando ocorreu;
 - para qual `target`;
 - com qual `publish_id`;
-- a partir de qual item da rodada.
+- a partir de qual item da rodada;
+- quais ofertas ja foram confirmadas e nao devem ser repostadas para o mesmo
+  destino/canal no MVP.
 
 ## Papel operacional no MVP
 
@@ -33,12 +41,43 @@ O n8n registra a linha depois da tentativa de envio ou bloqueio operacional.
 
 Status esperados:
 
-- `confirmed`: envio confirmado pelo canal;
+- `confirmed`: envio confirmado pelo canal, ou etapa logica de pronto para canal
+  real enquanto o node de envio ainda nao foi acoplado;
 - `failed`: tentativa falhou;
-- `cancelled`: envio bloqueado ou cancelado pela regra operacional.
+- `cancelled`: envio bloqueado, cancelado pela regra operacional ou dry-run sem
+  envio real.
 
 O registro deve acontecer mesmo quando o destino for bloqueado pela allowlist,
 desde que exista informacao suficiente para auditoria da rodada.
+
+## Papel na selecao anti-repost
+
+A query MVP do n8n usa `publication_events` para nao selecionar novamente uma
+oferta ja confirmada para o mesmo `target` e `channel_adapter`.
+
+A regra e intencionalmente conservadora:
+
+- `delivery_status = 'confirmed'` bloqueia nova selecao do mesmo `stable_key`
+  para o mesmo profile, marketplace, target e canal;
+- `delivery_status = 'cancelled'` nao bloqueia nova selecao, porque cobre
+  dry-runs e bloqueios de allowlist;
+- a idempotencia de uma mesma rodada continua separada e usa
+  `(profile, target, manifest_item_number, artifact_generated_at)`.
+
+Filtro esperado na query de ranking:
+
+```sql
+and not exists (
+  select 1
+  from offers.publication_events event
+  where event.profile = ranking.profile
+    and event.marketplace = ranking.marketplace
+    and event.stable_key = ranking.stable_key
+    and event.target = :target
+    and event.channel_adapter = :channel_adapter
+    and event.delivery_status = 'confirmed'
+)
+```
 
 ## Colunas principais
 
@@ -54,7 +93,7 @@ desde que exista informacao suficiente para auditoria da rodada.
 - `artifact_generated_at`: timestamp ou identificador temporal da rodada.
 - `manifest_created_at`: timestamp de montagem da mensagem, quando existir.
 - `planned_at`: horario planejado, quando existir.
-- `sent_at`: horario confirmado ou tentado.
+- `sent_at`: horario confirmado/tentado; fica `null` em dry-run sem envio real.
 - `offer_title`, `offer_url`, `offer_price`: snapshot comercial.
 - `message_text`: texto efetivamente enviado ou planejado.
 - `payload`: metadados do n8n, `run_id`, erro do canal ou motivo de bloqueio.
@@ -141,7 +180,7 @@ select
   offer_url
 from offers.publication_events
 where profile = 'feminino'
-order by sent_at desc
+order by sent_at desc nulls last
 limit 50;
 ```
 
@@ -156,7 +195,7 @@ select
   delivery_status
 from offers.publication_events
 where stable_key = '<stable_key>'
-order by sent_at desc;
+order by sent_at desc nulls last;
 ```
 
 Conciliacao por rodada:
@@ -169,4 +208,23 @@ select
 from offers.publication_events
 group by 1, 2
 order by artifact_generated_at desc, profile;
+```
+
+Ofertas confirmadas que bloqueiam repost para um destino/canal:
+
+```sql
+select
+  profile,
+  marketplace,
+  target,
+  channel_adapter,
+  stable_key,
+  max(sent_at) as last_confirmed_at,
+  count(*) as confirmations
+from offers.publication_events
+where delivery_status = 'confirmed'
+  and target = 'teste-whatsapp'
+  and channel_adapter = 'whatsapp'
+group by 1, 2, 3, 4, 5
+order by last_confirmed_at desc nulls last;
 ```
