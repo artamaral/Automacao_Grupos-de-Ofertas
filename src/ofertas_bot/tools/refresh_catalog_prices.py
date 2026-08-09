@@ -277,6 +277,17 @@ def refresh_catalog_prices(
             )
             summary_counts["sales_not_greater_than_one"] += 1
             continue
+        if not _rating_is_at_least_4_8(refreshed_projected_row.get("ratingStar")):
+            unresolved_rows.append(
+                _unresolved_row(
+                    row=refreshed_projected_row,
+                    source_row_number=index,
+                    reason="rating_below_4_8",
+                    detail="refreshed ratingStar is below 4.8",
+                )
+            )
+            summary_counts["rating_below_4_8"] += 1
+            continue
 
         candidate_rows.append(refreshed_projected_row)
         diff_rows.append(
@@ -395,6 +406,11 @@ def _sales_is_greater_than_one(value: object) -> bool:
     return numeric is not None and numeric > Decimal("1")
 
 
+def _rating_is_at_least_4_8(value: object) -> bool:
+    numeric = _optional_decimal(value)
+    return numeric is not None and numeric >= Decimal("4.8")
+
+
 def _diff_row(
     *,
     before: dict[str, Any],
@@ -502,6 +518,7 @@ def _build_report(
             "sales_not_greater_than_one_rows": summary_counts[
                 "sales_not_greater_than_one"
             ],
+            "rating_below_4_8_rows": summary_counts["rating_below_4_8"],
             "changed_field_counts": dict(sorted(changed_field_counts.items())),
         },
     }

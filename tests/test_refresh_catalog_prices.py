@@ -124,6 +124,40 @@ def test_refresh_catalog_prices_excludes_item_without_return(tmp_path: Path) -> 
     assert unresolved_rows[0]["reason"] == "no_return"
 
 
+def test_refresh_catalog_prices_excludes_refreshed_rating_below_contract(
+    tmp_path: Path,
+) -> None:
+    catalog_path = _write_catalog(tmp_path, [_catalog_row(item_id="1", product_name="Produto")])
+    provider = FakeShopeeProvider(
+        {
+            1: _response(
+                {
+                    "itemId": 1,
+                    "price": "90",
+                    "sales": "3",
+                    "ratingStar": "4.5",
+                }
+            )
+        }
+    )
+
+    result = refresh_catalog_prices(
+        profile_slug="feminino",
+        catalog_file=catalog_path,
+        output_base_dir=tmp_path / "out",
+        run_id="run-1",
+        provider=provider,
+    )
+
+    candidate_rows = _read_csv(result.paths.candidate_catalog)
+    unresolved_rows = _read_csv(result.paths.unresolved_items)
+    report = json.loads(result.paths.refresh_report.read_text(encoding="utf-8"))
+
+    assert candidate_rows == []
+    assert unresolved_rows[0]["reason"] == "rating_below_4_8"
+    assert report["summary"]["rating_below_4_8_rows"] == 1
+
+
 def test_refresh_catalog_prices_keeps_unchanged_item_and_reports_unchanged(
     tmp_path: Path,
 ) -> None:
