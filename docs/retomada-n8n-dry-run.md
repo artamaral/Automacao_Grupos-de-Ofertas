@@ -23,6 +23,8 @@ Data da retomada: 2026-08-09.
   `target` e `channel_adapter` deixam de ser selecionadas novamente.
 - Timezone padrao do database Supabase ajustado para `America/Sao_Paulo` via
   migration `supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql`.
+- Adapter WhatsApp definido para uso agora: WAHA self-hosted, conforme
+  [`docs/decisao-waha-whatsapp-n8n.md`](decisao-waha-whatsapp-n8n.md).
 
 ## Credencial Supabase no n8n
 
@@ -199,8 +201,8 @@ Aviso: este link pode gerar comissao de afiliado. Preco e disponibilidade podem 
 ## Pendencias antes de ativar o workflow
 
 1. Endurecer TLS da credencial Postgres do Supabase, se viavel.
-2. Acoplar o node real do canal WhatsApp protegido por `dry_run=false` e
-   allowlist.
+2. Acoplar o node real WAHA protegido por `dry_run=false` e allowlist,
+   registrando erro/status do adapter no payload.
 3. Fazer teste real minimo apenas com destino controlado e allowlist.
 4. Ativar o workflow somente depois do teste real minimo passar.
 

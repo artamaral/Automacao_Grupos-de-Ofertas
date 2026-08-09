@@ -38,6 +38,23 @@ Configurar no n8n, fora do Git:
 - allowlist de destinos permitidos;
 - template ou texto-base da mensagem.
 
+## Adapter WhatsApp atual
+
+O adapter WhatsApp definido para uso agora e o WAHA self-hosted.
+
+A decisao completa esta em
+[`docs/decisao-waha-whatsapp-n8n.md`](decisao-waha-whatsapp-n8n.md).
+
+Leitura operacional:
+
+- usar WAHA apenas como canal de envio, nao como fonte de verdade;
+- manter `dry_run=true` por padrao;
+- validar allowlist antes de chamar o adapter;
+- registrar aceite, falha, bloqueio ou sessao desconectada em
+  `offers.publication_events`;
+- nao versionar API key, QR Code, sessoes, cookies, tokens ou `.env`;
+- nao tratar aceite do adapter como prova absoluta de entrega final.
+
 ## Acessos para iniciar
 
 Antes de criar arquivos na VPS ou executar o fluxo real, separar os acessos por
