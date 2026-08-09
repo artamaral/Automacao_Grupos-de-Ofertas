@@ -21,6 +21,20 @@ Objetos criados no schema `offers`:
 - `v_offer_ranking_current`;
 - funcao `activate_catalog_import(uuid)`.
 
+Configuracao operacional aplicada ao banco:
+
+- timezone padrao do database `postgres`: `America/Sao_Paulo`.
+
+Migration complementar:
+
+```text
+supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql
+```
+
+Os campos temporais continuam usando `timestamptz`. A configuracao de timezone
+altera a exibicao e interpretacao padrao das sessoes novas do Postgres, sem
+reescrever os instantes ja gravados.
+
 Os tres catalogos reais foram importados e ativados em `2026-06-29`. A
 validacao isolada da formula de score tambem usa uma fixture transacional que e
 revertida ao final do teste.

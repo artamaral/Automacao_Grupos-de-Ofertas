@@ -21,6 +21,8 @@ Data da retomada: 2026-08-09.
   `send_result = ready_for_real_channel_node` e `sent_at` preenchido.
 - A selecao anti-repost foi validada: ofertas ja confirmadas para o mesmo
   `target` e `channel_adapter` deixam de ser selecionadas novamente.
+- Timezone padrao do database Supabase ajustado para `America/Sao_Paulo` via
+  migration `supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql`.
 
 ## Credencial Supabase no n8n
 

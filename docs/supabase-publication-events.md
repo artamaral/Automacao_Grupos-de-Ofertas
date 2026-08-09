@@ -21,6 +21,16 @@ Migration complementar aplicada para dry-run sem envio real:
 supabase/migrations/202608090001_allow_null_sent_at_publication_events.sql
 ```
 
+Timezone operacional do database:
+
+```text
+supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql
+```
+
+O database `postgres` usa `America/Sao_Paulo` como timezone padrao para novas
+sessoes. Os timestamps permanecem em colunas `timestamptz`; nao ha conversao de
+dados historicos.
+
 Tabela criada no schema `offers`:
 
 - `publication_events`.
