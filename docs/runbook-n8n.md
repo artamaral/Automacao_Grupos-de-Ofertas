@@ -777,8 +777,11 @@ Configuracao versionada do schedule:
 - envio por `POST /api/sendImage`.
 
 O `deploy_workflow_guard.py` valida esse schedule e continua gravando
-`active=false`. Para iniciar a automacao, o operador deve ativar o workflow no
-painel do n8n depois do deploy guard. Para pausar, desativar o workflow no
+`active=false`. No painel desta instancia n8n, **Published** equivale a
+`active=true` no banco; **Unpublished** equivale a `active=false`.
+
+Para iniciar a automacao, o operador deve publicar o workflow no painel do n8n
+depois do deploy guard. Para pausar, deixar o workflow como unpublished no
 painel.
 
 Estado aplicado em 2026-08-09:
@@ -786,8 +789,18 @@ Estado aplicado em 2026-08-09:
 - workflow `OfertasMvpSupab1` atualizado no n8n com `versionCounter=40`;
 - `active=false` preservado pelo deploy guard;
 - schedule e contexto do grupo real presentes no workflow versionado e no n8n;
-- proxima acao operacional para iniciar o teste automatico: ativar o workflow
+- proxima acao operacional para iniciar o teste automatico: publicar o workflow
   manualmente no painel do n8n.
+
+Estado apos publicacao pelo painel:
+
+- banco n8n retornou `OfertasMvpSupab1|t|41|2026-08-09 23:55:41.116+00`;
+- isso confirma `active=true` e `versionCounter=41`;
+- a execucao `50` ficou com `status=success`, mas sem `publish_id`,
+  `delivery_status`, `adapter_response_type` ou `copy_template`; portanto, ela
+  nao e evidencia de envio automatico valido;
+- a validacao forte abaixo deve ser rodada depois da proxima execucao real do
+  schedule dentro da janela configurada.
 
 Validacao recomendada depois da primeira execucao automatica:
 

@@ -391,8 +391,16 @@ Schedule automatico preparado em 2026-08-09:
 - envio esperado: `POST /api/sendImage`;
 - `deploy_workflow_guard.py` valida o schedule e mantem `active=false`;
 - workflow aplicado no n8n com `versionCounter=40` e `active=false`;
-- ativacao e pausa continuam sendo feitas manualmente no painel do n8n;
-- proxima acao para iniciar o teste automatico: ativar o workflow no painel.
+- no painel desta instancia n8n, **Published** equivale a `active=true` no
+  banco; **Unpublished** equivale a `active=false`;
+- publicacao pelo painel confirmou `active=true` no banco:
+  `OfertasMvpSupab1|t|41|2026-08-09 23:55:41.116+00`;
+- a execucao `50` teve `status=success`, mas sem `publish_id`,
+  `delivery_status`, `adapter_response_type` ou `copy_template`; ela nao deve
+  ser tratada como envio automatico valido;
+- a checagem `check_last_execution.py --expect-real-image` deve ser repetida
+  depois da proxima execucao do schedule dentro da janela configurada;
+- pausa operacional: deixar o workflow como unpublished no painel do n8n.
 
 Resultado historico validado em 2026-08-09:
 
