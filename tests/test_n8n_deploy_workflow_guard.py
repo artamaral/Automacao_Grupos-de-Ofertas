@@ -52,7 +52,13 @@ def workflow_payload(
             },
             {
                 "name": "Montar Mensagens",
-                "parameters": {"jsCode": f"const copy = '{template_text}';"},
+                "parameters": {
+                    "jsCode": (
+                        r"const icons = '\u{1F525}\u{1F3EA}\u{1F4B5}"
+                        r"\u{1F3F7}\u{2B50}\u{1F39F}\u{2705}'; "
+                        f"const copy = '{template_text}';"
+                    )
+                },
             },
             {
                 "name": "Enviar WhatsApp WAHA",
@@ -126,6 +132,16 @@ def test_validate_versioned_workflow_rejects_safe_schedule_context() -> None:
             workflow_payload(schedule_context="return [{ json: { dry_run: true } }];"),
             "OfertasMvpSupab1",
         )
+
+
+def test_validate_versioned_workflow_rejects_missing_emoji_escape() -> None:
+    workflow = workflow_payload()
+    workflow["nodes"][2]["parameters"]["jsCode"] = (
+        "const copy = 'Resgate o cupom desta pagina';"
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="missing emoji escape"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
 def test_validate_versioned_workflow_rejects_processing_on_done_output() -> None:
