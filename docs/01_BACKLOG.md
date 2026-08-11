@@ -55,6 +55,14 @@ Por isso, este backlog foi reorganizado em quatro blocos:
 - Primeira execucao automatica da nova versao do schedule reportada pelo
   operador em 2026-08-11 as 17:00, encerrando a pendencia de validar o disparo
   automatico inicial do workflow em producao controlada.
+- Monitoramento Hermes ajustado para detectar o caso de `success sem entrega`,
+  usando `publication_events.confirmed` como prova operacional da rodada. Essa
+  mudanca fecha a lacuna exposta pela execucao `78` de 2026-08-11.
+- Freshness operacional da frente do ranking hoje esta coberta pelo desenho do
+  refresh diario: 500 itens refreshados por dia, consumo atual abaixo de 50,
+  plano de 135 mensagens por dia ainda com folga e selecao concentrada no topo
+  do score, alem do cron do Hermes que verifica a execucao e o status do
+  refresh.
 
 ### Fundacao de dados no Supabase
 
@@ -117,13 +125,6 @@ como bloqueio da operacao minima:
   sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do
   Traefik, configurar backup externo com teste de restore e remover a stack
   legada depois do periodo de estabilizacao.
-- Versionar explicitamente a checagem read-only do Hermes que usa a gravacao no
-  Supabase como sinal de rodada concluida, para nao depender apenas do estado
-  operacional fora do repositorio.
-- Consolidar em uma leitura operacional unica os sinais de:
-  execucao n8n, envio WAHA e registro auditavel no Supabase.
-- Adicionar uma checagem simples e util de freshness para os snapshots que
-  abastecem o topo do ranking antes da janela de envio.
 
 ### Shopee operacional
 

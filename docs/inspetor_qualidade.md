@@ -76,6 +76,17 @@ Hermes pode ser lida assim:
 - essa melhoria reduz falso positivo de "execucao ok" quando o n8n fecha como
   `success`, mas a rodada nao chega ate o registro auditavel esperado.
 
+Caso que motivou essa mudanca:
+
+- em 2026-08-11, a execucao `78` do workflow `ofertas-mvp-supabase`, disparada
+  as 16:00 BRT, terminou com `status=success` no n8n;
+- na mesma janela, nao houve envio no WAHA;
+- tambem nao houve `publication_event` confirmado no Supabase;
+- o monitoramento antigo, que alertava apenas para `status=error`, ficou em
+  silencio;
+- a partir dessa falha, o watchdog operacional do n8n passou a tratar
+  `success sem artefato confirmado` como anomalia.
+
 Leitura pratica:
 
 - `status=success` no n8n sozinho nao basta;
@@ -211,127 +222,41 @@ Formato de saída:
 - Horário BRT: 08:05-21:05, 5 minutos após cada execução esperada do n8n.
 - Tipo: script `no_agent`.
 - Custo LLM: zero.
-- Script: `/opt/data/scripts/n8n_watchdog.py`.
+- Script operacional na stack Hermes: `/opt/data/scripts/n8n_watchdog.py`.
 
-```python
-#!/usr/bin/env python3
-"""Watchdog n8n (no_agent, custo zero): alerta SOMENTE se houver execução com erro na última ~65min.
+Atualizacao operacional validada em producao em 2026-08-11:
 
-Semântica no_agent:
-- stdout vazio  = tudo ok -> cron fica em silêncio (nenhuma entrega)
-- stdout com texto = alerta entregue verbatim no Telegram
-- exit != 0    = alerta de erro do próprio watchdog
+- o watchdog nao olha mais apenas `status=error`;
+- para o workflow de envio, ele tambem trata como anomalia a execucao
+  `status=success` que nao gera o artefato esperado no Supabase;
+- o artefato usado como prova operacional e a existencia de
+  `offers.publication_events` com `delivery_status='confirmed'` na janela da
+  execucao;
+- isso fecha exatamente a lacuna exposta pela execucao `78`.
 
-Papel: inspetor de qualidade read-only. NÃO altera nada no n8n.
-"""
-import json
-import os
-import sys
-import urllib.error
-import urllib.request
-from datetime import datetime, timedelta, timezone
+Observacao importante:
 
-ENV_PATH = os.path.expanduser("/opt/data/.env")
-LOOKBACK_MIN = 65
-
-
-def load_env(path):
-    vals = {}
-    try:
-        with open(path, encoding="utf-8") as fh:
-            for raw in fh:
-                line = raw.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    vals[k.strip()] = v.strip()
-    except OSError:
-        pass
-    return vals
-
-
-def main():
-    env = load_env(ENV_PATH)
-    base = os.environ.get("N8N_BASE_URL", env.get("N8N_BASE_URL", "")).rstrip("/")
-    key = os.environ.get("N8N_API_KEY", env.get("N8N_API_KEY", ""))
-
-    if not base or not key:
-        print("ERRO watchdog n8n: N8N_BASE_URL/N8N_API_KEY não configuradas.", file=sys.stderr)
-        return 2
-
-    req = urllib.request.Request(
-        base + "/api/v1/executions?limit=20&includeData=false",
-        headers={"X-N8N-API-KEY": key, "Accept": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.load(resp)
-    except urllib.error.HTTPError as exc:
-        print(f"ERRO watchdog n8n: HTTP {exc.code} ao consultar execuções.", file=sys.stderr)
-        return 2
-    except Exception as exc:  # noqa: BLE001
-        print(f"ERRO watchdog n8n: {exc}", file=sys.stderr)
-        return 2
-
-    now = datetime.now(timezone.utc)
-    cutoff = now - timedelta(minutes=LOOKBACK_MIN)
-
-    failures = []
-    for ex in data.get("data", []):
-        if ex.get("status") != "error":
-            continue
-        try:
-            started = datetime.fromisoformat(ex["startedAt"].replace("Z", "+00:00"))
-        except (KeyError, ValueError):
-            started = now
-        if started >= cutoff:
-            failures.append(ex)
-
-    if not failures:
-        return 0  # silêncio: nada a reportar
-
-    lines = ["⚠️ FALHA no n8n (watchdog):"]
-    for ex in failures[:5]:
-        lines.append(
-            f"- execução {ex['id']} | workflow {ex.get('workflowId', '?')} | "
-            f"início {ex.get('startedAt')} UTC | modo {ex.get('mode')}"
-        )
-        # tenta extrair a mensagem de erro da execução (compacta)
-        try:
-            dreq = urllib.request.Request(
-                base + f"/api/v1/executions/{ex['id']}?includeData=true",
-                headers={"X-N8N-API-KEY": key, "Accept": "application/json"},
-            )
-            with urllib.request.urlopen(dreq, timeout=30) as dresp:
-                detail = json.load(dresp)
-            err = (detail.get("data") or {}).get("resultData", {}).get("error") or {}
-            msg = str(err.get("message", "")).strip()
-            node = str(err.get("node", {}).get("name", "")).strip()
-            if msg:
-                snippet = msg[:250] + ("…" if len(msg) > 250 else "")
-                lines.append(f"  → erro: {snippet}" + (f" (node: {node})" if node else ""))
-        except Exception:  # noqa: BLE001
-            pass
-    lines.append("Inspeção read-only — correção é do usuário. Detalhes: resumo diário 21:30 BRT.")
-    print("\n".join(lines))
-    return 0
-
-
-if name == "main":
-    sys.exit(main())
-```
+- o bloco de codigo originalmente transcrito abaixo refletia o watchdog antes da
+  correcao do caso `78`;
+- a semantica operacional vigente ja foi melhorada na stack Hermes para cruzar
+  execucao do n8n com artefato confirmado no Supabase;
+- por isso, a descricao operacional desta secao deve ser considerada a fonte
+  correta do comportamento atual do monitoramento.
 
 Operação passo a passo:
 
-1. Consulta `/api/v1/executions?limit=20&includeData=false`, sem dados pesados,
-   usando a chave read-only `hermes-monitor`.
-2. Filtra execuções com `status=error` iniciadas nos últimos 65 minutos.
-3. Se não houver falhas, encerra com `stdout` vazio e o cron fica em silêncio.
-4. Se houver falhas, lista até 5 execuções com id, workflow, início UTC e modo.
-5. Para cada falha listada, busca o detalhe com
-   `/api/v1/executions/{id}?includeData=true` e extrai `message` e `node` do
-   erro, truncando a mensagem em 250 caracteres.
-6. Se a configuração estiver ausente ou a API responder com erro HTTP, encerra
-   com `exit 2`, caracterizando erro do próprio watchdog.
+1. Consulta as execucoes recentes do n8n usando a chave read-only
+   `hermes-monitor`.
+2. Continua alertando para execucoes com `status=error`.
+3. Para execucoes `success` do workflow de envio, valida se houve artefato de
+   entrega confirmado no Supabase na janela da execucao.
+4. Se existir `publication_event` confirmado, a rodada e tratada como valida.
+5. Se nao existir artefato confirmado, o watchdog emite alerta de
+   `ARTEFATO NAO CONFIRMADO`, mesmo com `status=success` no n8n.
+6. Se a consulta de confirmacao falhar, o watchdog alerta
+   `ARTEFATO: CONSULTA FALHOU`, em vez de assumir sucesso.
+7. Se nao houver erro classico nem anomalia de artefato, o cron permanece em
+   silencio.
 
 ### Watchdog B: `waha_watchdog_horario`
 
@@ -606,8 +531,11 @@ Os watchdogs são scripts `no_agent`, com custo zero de LLM, por isso podem roda
 - O node `Enviar WhatsApp WAHA` usa `continueOnFail`; execução `success` no n8n
   não garante envio real.
 - No ambiente atual do Hermes, a checagem operacional do "n8n rodou" foi
-  melhorada para considerar a gravação da mensagem no Supabase. Isso protege
-  contra a falha de tratar `success` sem registro auditável como rodada válida.
+  melhorada para considerar a gravacao da mensagem no Supabase. Isso protege
+  contra a falha de tratar `success` sem registro auditavel como rodada valida.
+- O caso de referencia dessa mudanca foi a execucao `78` de 2026-08-11:
+  `success` no n8n, zero envio no WAHA e zero `publication_events.confirmed` na
+  janela.
 - Para envio WAHA, o sinal correto está no `runData`, especialmente
   `adapter_status` e `delivery_status` do node `Normalizar Resultado WAHA`.
 - `[SILENT]` nunca deve ser combinado com qualquer outro conteúdo.
@@ -624,11 +552,6 @@ Os watchdogs são scripts `no_agent`, com custo zero de LLM, por isso podem roda
 As lacunas abaixo nao sao arquitetura extra nem burocracia. Sao apenas pontos
 que ainda podem proteger melhor a execucao:
 
-- versionar explicitamente a checagem read-only que confirma no Supabase que a
-  rodada esperada gerou registro auditavel, para que essa melhoria do Hermes
-  nao fique apenas como estado operacional externo ao repositorio;
-- consolidar em um unico resumo read-only os tres sinais da rodada:
-  execucao n8n, resultado do envio e registro no Supabase;
 - adicionar uma checagem operacional simples de freshness para os snapshots que
   abastecem o topo do ranking antes da janela de envio, usando sinais ja
   existentes como `refresh_status`, `last_checked_at` ou `age_hours`;
