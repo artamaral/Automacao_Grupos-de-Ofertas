@@ -197,6 +197,9 @@ def _candidate(item_id: int) -> DiscoveryCandidate:
         last_attempted_at=None,
         last_attempt_status=None,
         seller_key=f"shop:{item_id}",
+        rank_profile=item_id,
+        rank_subniche=item_id,
+        commercial_score=100 - item_id,
     )
 
 

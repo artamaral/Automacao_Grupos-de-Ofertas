@@ -19,23 +19,29 @@ catalogo ativo
 A primeira versao atende somente `profile=feminino`, roda manualmente e nao
 altera `offers.catalog_items`.
 
-## Fila progressiva
+## Fila orientada ao ranking
 
-A fila usa apenas metadados de discovery e segue esta prioridade:
+A fila atualiza primeiro a fronteira que pode chegar a copy. Ela considera
+somente itens elegiveis do catalogo ativo, separa por `primary_subniche` e
+ordena cada banda por `rank_subniche`, `commercial_score desc` e `item_id`.
+`MISSING` e `STALE` disputam pela posicao no ranking: um `STALE` melhor colocado
+vem antes de um `MISSING` pior colocado.
 
-1. `MISSING` nunca tentado;
-2. `MISSING` com tentativa anterior, da mais antiga para a mais recente;
-3. `STALE`, do snapshot mais antigo para o mais recente;
-4. `FRESH`, somente para completar o pre-batch.
+Uma execucao padrao distribui ate 500 chamadas reais:
 
-Itens atualizados com sucesso tornam-se `FRESH` e deixam a frente da fila. Uma
-falha gera uma linha em `offer_refresh_attempts`; com isso, itens nunca tentados
-passam a frente na proxima rodada.
+- 80%, ou 400, para a fronteira do ranking;
+- 20%, ou 100, para `MISSING` nunca tentados fora da fronteira;
+- se a descoberta nao preencher 100 vagas, a sobra volta para os proximos
+  `MISSING/STALE` das bandas do ranking.
 
-Dentro de cada prioridade, a selecao usa as quotas de
-`config/selection_profiles.toml`, dedupe por `marketplace + item_id` e
-diversidade de seller em passes sucessivos. Preco, comissao, desconto, vendas,
-rating e score antigos nao participam da fila.
+As quotas de `config/selection_profiles.toml` escalam de 20 para 500. No
+profile `feminino`, cada banda de 10% recebe 40 vagas de ranking e 10 de
+descoberta; cada banda de 5% recebe 20 e 5, respectivamente. Dedupe por
+`marketplace + item_id` e diversidade de seller continuam obrigatorios.
+
+Itens `FRESH` encontrados durante a varredura geram cache hit, nao ocupam vaga
+de chamada e fazem a fila avancar ate o proximo `MISSING/STALE`. Falha ou
+`no_node` gera tentativa auditavel sem remover o ultimo snapshot valido.
 
 ## TTL e estruturas
 
@@ -46,7 +52,8 @@ rating e score antigos nao participam da fila.
 - `offer_refresh_attempts`: uma linha para cada chamada real, inclusive erro;
 - `v_offer_latest_snapshot`: ultimo snapshot por item;
 - `v_offer_refresh_status`: `MISSING`, `FRESH` ou `STALE` no catalogo ativo;
-- `v_offer_scoring_current`: metadados do catalogo mais estado comercial fresh.
+- `v_offer_scoring_current`: metadados do catalogo mais o ultimo estado
+  comercial, com fallback por campo para o catalogo.
 
 Cache hit nao gera tentativa nem snapshot. `checked_at` representa o momento da
 chamada externa, nao a leitura do banco.
@@ -61,7 +68,7 @@ Dry-run, tambem usado quando nenhuma flag de escrita e informada:
 ```powershell
 .\.venv\Scripts\python.exe scripts\shopee\run_candidate_refresh.py `
   --profile feminino `
-  --discovery-limit 600 `
+  --discovery-limit 500 `
   --scoring-limit 200 `
   --dry-run
 ```
@@ -106,6 +113,7 @@ Cada rodada grava em `.data/candidate_refresh/<profile>/<run_id>/`:
 - `scoring_candidates.csv`;
 - `scored_candidates.csv`;
 - `selected_offers.csv`;
+- `ranking_changes.csv`;
 - `run_report.json`.
 
 Os arquivos sao auditoria local. A verdade historica permanece no Supabase.
@@ -118,8 +126,10 @@ Os arquivos sao auditoria local. A verdade historica permanece no Supabase.
 - a API consultada nao entrega campo explicito de frete, disponibilidade ou
   elegibilidade de afiliado no contrato atual;
 - frete fica desconhecido e nao recebe pontos no scorer;
-- somente snapshot `FRESH`, com preco positivo, `offerLink` e rating dentro da
-  elegibilidade atual entra no score;
+- o ranking usa o ultimo snapshot mesmo quando `STALE`; sem snapshot ou sem
+  valor em um campo, usa o dado correspondente do catalogo;
+- `commercial_data_source`, `refresh_status`, `last_checked_at` e `age_hours`
+  deixam explicita a idade e a origem do score;
 - feeds 10k/100k, scheduler, n8n e publicacao permanecem fora deste fluxo.
 
 ## Payload real validado
@@ -160,3 +170,17 @@ Validacao com fixture revertida ao final:
 ```powershell
 .\.venv\Scripts\python.exe scripts\supabase\validate_catalog_schema.py
 ```
+
+## Rollout orientado ao ranking
+
+Validacao real de 2026-08-11:
+
+- dry-run: 400 candidatos de ranking, 100 de descoberta e 19 cache hits;
+- smoke real: 5 chamadas, 5 snapshots e 5 mudancas de `catalog` para `snapshot`;
+- lote real: 500 chamadas em 683 segundos, 490 snapshots e 10 respostas `no_node`;
+- distribuicao realizada: 50 candidatos por banda de 10% e 25 por banda de 5%;
+- entre os 490 itens atualizados, 62 scores subiram, 303 cairam e 125 ficaram iguais;
+- 9 itens deixaram de ser elegiveis depois do refresh;
+- os 490 IDs de snapshot foram confirmados no Supabase;
+- depois do lote, o top 20 de `feminino` ficou integralmente em
+  `commercial_data_source=snapshot` e `refresh_status=FRESH`.

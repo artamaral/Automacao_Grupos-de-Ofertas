@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -43,6 +43,12 @@ class DiscoveryCandidate:
     last_attempted_at: datetime | None
     last_attempt_status: str | None
     seller_key: str
+    rank_profile: int | None = None
+    rank_subniche: int | None = None
+    commercial_score: Decimal | None = None
+    is_eligible: bool = True
+    commercial_data_source: str = "catalog"
+    selection_bucket: str = ""
 
 
 @dataclass(frozen=True)
@@ -95,7 +101,7 @@ class ScoringCandidate:
     sales_count: int
     rating: Decimal | None
     shop_type_code: int | None
-    last_checked_at: datetime
+    last_checked_at: datetime | None
     cooldown_until: datetime | None
 
     @property
@@ -135,7 +141,7 @@ def select_progressive_candidates(
         raise CandidateRefreshError("candidate limit must be positive")
 
     unique_candidates = _deduplicate_candidates(candidates)
-    quotas = _scaled_quotas(limit=limit, weights=subniche_weights)
+    quotas = scale_subniche_quotas(limit=limit, weights=subniche_weights)
     selected: list[DiscoveryCandidate] = []
     selected_ids: set[tuple[str, int]] = set()
 
@@ -183,6 +189,81 @@ def select_progressive_candidates(
             break
 
     return selected
+
+
+def select_ranked_refresh_candidates(
+    candidates: Sequence[DiscoveryCandidate],
+    *,
+    limit: int,
+    subniche_weights: Mapping[str, int],
+    exploration_percent: int = 20,
+) -> list[DiscoveryCandidate]:
+    if limit <= 0:
+        raise CandidateRefreshError("candidate limit must be positive")
+    if not 0 <= exploration_percent <= 100:
+        raise CandidateRefreshError("exploration percent must be between 0 and 100")
+
+    eligible = [
+        item
+        for item in _deduplicate_candidates(candidates)
+        if item.is_eligible and item.rank_subniche is not None
+    ]
+    ranking_limit = limit * (100 - exploration_percent) // 100
+    exploration_limit = limit - ranking_limit
+    selected: list[DiscoveryCandidate] = []
+    selected_ids: set[tuple[str, int]] = set()
+    cache_hits: list[DiscoveryCandidate] = []
+    cache_ids: set[tuple[str, int]] = set()
+
+    _select_ranked_by_quota(
+        eligible,
+        limit=ranking_limit,
+        subniche_weights=subniche_weights,
+        selected=selected,
+        selected_ids=selected_ids,
+        cache_hits=cache_hits,
+        cache_ids=cache_ids,
+        bucket="ranking",
+    )
+
+    exploration_pool = [
+        item
+        for item in eligible
+        if item.refresh_status == "MISSING"
+        and item.last_attempted_at is None
+        and (item.marketplace, item.item_id) not in selected_ids
+    ]
+    _select_ranked_by_quota(
+        exploration_pool,
+        limit=exploration_limit,
+        subniche_weights=subniche_weights,
+        selected=selected,
+        selected_ids=selected_ids,
+        cache_hits=cache_hits,
+        cache_ids=cache_ids,
+        bucket="exploration",
+    )
+
+    fallback_limit = limit - len(selected)
+    if fallback_limit > 0:
+        fallback_pool = [
+            item
+            for item in eligible
+            if item.refresh_status in {"MISSING", "STALE"}
+            and (item.marketplace, item.item_id) not in selected_ids
+        ]
+        _select_ranked_by_quota(
+            fallback_pool,
+            limit=fallback_limit,
+            subniche_weights=subniche_weights,
+            selected=selected,
+            selected_ids=selected_ids,
+            cache_hits=cache_hits,
+            cache_ids=cache_ids,
+            bucket="quota_fallback",
+        )
+
+    return cache_hits + selected
 
 
 def select_scoring_candidates(
@@ -311,6 +392,100 @@ def _priority_sort_key(candidate: DiscoveryCandidate) -> tuple[datetime, int]:
     return timestamp or datetime.min.replace(tzinfo=UTC), candidate.item_id
 
 
+def _rank_sort_key(candidate: DiscoveryCandidate) -> tuple[int, Decimal, int]:
+    return (
+        candidate.rank_subniche or 2**63 - 1,
+        -(candidate.commercial_score or Decimal("0")),
+        candidate.item_id,
+    )
+
+
+def _select_ranked_by_quota(
+    candidates: Sequence[DiscoveryCandidate],
+    *,
+    limit: int,
+    subniche_weights: Mapping[str, int],
+    selected: list[DiscoveryCandidate],
+    selected_ids: set[tuple[str, int]],
+    cache_hits: list[DiscoveryCandidate],
+    cache_ids: set[tuple[str, int]],
+    bucket: str,
+) -> None:
+    if limit <= 0:
+        return
+    quotas = scale_subniche_quotas(limit=limit, weights=subniche_weights)
+    start_count = len(selected)
+
+    for subniche in subniche_weights:
+        matching = sorted(
+            (item for item in candidates if item.primary_subniche == subniche),
+            key=_rank_sort_key,
+        )
+        _consume_ranked_candidates(
+            matching,
+            count=quotas.get(subniche, 0),
+            selected=selected,
+            selected_ids=selected_ids,
+            cache_hits=cache_hits,
+            cache_ids=cache_ids,
+            bucket=bucket,
+        )
+
+    remaining = limit - (len(selected) - start_count)
+    if remaining <= 0:
+        return
+    global_remaining = sorted(
+        (
+            item
+            for item in candidates
+            if (item.marketplace, item.item_id) not in selected_ids
+        ),
+        key=lambda item: (
+            item.rank_profile or 2**63 - 1,
+            _rank_sort_key(item),
+        ),
+    )
+    _consume_ranked_candidates(
+        global_remaining,
+        count=remaining,
+        selected=selected,
+        selected_ids=selected_ids,
+        cache_hits=cache_hits,
+        cache_ids=cache_ids,
+        bucket=bucket,
+    )
+
+
+def _consume_ranked_candidates(
+    candidates: Sequence[DiscoveryCandidate],
+    *,
+    count: int,
+    selected: list[DiscoveryCandidate],
+    selected_ids: set[tuple[str, int]],
+    cache_hits: list[DiscoveryCandidate],
+    cache_ids: set[tuple[str, int]],
+    bucket: str,
+) -> None:
+    if count <= 0:
+        return
+    ordered = _diverse_order(candidates)
+    added = 0
+    for candidate in ordered:
+        key = (candidate.marketplace, candidate.item_id)
+        if key in selected_ids:
+            continue
+        if candidate.refresh_status == "FRESH":
+            if key not in cache_ids:
+                cache_hits.append(replace(candidate, selection_bucket="cache_hit"))
+                cache_ids.add(key)
+            continue
+        selected.append(replace(candidate, selection_bucket=bucket))
+        selected_ids.add(key)
+        added += 1
+        if added >= count:
+            return
+
+
 def _deduplicate_candidates(
     candidates: Sequence[DiscoveryCandidate],
 ) -> list[DiscoveryCandidate]:
@@ -323,7 +498,7 @@ def _deduplicate_candidates(
     return list(by_item.values())
 
 
-def _scaled_quotas(*, limit: int, weights: Mapping[str, int]) -> dict[str, int]:
+def scale_subniche_quotas(*, limit: int, weights: Mapping[str, int]) -> dict[str, int]:
     if not weights:
         return {}
     total_weight = sum(weights.values())
@@ -379,6 +554,19 @@ def _extend_diverse(
         if added_this_round == 0:
             return
         round_index += 1
+
+
+def _diverse_order(candidates: Iterable[DiscoveryCandidate]) -> list[DiscoveryCandidate]:
+    ordered: list[DiscoveryCandidate] = []
+    selected_ids: set[tuple[str, int]] = set()
+    candidate_list = list(candidates)
+    _extend_diverse(
+        ordered,
+        selected_ids,
+        candidate_list,
+        count=len(candidate_list),
+    )
+    return ordered
 
 
 def _optional_text(value: object) -> str | None:

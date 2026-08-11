@@ -69,28 +69,35 @@ class SupabaseCandidateRefreshStore:
         if item_ids is not None:
             if not item_ids:
                 return []
-            item_filter = "and item_id = any(%s)"
+            item_filter = "and ranking.item_id = any(%s)"
             params.append(list(item_ids))
         rows = self._connection.execute(
             f"""
             select
-              catalog_item_id,
-              profile,
-              marketplace,
-              stable_key,
-              item_id,
-              product_name,
-              product_link,
-              image_url,
-              subniches,
-              primary_subniche,
-              refresh_status,
-              last_checked_at,
-              last_attempted_at,
-              last_attempt_status
-            from offers.v_offer_refresh_status
-            where profile = %s
-              and marketplace = %s
+              ranking.catalog_item_id,
+              ranking.profile,
+              ranking.marketplace,
+              ranking.stable_key,
+              ranking.item_id,
+              ranking.product_name,
+              ranking.product_link,
+              ranking.image_url,
+              ranking.subniches,
+              ranking.primary_subniche,
+              ranking.refresh_status,
+              ranking.last_checked_at,
+              status.last_attempted_at,
+              status.last_attempt_status,
+              ranking.rank_profile,
+              ranking.rank_subniche,
+              ranking.commercial_score,
+              ranking.is_eligible,
+              ranking.commercial_data_source
+            from offers.v_offer_ranking_current ranking
+            join offers.v_offer_refresh_status status
+              on status.catalog_item_id = ranking.catalog_item_id
+            where ranking.profile = %s
+              and ranking.marketplace = %s
               {item_filter}
             """,
             params,
@@ -306,6 +313,17 @@ def _discovery_candidate(row: dict[str, object]) -> DiscoveryCandidate:
             str(row["last_attempt_status"]) if row["last_attempt_status"] else None
         ),
         seller_key=seller_key_from_link(product_link, item_id),
+        rank_profile=int(row["rank_profile"]) if row["rank_profile"] is not None else None,
+        rank_subniche=(
+            int(row["rank_subniche"]) if row["rank_subniche"] is not None else None
+        ),
+        commercial_score=(
+            Decimal(row["commercial_score"])
+            if row["commercial_score"] is not None
+            else None
+        ),
+        is_eligible=bool(row["is_eligible"]),
+        commercial_data_source=str(row["commercial_data_source"]),
     )
 
 
@@ -332,17 +350,10 @@ def _scoring_candidate(row: dict[str, object]) -> ScoringCandidate:
         shop_type_code=(
             int(row["shop_type_code"]) if row["shop_type_code"] is not None else None
         ),
-        last_checked_at=_required_datetime(row["last_checked_at"]),
+        last_checked_at=_optional_datetime(row["last_checked_at"]),
         cooldown_until=_optional_datetime(row["cooldown_until"]),
     )
 
 
 def _optional_datetime(value: object) -> datetime | None:
     return value if isinstance(value, datetime) else None
-
-
-def _required_datetime(value: object) -> datetime:
-    parsed = _optional_datetime(value)
-    if parsed is None:
-        raise CandidateRefreshError("expected timestamp from scoring view")
-    return parsed

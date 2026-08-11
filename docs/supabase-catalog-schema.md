@@ -223,6 +223,16 @@ O detalhamento de uso e consultas esta em
 
 A view considera apenas itens pertencentes ao catalogo ativo.
 
+Os dados comerciais sao resolvidos por campo. Quando existe snapshot,
+`v_offer_latest_snapshot` fornece o estado mais recente, inclusive quando ele
+esta `STALE`; quando nao existe snapshot ou o campo nao veio no payload, o
+valor do catalogo ativo e usado como fallback. Falhas de refresh nao invalidam
+o ultimo snapshot valido.
+
+O frete e a excecao: sem snapshot, preserva o valor do catalogo; com snapshot,
+fica desconhecido e recebe zero em `shipping_score`, pois `productOfferV2` nao
+retorna esse sinal.
+
 Versao da regra:
 
 ```text
@@ -259,6 +269,8 @@ A view tambem entrega:
 - `ineligibility_reasons`;
 - `rank_profile`;
 - `rank_subniche`;
+- `commercial_data_source`, com `catalog` ou `snapshot`;
+- `refresh_status`, `latest_snapshot_id`, `last_checked_at` e `age_hours`;
 - todos os campos de controle da selecao;
 - hash e data da importacao ativa.
 

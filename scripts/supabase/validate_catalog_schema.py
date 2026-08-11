@@ -52,6 +52,11 @@ EXPECTED_SCORE_COLUMNS = {
     "ineligibility_reasons",
     "rank_profile",
     "rank_subniche",
+    "commercial_data_source",
+    "refresh_status",
+    "latest_snapshot_id",
+    "last_checked_at",
+    "age_hours",
 }
 
 EXPECTED_PUBLICATION_EVENT_COLUMNS = {
@@ -118,6 +123,8 @@ EXPECTED_SCORING_CURRENT_COLUMNS = {
     "is_free_shipping",
     "shop_type_code",
     "is_scoring_ready",
+    "commercial_data_source",
+    "latest_snapshot_id",
 }
 
 
@@ -272,63 +279,95 @@ def validate_active_catalogs(
 ) -> list[tuple[str, int, int, int, int, int, str]]:
     rows = connection.execute(
         """
+        with stored as (
+          select import_id, count(*) as stored_count
+          from offers.catalog_items
+          group by import_id
+        ),
+        ranked as (
+          select
+            import_id,
+            count(*) as ranked_count,
+            count(*) filter (where is_eligible) as eligible_count,
+            count(distinct primary_subniche) as subniche_count,
+            count(rank_profile) filter (where is_eligible) as rank_count,
+            count(distinct rank_profile) filter (where is_eligible)
+              as distinct_rank_count,
+            max(rank_profile) filter (where is_eligible) as max_rank
+          from offers.v_offer_ranking_current
+          group by import_id
+        )
         select
           imp.profile,
           imp.row_count,
-          (select count(*) from offers.catalog_items item where item.import_id = imp.id),
-          (
-            select count(*)
-            from offers.v_offer_ranking_current ranking
-            where ranking.import_id = imp.id
-          ),
-          (
-            select count(*)
-            from offers.v_offer_ranking_current ranking
-            where ranking.import_id = imp.id
-              and ranking.is_eligible
-          ),
-          (
-            select count(distinct ranking.primary_subniche)
-            from offers.v_offer_ranking_current ranking
-            where ranking.import_id = imp.id
-          ),
-          left(imp.source_sha256, 12)
+          stored.stored_count,
+          ranked.ranked_count,
+          ranked.eligible_count,
+          ranked.subniche_count,
+          left(imp.source_sha256, 12),
+          ranked.rank_count,
+          ranked.distinct_rank_count,
+          ranked.max_rank
         from offers.catalog_imports imp
+        join stored on stored.import_id = imp.id
+        join ranked on ranked.import_id = imp.id
         where imp.status = 'active'
         order by imp.profile
         """
     ).fetchall()
 
-    for profile, declared, stored, ranked, eligible, _, _ in rows:
-        if declared != stored or stored != ranked:
+    results: list[tuple[str, int, int, int, int, int, str]] = []
+    for row in rows:
+        (
+            profile,
+            declared,
+            stored_count,
+            ranked_count,
+            eligible,
+            subniche_count,
+            source_hash,
+            rank_count,
+            distinct_rank_count,
+            max_rank,
+        ) = row
+        if declared != stored_count or stored_count != ranked_count:
             raise AssertionError(
                 f"catalog count mismatch for {profile}: "
-                f"declared={declared} stored={stored} ranked={ranked}"
+                f"declared={declared} stored={stored_count} ranked={ranked_count}"
             )
-        rank_stats = connection.execute(
-            """
-            select count(rank_profile), count(distinct rank_profile), max(rank_profile)
-            from offers.v_offer_ranking_current
-            where profile = %s
-              and is_eligible
-            """,
-            (profile,),
-        ).fetchone()
-        ranked_count, distinct_rank_count, max_rank = rank_stats
-        if (ranked_count, distinct_rank_count, max_rank) != (
+        if (rank_count, distinct_rank_count, max_rank) != (
             eligible,
             eligible,
             eligible,
         ):
             raise AssertionError(
-                f"profile ranking is not contiguous for {profile}: {rank_stats!r}"
+                f"profile ranking is not contiguous for {profile}: "
+                f"{(rank_count, distinct_rank_count, max_rank)!r}"
             )
-    return rows
+        results.append(
+            (
+                profile,
+                declared,
+                stored_count,
+                ranked_count,
+                eligible,
+                subniche_count,
+                source_hash,
+            )
+        )
+    return results
 
 
 def validate_score_fixture(connection: psycopg.Connection) -> None:
     stable_key = "a" * 64
     source_sha256 = "b" * 64
+    connection.execute(
+        """
+        insert into offers.candidate_refresh_policies (profile, marketplace, ttl_hours)
+        values ('schema-validation', 'shopee', 24)
+        on conflict (profile, marketplace) do nothing
+        """
+    )
     import_id = connection.execute(
         """
         insert into offers.catalog_imports (
@@ -415,7 +454,10 @@ def validate_score_fixture(connection: psycopg.Connection) -> None:
           commercial_score,
           is_eligible,
           rank_profile,
-          rank_subniche
+          rank_subniche,
+          commercial_data_source,
+          refresh_status,
+          latest_snapshot_id
         from offers.v_offer_ranking_current
         where profile = 'schema-validation'
           and stable_key = %s
@@ -435,6 +477,9 @@ def validate_score_fixture(connection: psycopg.Connection) -> None:
         True,
         1,
         1,
+        "catalog",
+        "MISSING",
+        None,
     )
     if score_row != expected:
         raise AssertionError(f"unexpected score fixture result: {score_row!r}")
@@ -486,6 +531,7 @@ def validate_candidate_refresh_fixture(connection: psycopg.Connection) -> None:
         """
         insert into offers.candidate_refresh_policies (profile, marketplace, ttl_hours)
         values ('schema-validation', 'shopee', 24)
+        on conflict (profile, marketplace) do nothing
         """
     )
     missing_status = connection.execute(
@@ -542,6 +588,21 @@ def validate_candidate_refresh_fixture(connection: psycopg.Connection) -> None:
     ).fetchone()
     if stale_status != ("STALE",):
         raise AssertionError(f"unexpected 24h refresh status: {stale_status!r}")
+    stale_ranking = connection.execute(
+        """
+        select price, commercial_data_source, refresh_status, latest_snapshot_id
+        from offers.v_offer_ranking_current
+        where profile = 'schema-validation' and item_id = 999999999
+        """
+    ).fetchone()
+    expected_stale_ranking = (
+        Decimal("100.00"),
+        "snapshot",
+        "STALE",
+        stale_snapshot_id,
+    )
+    if stale_ranking != expected_stale_ranking:
+        raise AssertionError(f"unexpected stale ranking result: {stale_ranking!r}")
 
     fresh_snapshot_id = connection.execute(
         """
@@ -585,16 +646,30 @@ def validate_candidate_refresh_fixture(connection: psycopg.Connection) -> None:
           latest.id,
           latest.price,
           status.refresh_status,
-          scoring.is_scoring_ready
+          scoring.is_scoring_ready,
+          ranking.price,
+          ranking.commercial_data_source,
+          ranking.latest_snapshot_id
         from offers.v_offer_latest_snapshot latest
         join offers.v_offer_refresh_status status
           on status.marketplace = latest.marketplace and status.item_id = latest.item_id
         join offers.v_offer_scoring_current scoring
           on scoring.marketplace = latest.marketplace and scoring.item_id = latest.item_id
+        join offers.v_offer_ranking_current ranking
+          on ranking.marketplace = latest.marketplace and ranking.item_id = latest.item_id
         where latest.marketplace = 'shopee' and latest.item_id = 999999999
         """
     ).fetchone()
-    expected = (2, fresh_snapshot_id, Decimal("90.00"), "FRESH", False)
+    expected = (
+        2,
+        fresh_snapshot_id,
+        Decimal("90.00"),
+        "FRESH",
+        False,
+        Decimal("90.00"),
+        "snapshot",
+        fresh_snapshot_id,
+    )
     if history != expected:
         raise AssertionError(
             "unexpected candidate refresh history result: "

@@ -6,7 +6,7 @@ import json
 import sys
 from collections import Counter
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
@@ -18,7 +18,8 @@ from ofertas_bot.candidate_refresh import (
     DiscoveryCandidate,
     ScoringCandidate,
     SnapshotInput,
-    select_progressive_candidates,
+    scale_subniche_quotas,
+    select_ranked_refresh_candidates,
     select_scoring_candidates,
     snapshot_from_product_offer_response,
 )
@@ -41,14 +42,34 @@ DISCOVERY_FIELDNAMES = (
     "last_attempted_at",
     "last_attempt_status",
     "seller_key",
+    "rank_profile",
+    "rank_subniche",
+    "commercial_score",
+    "commercial_data_source",
+    "selection_bucket",
 )
 ATTEMPT_FIELDNAMES = (
     "item_id",
+    "primary_subniche",
+    "selection_bucket",
+    "rank_subniche",
     "refresh_status_before",
     "status",
     "attempted_at",
     "snapshot_id",
     "detail",
+)
+RANKING_CHANGE_FIELDNAMES = (
+    "item_id",
+    "primary_subniche",
+    "rank_before",
+    "rank_after",
+    "score_before",
+    "score_after",
+    "source_before",
+    "source_after",
+    "refresh_before",
+    "refresh_after",
 )
 SCORING_FIELDNAMES = (
     "item_id",
@@ -136,6 +157,7 @@ class CandidateRefreshPaths:
     scoring_candidates: Path
     scored_candidates: Path
     selected_offers: Path
+    ranking_changes: Path
     run_report: Path
 
 
@@ -151,9 +173,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--profile", required=True)
     parser.add_argument("--marketplace", default="shopee")
-    parser.add_argument("--discovery-limit", type=int, default=600)
+    parser.add_argument("--discovery-limit", type=int, default=500)
     parser.add_argument("--scoring-limit", type=int, default=200)
-    parser.add_argument("--max-api-calls", type=int, default=100)
+    parser.add_argument("--max-api-calls", type=int, default=500)
     parser.add_argument("--item-id", type=int, action="append", default=None)
     parser.add_argument("--output-base-dir", type=Path, default=DEFAULT_OUTPUT_BASE_DIR)
     parser.add_argument("--run-id", default=None)
@@ -235,13 +257,17 @@ def run_candidate_refresh(
         item_ids=item_ids,
     )
     if item_ids is not None:
-        discovery_candidates = all_candidates
+        discovery_candidates = [
+            replace(candidate, selection_bucket="explicit_item")
+            for candidate in all_candidates
+        ]
     else:
-        discovery_candidates = select_progressive_candidates(
+        discovery_candidates = select_ranked_refresh_candidates(
             all_candidates,
             limit=discovery_limit,
             subniche_weights=policy.subniche_quotas,
         )
+    before_by_item = {candidate.item_id: candidate for candidate in discovery_candidates}
 
     attempt_rows: list[dict[str, Any]] = []
     api_calls = 0
@@ -357,6 +383,15 @@ def run_candidate_refresh(
         )
 
     discovery_item_ids = [candidate.item_id for candidate in discovery_candidates]
+    after_candidates = store.load_discovery_candidates(
+        profile=profile,
+        marketplace=marketplace,
+        item_ids=discovery_item_ids,
+    )
+    ranking_change_rows = [
+        _ranking_change_row(before_by_item[item.item_id], item)
+        for item in after_candidates
+    ]
     fresh_valid_candidates = store.load_scoring_candidates(
         profile=profile,
         marketplace=marketplace,
@@ -400,11 +435,37 @@ def run_candidate_refresh(
         [_scored_row(item) for item in selection.scored_offers],
         fieldnames=SCORED_FIELDNAMES,
     )
+    _write_csv(
+        paths.ranking_changes,
+        ranking_change_rows,
+        fieldnames=RANKING_CHANGE_FIELDNAMES,
+    )
 
     status_counts = Counter(item.refresh_status for item in discovery_candidates)
     never_attempted = sum(
         item.refresh_status == "MISSING" and item.last_attempted_at is None
         for item in discovery_candidates
+    )
+    call_candidates = [
+        item for item in discovery_candidates if item.refresh_status != "FRESH"
+    ]
+    bucket_counts = Counter(item.selection_bucket for item in call_candidates)
+    calls_by_subniche = Counter(item.primary_subniche for item in call_candidates)
+    ranking_limit = discovery_limit * 80 // 100
+    exploration_limit = discovery_limit - ranking_limit
+    planned_ranking = scale_subniche_quotas(
+        limit=ranking_limit,
+        weights=policy.subniche_quotas,
+    )
+    planned_exploration = scale_subniche_quotas(
+        limit=exploration_limit,
+        weights=policy.subniche_quotas,
+    )
+    rank_changes = sum(
+        row["rank_before"] != row["rank_after"] for row in ranking_change_rows
+    )
+    source_changes = sum(
+        row["source_before"] != row["source_after"] for row in ranking_change_rows
     )
     run_status = "partial" if deferred_refreshes else "completed"
     if failed_refreshes or no_node_refreshes:
@@ -439,10 +500,24 @@ def run_candidate_refresh(
             "deferred_refreshes": deferred_refreshes,
             "snapshots_inserted": snapshots_inserted,
             "fresh_valid_candidates": len(fresh_valid_candidates),
+            "scoring_ready_candidates": len(fresh_valid_candidates),
             "candidates_sent_to_scorer": len(scoring_candidates),
             "selected_by_gate": len(selection.scored_offers),
             "cache_calls_saved": cache_hits,
+            "ranking_bucket_candidates": bucket_counts["ranking"],
+            "exploration_bucket_candidates": bucket_counts["exploration"],
+            "quota_fallback_candidates": bucket_counts["quota_fallback"],
+            "rank_changes": rank_changes,
+            "commercial_source_changes": source_changes,
             "elapsed_seconds": round(perf_counter() - started, 3),
+        },
+        "allocation": {
+            "planned": {
+                "ranking": planned_ranking,
+                "exploration": planned_exploration,
+            },
+            "actual_api_candidates_by_bucket": dict(sorted(bucket_counts.items())),
+            "actual_api_candidates_by_subniche": dict(sorted(calls_by_subniche.items())),
         },
         "outputs": {key: value.as_posix() for key, value in asdict(paths).items()},
     }
@@ -485,6 +560,7 @@ def _build_paths(base_dir: Path, profile: str, run_id: str) -> CandidateRefreshP
         scoring_candidates=output_dir / "scoring_candidates.csv",
         scored_candidates=output_dir / "scored_candidates.csv",
         selected_offers=output_dir / "selected_offers.csv",
+        ranking_changes=output_dir / "ranking_changes.csv",
         run_report=output_dir / "run_report.json",
     )
 
@@ -499,6 +575,9 @@ def _attempt_row(
 ) -> dict[str, Any]:
     return {
         "item_id": candidate.item_id,
+        "primary_subniche": candidate.primary_subniche,
+        "selection_bucket": candidate.selection_bucket,
+        "rank_subniche": candidate.rank_subniche or "",
         "refresh_status_before": candidate.refresh_status,
         "status": status,
         "attempted_at": attempted_at.isoformat() if attempted_at else "",
@@ -521,6 +600,29 @@ def _discovery_row(candidate: DiscoveryCandidate) -> dict[str, Any]:
         ),
         "last_attempt_status": candidate.last_attempt_status or "",
         "seller_key": candidate.seller_key,
+        "rank_profile": candidate.rank_profile or "",
+        "rank_subniche": candidate.rank_subniche or "",
+        "commercial_score": candidate.commercial_score or "",
+        "commercial_data_source": candidate.commercial_data_source,
+        "selection_bucket": candidate.selection_bucket,
+    }
+
+
+def _ranking_change_row(
+    before: DiscoveryCandidate,
+    after: DiscoveryCandidate,
+) -> dict[str, Any]:
+    return {
+        "item_id": before.item_id,
+        "primary_subniche": before.primary_subniche,
+        "rank_before": before.rank_profile or "",
+        "rank_after": after.rank_profile or "",
+        "score_before": before.commercial_score or "",
+        "score_after": after.commercial_score or "",
+        "source_before": before.commercial_data_source,
+        "source_after": after.commercial_data_source,
+        "refresh_before": before.refresh_status,
+        "refresh_after": after.refresh_status,
     }
 
 
@@ -535,7 +637,9 @@ def _scoring_row(candidate: ScoringCandidate) -> dict[str, Any]:
         "sales_count": candidate.sales_count,
         "rating": candidate.rating or "",
         "shop_type_code": candidate.shop_type_code or "",
-        "last_checked_at": candidate.last_checked_at.isoformat(),
+        "last_checked_at": (
+            candidate.last_checked_at.isoformat() if candidate.last_checked_at else ""
+        ),
         "offer_link": candidate.offer_link,
     }
 
@@ -582,7 +686,7 @@ def _print_summary(report: Mapping[str, Any]) -> None:
     print(f"API calls successful: {summary['successful_refreshes']}")
     print(f"API failures: {summary['failed_refreshes'] + summary['no_node_refreshes']}")
     print(f"Snapshots inserted: {summary['snapshots_inserted']}")
-    print(f"Fresh valid candidates: {summary['fresh_valid_candidates']}")
+    print(f"Scoring-ready candidates: {summary['scoring_ready_candidates']}")
     print(f"Candidates sent to scorer: {summary['candidates_sent_to_scorer']}")
     print(f"Selected by SelectionGate: {summary['selected_by_gate']}")
 
