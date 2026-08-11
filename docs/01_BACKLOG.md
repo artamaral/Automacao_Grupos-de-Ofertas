@@ -106,6 +106,16 @@ Regras:
   interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
   idempotência e reconciliação posterior no fluxo local.
 
+- Modelar depois uma camada de "produto equivalente / anuncios concorrentes"
+  para comparar o mesmo item comercial vendido por lojas diferentes.
+- Separar explicitamente a definicao do catalogo base da escolha de "anuncio
+  vencedor", para nao travar a curadoria inicial por causa da competicao entre
+  lojas.
+- Criar criterio de anuncio vencedor com evidencias reais de tracao,
+  equilibrando vendas, nota, preco, comissao, loja e estabilidade do anuncio.
+- Evitar troca automatica para o menor preco ou para a maior comissao quando
+  anuncios equivalentes mostrarem historico comercial muito diferente.
+
 ## Concluidos a partir da validacao operacional n8n
 
 - Ajustado o workflow MVP do n8n para registrar `delivery_status=confirmed`

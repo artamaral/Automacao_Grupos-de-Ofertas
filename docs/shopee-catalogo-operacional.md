@@ -29,6 +29,54 @@ Decisao operacional atual:
   `Collector -> Scorer -> Copywriter -> Compliance -> Publisher`, e nao como
   etapa automatica diaria desse mesmo pipeline.
 
+## Limite da etapa atual
+
+Na definicao atual de catalogo, cada linha continua representando um anuncio
+individual da Shopee, identificado por `itemId`.
+
+Isso e suficiente para:
+
+- montar uma base curada por `profile`;
+- classificar nicho e subnicho;
+- filtrar itens claramente fora do escopo;
+- importar snapshots controlados para o Supabase;
+- alimentar o ranking operacional inicial do `n8n`.
+
+Mas isso ainda nao resolve um problema mais profundo observado nas analises
+reais: produtos equivalentes podem aparecer em anuncios diferentes, de lojas
+diferentes, com combinacoes muito distintas de preco, comissao, vendas e
+tracao comercial.
+
+Exemplo pratico ja observado:
+
+- o mesmo produto pode vender mais em uma loja com preco maior;
+- outra loja pode exibir comissao melhor, mas quase nenhuma venda;
+- anuncios da mesma linha podem competir entre si sem que o menor preco seja o
+  vencedor comercial.
+
+Decisao:
+
+- a etapa atual do catalogo nao vai modelar ainda o conceito de "mesmo
+  produto anunciado por lojas diferentes";
+- o catalogo base continua focado em curadoria, cobertura e taxonomia;
+- a comparacao entre anuncios concorrentes do mesmo produto fica adiada para
+  uma etapa posterior de modelagem comercial.
+
+Consequencia pratica:
+
+- nesta fase, nao vamos bloquear a definicao do catalogo por causa dessa
+  competicao entre anuncios;
+- `itemId` continua sendo a chave operacional do refresh e da revalidacao;
+- qualquer logica de "anuncio vencedor por produto", "grupo de equivalencia" ou
+  "troca automatica entre lojas" fica fora do escopo atual.
+
+Quando essa frente voltar:
+
+- criar agrupamento de anuncios equivalentes por produto;
+- comparar lojas concorrentes por vendas, nota, preco, comissao e estabilidade;
+- escolher o anuncio vencedor por evidencias reais de tracao, e nao apenas por
+  menor preco ou maior comissao.
+
 ## Regra de chamada
 
 Para este fluxo, os parametros usados devem ser sempre tratados pelo nome da
