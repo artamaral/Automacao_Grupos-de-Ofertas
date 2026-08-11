@@ -47,3 +47,13 @@ def test_load_shopee_catalog_profile_catalog_rejects_missing_profiles(tmp_path: 
         assert "[[profiles]]" in str(error)
     else:
         raise AssertionError("expected ShopeeCatalogProfileError")
+
+
+def test_feminino_profile_blocks_infantil_and_juvenil_terms() -> None:
+    catalog = load_shopee_catalog_profile_catalog(Path("config/shopee_catalog_profiles.toml"))
+
+    profile = catalog.get("feminino")
+
+    assert profile is not None
+    assert "infantil" in profile.negative_terms
+    assert "juvenil" in profile.negative_terms

@@ -178,6 +178,10 @@
     "moda feminina"
   ],
   "generic_default_subniche": "feminino-geral",
+  "forbidden_terms": [
+    "infantil",
+    "juvenil"
+  ],
   "fallback_product_name_rules": [
     {
       "order": 10,

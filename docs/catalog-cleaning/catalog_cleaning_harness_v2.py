@@ -48,10 +48,13 @@ def load_taxonomy(taxonomy_path: Path) -> dict[str, Any]:
     keyword_map = data.get("source_keyword_to_subniche") or {}
     generic_hits = set(data.get("generic_source_hits") or [])
     default_subniche = data.get("generic_default_subniche") or "bebe-geral"
+    forbidden_terms_raw = data.get("forbidden_terms") or []
     fallback_rules = data.get("fallback_product_name_rules") or []
 
     if not allowed:
         raise SystemExit("Taxonomia inválida: allowed_subniches vazio ou ausente")
+    if not isinstance(forbidden_terms_raw, list):
+        raise SystemExit("Taxonomia invalida: forbidden_terms deve ser lista")
     if default_subniche not in allowed:
         raise SystemExit(
             "Taxonomia inválida: generic_default_subniche fora de "
@@ -85,6 +88,9 @@ def load_taxonomy(taxonomy_path: Path) -> dict[str, Any]:
         "source_keyword_to_subniche": {normalize_name(k): v for k, v in keyword_map.items()},
         "generic_source_hits": {normalize_name(k) for k in generic_hits},
         "generic_default_subniche": default_subniche,
+        "forbidden_terms": {
+            normalize_name(term) for term in forbidden_terms_raw if normalize_name(term)
+        },
         "fallback_product_name_rules": sorted(
             fallback_rules, key=lambda r: int(r.get("order", 999999))
         ),
@@ -217,6 +223,18 @@ def build_removal_reason(row: pd.Series) -> str:
     return "|".join(reasons)
 
 
+def forbidden_term_hits(row: pd.Series, forbidden_terms: set[str]) -> list[str]:
+    if not forbidden_terms:
+        return []
+    haystack = normalize_name(
+        " ".join(
+            as_text(row.get(field, ""))
+            for field in ("productName", "shopName", "productLink", "offerLink")
+        )
+    )
+    return sorted(term for term in forbidden_terms if term in haystack)
+
+
 def run(
     input_path: Path, outdir: Path, taxonomy_path: Path, expected: dict[str, int] | None = None
 ) -> dict[str, Any]:
@@ -247,14 +265,25 @@ def run(
     df["_valid_rating"] = df["_rating_num"].notna() & (df["_rating_num"] >= 4.5)
     df["_valid_ids"] = df["shopId"].map(as_text).ne("") & df["itemId"].map(as_text).ne("")
 
-    valid_mask = df[
+    quality_mask = df[
         ["_valid_image", "_valid_price", "_valid_commission", "_valid_rating", "_valid_ids"]
     ].all(axis=1)
-    removed_quality = df.loc[~valid_mask].copy()
+    removed_quality = df.loc[~quality_mask].copy()
     if len(removed_quality):
         removed_quality["removal_reason"] = removed_quality.apply(build_removal_reason, axis=1)
 
-    clean = df.loc[valid_mask].copy()
+    clean = df.loc[quality_mask].copy()
+    clean["_forbidden_term_hits"] = clean.apply(
+        lambda row: forbidden_term_hits(row, taxonomy["forbidden_terms"]), axis=1
+    )
+    forbidden_mask = clean["_forbidden_term_hits"].map(bool)
+    removed_forbidden_terms = clean.loc[forbidden_mask].copy()
+    if len(removed_forbidden_terms):
+        removed_forbidden_terms["forbidden_term_hits"] = removed_forbidden_terms[
+            "_forbidden_term_hits"
+        ].map(lambda hits: json.dumps(hits, ensure_ascii=False))
+        removed_forbidden_terms["removal_reason"] = "termo_proibido"
+    clean = clean.loc[~forbidden_mask].copy()
     clean["_dedupe_key"] = clean["shopId"].map(as_text) + ":" + clean["itemId"].map(as_text)
     clean["_duplicate_count"] = clean.groupby("_dedupe_key")["_dedupe_key"].transform("size")
 
@@ -276,7 +305,15 @@ def run(
             c
             for c in clean.columns
             if c.startswith("_valid_")
-            or c in {"_price_num", "_commission_num", "_rating_num", "_sales_num", "_discount_num"}
+            or c
+            in {
+                "_price_num",
+                "_commission_num",
+                "_rating_num",
+                "_sales_num",
+                "_discount_num",
+                "_forbidden_term_hits",
+            }
         ],
         errors="ignore",
     )
@@ -328,13 +365,25 @@ def run(
     )
     clean = clean.drop(columns=["_name_price_key", "_name_price_position"], errors="ignore")
 
-    removed = pd.concat([removed_quality, removed_safe_dups], ignore_index=True, sort=False)
+    removed = pd.concat(
+        [removed_quality, removed_forbidden_terms, removed_safe_dups],
+        ignore_index=True,
+        sort=False,
+    )
     removed = removed.drop(
         columns=[
             c
             for c in removed.columns
             if c.startswith("_valid_")
-            or c in {"_price_num", "_commission_num", "_rating_num", "_sales_num", "_discount_num"}
+            or c
+            in {
+                "_price_num",
+                "_commission_num",
+                "_rating_num",
+                "_sales_num",
+                "_discount_num",
+                "_forbidden_term_hits",
+            }
         ],
         errors="ignore",
     )
@@ -359,6 +408,7 @@ def run(
         },
         "original_rows": int(original_rows),
         "removed_quality_rows": int(len(removed_quality)),
+        "removed_forbidden_term_rows": int(len(removed_forbidden_terms)),
         "removed_safe_duplicate_rows": int(len(removed_safe_dups)),
         "clean_rows": int(len(clean)),
         "duplicate_name_price_rule": "productName normalizado lower/trim/espacos + price literal",
