@@ -35,6 +35,8 @@ EXPECTED_SCHEDULE_CONTEXT_NODE = "Set Contexto Schedule Grupo"
 EXPECTED_SCHEDULE_LIMIT = 3
 EXPECTED_SEND_DELAY_MIN = 45
 EXPECTED_SEND_DELAY_MAX = 90
+EXPECTED_LOOP_NODE = "Loop Ofertas"
+EXPECTED_LOOP_RETURN_NODE = "Registrar Resultado Supabase"
 
 
 class WorkflowGuardError(RuntimeError):
@@ -192,6 +194,34 @@ def validate_schedule(workflow: dict[str, Any], errors: list[str]) -> None:
         errors.append(f"workflow timezone must be {EXPECTED_WORKFLOW_TIMEZONE}")
 
 
+def validate_send_loop(workflow: dict[str, Any], errors: list[str]) -> None:
+    connections = workflow.get("connections")
+    if not isinstance(connections, dict):
+        return
+
+    loop_main = connections.get(EXPECTED_LOOP_NODE, {}).get("main", [])
+    loop_output = loop_main[1] if len(loop_main) > 1 else []
+    if not any(
+        connection.get("node") == "Montar Mensagens"
+        for connection in loop_output
+        if isinstance(connection, dict)
+    ):
+        errors.append(
+            f"{EXPECTED_LOOP_NODE} loop output must connect to Montar Mensagens"
+        )
+
+    return_main = connections.get(EXPECTED_LOOP_RETURN_NODE, {}).get("main", [])
+    return_output = return_main[0] if return_main else []
+    if not any(
+        connection.get("node") == EXPECTED_LOOP_NODE
+        for connection in return_output
+        if isinstance(connection, dict)
+    ):
+        errors.append(
+            f"{EXPECTED_LOOP_RETURN_NODE} must connect back to {EXPECTED_LOOP_NODE}"
+        )
+
+
 def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> None:
     errors: list[str] = []
     if workflow.get("id") != workflow_id:
@@ -210,6 +240,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         errors.append(f"missing template text: {EXPECTED_TEMPLATE_TEXT}")
 
     validate_schedule(workflow, errors)
+    validate_send_loop(workflow, errors)
 
     if errors:
         raise WorkflowGuardError("; ".join(errors))

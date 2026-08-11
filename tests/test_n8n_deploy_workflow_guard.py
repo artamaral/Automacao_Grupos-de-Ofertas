@@ -19,15 +19,16 @@ SPEC.loader.exec_module(guard)
 def workflow_payload(
     *,
     url: str = "http://waha:3000/api/sendImage",
-    template_text: str = "Resgate o cupom desta página",
+    template_text: str = "Resgate o cupom desta pagina",
     schedule_cron: str = "0 8-21 * * *",
     schedule_context: str | None = None,
 ) -> dict[str, object]:
     schedule_context = schedule_context or (
-        "return [{ json: { dry_run: false, limit: 1, "
+        "return [{ json: { dry_run: false, limit: 3, "
         "target: 'grupo-ofertas-feminino', "
         "target_chat_id: '120363412864266334@g.us', "
         "allowed_targets_csv: 'grupo-ofertas-feminino', "
+        "send_delay_seconds_min: 45, send_delay_seconds_max: 90, "
         "run_id: 'schedule-grupo-real' } }];"
     )
     return {
@@ -57,6 +58,16 @@ def workflow_payload(
                 "name": "Enviar WhatsApp WAHA",
                 "parameters": {"url": url},
             },
+            {
+                "name": "Loop Ofertas",
+                "type": "n8n-nodes-base.splitInBatches",
+                "parameters": {"batchSize": 1},
+            },
+            {
+                "name": "Registrar Resultado Supabase",
+                "type": "n8n-nodes-base.postgres",
+                "parameters": {},
+            },
         ],
         "connections": {
             "Schedule Grupo Real": {
@@ -66,6 +77,15 @@ def workflow_payload(
             },
             "Set Contexto Schedule Grupo": {
                 "main": [[{"node": "Validar Contexto", "type": "main", "index": 0}]]
+            },
+            "Loop Ofertas": {
+                "main": [
+                    [],
+                    [{"node": "Montar Mensagens", "type": "main", "index": 0}],
+                ]
+            },
+            "Registrar Resultado Supabase": {
+                "main": [[{"node": "Loop Ofertas", "type": "main", "index": 0}]]
             },
         },
         "settings": {"timezone": "America/Sao_Paulo"},
@@ -106,6 +126,24 @@ def test_validate_versioned_workflow_rejects_safe_schedule_context() -> None:
             workflow_payload(schedule_context="return [{ json: { dry_run: true } }];"),
             "OfertasMvpSupab1",
         )
+
+
+def test_validate_versioned_workflow_rejects_processing_on_done_output() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["Loop Ofertas"]["main"] = [
+        [{"node": "Montar Mensagens", "type": "main", "index": 0}]
+    ]
+
+    with pytest.raises(guard.WorkflowGuardError, match="loop output"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_missing_loop_return() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["Registrar Resultado Supabase"]["main"] = []
+
+    with pytest.raises(guard.WorkflowGuardError, match="must connect back"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
 def test_build_update_sql_includes_real_group_pindata_by_default() -> None:

@@ -507,6 +507,7 @@
     },
     "Loop Ofertas": {
       "main": [
+        [],
         [
           {
             "node": "Montar Mensagens",
