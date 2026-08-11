@@ -87,6 +87,7 @@ atualiza snapshots antes da primeira publicacao do dia.
 - n8n path: `/opt/automacao_grupo_compras/n8n`;
 - service: `shopee-candidate-refresh.service`;
 - timer: `shopee-candidate-refresh.timer`;
+- usuario do service: `ofertas-refresh`;
 - wrapper: `scripts/ops/run_shopee_candidate_refresh.sh`;
 - units versionados: `deploy/systemd/shopee-candidate-refresh.*`.
 

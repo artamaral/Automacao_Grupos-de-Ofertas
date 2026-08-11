@@ -5,6 +5,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
+User=ofertas-refresh
+Group=ofertas-refresh
 WorkingDirectory=/opt/automacao_grupo_compras/app
 ExecStart=/bin/bash /opt/automacao_grupo_compras/app/scripts/ops/run_shopee_candidate_refresh.sh
 TimeoutStartSec=45min
