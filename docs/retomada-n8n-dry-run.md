@@ -398,8 +398,11 @@ Schedule automatico preparado em 2026-08-09:
 - a execucao `50` teve `status=success`, mas sem `publish_id`,
   `delivery_status`, `adapter_response_type` ou `copy_template`; ela nao deve
   ser tratada como envio automatico valido;
-- a checagem `check_last_execution.py --expect-real-image` deve ser repetida
-  depois da proxima execucao do schedule dentro da janela configurada;
+- a primeira execucao automatica da nova versao foi reportada pelo operador em
+  2026-08-11 as 17:00, encerrando a pendencia de liberar o schedule e confirmar
+  que ele voltou a rodar a versao atual;
+- os identificadores detalhados dessa rodada automatica nao foram copiados para
+  o repositorio e permanecem apenas no ambiente operacional do n8n/Supabase;
 - pausa operacional: deixar o workflow como unpublished no painel do n8n.
 
 Resultado historico validado em 2026-08-09:

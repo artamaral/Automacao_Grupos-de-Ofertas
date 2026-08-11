@@ -789,8 +789,8 @@ Estado aplicado em 2026-08-09:
 - workflow `OfertasMvpSupab1` atualizado no n8n com `versionCounter=40`;
 - `active=false` preservado pelo deploy guard;
 - schedule e contexto do grupo real presentes no workflow versionado e no n8n;
-- proxima acao operacional para iniciar o teste automatico: publicar o workflow
-  manualmente no painel do n8n.
+- a acao operacional inicial foi publicar o workflow manualmente no painel do
+  n8n para liberar o schedule automatico controlado.
 
 Estado apos publicacao pelo painel:
 
@@ -799,10 +799,14 @@ Estado apos publicacao pelo painel:
 - a execucao `50` ficou com `status=success`, mas sem `publish_id`,
   `delivery_status`, `adapter_response_type` ou `copy_template`; portanto, ela
   nao e evidencia de envio automatico valido;
-- a validacao forte abaixo deve ser rodada depois da proxima execucao real do
-  schedule dentro da janela configurada.
+- a primeira execucao automatica da nova versao foi reportada pelo operador em
+  2026-08-11 as 17:00, encerrando a pendencia operacional de provar que o
+  schedule voltou a rodar a versao atual;
+- os identificadores detalhados dessa rodada automatica permanecem no ambiente
+  operacional do n8n/Supabase e nao foram versionados neste repositorio.
 
-Validacao recomendada depois da primeira execucao automatica:
+Comando recomendado para rechecagem quando for necessario auditar a ultima
+rodada automatica:
 
 ```bash
 python3 scripts/n8n/check_last_execution.py --expect-real-image

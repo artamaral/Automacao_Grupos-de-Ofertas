@@ -52,6 +52,9 @@ Por isso, este backlog foi reorganizado em quatro blocos:
 - Acoplado o envio real por imagem + legenda via `POST /api/sendImage`.
 - Preparado o schedule automatico controlado do workflow, mantendo
   `active=false` como estado seguro padrao.
+- Primeira execucao automatica da nova versao do schedule reportada pelo
+  operador em 2026-08-11 as 17:00, encerrando a pendencia de validar o disparo
+  automatico inicial do workflow em producao controlada.
 
 ### Fundacao de dados no Supabase
 
@@ -110,16 +113,17 @@ como bloqueio da operacao minima:
 - Atualizar `offers.offer_selection_state` no fluxo MVP apos envio confirmado,
   registrando `selected_at`, `last_sent_at`, `cooldown_until` e
   `selection_count`, para evitar loop de reoferta do mesmo item elegivel.
-- Validar com evidencia forte a primeira execucao automatica do schedule do n8n
-  com `endpoint=sendImage`, `delivery_status=confirmed` e
-  `adapter_response_type=image`.
 - Endurecer a operacao da VPS apos a primeira subida do MVP: revisar firewall
   sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do
   Traefik, configurar backup externo com teste de restore e remover a stack
   legada depois do periodo de estabilizacao.
-- Definir observabilidade minima da operacao diaria com foco em:
-  `workflow status`, `refresh status`, `eventos confirmados`, `falhas do
-  adapter` e `idade dos snapshots`.
+- Versionar explicitamente a checagem read-only do Hermes que usa a gravacao no
+  Supabase como sinal de rodada concluida, para nao depender apenas do estado
+  operacional fora do repositorio.
+- Consolidar em uma leitura operacional unica os sinais de:
+  execucao n8n, envio WAHA e registro auditavel no Supabase.
+- Adicionar uma checagem simples e util de freshness para os snapshots que
+  abastecem o topo do ranking antes da janela de envio.
 
 ### Shopee operacional
 
@@ -197,7 +201,6 @@ Para consulta rapida, os principais pontos realmente em aberto hoje sao:
 
 - endurecer TLS da conexao n8n -> Supabase;
 - atualizar `offer_selection_state` apos envio confirmado no fluxo real;
-- consolidar a validacao da primeira execucao automatica do schedule;
 - melhorar a qualidade semantica dos subnichos, especialmente em
   `auto-e-moto` e `feminino`;
 - definir claramente o limite entre discovery ampla, refresh operacional e

@@ -61,6 +61,40 @@ A semântica operacional dos watchdogs é:
 
 Todo acesso descrito aqui é para inspeção e diagnóstico read-only.
 
+## Cobertura real atual
+
+Sem inventar novos controles, a cobertura operacional que ja existe hoje no
+Hermes pode ser lida assim:
+
+- o Hermes monitora se o workflow `ofertas-mvp-supabase` executou no n8n;
+- o Hermes monitora se o canal WAHA estava disponivel e se a sessao WhatsApp
+  permaneceu conectada;
+- o Hermes monitora o refresh diario Shopee fora do n8n;
+- no ambiente operacional atual, o cron usado para dizer que "o n8n rodou"
+  ja considera a gravacao da mensagem no Supabase como sinal de sucesso da
+  rodada, em vez de confiar apenas no status bruto da execucao do n8n;
+- essa melhoria reduz falso positivo de "execucao ok" quando o n8n fecha como
+  `success`, mas a rodada nao chega ate o registro auditavel esperado.
+
+Leitura pratica:
+
+- `status=success` no n8n sozinho nao basta;
+- `delivery_status` e `adapter_status` ajudam a entender o envio;
+- a gravacao no Supabase fecha melhor a prova de que a rodada chegou ao fim do
+  caminho operacional.
+
+## O que este documento registra e o que nao registra
+
+Este documento registra a cobertura operacional conhecida e os scripts/job
+relevantes para monitoramento read-only.
+
+Ele nao deve ser lido como se todo comportamento atual do Hermes estivesse
+necessariamente espelhado linha por linha nos blocos de script transcritos
+abaixo. Quando houver melhoria operacional aplicada diretamente no Hermes e ainda
+nao portada para um script versionado, a melhoria continua valida como estado
+operacional, mas deve ser descrita explicitamente aqui para evitar leitura
+errada do monitoramento vigente.
+
 ## Visão geral dos 6 jobs
 
 | Nome | ID | Schedule UTC | Schedule BRT | Tipo | Modelo | Entrega |
@@ -571,6 +605,9 @@ Os watchdogs são scripts `no_agent`, com custo zero de LLM, por isso podem roda
   para BRT (`UTC-3`).
 - O node `Enviar WhatsApp WAHA` usa `continueOnFail`; execução `success` no n8n
   não garante envio real.
+- No ambiente atual do Hermes, a checagem operacional do "n8n rodou" foi
+  melhorada para considerar a gravação da mensagem no Supabase. Isso protege
+  contra a falha de tratar `success` sem registro auditável como rodada válida.
 - Para envio WAHA, o sinal correto está no `runData`, especialmente
   `adapter_status` e `delivery_status` do node `Normalizar Resultado WAHA`.
 - `[SILENT]` nunca deve ser combinado com qualquer outro conteúdo.
@@ -581,6 +618,22 @@ Os watchdogs são scripts `no_agent`, com custo zero de LLM, por isso podem roda
   execução (`error`/`success`) e pega falhas de pipeline, como Postgres ou
   validação; `waha_watchdog` olha a conexão do canal e confirma o resultado com
   `adapter_status`/`delivery_status` dentro da execução.
+
+## Lacunas uteis ainda em aberto
+
+As lacunas abaixo nao sao arquitetura extra nem burocracia. Sao apenas pontos
+que ainda podem proteger melhor a execucao:
+
+- versionar explicitamente a checagem read-only que confirma no Supabase que a
+  rodada esperada gerou registro auditavel, para que essa melhoria do Hermes
+  nao fique apenas como estado operacional externo ao repositorio;
+- consolidar em um unico resumo read-only os tres sinais da rodada:
+  execucao n8n, resultado do envio e registro no Supabase;
+- adicionar uma checagem operacional simples de freshness para os snapshots que
+  abastecem o topo do ranking antes da janela de envio, usando sinais ja
+  existentes como `refresh_status`, `last_checked_at` ou `age_hours`;
+- definir qual deve ser o alerta util quando o refresh do dia roda, mas deixa a
+  frente do ranking velha demais para a primeira janela de publicacao.
 
 ## Watchdog Shopee refresh diario
 
