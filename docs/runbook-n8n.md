@@ -658,6 +658,33 @@ antiga por cima do workflow correto. Antes de executar testes reais:
 
 ### Checklist operacional por rodada
 
+Comando principal:
+
+```bash
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+```
+
+O wrapper executa, em ordem:
+
+1. `deploy_workflow_guard.py --mode <mode>`;
+2. `run_workflow_manual.py --mode <mode>`;
+3. `check_last_execution.py`.
+
+Modos aceitos:
+
+- `teste-telefone`: envio real controlado para o telefone de teste;
+- `grupo-real`: envio real controlado para o grupo allowlisted;
+- `dry-run`: sem envio real.
+
+Nos modos `grupo-real` e `teste-telefone`, a checagem final usa
+`--expect-real-image`. No modo `dry-run`, ela nao exige
+`adapter_response_type=image`.
+
+O wrapper para no primeiro erro e imprime resumo final com `execution_id`,
+`endpoint`, `publish_id`, `delivery_status`, `adapter_response_type` e
+`copy_template`. Linhas contendo senha, cookie, token ou API key sao redigidas
+antes de serem impressas.
+
 Rodada manual pelo painel n8n:
 
 ```bash
@@ -690,6 +717,104 @@ delivery_status=confirmed
 adapter_response_type=image
 copy_template=novo
 publish_id=<uuid>
+```
+
+### Evidencia operacional atual
+
+Validacao executada em 2026-08-09 na branch `feat/supabase-cloud-run`, com
+workflow inativo e wrapper operacional:
+
+```bash
+.venv/bin/python -m ruff check .
+.venv/bin/python -m pytest
+python3 scripts/n8n/run_operational_round.py --mode dry-run
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+python3 scripts/n8n/run_operational_round.py --mode grupo-real
+```
+
+Resultado da validacao local:
+
+- `ruff check .`: passou;
+- `pytest`: `451 passed`.
+
+Rodadas n8n validadas:
+
+- `dry-run`: execucao `44`, `delivery_status=cancelled`,
+  `send_result=dry_run_not_sent`, `copy_template=novo`;
+- `teste-telefone`: execucao `45`, `endpoint=sendImage`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`;
+- `grupo-real`: execucao `46`, `endpoint=sendImage`,
+  `publish_id=029c13e7-8236-4a73-8beb-cbb797b2a576`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`.
+
+O envio real para `grupo-ofertas-feminino` foi aceito pelo adapter WAHA como
+imagem com legenda. O workflow permaneceu `active=false`; a operacao foi
+manual/controlada via API do n8n.
+
+### Schedule automatico controlado
+
+O workflow versionado mantem o `Trigger Manual` e adiciona um schedule para o
+grupo real:
+
+```text
+Schedule Grupo Real
+  -> Set Contexto Schedule Grupo
+  -> Validar Contexto
+```
+
+Configuracao versionada do schedule:
+
+- cron: `0 8-21 * * *`;
+- timezone do workflow: `America/Sao_Paulo`;
+- frequencia: 1 execucao por hora, das 08:00 as 21:00;
+- volume: `limit=1` por execucao;
+- destino: `grupo-ofertas-feminino`;
+- chat WAHA: `120363412864266334@g.us`;
+- `dry_run=false`;
+- `allowed_targets_csv=grupo-ofertas-feminino`;
+- envio por `POST /api/sendImage`.
+
+O `deploy_workflow_guard.py` valida esse schedule e continua gravando
+`active=false`. No painel desta instancia n8n, **Published** equivale a
+`active=true` no banco; **Unpublished** equivale a `active=false`.
+
+Para iniciar a automacao, o operador deve publicar o workflow no painel do n8n
+depois do deploy guard. Para pausar, deixar o workflow como unpublished no
+painel.
+
+Estado aplicado em 2026-08-09:
+
+- workflow `OfertasMvpSupab1` atualizado no n8n com `versionCounter=40`;
+- `active=false` preservado pelo deploy guard;
+- schedule e contexto do grupo real presentes no workflow versionado e no n8n;
+- proxima acao operacional para iniciar o teste automatico: publicar o workflow
+  manualmente no painel do n8n.
+
+Estado apos publicacao pelo painel:
+
+- banco n8n retornou `OfertasMvpSupab1|t|41|2026-08-09 23:55:41.116+00`;
+- isso confirma `active=true` e `versionCounter=41`;
+- a execucao `50` ficou com `status=success`, mas sem `publish_id`,
+  `delivery_status`, `adapter_response_type` ou `copy_template`; portanto, ela
+  nao e evidencia de envio automatico valido;
+- a validacao forte abaixo deve ser rodada depois da proxima execucao real do
+  schedule dentro da janela configurada.
+
+Validacao recomendada depois da primeira execucao automatica:
+
+```bash
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+Resultado esperado:
+
+```text
+endpoint=sendImage
+delivery_status=confirmed
+adapter_response_type=image
+copy_template=novo
 ```
 
 Para reduzir dependencia do painel e de abas antigas do editor, executar via

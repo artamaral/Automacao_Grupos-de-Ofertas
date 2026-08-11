@@ -97,8 +97,17 @@ def test_load_discovery_profile_catalog_reads_csv_export(tmp_path: Path) -> None
     config_path.write_text(
         "\n".join(
             [
-                "slug,name,niche,marketplace,discovery_method,query,target,limit,catalog_file,keywords_csv,brands_csv,categories_csv,include_terms_csv,exclude_terms_csv,shopee_offer_names_csv,shopee_category_urls_csv,shopee_product_match_ids_csv,shopee_product_category_ids_csv,subgroups_json,notes",
-                'maquiagem-promocoes,Maquiagem Promocoes,maquiagem,shopee,descobridor-geral,batom maybelline,grupo-maquiagem,4,catalogs/clean/maquiagem/clean_catalog.csv,batom|base,maybelline,beleza,batom,fantasia,Beauty Deals,,123|123,,"[{""slug"":""labios"",""label"":""Labios"",""query"":""batom gloss"",""categories"":[""Maquiagem""]}]",teste',
+                "slug,name,niche,marketplace,discovery_method,query,target,limit,"
+                "catalog_file,keywords_csv,brands_csv,categories_csv,include_terms_csv,"
+                "exclude_terms_csv,shopee_offer_names_csv,shopee_category_urls_csv,"
+                "shopee_product_match_ids_csv,shopee_product_category_ids_csv,"
+                "subgroups_json,notes",
+                "maquiagem-promocoes,Maquiagem Promocoes,maquiagem,shopee,"
+                "descobridor-geral,batom maybelline,grupo-maquiagem,4,"
+                "catalogs/clean/maquiagem/clean_catalog.csv,batom|base,maybelline,"
+                "beleza,batom,fantasia,Beauty Deals,,123|123,,"
+                '"[{""slug"":""labios"",""label"":""Labios"",""query"":""batom gloss"",'
+                '""categories"":[""Maquiagem""]}]",teste',
             ]
         ),
         encoding="utf-8",

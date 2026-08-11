@@ -180,6 +180,8 @@ def update_pin_data_sql(workflow_id: str, pin_data: dict[str, Any]) -> str:
 
 def decode_referenced_json(raw: str) -> Any:
     values = json.loads(raw)
+    if not isinstance(values, list) or not values:
+        raise N8nOpsError("execution_data.data vazio ou invalido")
     memo: dict[int, Any] = {}
 
     def revive(value: Any) -> Any:

@@ -23,6 +23,43 @@
     },
     {
       "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8-21 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-grupo-real",
+      "name": "Schedule Grupo Real",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        240
+      ],
+      "notesInFlow": true,
+      "notes": "Executa 1x por hora, das 08:00 as 21:00 America/Sao_Paulo, para grupo-ofertas-feminino."
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      dry_run: false,\n      limit: 1,\n      profile: 'feminino',\n      marketplace: 'shopee',\n      target: 'grupo-ofertas-feminino',\n      target_chat_id: '120363412864266334@g.us',\n      allowed_targets_csv: 'grupo-ofertas-feminino',\n      channel_adapter: 'whatsapp',\n      coupon_url: 'https://s.shopee.com.br/4AxtmHq4If',\n      run_id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-schedule-grupo-real',\n    },\n  },\n];"
+      },
+      "id": "schedule-context-grupo-real",
+      "name": "Set Contexto Schedule Grupo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        240
+      ],
+      "notesInFlow": true,
+      "notes": "Contexto fixo do schedule automatico para envio real ao grupo allowlisted."
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "{{ $json.ranking_query }}",
         "options": {}
@@ -264,6 +301,28 @@
         ]
       ]
     },
+    "Schedule Grupo Real": {
+      "main": [
+        [
+          {
+            "node": "Set Contexto Schedule Grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto Schedule Grupo": {
+      "main": [
+        [
+          {
+            "node": "Validar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Consultar Ranking Supabase": {
       "main": [
         [
@@ -395,7 +454,8 @@
   },
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
   },
   "staticData": null
 }

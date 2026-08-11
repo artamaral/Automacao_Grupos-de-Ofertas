@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import Any
 
 from ops_common import (
-    ComposeConfig,
-    N8nOpsError,
     REAL_GROUP_PINDATA,
     SAFE_PINDATA,
     TEST_PHONE_PINDATA,
+    ComposeConfig,
+    N8nOpsError,
     compact_json,
     compose_psql_command,
     dollar_quote,
@@ -28,6 +28,10 @@ DEFAULT_WORKFLOW_ID = "OfertasMvpSupab1"
 EXPECTED_TEMPLATE_TEXT = "Resgate o cupom desta página"
 EXPECTED_SEND_IMAGE_PATH = "/api/sendImage"
 FORBIDDEN_SEND_TEXT_PATH = "/api/sendText"
+EXPECTED_SCHEDULE_CRON = "0 8-21 * * *"
+EXPECTED_WORKFLOW_TIMEZONE = "America/Sao_Paulo"
+EXPECTED_SCHEDULE_NODE = "Schedule Grupo Real"
+EXPECTED_SCHEDULE_CONTEXT_NODE = "Set Contexto Schedule Grupo"
 
 
 class WorkflowGuardError(RuntimeError):
@@ -111,6 +115,78 @@ def workflow_text(workflow: dict[str, Any]) -> str:
     return json.dumps(workflow, ensure_ascii=False, sort_keys=True)
 
 
+def node_by_name(workflow: dict[str, Any], name: str) -> dict[str, Any] | None:
+    nodes = workflow.get("nodes")
+    if not isinstance(nodes, list):
+        return None
+    for node in nodes:
+        if isinstance(node, dict) and node.get("name") == name:
+            return node
+    return None
+
+
+def validate_schedule(workflow: dict[str, Any], errors: list[str]) -> None:
+    schedule_node = node_by_name(workflow, EXPECTED_SCHEDULE_NODE)
+    if schedule_node is None:
+        errors.append(f"missing schedule node: {EXPECTED_SCHEDULE_NODE}")
+        return
+    if schedule_node.get("type") != "n8n-nodes-base.scheduleTrigger":
+        errors.append(f"{EXPECTED_SCHEDULE_NODE} must be scheduleTrigger")
+    intervals = (
+        schedule_node.get("parameters", {})
+        .get("rule", {})
+        .get("interval", [])
+    )
+    cron_expressions = [
+        item.get("expression")
+        for item in intervals
+        if isinstance(item, dict) and item.get("field") == "cronExpression"
+    ]
+    if EXPECTED_SCHEDULE_CRON not in cron_expressions:
+        errors.append(
+            f"{EXPECTED_SCHEDULE_NODE} cron must include {EXPECTED_SCHEDULE_CRON}"
+        )
+
+    schedule_context = node_by_name(workflow, EXPECTED_SCHEDULE_CONTEXT_NODE)
+    if schedule_context is None:
+        errors.append(f"missing schedule context node: {EXPECTED_SCHEDULE_CONTEXT_NODE}")
+    else:
+        context_code = str(schedule_context.get("parameters", {}).get("jsCode", ""))
+        for expected_text in (
+            "dry_run: false",
+            "limit: 1",
+            "target: 'grupo-ofertas-feminino'",
+            "target_chat_id: '120363412864266334@g.us'",
+            "allowed_targets_csv: 'grupo-ofertas-feminino'",
+            "schedule-grupo-real",
+        ):
+            if expected_text not in context_code:
+                errors.append(
+                    f"{EXPECTED_SCHEDULE_CONTEXT_NODE} missing {expected_text}"
+                )
+
+    connections = workflow.get("connections")
+    if isinstance(connections, dict):
+        schedule_connections = json.dumps(
+            connections.get(EXPECTED_SCHEDULE_NODE, {}),
+            ensure_ascii=False,
+        )
+        context_connections = json.dumps(
+            connections.get(EXPECTED_SCHEDULE_CONTEXT_NODE, {}),
+            ensure_ascii=False,
+        )
+        if EXPECTED_SCHEDULE_CONTEXT_NODE not in schedule_connections:
+            errors.append(
+                f"{EXPECTED_SCHEDULE_NODE} must connect to {EXPECTED_SCHEDULE_CONTEXT_NODE}"
+            )
+        if "Validar Contexto" not in context_connections:
+            errors.append(f"{EXPECTED_SCHEDULE_CONTEXT_NODE} must connect to Validar Contexto")
+
+    settings = workflow.get("settings")
+    if not isinstance(settings, dict) or settings.get("timezone") != EXPECTED_WORKFLOW_TIMEZONE:
+        errors.append(f"workflow timezone must be {EXPECTED_WORKFLOW_TIMEZONE}")
+
+
 def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> None:
     errors: list[str] = []
     if workflow.get("id") != workflow_id:
@@ -127,6 +203,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         errors.append(f"forbidden {FORBIDDEN_SEND_TEXT_PATH} found")
     if EXPECTED_TEMPLATE_TEXT not in text:
         errors.append(f"missing template text: {EXPECTED_TEMPLATE_TEXT}")
+
+    validate_schedule(workflow, errors)
 
     if errors:
         raise WorkflowGuardError("; ".join(errors))

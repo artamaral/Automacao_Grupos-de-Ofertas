@@ -126,12 +126,7 @@ class DiscoveryProfile:
         if self.query:
             return self.query
 
-        tokens = (
-            self.keywords
-            + self.brands
-            + self.creators
-            + self.categories
-        )
+        tokens = self.keywords + self.brands + self.creators + self.categories
         deduplicated = tuple(dict.fromkeys(token for token in tokens if token))
         if deduplicated:
             return " ".join(deduplicated)
@@ -223,7 +218,9 @@ DEFAULT_DISCOVERY_PROFILES_PATH = resolve_rules_file(
 )
 
 
-def load_discovery_profile_catalog(path: Path = DEFAULT_DISCOVERY_PROFILES_PATH) -> DiscoveryProfileCatalog:
+def load_discovery_profile_catalog(
+    path: Path = DEFAULT_DISCOVERY_PROFILES_PATH,
+) -> DiscoveryProfileCatalog:
     resolved_path = resolve_sheet_csv_path(path, sheet_name="discovery_profiles")
     if resolved_path.suffix.lower() == ".csv":
         return _load_discovery_profile_catalog_from_csv(resolved_path)
@@ -324,9 +321,7 @@ def _build_profile_from_csv_row(row: dict[str, str]) -> DiscoveryProfile:
         shopee_offer_names=_split_pipe(row.get("shopee_offer_names_csv")),
         shopee_category_urls=_split_pipe(row.get("shopee_category_urls_csv")),
         shopee_product_match_ids=_split_pipe_ints(row.get("shopee_product_match_ids_csv")),
-        shopee_product_category_ids=_split_pipe_ints(
-            row.get("shopee_product_category_ids_csv")
-        ),
+        shopee_product_category_ids=_split_pipe_ints(row.get("shopee_product_category_ids_csv")),
         subgroups=_parse_subgroups_json(row.get("subgroups_json")),
     )
 
@@ -395,7 +390,9 @@ def _csv_int_optional(value: str | None) -> int | None:
     try:
         return int(normalized)
     except ValueError as error:
-        raise DiscoveryProfileError(f"invalid integer in discovery profile csv: {normalized}") from error
+        raise DiscoveryProfileError(
+            f"invalid integer in discovery profile csv: {normalized}"
+        ) from error
 
 
 def _split_pipe(value: str | None) -> tuple[str, ...]:
@@ -417,7 +414,9 @@ def _split_pipe_ints(value: str | None) -> tuple[int, ...]:
         try:
             values.append(int(token))
         except ValueError as error:
-            raise DiscoveryProfileError(f"invalid integer in discovery profile csv: {token}") from error
+            raise DiscoveryProfileError(
+                f"invalid integer in discovery profile csv: {token}"
+            ) from error
     return tuple(values)
 
 
@@ -428,7 +427,9 @@ def _parse_subgroups_json(value: str | None) -> tuple[DiscoverySubgroup, ...]:
     try:
         payload = json.loads(normalized)
     except json.JSONDecodeError as error:
-        raise DiscoveryProfileError(f"invalid subgroups_json in discovery profile csv: {error}") from error
+        raise DiscoveryProfileError(
+            f"invalid subgroups_json in discovery profile csv: {error}"
+        ) from error
     return _subgroup_tuple(payload)
 
 

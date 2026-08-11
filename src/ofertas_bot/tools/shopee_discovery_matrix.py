@@ -8,11 +8,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from ofertas_bot.discovery_profiles import DiscoveryProfile, DiscoveryProfileError, load_discovery_profile_catalog
+from ofertas_bot.discovery_profiles import (
+    DiscoveryProfile,
+    DiscoveryProfileError,
+    load_discovery_profile_catalog,
+)
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.providers.shopee_graphql import ShopeeGraphqlPayloadError
 from ofertas_bot.settings import get_settings
-
 
 DEFAULT_OUTPUT_DIR = Path("tmp")
 DEFAULT_PAGE_SIZE = 50
@@ -148,7 +151,10 @@ def _build_scenarios(profile: DiscoveryProfile) -> list[ScenarioSpec]:
     scenarios = [
         ScenarioSpec(
             slug="shopeeOfferV2_keyword__productOfferV2_listType_4_matchId_categoryId",
-            description="shopeeOfferV2(keyword) seguido de productOfferV2(listType=4, matchId=categoryId)",
+            description=(
+                "shopeeOfferV2(keyword) seguido de "
+                "productOfferV2(listType=4, matchId=categoryId)"
+            ),
             offer_keyword=profile.shopee_offer_keyword,
             use_offer_discovery=True,
         ),

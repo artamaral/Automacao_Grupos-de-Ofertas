@@ -153,11 +153,7 @@ class GroupProfileCatalog:
         return None
 
     def profiles_for_niche(self, niche: str) -> tuple[GroupProfile, ...]:
-        return tuple(
-            profile
-            for profile in self.active_profiles()
-            if profile.allows_niche(niche)
-        )
+        return tuple(profile for profile in self.active_profiles() if profile.allows_niche(niche))
 
 
 def load_group_profile_catalog(path: Path = DEFAULT_GROUP_PROFILES_PATH) -> GroupProfileCatalog:
@@ -198,7 +194,9 @@ def _load_group_profile_catalog_from_csv(path: Path) -> GroupProfileCatalog:
             raise GroupProfileError("group profile csv requires profile_slug")
         grouped_rows.setdefault(slug, []).append(row)
 
-    profiles = tuple(_build_group_profile_from_csv_rows(group_rows) for group_rows in grouped_rows.values())
+    profiles = tuple(
+        _build_group_profile_from_csv_rows(group_rows) for group_rows in grouped_rows.values()
+    )
     return GroupProfileCatalog.from_iterable(profiles)
 
 
@@ -385,5 +383,6 @@ def _split_pipe(value: str | None) -> tuple[str, ...]:
     if not normalized:
         return ()
     return tuple(part.strip() for part in normalized.split("|") if part.strip())
+
 
 DEFAULT_GROUP_PROFILES = load_group_profile_catalog()

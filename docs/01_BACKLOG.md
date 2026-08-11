@@ -88,16 +88,6 @@ Regras:
 - Modelar no Supabase catalogo, snapshots, estado de selecao, mensagens e
   tentativas de disparo.
 - Criar view de ranking e elegibilidade com componentes e versao do score.
-- Ajustar o workflow MVP do n8n para nao registrar `delivery_status=confirmed`
-  antes de existir envio real confirmado pelo canal; enquanto o envio real nao
-  estiver conectado, `dry_run=false` deve ficar bloqueado ou retornar status
-  operacional que nao pareca confirmacao de entrega.
-- Atualizar o JSON versionado do workflow `ofertas-mvp-supabase` para substituir
-  os nodes `Set` que importaram com output vazio no n8n 2.32.6 por nodes `Code`
-  equivalentes, preservando os nomes `Set Contexto MVP` e `Simular Envio MVP`.
-- Ajustar `sent_at` no workflow MVP para permanecer `null` quando
-  `dry_run=true`; hoje o dry-run registra `delivery_status=cancelled` e
-  `send_result=dry_run_not_sent`, mas ainda preenche `sent_at`.
 - Endurecer TLS da credencial Postgres do Supabase no n8n: substituir
   `Ignore SSL Issues (Insecure)` por validacao completa da cadeia via CA
   confiavel quando a UI/container permitir.
@@ -115,6 +105,21 @@ Regras:
 - Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
   interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
   idempotência e reconciliação posterior no fluxo local.
+
+## Concluidos a partir da validacao operacional n8n
+
+- Ajustado o workflow MVP do n8n para registrar `delivery_status=confirmed`
+  somente depois de aceite do adapter WAHA. Evidencia: rodadas reais
+  `grupo-real` com `endpoint=sendImage`, `send_result=sent_to_adapter`,
+  `adapter_response_type=image` e `delivery_status=confirmed` nas execucoes
+  `46`, `47`, `48` e `49`.
+- Atualizado o JSON versionado do workflow `ofertas-mvp-supabase` para substituir
+  os nodes `Set` que importaram com output vazio no n8n 2.32.6 por nodes `Code`
+  equivalentes, preservando os nomes `Set Contexto MVP` e `Simular Envio MVP`.
+- Ajustado `sent_at` no workflow MVP para permanecer `null` quando
+  `dry_run=true`. Evidencia: rodada `dry-run` validada com
+  `delivery_status=cancelled` e `send_result=dry_run_not_sent`, sem envio pelo
+  adapter.
 
 ## Pontos em aberto
 

@@ -292,6 +292,29 @@ python3 scripts/n8n/deploy_workflow_guard.py --dry-run --mode grupo-real
 Checklist curto por rodada operacional:
 
 ```bash
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+```
+
+O wrapper executa `deploy_workflow_guard.py --mode <mode>`,
+`run_workflow_manual.py --mode <mode>` e `check_last_execution.py`, parando no
+primeiro erro. Nos modos `grupo-real` e `teste-telefone`, ele chama a checagem
+com `--expect-real-image`; no modo `dry-run`, nao exige
+`adapter_response_type=image`.
+
+Resumo final esperado no terminal:
+
+```text
+execution_id=<id>
+endpoint=sendImage
+publish_id=<uuid>
+delivery_status=confirmed
+adapter_response_type=image
+copy_template=novo
+```
+
+Para depurar passo a passo:
+
+```bash
 python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
 python3 scripts/n8n/run_workflow_manual.py --mode grupo-real
 python3 scripts/n8n/check_last_execution.py --expect-real-image
@@ -301,8 +324,10 @@ Modos disponiveis:
 
 - `grupo-real`: grupo `grupo-ofertas-feminino`;
 - `teste-telefone`: telefone `5511975235421`;
-- `dry-run`: sem envio real;
-- `preserve-pindata`: somente no deploy guard, sem alterar `pinData`.
+- `dry-run`: sem envio real.
+
+`preserve-pindata` existe somente no `deploy_workflow_guard.py`, para reaplicar
+o workflow sem alterar `pinData`.
 
 O `run_workflow_manual.py` exige `--mode` explicitamente para evitar envio real
 acidental. A checagem final deve mostrar `endpoint=sendImage`,
@@ -334,7 +359,50 @@ Resultado esperado:
 - uma nova execucao para o mesmo `target` nao deve reenviar a mesma oferta ja
   confirmada.
 
-Resultado validado em 2026-08-09:
+Resultado atual validado em 2026-08-09:
+
+- branch operacional: `feat/supabase-cloud-run`;
+- validacao local: `ruff check .` passou e `pytest` retornou `451 passed`;
+- wrapper usado: `scripts/n8n/run_operational_round.py`;
+- `dry-run`: execucao `44`, `delivery_status=cancelled`,
+  `send_result=dry_run_not_sent`, `copy_template=novo`;
+- `teste-telefone`: execucao `45`, `endpoint=sendImage`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`;
+- `grupo-real`: execucao `46`, `endpoint=sendImage`,
+  `publish_id=029c13e7-8236-4a73-8beb-cbb797b2a576`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`;
+- envio real para `grupo-ofertas-feminino` aceito pela WAHA como imagem com
+  legenda;
+- workflow mantido `active=false`, com operacao manual/controlada via API do
+  n8n.
+
+Schedule automatico preparado em 2026-08-09:
+
+- node `Schedule Grupo Real` versionado junto ao `Trigger Manual`;
+- cron: `0 8-21 * * *`;
+- timezone: `America/Sao_Paulo`;
+- frequencia: 1 execucao por hora, das 08:00 as 21:00;
+- contexto fixo em `Set Contexto Schedule Grupo`;
+- destino: `grupo-ofertas-feminino`;
+- chat WAHA: `120363412864266334@g.us`;
+- `dry_run=false`, `limit=1`, `allowed_targets_csv=grupo-ofertas-feminino`;
+- envio esperado: `POST /api/sendImage`;
+- `deploy_workflow_guard.py` valida o schedule e mantem `active=false`;
+- workflow aplicado no n8n com `versionCounter=40` e `active=false`;
+- no painel desta instancia n8n, **Published** equivale a `active=true` no
+  banco; **Unpublished** equivale a `active=false`;
+- publicacao pelo painel confirmou `active=true` no banco:
+  `OfertasMvpSupab1|t|41|2026-08-09 23:55:41.116+00`;
+- a execucao `50` teve `status=success`, mas sem `publish_id`,
+  `delivery_status`, `adapter_response_type` ou `copy_template`; ela nao deve
+  ser tratada como envio automatico valido;
+- a checagem `check_last_execution.py --expect-real-image` deve ser repetida
+  depois da proxima execucao do schedule dentro da janela configurada;
+- pausa operacional: deixar o workflow como unpublished no painel do n8n.
+
+Resultado historico validado em 2026-08-09:
 
 - execucao n8n: `23`;
 - status da execucao: `success`;

@@ -24,10 +24,18 @@ def test_harness_rejects_negative_limit(capsys) -> None:
 
 
 def test_harness_handles_provider_limit_error(monkeypatch, capsys) -> None:
-    def raise_limit_error(self, marketplace: Marketplace, niche: str, limit: int):
+    def raise_limit_error(
+        self,
+        *,
+        marketplace: Marketplace,
+        niche: str,
+        limit: int,
+        query: str | None = None,
+        catalog_source_path=None,
+    ):
         raise ProviderLimitError("Provider limit must be greater than zero. Received: 0")
 
-    monkeypatch.setattr(harness.CollectorAgent, "collect", raise_limit_error)
+    monkeypatch.setattr(harness.CollectorAgent, "collect_with_inspection", raise_limit_error)
 
     exit_code = harness.run(["--marketplace", "mock", "--niche", "maquiagem", "--limit", "1"])
 

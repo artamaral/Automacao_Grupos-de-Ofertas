@@ -7,10 +7,18 @@ from ofertas_bot.providers.transport import HttpTransportError
 
 
 def test_harness_handles_shopee_payload_error(monkeypatch, capsys) -> None:
-    def raise_payload_error(self, marketplace: Marketplace, niche: str, limit: int):
+    def raise_payload_error(
+        self,
+        *,
+        marketplace: Marketplace,
+        niche: str,
+        limit: int,
+        query: str | None = None,
+        catalog_source_path=None,
+    ):
         raise ShopeePayloadError("Shopee response field 'items' must be a list")
 
-    monkeypatch.setattr(harness.CollectorAgent, "collect", raise_payload_error)
+    monkeypatch.setattr(harness.CollectorAgent, "collect_with_inspection", raise_payload_error)
 
     exit_code = harness.run(["--marketplace", "shopee", "--niche", "maquiagem"])
 
@@ -22,10 +30,18 @@ def test_harness_handles_shopee_payload_error(monkeypatch, capsys) -> None:
 
 
 def test_harness_handles_amazon_payload_error(monkeypatch, capsys) -> None:
-    def raise_payload_error(self, marketplace: Marketplace, niche: str, limit: int):
+    def raise_payload_error(
+        self,
+        *,
+        marketplace: Marketplace,
+        niche: str,
+        limit: int,
+        query: str | None = None,
+        catalog_source_path=None,
+    ):
         raise AmazonPayloadError("Amazon response field 'SearchResult.Items' must be a list")
 
-    monkeypatch.setattr(harness.CollectorAgent, "collect", raise_payload_error)
+    monkeypatch.setattr(harness.CollectorAgent, "collect_with_inspection", raise_payload_error)
 
     exit_code = harness.run(["--marketplace", "amazon", "--niche", "casa"])
 
@@ -37,10 +53,18 @@ def test_harness_handles_amazon_payload_error(monkeypatch, capsys) -> None:
 
 
 def test_harness_handles_provider_http_error(monkeypatch, capsys) -> None:
-    def raise_http_error(self, marketplace: Marketplace, niche: str, limit: int):
+    def raise_http_error(
+        self,
+        *,
+        marketplace: Marketplace,
+        niche: str,
+        limit: int,
+        query: str | None = None,
+        catalog_source_path=None,
+    ):
         raise ProviderHttpError("Shopee request failed with status=500")
 
-    monkeypatch.setattr(harness.CollectorAgent, "collect", raise_http_error)
+    monkeypatch.setattr(harness.CollectorAgent, "collect_with_inspection", raise_http_error)
 
     exit_code = harness.run(["--marketplace", "shopee", "--niche", "maquiagem"])
 
@@ -52,10 +76,18 @@ def test_harness_handles_provider_http_error(monkeypatch, capsys) -> None:
 
 
 def test_harness_handles_transport_error(monkeypatch, capsys) -> None:
-    def raise_transport_error(self, marketplace: Marketplace, niche: str, limit: int):
+    def raise_transport_error(
+        self,
+        *,
+        marketplace: Marketplace,
+        niche: str,
+        limit: int,
+        query: str | None = None,
+        catalog_source_path=None,
+    ):
         raise HttpTransportError("HTTP transport request failed")
 
-    monkeypatch.setattr(harness.CollectorAgent, "collect", raise_transport_error)
+    monkeypatch.setattr(harness.CollectorAgent, "collect_with_inspection", raise_transport_error)
 
     exit_code = harness.run(["--marketplace", "amazon", "--niche", "casa"])
 

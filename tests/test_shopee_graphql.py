@@ -3,8 +3,8 @@ import pytest
 from ofertas_bot.providers.shopee_graphql import (
     SHOPEE_GENERATE_SHORT_LINK_OPERATION,
     SHOPEE_OFFER_LIST_OPERATION,
-    ShopeeGraphqlOfferMapper,
     ShopeeGraphqlAuthorization,
+    ShopeeGraphqlOfferMapper,
     ShopeeGraphqlPayloadError,
     ShopeeGraphqlSigner,
     ShopeeOfferListGraphqlRequestBuilder,
@@ -12,8 +12,8 @@ from ofertas_bot.providers.shopee_graphql import (
     build_product_offer_query,
     encode_graphql_payload,
     extract_shopee_offer_connection,
-    load_shopee_offer_list_query,
     extract_shopee_short_link,
+    load_shopee_offer_list_query,
     raise_if_graphql_errors,
 )
 
@@ -47,13 +47,9 @@ def test_shopee_graphql_signer_uses_official_signature_factor() -> None:
 
     auth = signer.sign_payload(payload=payload, timestamp=1577836800)
 
+    assert auth.signature == "dc88d72feea70c80c52c3399751a7d34966763f51a7f056aa070a5e9df645412"
     assert (
-        auth.signature
-        == "dc88d72feea70c80c52c3399751a7d34966763f51a7f056aa070a5e9df645412"
-    )
-    assert (
-        auth.header_value()
-        == "SHA256 Credential=123456, "
+        auth.header_value() == "SHA256 Credential=123456, "
         "Signature=dc88d72feea70c80c52c3399751a7d34966763f51a7f056aa070a5e9df645412, "
         "Timestamp=1577836800"
     )
@@ -96,7 +92,9 @@ def test_shopee_offer_list_builder_uses_post_json_graphql_request() -> None:
 def test_shopee_offer_list_builder_allows_local_query_override(tmp_path, monkeypatch) -> None:
     query_file = tmp_path / "offer_list.graphql"
     query_file.write_text(
-        "query CustomOfferList($keyword: String, $limit: Int) { customOfferList(keyword: $keyword, limit: $limit) { nodes { offerName } pageInfo { page limit hasNextPage } } }",
+        "query CustomOfferList($keyword: String, $limit: Int) { "
+        "customOfferList(keyword: $keyword, limit: $limit) { "
+        "nodes { offerName } pageInfo { page limit hasNextPage } } }",
         encoding="utf-8",
     )
 
@@ -243,7 +241,7 @@ def test_build_product_offer_query_omits_list_type_when_not_provided() -> None:
         keyword="mae e bebe",
     )
 
-    assert "productOfferV2(page: 1, limit: 50, keyword: \"mae e bebe\")" in query
+    assert 'productOfferV2(page: 1, limit: 50, keyword: "mae e bebe")' in query
     assert "listType:" not in query
 
 

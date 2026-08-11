@@ -15,8 +15,8 @@ from ofertas_bot.providers.real_http_guard import (
 )
 from ofertas_bot.providers.shopee_gateway import ShopeeGateway
 from ofertas_bot.providers.shopee_graphql import (
-    SHOPEE_SORT_LATEST_DESC,
     SHOPEE_PRODUCT_OFFER_LIST_OPERATION,
+    SHOPEE_SORT_LATEST_DESC,
     ShopeeGraphqlGateway,
     ShopeeGraphqlOfferMapper,
     ShopeeGraphqlSigner,

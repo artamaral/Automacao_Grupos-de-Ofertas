@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 MODULE_PATH = Path(__file__).resolve().parents[1] / "scripts/n8n/deploy_workflow_guard.py"
 sys.path.insert(0, str(MODULE_PATH.parent))
 SPEC = importlib.util.spec_from_file_location("deploy_workflow_guard", MODULE_PATH)
@@ -21,10 +20,35 @@ def workflow_payload(
     *,
     url: str = "http://waha:3000/api/sendImage",
     template_text: str = "Resgate o cupom desta página",
+    schedule_cron: str = "0 8-21 * * *",
+    schedule_context: str | None = None,
 ) -> dict[str, object]:
+    schedule_context = schedule_context or (
+        "return [{ json: { dry_run: false, limit: 1, "
+        "target: 'grupo-ofertas-feminino', "
+        "target_chat_id: '120363412864266334@g.us', "
+        "allowed_targets_csv: 'grupo-ofertas-feminino', "
+        "run_id: 'schedule-grupo-real' } }];"
+    )
     return {
         "id": "OfertasMvpSupab1",
         "nodes": [
+            {
+                "name": "Schedule Grupo Real",
+                "type": "n8n-nodes-base.scheduleTrigger",
+                "parameters": {
+                    "rule": {
+                        "interval": [
+                            {"field": "cronExpression", "expression": schedule_cron}
+                        ]
+                    }
+                },
+            },
+            {
+                "name": "Set Contexto Schedule Grupo",
+                "type": "n8n-nodes-base.code",
+                "parameters": {"jsCode": schedule_context},
+            },
             {
                 "name": "Montar Mensagens",
                 "parameters": {"jsCode": f"const copy = '{template_text}';"},
@@ -34,8 +58,17 @@ def workflow_payload(
                 "parameters": {"url": url},
             },
         ],
-        "connections": {},
-        "settings": {},
+        "connections": {
+            "Schedule Grupo Real": {
+                "main": [
+                    [{"node": "Set Contexto Schedule Grupo", "type": "main", "index": 0}]
+                ]
+            },
+            "Set Contexto Schedule Grupo": {
+                "main": [[{"node": "Validar Contexto", "type": "main", "index": 0}]]
+            },
+        },
+        "settings": {"timezone": "America/Sao_Paulo"},
     }
 
 
@@ -55,6 +88,22 @@ def test_validate_versioned_workflow_rejects_missing_template() -> None:
     with pytest.raises(guard.WorkflowGuardError, match="missing template text"):
         guard.validate_versioned_workflow(
             workflow_payload(template_text="Preco e disponibilidade podem mudar"),
+            "OfertasMvpSupab1",
+        )
+
+
+def test_validate_versioned_workflow_rejects_wrong_schedule_cron() -> None:
+    with pytest.raises(guard.WorkflowGuardError, match="cron must include"):
+        guard.validate_versioned_workflow(
+            workflow_payload(schedule_cron="0 8 * * *"),
+            "OfertasMvpSupab1",
+        )
+
+
+def test_validate_versioned_workflow_rejects_safe_schedule_context() -> None:
+    with pytest.raises(guard.WorkflowGuardError, match="dry_run: false"):
+        guard.validate_versioned_workflow(
+            workflow_payload(schedule_context="return [{ json: { dry_run: true } }];"),
             "OfertasMvpSupab1",
         )
 
