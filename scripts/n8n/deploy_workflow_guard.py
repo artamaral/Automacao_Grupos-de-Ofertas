@@ -25,7 +25,8 @@ DEFAULT_WORKFLOW_JSON = Path("n8n/workflows/ofertas-mvp-supabase.json")
 DEFAULT_COMPOSE_ENV = Path("/opt/automacao_grupo_compras/n8n/.env")
 DEFAULT_COMPOSE_FILE = Path("/opt/automacao_grupo_compras/n8n/docker-compose.yml")
 DEFAULT_WORKFLOW_ID = "OfertasMvpSupab1"
-EXPECTED_TEMPLATE_TEXT = "Resgate o cupom desta pagina"
+EXPECTED_TEMPLATE_TEXT = "Resgate o cupom desta"
+EXPECTED_TEMPLATE_CODE_TEXT = r"Resgate o cupom desta p\u{00E1}gina"
 EXPECTED_TEMPLATE_EMOJI_ESCAPES = (
     r"\u{1F525}",
     r"\u{1F3EA}",
@@ -34,6 +35,27 @@ EXPECTED_TEMPLATE_EMOJI_ESCAPES = (
     r"\u{2B50}",
     r"\u{1F39F}",
     r"\u{2705}",
+)
+EXPECTED_MESSAGE_LAYOUT = (
+    r"\u{1F525} ${offer.product_name}"
+    "\n\n"
+    r"\u{1F4B5} ${formatMoney(offer.price)}"
+    "\n"
+    r"\u{1F3F7}\u{FE0F} ${discount}% OFF"
+    "\n"
+    r"\u{2B50} Avalia\u{00E7}\u{00E3}o: ${formatRating(offer.rating)}/5"
+    "\n"
+    r"\u{2705} Link do produto:"
+    "\n"
+    "${offer.offer_link}"
+    "\n\n"
+    r"\u{1F3EA} Loja: ${formatMarketplace(offer.marketplace)}"
+    "\n"
+    rf"\u{{1F39F}}\u{{FE0F}} {EXPECTED_TEMPLATE_CODE_TEXT}:"
+    "\n"
+    "${context.coupon_url}"
+    "\n"
+    r"(an\u{00FA}ncio)"
 )
 EXPECTED_SEND_IMAGE_PATH = "/api/sendImage"
 FORBIDDEN_SEND_TEXT_PATH = "/api/sendText"
@@ -241,6 +263,8 @@ def validate_message_template(workflow: dict[str, Any], errors: list[str]) -> No
     for emoji_escape in EXPECTED_TEMPLATE_EMOJI_ESCAPES:
         if emoji_escape not in message_code:
             errors.append(f"Montar Mensagens missing emoji escape {emoji_escape}")
+    if EXPECTED_MESSAGE_LAYOUT not in message_code:
+        errors.append("Montar Mensagens does not match the compact copy layout")
 
 
 def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> None:
@@ -343,7 +367,7 @@ def build_status_query(workflow_id: str) -> str:
         "'versionId', \"versionId\", "
         "'versionCounter', \"versionCounter\", "
         "'updatedAt', \"updatedAt\", "
-        "'has_new_copy', position('Resgate o cupom desta pagina' in nodes::text) > 0, "
+        "'has_new_copy', position('Resgate o cupom desta' in nodes::text) > 0, "
         "'has_send_image', position('/api/sendImage' in nodes::text) > 0, "
         "'has_send_text', position('/api/sendText' in nodes::text) > 0, "
         "'history_exists', exists ("

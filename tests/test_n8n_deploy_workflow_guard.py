@@ -19,7 +19,7 @@ SPEC.loader.exec_module(guard)
 def workflow_payload(
     *,
     url: str = "http://waha:3000/api/sendImage",
-    template_text: str = "Resgate o cupom desta pagina",
+    template_text: str = guard.EXPECTED_TEMPLATE_CODE_TEXT,
     schedule_cron: str = "0 8-21 * * *",
     schedule_context: str | None = None,
 ) -> dict[str, object]:
@@ -30,6 +30,10 @@ def workflow_payload(
         "allowed_targets_csv: 'grupo-ofertas-feminino', "
         "send_delay_seconds_min: 45, send_delay_seconds_max: 90, "
         "run_id: 'schedule-grupo-real' } }];"
+    )
+    message_layout = guard.EXPECTED_MESSAGE_LAYOUT.replace(
+        guard.EXPECTED_TEMPLATE_CODE_TEXT,
+        template_text,
     )
     return {
         "id": "OfertasMvpSupab1",
@@ -53,11 +57,7 @@ def workflow_payload(
             {
                 "name": "Montar Mensagens",
                 "parameters": {
-                    "jsCode": (
-                        r"const icons = '\u{1F525}\u{1F3EA}\u{1F4B5}"
-                        r"\u{1F3F7}\u{2B50}\u{1F39F}\u{2705}'; "
-                        f"const copy = '{template_text}';"
-                    )
+                    "jsCode": f"const copy = `{message_layout}`;"
                 },
             },
             {
@@ -137,10 +137,22 @@ def test_validate_versioned_workflow_rejects_safe_schedule_context() -> None:
 def test_validate_versioned_workflow_rejects_missing_emoji_escape() -> None:
     workflow = workflow_payload()
     workflow["nodes"][2]["parameters"]["jsCode"] = (
-        "const copy = 'Resgate o cupom desta pagina';"
+        "const copy = 'Resgate o cupom desta p\\u{00E1}gina';"
     )
 
     with pytest.raises(guard.WorkflowGuardError, match="missing emoji escape"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_non_compact_copy_layout() -> None:
+    workflow = workflow_payload()
+    message_code = workflow["nodes"][2]["parameters"]["jsCode"]
+    workflow["nodes"][2]["parameters"]["jsCode"] = message_code.replace(
+        "${formatMoney(offer.price)}\n",
+        "${formatMoney(offer.price)}\n\n",
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="compact copy layout"):
         guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 

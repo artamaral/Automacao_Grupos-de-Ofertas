@@ -19,7 +19,7 @@ from ops_common import (
     sql_literal,
 )
 
-NEW_TEMPLATE_MARKER = "Resgate o cupom desta pagina"
+NEW_TEMPLATE_MARKER = "Resgate o cupom desta p\u00e1gina"
 OLD_TEMPLATE_MARKER = "Aviso: este link pode gerar comissao de afiliado"
 
 

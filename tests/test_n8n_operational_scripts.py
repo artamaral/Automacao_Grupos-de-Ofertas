@@ -231,7 +231,7 @@ def test_check_last_execution_detects_send_image_and_new_copy() -> None:
                     "product_name": "Produto A",
                     "target": "grupo-ofertas-feminino",
                 },
-                "Produto A\n\nResgate o cupom desta pagina:\nhttps://example.test",
+                "Produto A\n\nResgate o cupom desta p\u00e1gina:\nhttps://example.test",
                 [{"data": "9"}],
                 {"main": "10"},
                 [[{"json": "11"}]],
