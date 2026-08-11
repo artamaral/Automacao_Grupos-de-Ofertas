@@ -45,7 +45,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      dry_run: false,\n      limit: 1,\n      profile: 'feminino',\n      marketplace: 'shopee',\n      target: 'grupo-ofertas-feminino',\n      target_chat_id: '120363412864266334@g.us',\n      allowed_targets_csv: 'grupo-ofertas-feminino',\n      channel_adapter: 'whatsapp',\n      coupon_url: 'https://s.shopee.com.br/4AxtmHq4If',\n      run_id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-schedule-grupo-real',\n    },\n  },\n];"
+        "jsCode": "return [\n  {\n    json: {\n      dry_run: false,\n      limit: 3,\n      profile: 'feminino',\n      marketplace: 'shopee',\n      target: 'grupo-ofertas-feminino',\n      target_chat_id: '120363412864266334@g.us',\n      allowed_targets_csv: 'grupo-ofertas-feminino',\n      channel_adapter: 'whatsapp',\n      send_delay_seconds_min: 45,\n      send_delay_seconds_max: 90,\n      coupon_url: 'https://s.shopee.com.br/4AxtmHq4If',\n      run_id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-schedule-grupo-real',\n    },\n  },\n];"
       },
       "id": "schedule-context-grupo-real",
       "name": "Set Contexto Schedule Grupo",
@@ -81,14 +81,41 @@
     },
     {
       "parameters": {
-        "jsCode": "const context = $('Validar Contexto').first().json;\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return 'nao informado';\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`;\n  return String(value);\n};\nconst formatMarketplace = (value) => {\n  const normalized = String(value || '').trim().toLowerCase();\n  if (normalized === 'shopee') return 'Shopee';\n  return String(value || 'Marketplace').trim();\n};\nconst discountPercent = (price, referencePrice) => {\n  const current = Number(price);\n  const reference = Number(referencePrice);\n  if (!Number.isFinite(current) || !Number.isFinite(reference) || reference <= current || reference <= 0) return 0;\n  return Math.round(((reference - current) / reference) * 100);\n};\nconst formatRating = (value) => {\n  const rating = Number(value);\n  if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ',');\n  return 'nao informada';\n};\nreturn items.map((item, index) => {\n  const offer = item.json;\n  const discount = discountPercent(offer.price, offer.reference_price);\n  const messageText = `🔥 ${offer.product_name}\n\n🏪 Loja: ${formatMarketplace(offer.marketplace)}\n\n💵 ${formatMoney(offer.price)}\n\n🏷️ ${discount}% OFF\n\n⭐ Avaliação: ${formatRating(offer.rating)}/5\n\n🎟️ Resgate o cupom desta página:\n${context.coupon_url}\n\n✅ Link do produto:\n${offer.offer_link}\n\n(anúncio)`;\n  return {\n    json: {\n      ...context,\n      ...offer,\n      coupon_url: context.coupon_url,\n      discount_percent: discount,\n      manifest_item_number: index + 1,\n      message_text: messageText,\n      manifest_created_at: new Date().toISOString(),\n    }\n  };\n});"
+        "jsCode": "return items.map((item, index) => ({\n  json: {\n    ...item.json,\n    manifest_item_number: item.json.manifest_item_number ?? index + 1,\n    send_sequence_number: item.json.send_sequence_number ?? index + 1,\n  },\n}));"
+      },
+      "id": "prepare-batch-send",
+      "name": "Preparar Lote de Envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-send-offers",
+      "name": "Loop Ofertas",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Validar Contexto').first().json;\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return 'nao informado';\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`;\n  return String(value);\n};\nconst formatMarketplace = (value) => {\n  const normalized = String(value || '').trim().toLowerCase();\n  if (normalized === 'shopee') return 'Shopee';\n  return String(value || 'Marketplace').trim();\n};\nconst discountPercent = (price, referencePrice) => {\n  const current = Number(price);\n  const reference = Number(referencePrice);\n  if (!Number.isFinite(current) || !Number.isFinite(reference) || reference <= current || reference <= 0) return 0;\n  return Math.round(((reference - current) / reference) * 100);\n};\nconst formatRating = (value) => {\n  const rating = Number(value);\n  if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ',');\n  return 'nao informada';\n};\nreturn items.map((item, index) => {\n  const offer = item.json;\n  const discount = discountPercent(offer.price, offer.reference_price);\n  const messageText = `Oferta: ${offer.product_name}\n\nLoja: ${formatMarketplace(offer.marketplace)}\n\nPreco: ${formatMoney(offer.price)}\n\nDesconto: ${discount}% OFF\n\nAvaliacao: ${formatRating(offer.rating)}/5\n\nResgate o cupom desta pagina:\n${context.coupon_url}\n\nLink do produto:\n${offer.offer_link}\n\n(anuncio)`;\n  return {\n    json: {\n      ...context,\n      ...offer,\n      coupon_url: context.coupon_url,\n      discount_percent: discount,\n      manifest_item_number: offer.manifest_item_number ?? index + 1,\n      send_sequence_number: offer.send_sequence_number ?? offer.manifest_item_number ?? index + 1,\n      message_text: messageText,\n      manifest_created_at: new Date().toISOString(),\n    }\n  };\n});"
       },
       "id": "5",
       "name": "Montar Mensagens",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1088,
+        1408,
         0
       ]
     },
@@ -102,21 +129,21 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1360,
+        1680,
         0
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const item = $json;\nconst sqlText = (value) => value === null || value === undefined ? 'null' : `'${String(value).replace(/'/g, \"''\")}'`;\nconst sqlNumber = (value) => value === null || value === undefined || value === '' || Number.isNaN(Number(value)) ? 'null' : String(Number(value));\nconst sqlJson = (value) => `${sqlText(JSON.stringify(value))}::jsonb`;\nconst payload = {\n  run_id: item.run_id,\n  dry_run: item.dry_run,\n  target_allowed: item.target_allowed,\n  blocked_reason: item.blocked_reason,\n  send_result: item.send_result,\n  score_reasons: item.score_reasons,\n  rank_profile: item.rank_profile,\n  rank_subniche: item.rank_subniche,\n  coupon_url: item.coupon_url,\n  discount_percent: item.discount_percent,\n  image_url: item.image_url,\n  waha_image_url: item.waha_image_url,\n  adapter_status: item.adapter_status,\n  adapter_message_id: item.adapter_message_id,\n  adapter_ack: item.adapter_ack,\n  adapter_response_type: item.adapter_response_type,\n};\nconst upsertQuery = `insert into offers.publication_events (\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  target,\n  channel_adapter,\n  delivery_status,\n  manifest_item_number,\n  artifact_generated_at,\n  manifest_created_at,\n  planned_at,\n  sent_at,\n  offer_title,\n  offer_url,\n  offer_price,\n  message_text,\n  payload\n)\nvalues (\n  ${sqlText(item.profile)},\n  ${sqlText(item.marketplace)},\n  ${sqlText(item.stable_key)},\n  ${sqlNumber(item.item_id)},\n  ${sqlText(item.target)},\n  ${sqlText(item.channel_adapter)},\n  ${sqlText(item.delivery_status)},\n  ${sqlNumber(item.manifest_item_number)},\n  ${sqlText(item.artifact_generated_at)}::timestamptz,\n  ${sqlText(item.manifest_created_at)}::timestamptz,\n  null,\n  ${sqlText(item.sent_at)}::timestamptz,\n  ${sqlText(item.product_name)},\n  ${sqlText(item.offer_link)},\n  ${sqlNumber(item.price)},\n  ${sqlText(item.message_text)},\n  ${sqlJson(payload)}\n)\non conflict (profile, target, manifest_item_number, artifact_generated_at)\ndo update\nset delivery_status = excluded.delivery_status,\n    sent_at = excluded.sent_at,\n    message_text = excluded.message_text,\n    payload = excluded.payload,\n    updated_at = now()\nreturning publish_id;`;\nreturn { json: { ...item, publication_event_upsert_query: upsertQuery } };"
+        "jsCode": "const item = $json;\nconst sqlText = (value) => value === null || value === undefined ? 'null' : `'${String(value).replace(/'/g, \"''\")}'`;\nconst sqlNumber = (value) => value === null || value === undefined || value === '' || Number.isNaN(Number(value)) ? 'null' : String(Number(value));\nconst sqlJson = (value) => `${sqlText(JSON.stringify(value))}::jsonb`;\nconst payload = {\n  run_id: item.run_id,\n  dry_run: item.dry_run,\n  target_allowed: item.target_allowed,\n  blocked_reason: item.blocked_reason,\n  send_result: item.send_result,\n  score_reasons: item.score_reasons,\n  rank_profile: item.rank_profile,\n  rank_subniche: item.rank_subniche,\n  coupon_url: item.coupon_url,\n  discount_percent: item.discount_percent,\n  image_url: item.image_url,\n  waha_image_url: item.waha_image_url,\n  adapter_status: item.adapter_status,\n  adapter_message_id: item.adapter_message_id,\n  adapter_ack: item.adapter_ack,\n  adapter_response_type: item.adapter_response_type,\n  send_sequence_number: item.send_sequence_number,\n  waha_send_delay_seconds: item.waha_send_delay_seconds,\n  send_delay_seconds_min: item.send_delay_seconds_min,\n  send_delay_seconds_max: item.send_delay_seconds_max,\n};\nconst upsertQuery = `insert into offers.publication_events (\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  target,\n  channel_adapter,\n  delivery_status,\n  manifest_item_number,\n  artifact_generated_at,\n  manifest_created_at,\n  planned_at,\n  sent_at,\n  offer_title,\n  offer_url,\n  offer_price,\n  message_text,\n  payload\n)\nvalues (\n  ${sqlText(item.profile)},\n  ${sqlText(item.marketplace)},\n  ${sqlText(item.stable_key)},\n  ${sqlNumber(item.item_id)},\n  ${sqlText(item.target)},\n  ${sqlText(item.channel_adapter)},\n  ${sqlText(item.delivery_status)},\n  ${sqlNumber(item.manifest_item_number)},\n  ${sqlText(item.artifact_generated_at)}::timestamptz,\n  ${sqlText(item.manifest_created_at)}::timestamptz,\n  null,\n  ${sqlText(item.sent_at)}::timestamptz,\n  ${sqlText(item.product_name)},\n  ${sqlText(item.offer_link)},\n  ${sqlNumber(item.price)},\n  ${sqlText(item.message_text)},\n  ${sqlJson(payload)}\n)\non conflict (profile, target, manifest_item_number, artifact_generated_at)\ndo update\nset delivery_status = excluded.delivery_status,\n    sent_at = excluded.sent_at,\n    message_text = excluded.message_text,\n    payload = excluded.payload,\n    updated_at = now()\nreturning publish_id;`;\nreturn { json: { ...item, publication_event_upsert_query: upsertQuery } };"
       },
       "id": "8",
       "name": "Montar Upsert Publication Event",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3000,
+        3640,
         0
       ]
     },
@@ -131,7 +158,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        3280,
+        3920,
         0
       ],
       "credentials": {
@@ -143,7 +170,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = items[0].json;\nconst cleanText = (value, field) => {\n  const text = String(value || '').trim();\n  if (!/^[a-z0-9][a-z0-9_-]{1,80}$/i.test(text)) {\n    throw new Error(`${field} fora do contrato MVP: ${text}`);\n  }\n  return text;\n};\nconst profile = cleanText(item.profile, 'profile');\nconst marketplace = cleanText(item.marketplace, 'marketplace');\nconst target = cleanText(item.target, 'target');\nconst channelAdapter = cleanText(item.channel_adapter, 'channel_adapter');\nconst limit = Number(item.limit || 1);\nif (!Number.isInteger(limit) || limit < 1 || limit > 20) {\n  throw new Error(`limit fora do contrato MVP: ${item.limit}`);\n}\nconst dryRun = item.dry_run === true || item.dry_run === 'true' || item.dry_run === 1 || item.dry_run === '1';\nconst allowedTargets = String(item.allowed_targets_csv || '')\n  .split(',')\n  .map((targetItem) => targetItem.trim())\n  .filter(Boolean);\nif (allowedTargets.length === 0) {\n  throw new Error('allowed_targets_csv obrigatorio');\n}\nconst artifactGeneratedAt = item.artifact_generated_at || new Date().toISOString();\nconst sqlText = (value) => `'${String(value).replace(/'/g, \"''\")}'`;\nconst rankingQuery = `select\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  product_name,\n  offer_link,\n  image_url,\n  price,\n  reference_price,\n  rating,\n  sales_count,\n  primary_subniche,\n  commercial_score,\n  score_reasons,\n  rank_profile,\n  rank_subniche\nfrom offers.v_offer_ranking_current ranking\n  where ranking.is_eligible = true\n    and ranking.profile = ${sqlText(profile)}\n    and ranking.marketplace = ${sqlText(marketplace)}\n    and not exists (\n      select 1\n      from offers.publication_events event\n      where event.profile = ranking.profile\n        and event.marketplace = ranking.marketplace\n        and event.stable_key = ranking.stable_key\n        and event.target = ${sqlText(target)}\n        and event.channel_adapter = ${sqlText(channelAdapter)}\n        and event.delivery_status = 'confirmed'\n    )\n  order by\n  rank_profile nulls last,\n  commercial_score desc,\n  sales_count desc,\n  rating desc nulls last,\n  item_id\nlimit ${limit};`;\nreturn [{\n  json: {\n    ...item,\n    profile,\n    marketplace,\n    target,\n    channel_adapter: channelAdapter,\n    limit,\n    dry_run: dryRun,\n    allowed_targets: allowedTargets,\n    artifact_generated_at: artifactGeneratedAt,\n    ranking_query: rankingQuery,\n  }\n}];"
+        "jsCode": "const item = items[0].json;\nconst cleanText = (value, field) => {\n  const text = String(value || '').trim();\n  if (!/^[a-z0-9][a-z0-9_-]{1,80}$/i.test(text)) {\n    throw new Error(`${field} fora do contrato MVP: ${text}`);\n  }\n  return text;\n};\nconst parseDelay = (value, field, fallback) => {\n  const numeric = Number(value ?? fallback);\n  if (!Number.isInteger(numeric) || numeric < 0 || numeric > 600) {\n    throw new Error(`${field} fora do contrato MVP: ${value}`);\n  }\n  return numeric;\n};\nconst profile = cleanText(item.profile, 'profile');\nconst marketplace = cleanText(item.marketplace, 'marketplace');\nconst target = cleanText(item.target, 'target');\nconst channelAdapter = cleanText(item.channel_adapter, 'channel_adapter');\nconst limit = Number(item.limit || 1);\nif (!Number.isInteger(limit) || limit < 1 || limit > 20) {\n  throw new Error(`limit fora do contrato MVP: ${item.limit}`);\n}\nconst dryRun = item.dry_run === true || item.dry_run === 'true' || item.dry_run === 1 || item.dry_run === '1';\nconst allowedTargets = String(item.allowed_targets_csv || '')\n  .split(',')\n  .map((targetItem) => targetItem.trim())\n  .filter(Boolean);\nif (allowedTargets.length === 0) {\n  throw new Error('allowed_targets_csv obrigatorio');\n}\nconst sendDelaySecondsMin = parseDelay(item.send_delay_seconds_min, 'send_delay_seconds_min', 45);\nconst sendDelaySecondsMax = parseDelay(item.send_delay_seconds_max, 'send_delay_seconds_max', 90);\nif (sendDelaySecondsMax < sendDelaySecondsMin) {\n  throw new Error('send_delay_seconds_max deve ser maior ou igual a send_delay_seconds_min');\n}\nconst artifactGeneratedAt = item.artifact_generated_at || new Date().toISOString();\nconst sqlText = (value) => `'${String(value).replace(/'/g, \"''\")}'`;\nconst rankingQuery = `select\n  profile,\n  marketplace,\n  stable_key,\n  item_id,\n  product_name,\n  offer_link,\n  image_url,\n  price,\n  reference_price,\n  rating,\n  sales_count,\n  primary_subniche,\n  commercial_score,\n  score_reasons,\n  rank_profile,\n  rank_subniche\nfrom offers.v_offer_ranking_current ranking\n  where ranking.is_eligible = true\n    and ranking.profile = ${sqlText(profile)}\n    and ranking.marketplace = ${sqlText(marketplace)}\n    and not exists (\n      select 1\n      from offers.publication_events event\n      where event.profile = ranking.profile\n        and event.marketplace = ranking.marketplace\n        and event.stable_key = ranking.stable_key\n        and event.target = ${sqlText(target)}\n        and event.channel_adapter = ${sqlText(channelAdapter)}\n        and event.delivery_status = 'confirmed'\n    )\n  order by\n  rank_profile nulls last,\n  commercial_score desc,\n  sales_count desc,\n  rating desc nulls last,\n  item_id\nlimit ${limit};`;\nreturn [{\n  json: {\n    ...item,\n    profile,\n    marketplace,\n    target,\n    channel_adapter: channelAdapter,\n    limit,\n    dry_run: dryRun,\n    allowed_targets: allowedTargets,\n    send_delay_seconds_min: sendDelaySecondsMin,\n    send_delay_seconds_max: sendDelaySecondsMax,\n    artifact_generated_at: artifactGeneratedAt,\n    ranking_query: rankingQuery,\n  }\n}];"
       },
       "id": "3",
       "name": "Validar Contexto",
@@ -161,7 +188,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1648,
+        1960,
         0
       ],
       "id": "962ad612-c9bc-46f1-a15a-0e24e25600ac",
@@ -169,7 +196,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = items[0]?.json || {};\n\nreturn [\n  {\n    json: {\n      ...input,\n      dry_run: input.dry_run === undefined ? true : input.dry_run,\n      limit: Number(input.limit || 1),\n      profile: input.profile || 'feminino',\n      marketplace: input.marketplace || 'shopee',\n      target: input.target || 'teste-whatsapp',\n      allowed_targets_csv: input.allowed_targets_csv || 'teste-whatsapp',\n      channel_adapter: input.channel_adapter || 'whatsapp',\n      coupon_url: input.coupon_url || 'https://s.shopee.com.br/4AxtmHq4If',\n      run_id: input.run_id || new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-mvp-supabase',\n    },\n  },\n];"
+        "jsCode": "const input = items[0]?.json || {};\n\nreturn [\n  {\n    json: {\n      ...input,\n      dry_run: input.dry_run === undefined ? true : input.dry_run,\n      limit: Number(input.limit || 1),\n      profile: input.profile || 'feminino',\n      marketplace: input.marketplace || 'shopee',\n      target: input.target || 'teste-whatsapp',\n      allowed_targets_csv: input.allowed_targets_csv || 'teste-whatsapp',\n      channel_adapter: input.channel_adapter || 'whatsapp',\n      send_delay_seconds_min: Number(input.send_delay_seconds_min ?? 45),\n      send_delay_seconds_max: Number(input.send_delay_seconds_max ?? 90),\n      coupon_url: input.coupon_url || 'https://s.shopee.com.br/4AxtmHq4If',\n      run_id: input.run_id || new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-mvp-supabase',\n    },\n  },\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -183,14 +210,14 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const item = $json;\n\nconst shouldSend =\n  item.channel_adapter === 'whatsapp' &&\n  item.target_allowed === true &&\n  item.dry_run === false &&\n  item.send_result === 'ready_for_real_channel_node';\n\nconst normalizeChatId = (value) => {\n  const raw = String(value || '').trim();\n  if (!raw) return null;\n  if (raw.endsWith('@c.us') || raw.endsWith('@g.us') || raw.endsWith('@lid')) return raw;\n  const digits = raw.replace(/[^\\d]/g, '');\n  if (digits.length >= 12 && digits.length <= 15) return `${digits}@c.us`;\n  return null;\n};\n\nconst normalizeImageUrl = (value) => {\n  const raw = String(value || '').trim();\n  if (!raw) return null;\n  if (!/^https?:\\/\\//i.test(raw)) return null;\n  return raw;\n};\n\nconst filenameFrom = (value) => {\n  const suffix = String(value || 'oferta').replace(/[^a-z0-9_-]/gi, '').slice(0, 80) || 'oferta';\n  return `oferta-${suffix}.jpg`;\n};\n\nconst wahaChatId = normalizeChatId(item.target_chat_id || item.target);\nconst wahaImageUrl = normalizeImageUrl(item.image_url);\n\nif (shouldSend && !wahaChatId) {\n  return {\n    json: {\n      ...item,\n      waha_should_send: false,\n      waha_chat_id: null,\n      waha_image_url: wahaImageUrl,\n      adapter_status: 'adapter_missing_chat_id',\n      send_result: 'adapter_missing_chat_id',\n      delivery_status: 'failed',\n      sent_at: null,\n    },\n  };\n}\n\nif (shouldSend && !wahaImageUrl) {\n  return {\n    json: {\n      ...item,\n      waha_should_send: false,\n      waha_chat_id: wahaChatId,\n      waha_image_url: null,\n      adapter_status: 'adapter_missing_image_url',\n      send_result: 'adapter_missing_image_url',\n      delivery_status: 'failed',\n      sent_at: null,\n    },\n  };\n}\n\nreturn {\n  json: {\n    ...item,\n    waha_should_send: shouldSend,\n    waha_chat_id: shouldSend ? wahaChatId : null,\n    waha_image_url: shouldSend ? wahaImageUrl : null,\n    waha_image_filename: shouldSend ? filenameFrom(item.item_id || item.stable_key) : null,\n  },\n};"
+        "jsCode": "const item = $json;\n\nconst shouldSend =\n  item.channel_adapter === 'whatsapp' &&\n  item.target_allowed === true &&\n  item.dry_run === false &&\n  item.send_result === 'ready_for_real_channel_node';\n\nconst normalizeChatId = (value) => {\n  const raw = String(value || '').trim();\n  if (!raw) return null;\n  if (raw.endsWith('@c.us') || raw.endsWith('@g.us') || raw.endsWith('@lid')) return raw;\n  const digits = raw.replace(/[^\\d]/g, '');\n  if (digits.length >= 12 && digits.length <= 15) return `${digits}@c.us`;\n  return null;\n};\n\nconst normalizeImageUrl = (value) => {\n  const raw = String(value || '').trim();\n  if (!raw) return null;\n  if (!/^https?:\\/\\//i.test(raw)) return null;\n  return raw;\n};\n\nconst filenameFrom = (value) => {\n  const suffix = String(value || 'oferta').replace(/[^a-z0-9_-]/gi, '').slice(0, 80) || 'oferta';\n  return `oferta-${suffix}.jpg`;\n};\n\nconst normalizeDelay = (value, fallback) => {\n  const numeric = Number(value ?? fallback);\n  return Number.isFinite(numeric) && numeric >= 0 ? Math.floor(numeric) : fallback;\n};\n\nconst randomDelay = (minValue, maxValue) => {\n  if (maxValue <= minValue) return minValue;\n  return Math.floor(Math.random() * (maxValue - minValue + 1)) + minValue;\n};\n\nconst sequenceNumber = Number(item.send_sequence_number || item.manifest_item_number || 1);\nconst delayMin = normalizeDelay(item.send_delay_seconds_min, 45);\nconst delayMax = Math.max(delayMin, normalizeDelay(item.send_delay_seconds_max, 90));\nconst waitSeconds = shouldSend && sequenceNumber > 1 ? randomDelay(delayMin, delayMax) : 0;\nconst wahaChatId = normalizeChatId(item.target_chat_id || item.target);\nconst wahaImageUrl = normalizeImageUrl(item.image_url);\n\nif (shouldSend && !wahaChatId) {\n  return {\n    json: {\n      ...item,\n      waha_should_send: false,\n      waha_chat_id: null,\n      waha_image_url: wahaImageUrl,\n      waha_send_delay_seconds: 0,\n      adapter_status: 'adapter_missing_chat_id',\n      send_result: 'adapter_missing_chat_id',\n      delivery_status: 'failed',\n      sent_at: null,\n    },\n  };\n}\n\nif (shouldSend && !wahaImageUrl) {\n  return {\n    json: {\n      ...item,\n      waha_should_send: false,\n      waha_chat_id: wahaChatId,\n      waha_image_url: null,\n      waha_send_delay_seconds: 0,\n      adapter_status: 'adapter_missing_image_url',\n      send_result: 'adapter_missing_image_url',\n      delivery_status: 'failed',\n      sent_at: null,\n    },\n  };\n}\n\nreturn {\n  json: {\n    ...item,\n    waha_should_send: shouldSend,\n    waha_chat_id: shouldSend ? wahaChatId : null,\n    waha_image_url: shouldSend ? wahaImageUrl : null,\n    waha_image_filename: shouldSend ? filenameFrom(item.item_id || item.stable_key) : null,\n    waha_send_delay_seconds: waitSeconds,\n  },\n};"
       },
       "id": "waha-prepare-send",
       "name": "Preparar Envio WAHA",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1880,
+        2240,
         0
       ]
     },
@@ -224,9 +251,25 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2160,
+        2520,
         0
       ]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ Number($json.waha_send_delay_seconds || 0) }}",
+        "unit": "seconds"
+      },
+      "id": "waha-wait-between-sends",
+      "name": "Aguardar Intervalo WAHA",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2800,
+        -120
+      ],
+      "webhookId": "9df5d67d-8b5d-4f88-aad8-e94994bcd9a0"
     },
     {
       "parameters": {
@@ -270,7 +313,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2440,
+        3080,
         -120
       ]
     },
@@ -284,7 +327,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2720,
+        3360,
         -120
       ]
     }
@@ -327,7 +370,7 @@
       "main": [
         [
           {
-            "node": "Montar Mensagens",
+            "node": "Preparar Lote de Envio",
             "type": "main",
             "index": 0
           }
@@ -415,7 +458,7 @@
       "main": [
         [
           {
-            "node": "Enviar WhatsApp WAHA",
+            "node": "Aguardar Intervalo WAHA",
             "type": "main",
             "index": 0
           }
@@ -445,6 +488,50 @@
         [
           {
             "node": "Montar Upsert Publication Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Lote de Envio": {
+      "main": [
+        [
+          {
+            "node": "Loop Ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Ofertas": {
+      "main": [
+        [
+          {
+            "node": "Montar Mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar Intervalo WAHA": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Resultado Supabase": {
+      "main": [
+        [
+          {
+            "node": "Loop Ofertas",
             "type": "main",
             "index": 0
           }

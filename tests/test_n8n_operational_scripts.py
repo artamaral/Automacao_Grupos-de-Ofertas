@@ -35,6 +35,9 @@ def test_operation_modes_define_expected_pindata() -> None:
     preserve = ops_common.resolve_mode("preserve-pindata")
 
     assert real_group.pin_data["Trigger Manual"][0]["json"]["target_chat_id"].endswith("@g.us")
+    assert real_group.pin_data["Trigger Manual"][0]["json"]["limit"] == 3
+    assert real_group.pin_data["Trigger Manual"][0]["json"]["send_delay_seconds_min"] == 45
+    assert real_group.pin_data["Trigger Manual"][0]["json"]["send_delay_seconds_max"] == 90
     assert phone.pin_data["Trigger Manual"][0]["json"]["target_chat_id"].endswith("@c.us")
     assert dry_run.pin_data["Trigger Manual"][0]["json"]["dry_run"] is True
     assert preserve.pin_data is None
@@ -228,7 +231,7 @@ def test_check_last_execution_detects_send_image_and_new_copy() -> None:
                     "product_name": "Produto A",
                     "target": "grupo-ofertas-feminino",
                 },
-                "🔥 Produto A\n\n🎟️ Resgate o cupom desta página:\nhttps://example.test",
+                "Produto A\n\nResgate o cupom desta pagina:\nhttps://example.test",
                 [{"data": "9"}],
                 {"main": "10"},
                 [[{"json": "11"}]],

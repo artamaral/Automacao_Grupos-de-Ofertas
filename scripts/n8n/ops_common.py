@@ -17,6 +17,9 @@ REAL_GROUP_TARGET = "grupo-ofertas-feminino"
 REAL_GROUP_CHAT_ID = "120363412864266334@g.us"
 TEST_PHONE_TARGET = "5511975235421"
 TEST_PHONE_CHAT_ID = "5511975235421@c.us"
+REAL_GROUP_LIMIT = 3
+DEFAULT_SEND_DELAY_SECONDS_MIN = 45
+DEFAULT_SEND_DELAY_SECONDS_MAX = 90
 
 
 class N8nOpsError(RuntimeError):
@@ -43,6 +46,8 @@ def build_pin_data(
     allowed_targets_csv: str,
     target_chat_id: str | None = None,
     limit: int = 1,
+    send_delay_seconds_min: int = DEFAULT_SEND_DELAY_SECONDS_MIN,
+    send_delay_seconds_max: int = DEFAULT_SEND_DELAY_SECONDS_MAX,
     profile: str = "feminino",
     marketplace: str = "shopee",
     channel_adapter: str = "whatsapp",
@@ -55,6 +60,8 @@ def build_pin_data(
         "target": target,
         "allowed_targets_csv": allowed_targets_csv,
         "channel_adapter": channel_adapter,
+        "send_delay_seconds_min": send_delay_seconds_min,
+        "send_delay_seconds_max": send_delay_seconds_max,
     }
     if target_chat_id:
         payload["target_chat_id"] = target_chat_id
@@ -66,6 +73,7 @@ REAL_GROUP_PINDATA = build_pin_data(
     target=REAL_GROUP_TARGET,
     target_chat_id=REAL_GROUP_CHAT_ID,
     allowed_targets_csv=REAL_GROUP_TARGET,
+    limit=REAL_GROUP_LIMIT,
 )
 
 TEST_PHONE_PINDATA = build_pin_data(

@@ -25,13 +25,16 @@ DEFAULT_WORKFLOW_JSON = Path("n8n/workflows/ofertas-mvp-supabase.json")
 DEFAULT_COMPOSE_ENV = Path("/opt/automacao_grupo_compras/n8n/.env")
 DEFAULT_COMPOSE_FILE = Path("/opt/automacao_grupo_compras/n8n/docker-compose.yml")
 DEFAULT_WORKFLOW_ID = "OfertasMvpSupab1"
-EXPECTED_TEMPLATE_TEXT = "Resgate o cupom desta página"
+EXPECTED_TEMPLATE_TEXT = "Resgate o cupom desta pagina"
 EXPECTED_SEND_IMAGE_PATH = "/api/sendImage"
 FORBIDDEN_SEND_TEXT_PATH = "/api/sendText"
 EXPECTED_SCHEDULE_CRON = "0 8-21 * * *"
 EXPECTED_WORKFLOW_TIMEZONE = "America/Sao_Paulo"
 EXPECTED_SCHEDULE_NODE = "Schedule Grupo Real"
 EXPECTED_SCHEDULE_CONTEXT_NODE = "Set Contexto Schedule Grupo"
+EXPECTED_SCHEDULE_LIMIT = 3
+EXPECTED_SEND_DELAY_MIN = 45
+EXPECTED_SEND_DELAY_MAX = 90
 
 
 class WorkflowGuardError(RuntimeError):
@@ -154,10 +157,12 @@ def validate_schedule(workflow: dict[str, Any], errors: list[str]) -> None:
         context_code = str(schedule_context.get("parameters", {}).get("jsCode", ""))
         for expected_text in (
             "dry_run: false",
-            "limit: 1",
+            f"limit: {EXPECTED_SCHEDULE_LIMIT}",
             "target: 'grupo-ofertas-feminino'",
             "target_chat_id: '120363412864266334@g.us'",
             "allowed_targets_csv: 'grupo-ofertas-feminino'",
+            f"send_delay_seconds_min: {EXPECTED_SEND_DELAY_MIN}",
+            f"send_delay_seconds_max: {EXPECTED_SEND_DELAY_MAX}",
             "schedule-grupo-real",
         ):
             if expected_text not in context_code:
@@ -266,7 +271,7 @@ def build_status_query(workflow_id: str) -> str:
         "'versionId', \"versionId\", "
         "'versionCounter', \"versionCounter\", "
         "'updatedAt', \"updatedAt\", "
-        "'has_new_copy', position('Resgate o cupom desta página' in nodes::text) > 0, "
+        "'has_new_copy', position('Resgate o cupom desta pagina' in nodes::text) > 0, "
         "'has_send_image', position('/api/sendImage' in nodes::text) > 0, "
         "'has_send_text', position('/api/sendText' in nodes::text) > 0, "
         "'pinData', \"pinData\""
