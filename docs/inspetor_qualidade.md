@@ -4,7 +4,7 @@ Este documento descreve como o monitoramento operacional do projeto
 `Automacao_Grupos-de-Ofertas` roda em produção.
 
 Ele não define código novo, não executa validações e não autoriza alteração de
-estado. O objetivo é registrar, de forma fiel, os 5 jobs ativos que monitoram o
+estado. O objetivo é registrar, de forma fiel, os 6 jobs ativos que monitoram o
 pipeline `ofertas-mvp-supabase`.
 
 ## Papel do inspetor (regra de ouro)
@@ -40,7 +40,7 @@ em container Docker.
 
 O Hermes entrega os alertas e relatórios no Telegram. Os 3 crons LLM usam o
 modelo `deepseek/deepseek-v4-flash`, provedor `deepseek`, com a skill
-`n8n-quality-inspector`. Os 2 watchdogs são scripts puros `no_agent`, com custo
+`n8n-quality-inspector`. Os 3 watchdogs são scripts puros `no_agent`, com custo
 zero de LLM.
 
 A semântica operacional dos watchdogs é:
@@ -61,7 +61,7 @@ A semântica operacional dos watchdogs é:
 
 Todo acesso descrito aqui é para inspeção e diagnóstico read-only.
 
-## Visão geral dos 5 jobs
+## Visão geral dos 6 jobs
 
 | Nome | ID | Schedule UTC | Schedule BRT | Tipo | Modelo | Entrega |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -70,6 +70,7 @@ Todo acesso descrito aqui é para inspeção e diagnóstico read-only.
 | `n8n_resumo_diario_2130` | `52c3b1a9d822` | `30 0 * * *` | 21:30 diário | LLM | `deepseek/deepseek-v4-flash` | Telegram |
 | `n8n_watchdog_horario` | `ae32f2900683` | `5 0,11-23 * * *` | 08:05-21:05 | Script `no_agent` | Não usa LLM | Telegram quando há alerta |
 | `waha_watchdog_horario` | `d528f5e917a1` | `7 * * * *` | 1x/hora, 24/7 | Script `no_agent` | Não usa LLM | Telegram quando há alerta |
+| `shopee_refresh_watchdog_diario` | criado | `35 10 * * *` | 07:35 diário | Script `no_agent` | Não usa LLM | Telegram quando há alerta |
 
 ## Os 3 crons LLM
 
@@ -588,6 +589,7 @@ O Hermes deve monitorar esse job como script puro `no_agent`, mantendo a mesma
 regra de ouro: somente leitura.
 
 - Nome: `shopee_refresh_watchdog_diario`.
+- Status: criado no Hermes em 2026-08-11.
 - Agendamento: `35 10 * * *` UTC = 07:35 BRT.
 - Tipo: script `no_agent`.
 - Custo LLM: zero.
