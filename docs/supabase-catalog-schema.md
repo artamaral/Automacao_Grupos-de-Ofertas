@@ -55,6 +55,21 @@ revertida ao final do teste.
 | `mae-e-bebe` | 7.164 | 39 | `1c27182e6ebe...` |
 | **Total** | **46.016** | **80 somados** |  |
 
+Atualizacao em `2026-08-11`:
+
+| Profile | Linhas antes | Removidas | Linhas ativas | Subnichos | Import ID | SHA-256 |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| `feminino` | 27.292 | 2.090 | 25.202 | 31 | `d94d30be-576b-41a4-a504-cad83e69cec1` | `4504ca7a7b62...` |
+
+A remocao aplicada no catalogo ativo `feminino/shopee` eliminou ofertas cujos
+campos textuais continham `infantil` ou `juvenil`. A verificacao apos ativacao
+confirmou:
+
+- `row_count = 25.202`;
+- `offers.catalog_items` ativo com `25.202` linhas;
+- `offers.v_offer_ranking_current` retornando `25.202` linhas para `feminino`;
+- `forbidden_rows = 0` para `infantil` e `juvenil`.
+
 Para cada profile, a auditoria confirmou:
 
 - `row_count` declarado igual ao total armazenado;
@@ -306,6 +321,26 @@ Importacao e ativacao explicitas:
   --apply `
   --activate `
   --confirm-remote-write IMPORT_CURATED_CATALOG
+```
+
+Execucao registrada em `2026-08-11` para relimpeza do catalogo ativo
+`feminino/shopee`:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\supabase\import_catalog.py `
+  --profile feminino `
+  --marketplace shopee `
+  --catalog-file .data\supabase-cleaning\feminino\20260811-133642\clean_catalog_rating_4_8_plus.csv `
+  --apply `
+  --activate `
+  --confirm-remote-write IMPORT_CURATED_CATALOG
+```
+
+Resultado:
+
+```text
+VALIDATION=OK profile=feminino rows=25202 rating=4.80-5.00 subniches=31 sha256=4504ca7a7b62...
+REMOTE_WRITE=OK profile=feminino import_id=d94d30be-576b-41a4-a504-cad83e69cec1 status=active operation=created
 ```
 
 ## Uso no MVP

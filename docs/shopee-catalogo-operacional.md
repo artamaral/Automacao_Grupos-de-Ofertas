@@ -238,6 +238,9 @@ Regra operacional:
 - quando `negative_terms` ou `exclude_terms` mudarem, o catalogo curado ja salvo
   em `catalogs/clean/<profile>/clean_catalog_rating_4_8_plus.csv` deve ser
   refeito ou re-limpo antes da proxima rodada operacional.
+- no profile `feminino`, `infantil` e `juvenil` sao termos proibidos porque
+  indicam roupas para criancas ou adolescentes, fora do escopo de moda feminina
+  adulta.
 
 ## Do descobrimento ate a copy
 
@@ -331,3 +334,12 @@ Para construcao de catalogo Shopee:
   mantendo `matchId` apenas como referencia registrada no profile;
 - o executor deve produzir sempre artefatos `raw`, `deduplicated` e `clean`,
   orientados a `n8n`.
+
+Para qualidade do catalogo `feminino`:
+
+- ofertas com `infantil` ou `juvenil` nos campos textuais devem ser removidas;
+- a regra vale tanto para novas construcoes locais quanto para relimpeza de
+  snapshots ativos ja publicados no Supabase;
+- a execucao de `2026-08-11` removeu `2.090` linhas do catalogo ativo
+  `feminino/shopee`, ativando o import
+  `d94d30be-576b-41a4-a504-cad83e69cec1` com `25.202` linhas.
