@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+APP_DIR="${APP_DIR:-/opt/automacao_grupo_compras/app}"
+PYTHON_BIN="${PYTHON_BIN:-${APP_DIR}/.venv/bin/python}"
+PROFILE="${PROFILE:-feminino}"
+MARKETPLACE="${MARKETPLACE:-shopee}"
+DISCOVERY_LIMIT="${DISCOVERY_LIMIT:-500}"
+SCORING_LIMIT="${SCORING_LIMIT:-200}"
+MAX_API_CALLS="${MAX_API_CALLS:-500}"
+CONFIRM_REMOTE_WRITE="${CONFIRM_REMOTE_WRITE:-REFRESH_SHOPEE_CANDIDATES}"
+OUTPUT_BASE_DIR="${OUTPUT_BASE_DIR:-.data/candidate_refresh}"
+LOCK_FILE="${LOCK_FILE:-${APP_DIR}/.data/candidate_refresh/.refresh.lock}"
+
+cd "${APP_DIR}"
+
+if [[ ! -f ".env" ]]; then
+  echo "ERRO refresh Shopee: .env ausente em ${APP_DIR}" >&2
+  exit 2
+fi
+
+if [[ ! -x "${PYTHON_BIN}" ]]; then
+  echo "ERRO refresh Shopee: python nao executavel em ${PYTHON_BIN}" >&2
+  exit 2
+fi
+
+mkdir -p "$(dirname "${LOCK_FILE}")"
+exec 9>"${LOCK_FILE}"
+
+if ! flock -n 9; then
+  echo "ERRO refresh Shopee: execucao anterior ainda em andamento" >&2
+  exit 75
+fi
+
+export PYTHONUNBUFFERED=1
+export TZ="${TZ:-America/Sao_Paulo}"
+
+RUN_ID="${RUN_ID:-$(TZ=America/Sao_Paulo date +'%Y-%m-%dT%H-%M-%S%z')-candidate-refresh}"
+
+exec "${PYTHON_BIN}" scripts/shopee/run_candidate_refresh.py \
+  --profile "${PROFILE}" \
+  --marketplace "${MARKETPLACE}" \
+  --discovery-limit "${DISCOVERY_LIMIT}" \
+  --scoring-limit "${SCORING_LIMIT}" \
+  --max-api-calls "${MAX_API_CALLS}" \
+  --output-base-dir "${OUTPUT_BASE_DIR}" \
+  --run-id "${RUN_ID}" \
+  --apply \
+  --confirm-remote-write "${CONFIRM_REMOTE_WRITE}"

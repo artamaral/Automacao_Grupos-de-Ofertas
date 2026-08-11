@@ -581,6 +581,64 @@ Os watchdogs são scripts `no_agent`, com custo zero de LLM, por isso podem roda
   validação; `waha_watchdog` olha a conexão do canal e confirma o resultado com
   `adapter_status`/`delivery_status` dentro da execução.
 
+## Watchdog Shopee refresh diario
+
+O refresh comercial Shopee roda fora do n8n, por `systemd timer`, as 07:00 BRT.
+O Hermes deve monitorar esse job como script puro `no_agent`, mantendo a mesma
+regra de ouro: somente leitura.
+
+- Nome: `shopee_refresh_watchdog_diario`.
+- Agendamento: `35 10 * * *` UTC = 07:35 BRT.
+- Tipo: script `no_agent`.
+- Custo LLM: zero.
+- Script base versionado: `scripts/ops/hermes_shopee_refresh_watchdog.py`.
+- VPS: `root@76.13.237.105`.
+- SSH key no Hermes: `/opt/data/.ssh/hostinger_n8n_ed25519`.
+- App path na VPS: `/opt/automacao_grupo_compras/app`.
+- Service: `shopee-candidate-refresh.service`.
+- Timer: `shopee-candidate-refresh.timer`.
+- Artefato esperado:
+  `/opt/automacao_grupo_compras/app/.data/candidate_refresh/feminino/<run_id>/run_report.json`.
+
+O watchdog nao executa refresh, nao altera systemd, nao altera arquivos, nao
+escreve no Supabase e nao faz retry. Ele deve verificar se o timer esta
+`enabled/active`, ler o estado da ultima execucao do service e procurar o
+`run_report.json` mais recente de hoje apos 07:00 BRT.
+
+Validacoes minimas do `run_report.json`:
+
+- `run_status` com prefixo `completed` ou `partial`;
+- `summary.api_calls_attempted > 0`;
+- `summary.snapshots_inserted > 0` quando houve chamadas;
+- `limits.max_api_calls` respeitado;
+- `summary.elapsed_seconds` presente.
+
+Saida:
+
+- tudo ok: `stdout` vazio;
+- problema operacional: alerta curto no Telegram com service, `run_id`,
+  chamadas, snapshots, falhas/no_node, duracao e hipotese objetiva;
+- erro do proprio watchdog: `exit 2` com mensagem curta em `stderr`.
+
+Prompt operacional para criar o job no Hermes:
+
+```text
+Crie um watchdog no_agent chamado shopee_refresh_watchdog_diario.
+
+Papel: monitor read-only do refresh diario Shopee. Nao execute refresh, nao
+altere arquivos, nao altere systemd, nao escreva no Supabase e nao faca retry.
+
+Agendamento: diariamente as 07:35 BRT. Como o ambiente usa cron UTC, agende como
+35 10 * * *.
+
+Use o script base versionado em scripts/ops/hermes_shopee_refresh_watchdog.py.
+
+Semantica no_agent:
+- stdout vazio = silencio
+- stdout com texto = alerta Telegram
+- exit != 0 = erro do watchdog
+```
+
 ## Suposições explícitas
 
 - Os blocos de código foram transcritos do pedido original para fins de

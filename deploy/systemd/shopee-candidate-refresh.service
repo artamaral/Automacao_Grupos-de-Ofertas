@@ -1,0 +1,14 @@
+[Unit]
+Description=Shopee candidate refresh for ofertas ranking
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/automacao_grupo_compras/app
+ExecStart=/bin/bash /opt/automacao_grupo_compras/app/scripts/ops/run_shopee_candidate_refresh.sh
+TimeoutStartSec=45min
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

@@ -76,6 +76,44 @@ Dry-run, tambem usado quando nenhuma flag de escrita e informada:
 O dry-run consulta o banco, monta a fila e estima chamadas. Ele nao chama a
 Shopee e nao grava tentativa ou snapshot.
 
+## Execucao agendada na VPS
+
+O refresh operacional roda fora do n8n, por `systemd timer`, na VPS Hostinger.
+O n8n continua consultando `offers.v_offer_ranking_current`; o timer apenas
+atualiza snapshots antes da primeira publicacao do dia.
+
+- horario: 07:00 BRT, diario;
+- app path: `/opt/automacao_grupo_compras/app`;
+- n8n path: `/opt/automacao_grupo_compras/n8n`;
+- service: `shopee-candidate-refresh.service`;
+- timer: `shopee-candidate-refresh.timer`;
+- wrapper: `scripts/ops/run_shopee_candidate_refresh.sh`;
+- units versionados: `deploy/systemd/shopee-candidate-refresh.*`.
+
+Como a VPS esta em UTC, o timer usa timezone explicito:
+
+```ini
+OnCalendar=*-*-* 07:00:00 America/Sao_Paulo
+```
+
+O wrapper usa `flock`, preserva os artefatos locais e executa:
+
+```bash
+/opt/automacao_grupo_compras/app/.venv/bin/python \
+  /opt/automacao_grupo_compras/app/scripts/shopee/run_candidate_refresh.py \
+  --profile feminino \
+  --marketplace shopee \
+  --discovery-limit 500 \
+  --scoring-limit 200 \
+  --max-api-calls 500 \
+  --apply \
+  --confirm-remote-write REFRESH_SHOPEE_CANDIDATES
+```
+
+Credenciais reais ficam somente no `.env` local da VPS, fora do Git. Antes de
+habilitar o timer, validar SSH, `git pull`, Python 3.11+, `.venv`, `.env`,
+`validate_catalog_schema.py`, dry-run de 500 e smoke real de 1 item.
+
 Execucao real limitada:
 
 ```powershell
