@@ -17,18 +17,25 @@ Objetos criados no schema `offers`:
 - `catalog_items`;
 - `offer_selection_state`;
 - `publication_events`;
+- `candidate_refresh_policies`;
+- `offer_snapshots`;
+- `offer_refresh_attempts`;
 - `schema_migrations`;
 - `v_offer_ranking_current`;
+- `v_offer_latest_snapshot`;
+- `v_offer_refresh_status`;
+- `v_offer_scoring_current`;
 - funcao `activate_catalog_import(uuid)`.
 
 Configuracao operacional aplicada ao banco:
 
 - timezone padrao do database `postgres`: `America/Sao_Paulo`.
 
-Migration complementar:
+Migrations complementares:
 
 ```text
 supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql
+supabase/migrations/202608110001_candidate_refresh_snapshots.sql
 ```
 
 Os campos temporais continuam usando `timestamptz`. A configuracao de timezone

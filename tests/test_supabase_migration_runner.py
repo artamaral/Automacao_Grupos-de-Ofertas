@@ -25,7 +25,7 @@ def test_migration_files_requires_at_least_one_sql_file(tmp_path: Path) -> None:
 
 def test_file_checksum_is_stable_sha256(tmp_path: Path) -> None:
     migration = tmp_path / "migration.sql"
-    migration.write_text("select 1;\n", encoding="utf-8")
+    migration.write_bytes(b"select 1;\n")
 
     assert file_checksum(migration) == (
         "4a45092ccf992ea92250053a80b931b787924ba61648f420555511b84f10ab6c"

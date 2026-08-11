@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import tomllib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -218,6 +219,7 @@ def apply_default_selection_policy(
     *,
     niche: str,
     catalog_source_path: Path | None,
+    subniche_by_url: Mapping[str, str] | None = None,
 ) -> SelectionResult:
     normalized_niche = niche.strip().lower()
     eligible_scored_offers = _filter_eligible_scored_offers(scored_offers)
@@ -225,8 +227,13 @@ def apply_default_selection_policy(
     max_zero_sales_items = DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE.get(normalized_niche)
     if (
         quotas is None
-        or catalog_source_path is None
-        or catalog_source_path.suffix.lower() != ".csv"
+        or (
+            subniche_by_url is None
+            and (
+                catalog_source_path is None
+                or catalog_source_path.suffix.lower() != ".csv"
+            )
+        )
     ):
         return SelectionResult(
             scored_offers=eligible_scored_offers,
@@ -235,14 +242,18 @@ def apply_default_selection_policy(
             quota_count=0,
         )
 
-    subniche_by_url = _load_first_subniche_by_url(catalog_source_path)
+    resolved_subniche_by_url = (
+        dict(subniche_by_url)
+        if subniche_by_url is not None
+        else _load_first_subniche_by_url(catalog_source_path)
+    )
     selected: list[ScoredOffer] = []
     zero_sales_selected = 0
     for subniche, quota in quotas.items():
         candidates = [
             item
             for item in eligible_scored_offers
-            if subniche_by_url.get(item.offer.url) == subniche
+            if resolved_subniche_by_url.get(item.offer.url) == subniche
         ]
         selected_in_subniche = 0
         for candidate in candidates:

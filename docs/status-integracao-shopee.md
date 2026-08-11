@@ -231,10 +231,13 @@ ParÃ¢metros:
 
 ObservaÃ§Ã£o operacional:
 
-- `productOfferV2` ainda nao foi validada por chamada real neste projeto;
-- o contrato atual validado em execucao continua sendo `shopOfferV2`;
-- qualquer troca do provider principal para `productOfferV2` exige preview,
-  chamada controlada e captura de resposta real antes de consolidar.
+- `productOfferV2(itemId)` foi validada por chamada real controlada em
+  2026-08-11 pelo pipeline de refresh progressivo;
+- a chamada retornou node compativel com os campos documentados abaixo e foi
+  persistida como snapshot historico;
+- `shopOfferV2` continua sendo o contrato validado para descoberta por loja;
+- o uso de `productOfferV2` no refresh permanece limitado por TTL,
+  `--max-api-calls` e confirmacao explicita de escrita.
 
 Campos de resposta obrigatorios de `ProductOfferV2`:
 

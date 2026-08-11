@@ -9,12 +9,18 @@ import psycopg
 from dotenv import load_dotenv
 
 EXPECTED_RELATIONS = {
+    ("candidate_refresh_policies", "BASE TABLE"),
     ("catalog_imports", "BASE TABLE"),
     ("catalog_items", "BASE TABLE"),
+    ("offer_refresh_attempts", "BASE TABLE"),
     ("offer_selection_state", "BASE TABLE"),
+    ("offer_snapshots", "BASE TABLE"),
     ("publication_events", "BASE TABLE"),
     ("schema_migrations", "BASE TABLE"),
+    ("v_offer_latest_snapshot", "VIEW"),
     ("v_offer_ranking_current", "VIEW"),
+    ("v_offer_refresh_status", "VIEW"),
+    ("v_offer_scoring_current", "VIEW"),
 }
 
 EXPECTED_CONTROL_COLUMNS = {
@@ -69,6 +75,49 @@ EXPECTED_PUBLICATION_EVENT_COLUMNS = {
     "payload",
     "created_at",
     "updated_at",
+}
+
+EXPECTED_SNAPSHOT_COLUMNS = {
+    "item_id",
+    "checked_at",
+    "price",
+    "price_max",
+    "commission_rate",
+    "seller_commission_rate",
+    "shopee_commission_rate",
+    "sales_count",
+    "rating",
+    "shop_type_codes",
+    "source",
+    "source_payload",
+}
+
+EXPECTED_REFRESH_STATUS_COLUMNS = {
+    "item_id",
+    "profile",
+    "subniches",
+    "last_checked_at",
+    "last_attempted_at",
+    "refresh_status",
+    "age_hours",
+}
+
+EXPECTED_SCORING_CURRENT_COLUMNS = {
+    "item_id",
+    "profile",
+    "product_name",
+    "subniches",
+    "last_checked_at",
+    "refresh_status",
+    "price",
+    "reference_price",
+    "discount_percent",
+    "commission_rate",
+    "sales_count",
+    "rating",
+    "is_free_shipping",
+    "shop_type_code",
+    "is_scoring_ready",
 }
 
 
@@ -158,6 +207,30 @@ def validate_publication_event_columns(connection: psycopg.Connection) -> None:
         raise AssertionError(f"missing publication event columns: {sorted(missing)}")
 
 
+def validate_candidate_refresh_columns(connection: psycopg.Connection) -> None:
+    expected_by_relation = {
+        "offer_snapshots": EXPECTED_SNAPSHOT_COLUMNS,
+        "v_offer_refresh_status": EXPECTED_REFRESH_STATUS_COLUMNS,
+        "v_offer_scoring_current": EXPECTED_SCORING_CURRENT_COLUMNS,
+    }
+    for relation_name, expected in expected_by_relation.items():
+        rows = connection.execute(
+            """
+            select column_name
+            from information_schema.columns
+            where table_schema = 'offers'
+              and table_name = %s
+            """,
+            (relation_name,),
+        ).fetchall()
+        actual = {row[0] for row in rows}
+        missing = expected - actual
+        if missing:
+            raise AssertionError(
+                f"missing {relation_name} columns: {sorted(missing)}"
+            )
+
+
 def validate_security(connection: psycopg.Connection) -> None:
     rows = connection.execute(
         """
@@ -169,6 +242,9 @@ def validate_security(connection: psycopg.Connection) -> None:
             'schema_migrations',
             'catalog_imports',
             'catalog_items',
+            'candidate_refresh_policies',
+            'offer_snapshots',
+            'offer_refresh_attempts',
             'offer_selection_state',
             'publication_events'
           )
@@ -405,6 +481,127 @@ def validate_score_fixture(connection: psycopg.Connection) -> None:
         )
 
 
+def validate_candidate_refresh_fixture(connection: psycopg.Connection) -> None:
+    connection.execute(
+        """
+        insert into offers.candidate_refresh_policies (profile, marketplace, ttl_hours)
+        values ('schema-validation', 'shopee', 24)
+        """
+    )
+    missing_status = connection.execute(
+        """
+        select refresh_status
+        from offers.v_offer_refresh_status
+        where profile = 'schema-validation' and item_id = 999999999
+        """
+    ).fetchone()
+    if missing_status != ("MISSING",):
+        raise AssertionError(f"unexpected missing refresh status: {missing_status!r}")
+
+    stale_snapshot_id = connection.execute(
+        """
+        insert into offers.offer_snapshots (
+          marketplace,
+          item_id,
+          checked_at,
+          product_name,
+          product_link,
+          offer_link,
+          price,
+          price_max,
+          commission_rate,
+          sales_count,
+          rating,
+          source,
+          source_payload
+        )
+        values (
+          'shopee',
+          999999999,
+          now() - interval '24 hours',
+          'Oferta stale',
+          'https://example.com/product/999999999',
+          'https://example.com/offer/999999999',
+          100,
+          120,
+          0.10,
+          100,
+          4.9,
+          'schema_validation',
+          '{"fixture": "stale"}'::jsonb
+        )
+        returning id
+        """
+    ).fetchone()[0]
+    stale_status = connection.execute(
+        """
+        select refresh_status
+        from offers.v_offer_refresh_status
+        where profile = 'schema-validation' and item_id = 999999999
+        """
+    ).fetchone()
+    if stale_status != ("STALE",):
+        raise AssertionError(f"unexpected 24h refresh status: {stale_status!r}")
+
+    fresh_snapshot_id = connection.execute(
+        """
+        insert into offers.offer_snapshots (
+          marketplace,
+          item_id,
+          checked_at,
+          product_name,
+          product_link,
+          offer_link,
+          price,
+          price_max,
+          commission_rate,
+          sales_count,
+          rating,
+          source,
+          source_payload
+        )
+        values (
+          'shopee',
+          999999999,
+          now(),
+          'Oferta fresh',
+          'https://example.com/product/999999999',
+          'https://example.com/offer/999999999',
+          90,
+          120,
+          0.12,
+          110,
+          4.9,
+          'schema_validation',
+          '{"fixture": "fresh"}'::jsonb
+        )
+        returning id
+        """
+    ).fetchone()[0]
+    history = connection.execute(
+        """
+        select
+          (select count(*) from offers.offer_snapshots where item_id = 999999999),
+          latest.id,
+          latest.price,
+          status.refresh_status,
+          scoring.is_scoring_ready
+        from offers.v_offer_latest_snapshot latest
+        join offers.v_offer_refresh_status status
+          on status.marketplace = latest.marketplace and status.item_id = latest.item_id
+        join offers.v_offer_scoring_current scoring
+          on scoring.marketplace = latest.marketplace and scoring.item_id = latest.item_id
+        where latest.marketplace = 'shopee' and latest.item_id = 999999999
+        """
+    ).fetchone()
+    expected = (2, fresh_snapshot_id, Decimal("90.00"), "FRESH", False)
+    if history != expected:
+        raise AssertionError(
+            "unexpected candidate refresh history result: "
+            f"stale_snapshot_id={stale_snapshot_id} result={history!r}"
+        )
+
+
 def main() -> int:
     connection = connect()
     try:
@@ -412,9 +609,11 @@ def main() -> int:
         validate_control_columns(connection)
         validate_score_columns(connection)
         validate_publication_event_columns(connection)
+        validate_candidate_refresh_columns(connection)
         validate_security(connection)
         active_catalogs = validate_active_catalogs(connection)
         validate_score_fixture(connection)
+        validate_candidate_refresh_fixture(connection)
         connection.rollback()
     except Exception:
         connection.rollback()

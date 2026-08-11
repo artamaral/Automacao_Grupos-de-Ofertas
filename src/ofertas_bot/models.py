@@ -25,7 +25,7 @@ class Offer:
     rating: float | None
     niche: str
     item_id: int | None = None
-    is_prime_or_free_shipping: bool = False
+    is_prime_or_free_shipping: bool | None = False
     shop_type_code: int | None = None
     selected_at: str | None = None
     cooldown_until: str | None = None
