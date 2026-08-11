@@ -158,6 +158,8 @@ def test_build_update_sql_includes_real_group_pindata_by_default() -> None:
     assert "grupo-ofertas-feminino" in sql
     assert "120363412864266334@g.us" in sql
     assert "active = false" in sql
+    assert "insert into workflow_history" in sql
+    assert "autosaved" in sql
 
 
 def test_build_update_sql_preserves_pindata_when_requested() -> None:
@@ -212,6 +214,7 @@ def test_validate_pin_data_rejects_real_send_without_supported_chat_id() -> None
 def test_validate_deployed_status_rejects_send_text_present() -> None:
     status = {
         "active": False,
+        "history_exists": True,
         "has_send_image": True,
         "has_send_text": True,
         "has_new_copy": True,
@@ -219,4 +222,18 @@ def test_validate_deployed_status_rejects_send_text_present() -> None:
     }
 
     with pytest.raises(guard.WorkflowGuardError, match="sendText must be absent"):
+        guard.validate_deployed_status(status, guard.REAL_GROUP_PINDATA)
+
+
+def test_validate_deployed_status_rejects_missing_version_history() -> None:
+    status = {
+        "active": False,
+        "history_exists": False,
+        "has_send_image": True,
+        "has_send_text": False,
+        "has_new_copy": True,
+        "pinData": guard.REAL_GROUP_PINDATA,
+    }
+
+    with pytest.raises(guard.WorkflowGuardError, match="workflow_history"):
         guard.validate_deployed_status(status, guard.REAL_GROUP_PINDATA)

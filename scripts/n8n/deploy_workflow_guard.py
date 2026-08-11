@@ -288,9 +288,28 @@ def build_update_sql(
         )
 
     return (
-        "update workflow_entity\n"
-        f"set {', '.join(assignments)}\n"
-        f"where id = {sql_literal(workflow_id)};"
+        "with updated_workflow as (\n"
+        "  update workflow_entity\n"
+        f"  set {', '.join(assignments)}\n"
+        f"  where id = {sql_literal(workflow_id)}\n"
+        '  returning id, "versionId", name, nodes, connections, "updatedAt"\n'
+        ")\n"
+        "insert into workflow_history (\n"
+        '  "versionId", "workflowId", authors, "createdAt", "updatedAt",\n'
+        '  nodes, connections, name, autosaved, description, "nodeGroups"\n'
+        ")\n"
+        "select\n"
+        '  updated."versionId", updated.id,\n'
+        "  coalesce((\n"
+        "    select history.authors\n"
+        "    from workflow_history history\n"
+        '    where history."workflowId" = updated.id\n'
+        '    order by history."createdAt" desc\n'
+        "    limit 1\n"
+        "  ), 'system'),\n"
+        '  updated."updatedAt", updated."updatedAt", updated.nodes,\n'
+        "  updated.connections, updated.name, false, null, '[]'::json\n"
+        "from updated_workflow updated;"
     )
 
 
@@ -305,6 +324,11 @@ def build_status_query(workflow_id: str) -> str:
         "'has_new_copy', position('Resgate o cupom desta pagina' in nodes::text) > 0, "
         "'has_send_image', position('/api/sendImage' in nodes::text) > 0, "
         "'has_send_text', position('/api/sendText' in nodes::text) > 0, "
+        "'history_exists', exists ("
+        "select 1 from workflow_history history "
+        'where history."workflowId" = workflow_entity.id '
+        'and history."versionId" = workflow_entity."versionId"'
+        "), "
         "'pinData', \"pinData\""
         ")::text "
         "from workflow_entity "
@@ -368,6 +392,8 @@ def validate_deployed_status(status: dict[str, Any], pin_data: dict[str, Any] | 
         errors.append("sendText must be absent")
     if status.get("has_new_copy") is not True:
         errors.append(f"template must contain {EXPECTED_TEMPLATE_TEXT}")
+    if status.get("history_exists") is not True:
+        errors.append("current version must exist in workflow_history")
 
     if pin_data is not None:
         deployed_pin_data = status.get("pinData")
@@ -417,6 +443,7 @@ def print_summary(status: dict[str, Any] | None, pin_data: dict[str, Any] | None
     print(f"INFO | versionId={status.get('versionId')}")
     print(f"INFO | versionCounter={status.get('versionCounter')}")
     print(f"INFO | active={str(status.get('active')).lower()}")
+    print(f"INFO | history_exists={str(status.get('history_exists')).lower()}")
     print("INFO | sendImage=ok")
     print("INFO | sendText=absent")
     print("INFO | template=ok")
