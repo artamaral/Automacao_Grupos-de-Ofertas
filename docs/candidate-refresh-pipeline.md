@@ -42,6 +42,10 @@ descoberta; cada banda de 5% recebe 20 e 5, respectivamente. Dedupe por
 Itens `FRESH` encontrados durante a varredura geram cache hit, nao ocupam vaga
 de chamada e fazem a fila avancar ate o proximo `MISSING/STALE`. Falha ou
 `no_node` gera tentativa auditavel sem remover o ultimo snapshot valido.
+Quando a operacao confirmar manualmente que um `no_node` representa item
+indisponivel, o item pode receber `refresh_status=UNAVAILABLE_CONFIRMED`; nessa
+condicao ele sai da fila automatica diaria e so volta a ser consultado por
+rechecagem explicita de `item_id`.
 
 ## TTL e estruturas
 
@@ -162,6 +166,9 @@ Os arquivos sao auditoria local. A verdade historica permanece no Supabase.
 - erro HTTP preserva o ultimo snapshot e registra `technical_failure`;
 - payload inconsistente registra `invalid_payload`;
 - resposta sem node registra `no_node`, mas nao prova indisponibilidade;
+- confirmacao manual de indisponibilidade grava `confirmed_unavailable` no
+  ledger de tentativas e muda o status operacional para
+  `UNAVAILABLE_CONFIRMED`;
 - a API consultada nao entrega campo explicito de frete, disponibilidade ou
   elegibilidade de afiliado no contrato atual;
 - frete fica desconhecido e nao recebe pontos no scorer;
@@ -185,7 +192,7 @@ webExistRate, webNewRate
 ```
 
 O retorno nao incluiu `freeShipping`, disponibilidade ou status explicito de
-elegibilidade. Uma resposta vazia continua inconclusiva e nao cria snapshot de
+eligibilidade. Uma resposta vazia continua inconclusiva e nao cria snapshot de
 indisponibilidade.
 
 ## Migration e validacao
