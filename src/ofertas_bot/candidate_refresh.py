@@ -16,6 +16,7 @@ from ofertas_bot.providers.shopee_graphql import (
 
 REFRESH_SOURCE = "shopee_productOfferV2"
 MANUAL_CONFIRMATION_SOURCE = "manual_confirmed_unavailable"
+AUTO_CONFIRMATION_SOURCE = "auto_confirmed_unavailable"
 REFRESH_STATUSES = ("MISSING", "STALE", "FRESH", "UNAVAILABLE_CONFIRMED")
 ATTEMPT_STATUSES = (
     "success",
