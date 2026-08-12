@@ -12,6 +12,7 @@ from psycopg.types.json import Jsonb
 
 from ofertas_bot.candidate_refresh import (
     ATTEMPT_STATUSES,
+    AUTO_CONFIRMATION_SOURCE,
     MANUAL_CONFIRMATION_SOURCE,
     REFRESH_SOURCE,
     CandidateRefreshError,
@@ -156,6 +157,44 @@ class SupabaseCandidateRefreshStore:
         by_item = {int(row["item_id"]): _scoring_candidate(row) for row in rows}
         return [by_item[item_id] for item_id in item_ids if item_id in by_item]
 
+    def load_auto_confirmable_unavailable_item_ids(
+        self,
+        *,
+        profile: str,
+        marketplace: str,
+        item_ids: Sequence[int],
+        min_no_node_attempts: int,
+    ) -> list[int]:
+        if min_no_node_attempts <= 0:
+            raise CandidateRefreshError("min_no_node_attempts must be positive")
+        if not item_ids:
+            return []
+        rows = self._connection.execute(
+            """
+            with candidate_attempts as (
+              select
+                attempt.item_id,
+                count(*) filter (where attempt.status = 'no_node') as no_node_attempts,
+                max(attempt.attempted_at) as last_attempted_at,
+                max(attempt.attempted_at) filter (
+                  where attempt.status = 'no_node'
+                ) as last_no_node_at
+              from offers.offer_refresh_attempts attempt
+              where attempt.profile = %s
+                and attempt.marketplace = %s
+                and attempt.item_id = any(%s)
+              group by attempt.item_id
+            )
+            select item_id
+            from candidate_attempts
+            where no_node_attempts >= %s
+              and last_attempted_at = last_no_node_at
+            order by item_id
+            """,
+            (profile, marketplace, list(item_ids), min_no_node_attempts),
+        ).fetchall()
+        return [int(row["item_id"]) for row in rows]
+
     def record_success(self, *, profile: str, snapshot: SnapshotInput) -> int:
         with self._connection.transaction():
             row = self._connection.execute(
@@ -299,7 +338,11 @@ class SupabaseCandidateRefreshStore:
         item_id: int,
         confirmed_at: datetime,
         reason: str,
+        source: str = MANUAL_CONFIRMATION_SOURCE,
+        error_type: str = "ManualConfirmation",
     ) -> None:
+        if source not in {MANUAL_CONFIRMATION_SOURCE, AUTO_CONFIRMATION_SOURCE}:
+            raise CandidateRefreshError(f"invalid unavailable confirmation source: {source}")
         self._connection.execute(
             """
             insert into offers.offer_refresh_attempts (
@@ -319,9 +362,9 @@ class SupabaseCandidateRefreshStore:
                 marketplace,
                 item_id,
                 confirmed_at,
-                "ManualConfirmation",
+                error_type[:200],
                 reason[:2000],
-                MANUAL_CONFIRMATION_SOURCE,
+                source,
             ),
         )
 
@@ -377,7 +420,8 @@ def _scoring_candidate(row: dict[str, object]) -> ScoringCandidate:
         shop_id=int(row["shop_id"]) if row["shop_id"] is not None else None,
         price=Decimal(row["price"]),
         reference_price=(
-            Decimal(row["reference_price"]) if row["reference_price"] is not None else None
+            Decimal(row["reference_price"])
+            if row["reference_price"] is not None else None
         ),
         commission_rate=Decimal(row["commission_rate"]),
         sales_count=int(row["sales_count"] or 0),
