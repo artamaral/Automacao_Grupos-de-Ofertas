@@ -15,8 +15,15 @@ from ofertas_bot.providers.shopee_graphql import (
 )
 
 REFRESH_SOURCE = "shopee_productOfferV2"
-REFRESH_STATUSES = ("MISSING", "STALE", "FRESH")
-ATTEMPT_STATUSES = ("success", "technical_failure", "no_node", "invalid_payload")
+MANUAL_CONFIRMATION_SOURCE = "manual_confirmed_unavailable"
+REFRESH_STATUSES = ("MISSING", "STALE", "FRESH", "UNAVAILABLE_CONFIRMED")
+ATTEMPT_STATUSES = (
+    "success",
+    "technical_failure",
+    "no_node",
+    "invalid_payload",
+    "confirmed_unavailable",
+)
 
 _PRODUCT_PATH_SHOP_RE = re.compile(r"/product/(\d+)/")
 _ITEM_PATH_SHOP_RE = re.compile(r"(?:^|/)i\.(\d+)\.\d+(?:$|[/?])")
@@ -206,7 +213,11 @@ def select_ranked_refresh_candidates(
     eligible = [
         item
         for item in _deduplicate_candidates(candidates)
-        if item.is_eligible and item.rank_subniche is not None
+        if (
+            item.is_eligible
+            and item.rank_subniche is not None
+            and item.refresh_status != "UNAVAILABLE_CONFIRMED"
+        )
     ]
     ranking_limit = limit * (100 - exploration_percent) // 100
     exploration_limit = limit - ranking_limit
@@ -382,6 +393,8 @@ def _priority(candidate: DiscoveryCandidate) -> int:
         return 2
     if candidate.refresh_status == "FRESH":
         return 3
+    if candidate.refresh_status == "UNAVAILABLE_CONFIRMED":
+        return 4
     raise CandidateRefreshError(f"invalid refresh status: {candidate.refresh_status}")
 
 
