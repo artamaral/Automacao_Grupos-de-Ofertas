@@ -143,6 +143,30 @@ def test_no_node_records_attempt_without_snapshot(tmp_path: Path) -> None:
     assert result.report["summary"]["no_node_refreshes"] == 1
 
 
+def test_confirmed_unavailable_items_leave_the_automatic_queue(tmp_path: Path) -> None:
+    store = FakeStore(
+        [
+            _candidate(1, refresh_status="UNAVAILABLE_CONFIRMED"),
+            _candidate(2),
+        ]
+    )
+    provider = FakeProvider({2: _response(2)})
+
+    _run(tmp_path, store=store, provider=provider, discovery_limit=2)
+
+    assert provider.calls == [2]
+
+
+def test_explicit_item_can_recheck_confirmed_unavailable_candidate(tmp_path: Path) -> None:
+    store = FakeStore([_candidate(1, refresh_status="UNAVAILABLE_CONFIRMED")])
+    provider = FakeProvider({1: _response(1)})
+
+    result = _run(tmp_path, store=store, provider=provider, item_ids=[1])
+
+    assert provider.calls == [1]
+    assert result.report["summary"]["successful_refreshes"] == 1
+
+
 def test_two_real_verifications_preserve_two_snapshots(tmp_path: Path) -> None:
     store = FakeStore([_candidate(1)])
     provider = FakeProvider({1: _response(1, price="100")})
@@ -180,7 +204,7 @@ def _run(
     )
 
 
-def _candidate(item_id: int) -> DiscoveryCandidate:
+def _candidate(item_id: int, *, refresh_status: str = "MISSING") -> DiscoveryCandidate:
     return DiscoveryCandidate(
         catalog_item_id=item_id,
         profile="feminino",
@@ -192,7 +216,7 @@ def _candidate(item_id: int) -> DiscoveryCandidate:
         image_url=None,
         subniches=("maquiagem-olhos",),
         primary_subniche="maquiagem-olhos",
-        refresh_status="MISSING",
+        refresh_status=refresh_status,
         last_checked_at=None,
         last_attempted_at=None,
         last_attempt_status=None,
