@@ -55,7 +55,8 @@ rechecagem explicita de `item_id`.
 - `offer_snapshots`: uma linha para cada verificacao externa bem-sucedida;
 - `offer_refresh_attempts`: uma linha para cada chamada real, inclusive erro;
 - `v_offer_latest_snapshot`: ultimo snapshot por item;
-- `v_offer_refresh_status`: `MISSING`, `FRESH` ou `STALE` no catalogo ativo;
+- `v_offer_refresh_status`: `MISSING`, `FRESH`, `STALE` ou `UNAVAILABLE_CONFIRMED`
+  no catalogo ativo;
 - `v_offer_scoring_current`: metadados do catalogo mais o ultimo estado
   comercial, com fallback por campo para o catalogo.
 
@@ -80,6 +81,16 @@ Dry-run, tambem usado quando nenhuma flag de escrita e informada:
 O dry-run consulta o banco, monta a fila e estima chamadas. Ele nao chama a
 Shopee e nao grava tentativa ou snapshot.
 
+Para confirmar manualmente uma rodada ja inspecionada:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\shopee\confirm_candidate_unavailable.py `
+  --profile feminino `
+  --refresh-attempts-file .data\candidate_refresh\feminino\<run_id>\refresh_attempts.csv `
+  --apply `
+  --confirm-remote-write CONFIRM_CANDIDATE_UNAVAILABLE
+```
+
 ## Execucao agendada na VPS
 
 O refresh operacional roda fora do n8n, por `systemd timer`, na VPS Hostinger.
@@ -101,7 +112,11 @@ Como a VPS esta em UTC, o timer usa timezone explicito:
 OnCalendar=*-*-* 07:00:00 America/Sao_Paulo
 ```
 
-O wrapper usa `flock`, preserva os artefatos locais e executa:
+O wrapper usa `flock`, preserva os artefatos locais, executa o refresh real e,
+por padrao, roda um pos-processo que confirma automaticamente itens com
+`no_node` recorrente quando a rodada termina com sucesso. O limite padrao e
+`AUTO_CONFIRM_UNAVAILABLE_MIN_NO_NODE_ATTEMPTS=2`, para evitar esconder um item
+por um `no_node` isolado.
 
 ```bash
 /opt/automacao_grupo_compras/app/.venv/bin/python \
@@ -114,6 +129,29 @@ O wrapper usa `flock`, preserva os artefatos locais e executa:
   --apply \
   --confirm-remote-write REFRESH_SHOPEE_CANDIDATES
 ```
+
+Pos-etapa automatica do wrapper:
+
+```bash
+/opt/automacao_grupo_compras/app/.venv/bin/python \
+  /opt/automacao_grupo_compras/app/scripts/shopee/auto_confirm_candidate_unavailable.py \
+  --profile feminino \
+  --marketplace shopee \
+  --refresh-attempts-file .data/candidate_refresh/feminino/<run_id>/refresh_attempts.csv \
+  --min-no-node-attempts 2 \
+  --apply \
+  --confirm-remote-write AUTO_CONFIRM_CANDIDATE_UNAVAILABLE
+```
+
+Variaveis operacionais do wrapper:
+
+- `AUTO_CONFIRM_UNAVAILABLE_ENABLED=true` ativa a pos-etapa automatica;
+- `AUTO_CONFIRM_UNAVAILABLE_MIN_NO_NODE_ATTEMPTS=2` exige recorrencia antes da
+  confirmacao automatica;
+- `AUTO_CONFIRM_UNAVAILABLE_REASON` personaliza a justificativa gravada no
+  ledger;
+- `AUTO_CONFIRM_UNAVAILABLE_CONFIRMATION=AUTO_CONFIRM_CANDIDATE_UNAVAILABLE`
+  protege a escrita remota da pos-etapa.
 
 Credenciais reais ficam somente no `.env` local da VPS, fora do Git. Antes de
 habilitar o timer, validar SSH, `git pull`, Python 3.11+, `.venv`, `.env`,
@@ -169,6 +207,8 @@ Os arquivos sao auditoria local. A verdade historica permanece no Supabase.
 - confirmacao manual de indisponibilidade grava `confirmed_unavailable` no
   ledger de tentativas e muda o status operacional para
   `UNAVAILABLE_CONFIRMED`;
+- confirmacao automatica de indisponibilidade so ocorre depois de recorrencia
+  configurada de `no_node` e registra `source=auto_confirmed_unavailable`;
 - a API consultada nao entrega campo explicito de frete, disponibilidade ou
   elegibilidade de afiliado no contrato atual;
 - frete fica desconhecido e nao recebe pontos no scorer;
