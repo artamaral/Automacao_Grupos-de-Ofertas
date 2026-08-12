@@ -12,6 +12,7 @@ from psycopg.types.json import Jsonb
 
 from ofertas_bot.candidate_refresh import (
     ATTEMPT_STATUSES,
+    MANUAL_CONFIRMATION_SOURCE,
     REFRESH_SOURCE,
     CandidateRefreshError,
     DiscoveryCandidate,
@@ -287,6 +288,40 @@ class SupabaseCandidateRefreshStore:
                 error_type[:200],
                 error_detail[:2000],
                 REFRESH_SOURCE,
+            ),
+        )
+
+    def record_unavailable_confirmation(
+        self,
+        *,
+        profile: str,
+        marketplace: str,
+        item_id: int,
+        confirmed_at: datetime,
+        reason: str,
+    ) -> None:
+        self._connection.execute(
+            """
+            insert into offers.offer_refresh_attempts (
+              profile,
+              marketplace,
+              item_id,
+              attempted_at,
+              status,
+              error_type,
+              error_detail,
+              source
+            )
+            values (%s, %s, %s, %s, 'confirmed_unavailable', %s, %s, %s)
+            """,
+            (
+                profile,
+                marketplace,
+                item_id,
+                confirmed_at,
+                "ManualConfirmation",
+                reason[:2000],
+                MANUAL_CONFIRMATION_SOURCE,
             ),
         )
 
