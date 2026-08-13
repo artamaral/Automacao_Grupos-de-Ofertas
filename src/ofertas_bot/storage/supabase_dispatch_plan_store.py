@@ -91,30 +91,31 @@ class SupabaseDispatchPlanStore:
                 """,
                 (profile, marketplace, planned_date),
             )
-            self._connection.executemany(
-                """
-                insert into offers.daily_dispatch_plan (
-                  profile, marketplace, stable_key, item_id, primary_subniche,
-                  commercial_score, selection_bucket, selection_reason,
-                  planned_date, planned_hour, slot_sequence, daily_sequence
-                )
-                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                [
-                    (
-                        item.candidate.profile,
-                        item.candidate.marketplace,
-                        item.candidate.stable_key,
-                        item.candidate.item_id,
-                        item.candidate.primary_subniche,
-                        item.candidate.commercial_score,
-                        item.selection_bucket,
-                        item.selection_reason,
-                        item.planned_date,
-                        item.planned_hour,
-                        item.slot_sequence,
-                        item.daily_sequence,
+            with self._connection.cursor() as cursor:
+                cursor.executemany(
+                    """
+                    insert into offers.daily_dispatch_plan (
+                      profile, marketplace, stable_key, item_id, primary_subniche,
+                      commercial_score, selection_bucket, selection_reason,
+                      planned_date, planned_hour, slot_sequence, daily_sequence
                     )
-                    for item in items
-                ],
-            )
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    [
+                        (
+                            item.candidate.profile,
+                            item.candidate.marketplace,
+                            item.candidate.stable_key,
+                            item.candidate.item_id,
+                            item.candidate.primary_subniche,
+                            item.candidate.commercial_score,
+                            item.selection_bucket,
+                            item.selection_reason,
+                            item.planned_date,
+                            item.planned_hour,
+                            item.slot_sequence,
+                            item.daily_sequence,
+                        )
+                        for item in items
+                    ],
+                )
