@@ -45,6 +45,7 @@ class CatalogValidation:
     def summary(self) -> dict[str, object]:
         return {
             "contract": "clean_catalog_rating_4_8_plus_v1",
+            "import_mode": "incremental_discovery_v1",
             "row_count": self.row_count,
             "min_rating": str(self.min_rating),
             "max_rating": str(self.max_rating),
@@ -75,6 +76,16 @@ class CatalogItem:
     source_payload: dict[str, object]
 
 
+@dataclass(frozen=True)
+class CatalogImportResult:
+    import_id: str
+    status: str
+    operation: str
+    new_items: int
+    existing_items: int
+    snapshots: int
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Validate or import one curated catalog into Supabase."
@@ -88,9 +99,11 @@ def parse_args() -> argparse.Namespace:
         help="Write to Supabase. Without this flag the command is validation-only.",
     )
     parser.add_argument(
-        "--activate",
-        action="store_true",
-        help="Activate the imported catalog after row-count validation.",
+        "--observed-at",
+        help=(
+            "ISO 8601 timestamp with timezone for the discovery observation. "
+            "Required with --apply."
+        ),
     )
     parser.add_argument(
         "--confirm-remote-write",
@@ -128,6 +141,21 @@ def stable_offer_key(marketplace: str, url: str) -> str:
     )
     raw_key = f"{marketplace}|{normalized_url}"
     return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
+
+def parse_observed_at(value: str | None) -> datetime:
+    if not value:
+        raise CatalogImportError("--observed-at is required with --apply")
+    normalized = value.strip()
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    try:
+        observed_at = datetime.fromisoformat(normalized)
+    except ValueError as error:
+        raise CatalogImportError("--observed-at must be a valid ISO 8601 timestamp") from error
+    if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+        raise CatalogImportError("--observed-at must include a timezone")
+    return observed_at.astimezone(UTC)
 
 
 def validate_catalog(path: Path, *, profile: str, marketplace: str) -> CatalogValidation:
@@ -246,11 +274,14 @@ def parse_catalog_item(
 def import_catalog(
     validation: CatalogValidation,
     *,
-    activate: bool,
+    observed_at: datetime,
     confirmation: str | None,
-) -> tuple[str, str, str]:
+) -> CatalogImportResult:
     if confirmation != CONFIRMATION:
         raise CatalogImportError(f"--confirm-remote-write must be exactly {CONFIRMATION}")
+    if observed_at.tzinfo is None or observed_at.utcoffset() is None:
+        raise CatalogImportError("observed_at must include a timezone")
+    observed_at = observed_at.astimezone(UTC)
 
     with connect() as connection:
         connection.execute(
@@ -259,36 +290,43 @@ def import_catalog(
         )
         existing = connection.execute(
             """
-            select id, status, row_count
+            select id, status, row_count, validation_summary
             from offers.catalog_imports
             where profile = %s
               and marketplace = %s
               and source_sha256 = %s
+              and observed_at = %s
             """,
             (
                 validation.profile,
                 validation.marketplace,
                 validation.source_sha256,
+                observed_at,
             ),
         ).fetchone()
 
         if existing is not None:
-            import_id, status, recorded_count = existing
-            actual_count = connection.execute(
-                "select count(*) from offers.catalog_items where import_id = %s",
+            import_id, status, recorded_count, summary = existing
+            snapshot_count = connection.execute(
+                "select count(*) from offers.offer_snapshots where catalog_import_id = %s",
                 (import_id,),
             ).fetchone()[0]
-            if recorded_count != validation.row_count or actual_count != validation.row_count:
+            if recorded_count != validation.row_count or snapshot_count != validation.row_count:
                 raise CatalogImportError(
-                    "existing import row count does not match the validated catalog"
+                    "existing import snapshot count does not match the validated catalog"
                 )
-            if activate and status != "active":
-                connection.execute(
-                    "select (offers.activate_catalog_import(%s)).id",
-                    (import_id,),
-                ).fetchone()
-                status = "active"
-            return str(import_id), str(status), "reused"
+            new_items = int(summary.get("new_items", 0))
+            existing_items = int(summary.get("existing_items", 0))
+            if new_items + existing_items != validation.row_count:
+                raise CatalogImportError("existing import item counts are incomplete")
+            return CatalogImportResult(
+                import_id=str(import_id),
+                status=str(status),
+                operation="reused",
+                new_items=new_items,
+                existing_items=existing_items,
+                snapshots=int(snapshot_count),
+            )
 
         import_id = connection.execute(
             """
@@ -298,10 +336,12 @@ def import_catalog(
               source_path,
               source_sha256,
               source_modified_at,
+              observed_at,
               row_count,
+              status,
               validation_summary
             )
-            values (%s, %s, %s, %s, %s, %s, %s)
+            values (%s, %s, %s, %s, %s, %s, %s, 'completed', %s)
             returning id
             """,
             (
@@ -310,16 +350,36 @@ def import_catalog(
                 validation.path.as_posix(),
                 validation.source_sha256,
                 validation.source_modified_at,
+                observed_at,
                 validation.row_count,
                 Jsonb(validation.summary()),
             ),
         ).fetchone()[0]
 
+        connection.execute(
+            """
+            create temporary table catalog_import_stage (
+              stable_key text not null,
+              item_id bigint not null,
+              product_name text not null,
+              product_link text not null,
+              offer_link text,
+              image_url text,
+              price numeric(14, 2) not null,
+              reference_price numeric(14, 2),
+              sales_count bigint not null,
+              rating numeric(3, 2) not null,
+              shop_type_codes smallint[] not null,
+              seller_commission_rate numeric(9, 6),
+              shopee_commission_rate numeric(9, 6),
+              subniches text[] not null,
+              source_row_number integer not null,
+              source_payload jsonb not null
+            ) on commit drop
+            """
+        )
         copy_sql = """
-            copy offers.catalog_items (
-              import_id,
-              profile,
-              marketplace,
+            copy catalog_import_stage (
               stable_key,
               item_id,
               product_name,
@@ -333,7 +393,6 @@ def import_catalog(
               shop_type_codes,
               seller_commission_rate,
               shopee_commission_rate,
-              is_free_shipping,
               subniches,
               source_row_number,
               source_payload
@@ -347,9 +406,6 @@ def import_catalog(
             ):
                 copy.write_row(
                     (
-                        import_id,
-                        validation.profile,
-                        validation.marketplace,
                         item.stable_key,
                         item.item_id,
                         item.product_name,
@@ -363,31 +419,198 @@ def import_catalog(
                         item.shop_type_codes,
                         item.seller_commission_rate,
                         item.shopee_commission_rate,
-                        False,
                         item.subniches,
                         item.source_row_number,
                         Jsonb(item.source_payload),
                     )
                 )
 
-        inserted_count = connection.execute(
-            "select count(*) from offers.catalog_items where import_id = %s",
-            (import_id,),
-        ).fetchone()[0]
-        if inserted_count != validation.row_count:
+        stable_key_conflict = connection.execute(
+            """
+            select stage.source_row_number, stage.stable_key, stage.item_id, item.item_id
+            from catalog_import_stage stage
+            join offers.catalog_items item
+              on item.profile = %s
+             and item.marketplace = %s
+             and item.stable_key = stage.stable_key
+             and item.item_id <> stage.item_id
+            limit 1
+            """,
+            (validation.profile, validation.marketplace),
+        ).fetchone()
+        if stable_key_conflict is not None:
+            source_row, stable_key, incoming_item_id, stored_item_id = stable_key_conflict
             raise CatalogImportError(
-                f"inserted row count mismatch: {inserted_count} != {validation.row_count}"
+                "stable key conflict at source row "
+                f"{source_row}: key={stable_key} "
+                f"incoming_item_id={incoming_item_id} stored_item_id={stored_item_id}"
             )
 
-        status = "staged"
-        if activate:
-            connection.execute(
-                "select (offers.activate_catalog_import(%s)).id",
-                (import_id,),
-            ).fetchone()
-            status = "active"
+        existing_count = connection.execute(
+            """
+            select count(*)
+            from catalog_import_stage stage
+            join offers.catalog_items item
+              on item.profile = %s
+             and item.marketplace = %s
+             and item.item_id = stage.item_id
+            """,
+            (validation.profile, validation.marketplace),
+        ).fetchone()[0]
 
-    return str(import_id), status, "created"
+        new_count = connection.execute(
+            """
+            with inserted as (
+              insert into offers.catalog_items (
+                import_id,
+                profile,
+                marketplace,
+                stable_key,
+                item_id,
+                product_name,
+                product_link,
+                offer_link,
+                image_url,
+                price,
+                reference_price,
+                sales_count,
+                rating,
+                shop_type_codes,
+                seller_commission_rate,
+                shopee_commission_rate,
+                is_free_shipping,
+                subniches,
+                source_row_number,
+                source_payload
+              )
+              select
+                %s,
+                %s,
+                %s,
+                stage.stable_key,
+                stage.item_id,
+                stage.product_name,
+                stage.product_link,
+                stage.offer_link,
+                stage.image_url,
+                stage.price,
+                stage.reference_price,
+                stage.sales_count,
+                stage.rating,
+                stage.shop_type_codes,
+                stage.seller_commission_rate,
+                stage.shopee_commission_rate,
+                false,
+                stage.subniches,
+                stage.source_row_number,
+                stage.source_payload
+              from catalog_import_stage stage
+              on conflict (profile, marketplace, item_id) do nothing
+              returning id
+            )
+            select count(*) from inserted
+            """,
+            (import_id, validation.profile, validation.marketplace),
+        ).fetchone()[0]
+        if new_count + existing_count != validation.row_count:
+            raise CatalogImportError(
+                "catalog classification count mismatch: "
+                f"new={new_count} existing={existing_count} rows={validation.row_count}"
+            )
+
+        snapshot_count = connection.execute(
+            """
+            with inserted as (
+              insert into offers.offer_snapshots (
+                marketplace,
+                item_id,
+                checked_at,
+                product_name,
+                product_link,
+                offer_link,
+                image_url,
+                price,
+                price_min,
+                price_max,
+                price_discount_rate,
+                commission_rate,
+                seller_commission_rate,
+                shopee_commission_rate,
+                sales_count,
+                rating,
+                shop_type_codes,
+                source,
+                source_payload,
+                catalog_import_id
+              )
+              select
+                %s,
+                stage.item_id,
+                %s,
+                stage.product_name,
+                stage.product_link,
+                stage.offer_link,
+                stage.image_url,
+                stage.price,
+                stage.price,
+                stage.reference_price,
+                case
+                  when stage.reference_price > stage.price
+                    then round(
+                      ((stage.reference_price - stage.price) / stage.reference_price) * 100,
+                      3
+                    )
+                  else null
+                end,
+                case
+                  when stage.seller_commission_rate is not null
+                    or stage.shopee_commission_rate is not null
+                    then coalesce(stage.seller_commission_rate, 0)
+                       + coalesce(stage.shopee_commission_rate, 0)
+                  else null
+                end,
+                stage.seller_commission_rate,
+                stage.shopee_commission_rate,
+                stage.sales_count,
+                stage.rating,
+                stage.shop_type_codes,
+                'catalog_discovery',
+                stage.source_payload,
+                %s
+              from catalog_import_stage stage
+              returning id
+            )
+            select count(*) from inserted
+            """,
+            (validation.marketplace, observed_at, import_id),
+        ).fetchone()[0]
+        if snapshot_count != validation.row_count:
+            raise CatalogImportError(
+                f"snapshot row count mismatch: {snapshot_count} != {validation.row_count}"
+            )
+
+        completed_summary = validation.summary() | {
+            "new_items": int(new_count),
+            "existing_items": int(existing_count),
+            "snapshots": int(snapshot_count),
+        }
+        connection.execute(
+            """
+            update offers.catalog_imports
+            set validation_summary = %s
+            where id = %s
+            """,
+            (Jsonb(completed_summary), import_id),
+        )
+
+    return CatalogImportResult(
+        import_id=str(import_id),
+        status="completed",
+        operation="created",
+        new_items=int(new_count),
+        existing_items=int(existing_count),
+        snapshots=int(snapshot_count),
+    )
 
 
 def _required_text(value: object, field: str, row: int) -> str:
@@ -482,20 +705,27 @@ def main() -> int:
     )
 
     if not args.apply:
+        if args.observed_at:
+            observed_at = parse_observed_at(args.observed_at)
+            print(f"OBSERVED_AT={observed_at.isoformat()}")
         print("REMOTE_WRITE=SKIPPED")
         return 0
 
-    import_id, status, operation = import_catalog(
+    observed_at = parse_observed_at(args.observed_at)
+    result = import_catalog(
         validation,
-        activate=args.activate,
+        observed_at=observed_at,
         confirmation=args.confirm_remote_write,
     )
     print(
         "REMOTE_WRITE=OK "
         f"profile={validation.profile} "
-        f"import_id={import_id} "
-        f"status={status} "
-        f"operation={operation}"
+        f"import_id={result.import_id} "
+        f"status={result.status} "
+        f"operation={result.operation} "
+        f"new_items={result.new_items} "
+        f"existing_items={result.existing_items} "
+        f"snapshots={result.snapshots}"
     )
     return 0
 

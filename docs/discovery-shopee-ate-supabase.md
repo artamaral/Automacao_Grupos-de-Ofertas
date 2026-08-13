@@ -38,7 +38,7 @@ operador.
     -> [7] Gerar catalogo curado local
     -> [8] Validar contrato do catalogo
     -> [9] Importar para Supabase
-    -> [10] Catalogo ativo no Supabase
+    -> [10] Catalogo persistente no Supabase
 ```
 
 ## Etapas detalhadas
@@ -230,8 +230,16 @@ Bloco principal:
 O que acontece:
 
 - cria registro em `catalog_imports`;
-- grava linhas em `catalog_items`;
-- usa importacao idempotente.
+- exige o instante explicito `observed_at` da coleta;
+- identifica existencia por `profile + marketplace + item_id`;
+- se o item ja existe, preserva seu cadastro e cria um `offer_snapshot`;
+- se o item e novo, grava em `catalog_items` e cria o snapshot inicial;
+- usa `profile + marketplace + source_sha256 + observed_at` como chave de
+  idempotencia.
+
+Um item que nao aparece em uma rodada posterior permanece em `catalog_items`.
+Remocao ou desativacao depende de outra regra de negocio e nao faz parte do
+discovery.
 
 Status da etapa:
 
@@ -239,7 +247,7 @@ Status da etapa:
 - nao esta ligada automaticamente ao fim da curadoria
 - hoje costuma depender de trigger externo do operador
 
-### [10] Catalogo ativo no Supabase
+### [10] Catalogo persistente no Supabase
 
 Destino principal:
 
@@ -248,6 +256,7 @@ Destino principal:
 O que acontece:
 
 - os novos itens passam a existir no catalogo do Supabase;
+- itens ja conhecidos ganham um novo snapshot comercial;
 - ficam disponiveis para consumo pelas camadas seguintes do sistema.
 
 Status da etapa:
@@ -278,7 +287,11 @@ Esse bloco tambem ja existe e roda dentro do harness de limpeza.
 ### Bloco C: entrada no Supabase
 
 ```text
-catalogo curado -> validacao -> importacao idempotente -> catalog_items
+catalogo curado + observed_at
+  -> validacao
+  -> importacao idempotente
+  -> item existente: offer_snapshots
+  -> item novo: catalog_items + offer_snapshots
 ```
 
 Esse bloco tambem ja possui scripts prontos.

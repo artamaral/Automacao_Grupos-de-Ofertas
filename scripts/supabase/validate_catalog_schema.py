@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 EXPECTED_RELATIONS = {
     ("candidate_refresh_policies", "BASE TABLE"),
     ("catalog_imports", "BASE TABLE"),
+    ("catalog_item_import_history", "BASE TABLE"),
     ("catalog_items", "BASE TABLE"),
     ("offer_refresh_attempts", "BASE TABLE"),
     ("offer_selection_state", "BASE TABLE"),
@@ -83,6 +84,7 @@ EXPECTED_PUBLICATION_EVENT_COLUMNS = {
 }
 
 EXPECTED_SNAPSHOT_COLUMNS = {
+    "catalog_import_id",
     "item_id",
     "checked_at",
     "price",
@@ -95,6 +97,13 @@ EXPECTED_SNAPSHOT_COLUMNS = {
     "shop_type_codes",
     "source",
     "source_payload",
+}
+
+EXPECTED_IMPORT_COLUMNS = {
+    "observed_at",
+    "source_sha256",
+    "status",
+    "validation_summary",
 }
 
 EXPECTED_REFRESH_STATUS_COLUMNS = {
@@ -216,6 +225,7 @@ def validate_publication_event_columns(connection: psycopg.Connection) -> None:
 
 def validate_candidate_refresh_columns(connection: psycopg.Connection) -> None:
     expected_by_relation = {
+        "catalog_imports": EXPECTED_IMPORT_COLUMNS,
         "offer_snapshots": EXPECTED_SNAPSHOT_COLUMNS,
         "v_offer_refresh_status": EXPECTED_REFRESH_STATUS_COLUMNS,
         "v_offer_scoring_current": EXPECTED_SCORING_CURRENT_COLUMNS,
@@ -248,6 +258,7 @@ def validate_security(connection: psycopg.Connection) -> None:
           and relname in (
             'schema_migrations',
             'catalog_imports',
+            'catalog_item_import_history',
             'catalog_items',
             'candidate_refresh_policies',
             'offer_snapshots',
@@ -274,19 +285,83 @@ def validate_security(connection: psycopg.Connection) -> None:
         raise AssertionError(f"unexpected public offers grants: {public_grants!r}")
 
 
-def validate_active_catalogs(
+def validate_incremental_catalog_contract(connection: psycopg.Connection) -> None:
+    invalid_statuses = connection.execute(
+        """
+        select array_agg(distinct status order by status)
+        from offers.catalog_imports
+        where status not in ('completed', 'rejected')
+        """
+    ).fetchone()[0]
+    if invalid_statuses:
+        raise AssertionError(f"unexpected catalog import statuses: {invalid_statuses!r}")
+
+    activation_function = connection.execute(
+        "select to_regprocedure('offers.activate_catalog_import(uuid)')"
+    ).fetchone()[0]
+    if activation_function is not None:
+        raise AssertionError("legacy activate_catalog_import function still exists")
+
+    duplicate_identity = connection.execute(
+        """
+        select profile, marketplace, item_id, count(*)
+        from offers.catalog_items
+        group by profile, marketplace, item_id
+        having count(*) > 1
+        limit 1
+        """
+    ).fetchone()
+    if duplicate_identity is not None:
+        raise AssertionError(f"duplicate persistent catalog identity: {duplicate_identity!r}")
+
+    required_indexes = (
+        "offers.catalog_items_profile_marketplace_item_id_idx",
+        "offers.catalog_items_profile_marketplace_stable_key_idx",
+        "offers.offer_snapshots_catalog_import_item_idx",
+    )
+    missing_indexes = [
+        index_name
+        for index_name in required_indexes
+        if connection.execute("select to_regclass(%s)", (index_name,)).fetchone()[0]
+        is None
+    ]
+    if missing_indexes:
+        raise AssertionError(f"missing incremental catalog indexes: {missing_indexes!r}")
+
+    view_definitions = connection.execute(
+        """
+        select viewname, lower(definition)
+        from pg_views
+        where schemaname = 'offers'
+          and viewname in ('v_offer_refresh_status', 'v_offer_ranking_current')
+        """
+    ).fetchall()
+    legacy_filters = [
+        name for name, definition in view_definitions if "status = 'active'" in definition
+    ]
+    if legacy_filters:
+        raise AssertionError(f"views still filter active imports: {legacy_filters!r}")
+
+
+def validate_persistent_catalog(
     connection: psycopg.Connection,
-) -> list[tuple[str, int, int, int, int, int, str]]:
+) -> list[tuple[str, int, int, int, int]]:
     rows = connection.execute(
         """
         with stored as (
-          select import_id, count(*) as stored_count
+          select
+            profile,
+            marketplace,
+            count(*) as stored_count,
+            count(distinct item_id) as distinct_item_count,
+            count(distinct stable_key) as distinct_stable_key_count
           from offers.catalog_items
-          group by import_id
+          group by profile, marketplace
         ),
         ranked as (
           select
-            import_id,
+            profile,
+            marketplace,
             count(*) as ranked_count,
             count(*) filter (where is_eligible) as eligible_count,
             count(distinct primary_subniche) as subniche_count,
@@ -295,45 +370,50 @@ def validate_active_catalogs(
               as distinct_rank_count,
             max(rank_profile) filter (where is_eligible) as max_rank
           from offers.v_offer_ranking_current
-          group by import_id
+          group by profile, marketplace
         )
         select
-          imp.profile,
-          imp.row_count,
+          stored.profile,
           stored.stored_count,
+          stored.distinct_item_count,
+          stored.distinct_stable_key_count,
           ranked.ranked_count,
           ranked.eligible_count,
           ranked.subniche_count,
-          left(imp.source_sha256, 12),
           ranked.rank_count,
           ranked.distinct_rank_count,
           ranked.max_rank
-        from offers.catalog_imports imp
-        join stored on stored.import_id = imp.id
-        join ranked on ranked.import_id = imp.id
-        where imp.status = 'active'
-        order by imp.profile
+        from stored
+        join ranked
+          on ranked.profile = stored.profile
+         and ranked.marketplace = stored.marketplace
+        order by stored.profile
         """
     ).fetchall()
 
-    results: list[tuple[str, int, int, int, int, int, str]] = []
+    results: list[tuple[str, int, int, int, int]] = []
     for row in rows:
         (
             profile,
-            declared,
             stored_count,
+            distinct_item_count,
+            distinct_stable_key_count,
             ranked_count,
             eligible,
             subniche_count,
-            source_hash,
             rank_count,
             distinct_rank_count,
             max_rank,
         ) = row
-        if declared != stored_count or stored_count != ranked_count:
+        if (
+            stored_count != distinct_item_count
+            or stored_count != distinct_stable_key_count
+            or stored_count != ranked_count
+        ):
             raise AssertionError(
                 f"catalog count mismatch for {profile}: "
-                f"declared={declared} stored={stored_count} ranked={ranked_count}"
+                f"stored={stored_count} item_ids={distinct_item_count} "
+                f"stable_keys={distinct_stable_key_count} ranked={ranked_count}"
             )
         if (rank_count, distinct_rank_count, max_rank) != (
             eligible,
@@ -347,12 +427,10 @@ def validate_active_catalogs(
         results.append(
             (
                 profile,
-                declared,
                 stored_count,
                 ranked_count,
                 eligible,
                 subniche_count,
-                source_hash,
             )
         )
     return results
@@ -375,9 +453,9 @@ def validate_score_fixture(connection: psycopg.Connection) -> None:
           marketplace,
           source_path,
           source_sha256,
+          observed_at,
           row_count,
           status,
-          activated_at,
           validation_summary
         )
         values (
@@ -385,9 +463,9 @@ def validate_score_fixture(connection: psycopg.Connection) -> None:
           'shopee',
           'rollback-only.csv',
           %s,
-          1,
-          'active',
           now(),
+          1,
+          'completed',
           '{"rollback_only": true}'::jsonb
         )
         returning id
@@ -686,7 +764,8 @@ def main() -> int:
         validate_publication_event_columns(connection)
         validate_candidate_refresh_columns(connection)
         validate_security(connection)
-        active_catalogs = validate_active_catalogs(connection)
+        validate_incremental_catalog_contract(connection)
+        persistent_catalog = validate_persistent_catalog(connection)
         validate_score_fixture(connection)
         validate_candidate_refresh_fixture(connection)
         connection.rollback()
@@ -701,16 +780,14 @@ def main() -> int:
     print(f"CONNECTION_KIND={host_kind}")
     for relation_name, relation_type in relations:
         print(f"offers.{relation_name} [{relation_type}]")
-    for profile, declared, stored, ranked, eligible, subniches, sha_prefix in active_catalogs:
+    for profile, stored, ranked, eligible, subniches in persistent_catalog:
         print(
-            "ACTIVE_CATALOG=OK "
+            "PERSISTENT_CATALOG=OK "
             f"profile={profile} "
-            f"declared={declared} "
             f"stored={stored} "
             f"ranked={ranked} "
             f"eligible={eligible} "
-            f"subniches={subniches} "
-            f"sha256={sha_prefix}..."
+            f"subniches={subniches}"
         )
     print("SCHEMA_VALIDATION=OK")
     print("ROLLBACK_ONLY_FIXTURE=OK")

@@ -18,11 +18,11 @@ from urllib.parse import urlparse
 import psycopg
 from dotenv import load_dotenv
 
-ACTIVE_CATALOG_QUERY = """
+PERSISTENT_CATALOG_QUERY = """
 select
   imp.id as import_id,
-  imp.profile,
-  imp.marketplace,
+  item.profile,
+  item.marketplace,
   imp.row_count,
   item.item_id,
   item.product_name,
@@ -43,8 +43,7 @@ select
 from offers.catalog_imports imp
 join offers.catalog_items item
   on item.import_id = imp.id
-where imp.status = 'active'
-order by imp.profile, item.item_id
+order by item.profile, item.item_id
 """
 
 DEFAULT_OUTPUT_BASE_DIR = Path(".data/feed_vs_catalog_analysis")
@@ -89,7 +88,7 @@ class OverlapSummary:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Analisa em modo read-only o catalogo Shopee ativo no Supabase "
+            "Analisa em modo read-only o catalogo Shopee persistente no Supabase "
             "versus Product Feeds."
         )
     )
@@ -127,7 +126,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         pattern=DEFAULT_FEED_100K_PATTERN,
     )
 
-    catalog_rows = _load_active_catalog(database_url)
+    catalog_rows = _load_persistent_catalog(database_url)
     enrichment_rows = _load_processed_catalog_enrichment(DEFAULT_PROCESSED_CATALOGS)
     catalog_records = _build_catalog_records(catalog_rows, enrichment_rows)
     feed_10k_records = _load_feed_records(feed_10k_path, feed_kind="feed_10k")
@@ -187,10 +186,10 @@ def _discover_latest_feed(*, downloads_dir: Path, pattern: str) -> Path:
     return matches[0]
 
 
-def _load_active_catalog(database_url: str) -> list[dict[str, Any]]:
+def _load_persistent_catalog(database_url: str) -> list[dict[str, Any]]:
     with psycopg.connect(database_url, connect_timeout=15) as connection:
         with connection.cursor(row_factory=psycopg.rows.dict_row) as cursor:
-            cursor.execute(ACTIVE_CATALOG_QUERY)
+            cursor.execute(PERSISTENT_CATALOG_QUERY)
             return list(cursor.fetchall())
 
 
@@ -386,7 +385,7 @@ def _build_analysis(
     return {
         "analysis_date": datetime.now(UTC).strftime("%Y-%m-%d"),
         "sources": {
-            "supabase_active_catalog_query": ACTIVE_CATALOG_QUERY.strip(),
+            "supabase_persistent_catalog_query": PERSISTENT_CATALOG_QUERY.strip(),
             "processed_catalogs": {
                 profile: str(path)
                 for profile, path in DEFAULT_PROCESSED_CATALOGS.items()

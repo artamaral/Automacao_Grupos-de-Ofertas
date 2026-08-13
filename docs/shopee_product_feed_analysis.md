@@ -1,5 +1,9 @@
 # Analise do catalogo Shopee ativo versus Product Feeds
 
+> Nota de modelo: esta analise registra o catalogo ativo existente na data da
+> coleta. Depois da migration incremental, novas execucoes da ferramenta usam o
+> catalogo persistente e nao filtram `catalog_imports.status = 'active'`.
+
 Data da analise: 2026-08-11
 
 ## Escopo

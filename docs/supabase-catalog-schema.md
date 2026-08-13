@@ -14,6 +14,7 @@ supabase/migrations/202606290001_catalog_and_score.sql
 Objetos criados no schema `offers`:
 
 - `catalog_imports`;
+- `catalog_item_import_history`;
 - `catalog_items`;
 - `offer_selection_state`;
 - `publication_events`;
@@ -25,7 +26,6 @@ Objetos criados no schema `offers`:
 - `v_offer_latest_snapshot`;
 - `v_offer_refresh_status`;
 - `v_offer_scoring_current`;
-- funcao `activate_catalog_import(uuid)`.
 
 Configuracao operacional aplicada ao banco:
 
@@ -36,7 +36,12 @@ Migrations complementares:
 ```text
 supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql
 supabase/migrations/202608110001_candidate_refresh_snapshots.sql
+supabase/migrations/202608130001_incremental_discovery_catalog.sql
 ```
+
+A migration incremental foi adicionada ao repositorio, mas nao foi aplicada ao
+Supabase remoto nesta alteracao. Ate sua aplicacao, os numeros operacionais
+abaixo continuam descrevendo o modelo anterior por catalogo ativo.
 
 Os campos temporais continuam usando `timestamptz`. A configuracao de timezone
 altera a exibicao e interpretacao padrao das sessoes novas do Postgres, sem
@@ -70,14 +75,14 @@ confirmou:
 - `offers.v_offer_ranking_current` retornando `25.202` linhas para `feminino`;
 - `forbidden_rows = 0` para `infantil` e `juvenil`.
 
-Para cada profile, a auditoria confirmou:
+Antes do refactor incremental, para cada profile, a auditoria confirmou:
 
 - `row_count` declarado igual ao total armazenado;
 - total armazenado igual ao total retornado pela view;
 - todos os itens elegiveis no momento da carga;
 - `rank_profile` continuo, sem lacunas ou duplicacoes;
 - hash local igual ao hash registrado no Supabase;
-- uma unica importacao ativa por `profile + marketplace`.
+- uma unica importacao ativa por `profile + marketplace` no modelo anterior.
 
 A segunda execucao de `feminino` reutilizou o mesmo `import_id`, comprovando que
 o hash impede duplicacao da carga.
@@ -99,7 +104,7 @@ contrato, podem ser publicados no Supabase.
 
 ## catalog_imports
 
-Registra cada tentativa controlada de publicacao de catalogo.
+Registra cada rodada controlada de discovery/importacao incremental.
 
 Controles principais:
 
@@ -108,36 +113,44 @@ Controles principais:
 - `source_path`;
 - `source_sha256`;
 - `source_modified_at`;
+- `observed_at`;
 - `row_count`;
 - `status`;
 - `validation_summary`;
 - `imported_by`;
 - `imported_at`;
-- `activated_at`;
-- `superseded_at`;
+- `activated_at` e `superseded_at`, preservados apenas como auditoria legada;
 - `rejected_at`;
 - `rejection_reason`.
 
-Estados permitidos:
+Estados vigentes depois da migration incremental:
 
 ```text
-staged -> active -> superseded
-staged -> rejected
+completed
+rejected
 ```
 
-Existe no maximo um catalogo `active` por `profile + marketplace`.
+Nao existe ativacao nem substituicao integral de catalogo. Uma rodada e
+idempotente por:
 
-A ativacao deve usar:
-
-```sql
-select offers.activate_catalog_import('<import_id>');
+```text
+profile + marketplace + source_sha256 + observed_at
 ```
 
-A funcao substitui atomicamente o catalogo ativo anterior.
+O mesmo arquivo observado novamente em outro instante gera uma nova rodada e
+novos snapshots. Um retry com a mesma chave reutiliza a rodada existente.
 
 ## catalog_items
 
-Preserva o snapshot imutavel de cada item pertencente a uma importacao.
+Preserva o cadastro curado e cumulativo de cada item. A identidade e:
+
+```text
+profile + marketplace + item_id
+```
+
+`import_id` passa a indicar a primeira rodada em que o item entrou no profile.
+Quando o mesmo item reaparece, nome cadastral, `stable_key` e `subniches` nao
+sao alterados automaticamente; a nova observacao vai para `offer_snapshots`.
 
 Campos normalizados:
 
@@ -159,6 +172,15 @@ O banco preserva `shopType` e `subniches` como arrays. O ranking deriva um
 4 -> loja star+
 2 -> loja star
 ```
+
+## catalog_item_import_history
+
+Preserva as linhas imutaveis do modelo antigo por importacao. A migration copia
+todo o historico antes de manter em `catalog_items` somente os itens que
+pertenciam ao catalogo ativo no momento da conversao.
+
+Essa tabela e apenas de auditoria: nao participa de refresh, score ou ranking e
+nao reativa itens de imports antigos.
 
 ## offer_selection_state
 
@@ -221,12 +243,12 @@ O detalhamento de uso e consultas esta em
 
 ## v_offer_ranking_current
 
-A view considera apenas itens pertencentes ao catalogo ativo.
+A view considera todos os itens do catalogo persistente.
 
 Os dados comerciais sao resolvidos por campo. Quando existe snapshot,
 `v_offer_latest_snapshot` fornece o estado mais recente, inclusive quando ele
 esta `STALE`; quando nao existe snapshot ou o campo nao veio no payload, o
-valor do catalogo ativo e usado como fallback. Falhas de refresh nao invalidam
+valor cadastral e usado como fallback. Falhas de refresh nao invalidam
 o ultimo snapshot valido.
 
 O frete e a excecao: sem snapshot, preserva o valor do catalogo; com snapshot,
@@ -272,7 +294,7 @@ A view tambem entrega:
 - `commercial_data_source`, com `catalog` ou `snapshot`;
 - `refresh_status`, `latest_snapshot_id`, `last_checked_at` e `age_hours`;
 - todos os campos de controle da selecao;
-- hash e data da importacao ativa.
+- hash e data da primeira importacao do item.
 
 ## Elegibilidade
 
@@ -324,31 +346,26 @@ Validacao local de um catalogo, sem escrita remota:
   --catalog-file catalogs\clean\feminino\clean_catalog_rating_4_8_plus.csv
 ```
 
-Importacao e ativacao explicitas:
+Importacao incremental explicita:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\supabase\import_catalog.py `
   --profile feminino `
   --catalog-file catalogs\clean\feminino\clean_catalog_rating_4_8_plus.csv `
+  --observed-at 2026-08-13T10:30:00-03:00 `
   --apply `
-  --activate `
   --confirm-remote-write IMPORT_CURATED_CATALOG
 ```
 
-Execucao registrada em `2026-08-11` para relimpeza do catalogo ativo
-`feminino/shopee`:
+Saida esperada:
 
-```powershell
-.\.venv\Scripts\python.exe scripts\supabase\import_catalog.py `
-  --profile feminino `
-  --marketplace shopee `
-  --catalog-file .data\supabase-cleaning\feminino\20260811-133642\clean_catalog_rating_4_8_plus.csv `
-  --apply `
-  --activate `
-  --confirm-remote-write IMPORT_CURATED_CATALOG
+```text
+REMOTE_WRITE=OK profile=feminino import_id=<uuid> status=completed operation=created new_items=<n> existing_items=<n> snapshots=<n>
 ```
 
-Resultado:
+O resultado abaixo e historico, anterior ao refactor incremental, e explica a
+origem da base que sera convertida. O antigo comando de ativacao nao faz mais
+parte da interface atual:
 
 ```text
 VALIDATION=OK profile=feminino rows=25202 rating=4.80-5.00 subniches=31 sha256=4504ca7a7b62...
@@ -396,5 +413,5 @@ aplica o limite da rodada, monta a mensagem e registra o resultado.
 
 ## Proxima etapa
 
-Validar o workflow n8n consultando o catalogo ativo no Supabase para 1 profile,
+Validar o workflow n8n consultando o catalogo persistente no Supabase para 1 profile,
 com envio bloqueado por allowlist e registro em `publication_events`.

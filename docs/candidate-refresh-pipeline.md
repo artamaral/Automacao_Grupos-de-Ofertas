@@ -2,11 +2,11 @@
 
 ## Decisao operacional
 
-O catalogo ativo e um indice de discovery. Ele preserva identidade, profile e
+O catalogo persistente e um indice de discovery. Ele preserva identidade, profile e
 taxonomia, mas nao e fonte atual de preco, comissao, vendas ou rating.
 
 ```text
-catalogo ativo
+catalogo persistente
   -> fila progressiva
   -> TTL
   -> productOfferV2 por itemId
@@ -22,7 +22,7 @@ altera `offers.catalog_items`.
 ## Fila orientada ao ranking
 
 A fila atualiza primeiro a fronteira que pode chegar a copy. Ela considera
-somente itens elegiveis do catalogo ativo, separa por `primary_subniche` e
+somente itens elegiveis do catalogo persistente, separa por `primary_subniche` e
 ordena cada banda por `rank_subniche`, `commercial_score desc` e `item_id`.
 `MISSING` e `STALE` disputam pela posicao no ranking: um `STALE` melhor colocado
 vem antes de um `MISSING` pior colocado.
@@ -56,7 +56,7 @@ rechecagem explicita de `item_id`.
 - `offer_refresh_attempts`: uma linha para cada chamada real, inclusive erro;
 - `v_offer_latest_snapshot`: ultimo snapshot por item;
 - `v_offer_refresh_status`: `MISSING`, `FRESH`, `STALE` ou `UNAVAILABLE_CONFIRMED`
-  no catalogo ativo;
+  no catalogo persistente;
 - `v_offer_scoring_current`: metadados do catalogo mais o ultimo estado
   comercial, com fallback por campo para o catalogo.
 
@@ -169,7 +169,7 @@ Execucao real limitada:
   --confirm-remote-write REFRESH_SHOPEE_CANDIDATES
 ```
 
-Para validar um item especifico do catalogo ativo:
+Para validar um item especifico do catalogo persistente:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\shopee\run_candidate_refresh.py `
