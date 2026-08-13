@@ -31,7 +31,17 @@ def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> Non
                 "source_keyword_to_subniche": {"vestido": "moda-vestidos"},
                 "generic_source_hits": ["feminino"],
                 "generic_default_subniche": "feminino-geral",
-                "forbidden_terms": ["infantil", "juvenil", "gestante", "maternidade"],
+                "forbidden_terms": [
+                    "infantil",
+                    "juvenil",
+                    "gestante",
+                    "maternidade",
+                    "masculino",
+                    "masculina",
+                    "masculinos",
+                    "masculinas",
+                    "cueca",
+                ],
                 "fallback_product_name_rules": [],
             }
         ),
@@ -45,6 +55,7 @@ def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> Non
                 '1,10,Vestido feminino adulto,https://example.com/p1,https://example.com/o1,https://example.com/i1.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
                 '2,20,Vestido juvenil promocao,https://example.com/p2,https://example.com/o2,https://example.com/i2.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
                 '3,30,Kit maternidade gestante,https://example.com/p3,https://example.com/o3,https://example.com/i3.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
+                '4,40,Cueca masculina kit promocional,https://example.com/p4,https://example.com/o4,https://example.com/i4.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
             ]
         ),
         encoding="utf-8",
@@ -63,10 +74,12 @@ def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> Non
         removed_rows = list(csv.DictReader(handle))
 
     assert summary["clean_rows"] == 1
-    assert summary["removed_forbidden_term_rows"] == 2
+    assert summary["removed_forbidden_term_rows"] == 3
     assert clean_rows[0]["itemId"] == "1"
     assert removed_rows[0]["itemId"] == "2"
     assert removed_rows[0]["removal_reason"] == "termo_proibido"
     assert json.loads(removed_rows[0]["forbidden_term_hits"]) == ["juvenil"]
     assert removed_rows[1]["itemId"] == "3"
     assert json.loads(removed_rows[1]["forbidden_term_hits"]) == ["gestante", "maternidade"]
+    assert removed_rows[2]["itemId"] == "4"
+    assert json.loads(removed_rows[2]["forbidden_term_hits"]) == ["cueca", "masculina"]

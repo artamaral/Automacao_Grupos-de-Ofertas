@@ -11,8 +11,13 @@ Arquivo oficial para classificação de `subniches` no `catalog_cleaning_harness
 
 ## Termos proibidos
 
-Remover ofertas do perfil `feminino` quando os campos textuais indicarem roupas para criancas ou adolescentes, itens de gestacao/maternidade ou sinais claros de mae e bebe:
+Remover ofertas do perfil `feminino` quando os campos textuais indicarem itens masculinos, roupas para criancas ou adolescentes, itens de gestacao/maternidade ou sinais claros de mae e bebe:
 
+- `masculino`
+- `masculina`
+- `masculinos`
+- `masculinas`
+- `cueca`
 - `parto`
 - `partos`
 - `gestante`

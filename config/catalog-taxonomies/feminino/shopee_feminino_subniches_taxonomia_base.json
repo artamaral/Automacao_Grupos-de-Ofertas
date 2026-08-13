@@ -175,6 +175,11 @@
   ],
   "generic_default_subniche": "feminino-geral",
   "forbidden_terms": [
+    "masculino",
+    "masculina",
+    "masculinos",
+    "masculinas",
+    "cueca",
     "parto",
     "partos",
     "gestante",
