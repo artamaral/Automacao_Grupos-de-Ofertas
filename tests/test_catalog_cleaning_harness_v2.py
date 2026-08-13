@@ -41,6 +41,15 @@ def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> Non
                     "masculinos",
                     "masculinas",
                     "cueca",
+                    "cachorro",
+                    "cachorros",
+                    "canino",
+                    "felino",
+                    "roupa pet",
+                    "para cachorro",
+                    "coleira pet",
+                    "peitoral pet",
+                    "petshop",
                 ],
                 "fallback_product_name_rules": [],
             }
@@ -56,6 +65,7 @@ def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> Non
                 '2,20,Vestido juvenil promocao,https://example.com/p2,https://example.com/o2,https://example.com/i2.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
                 '3,30,Kit maternidade gestante,https://example.com/p3,https://example.com/o3,https://example.com/i3.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
                 '4,40,Cueca masculina kit promocional,https://example.com/p4,https://example.com/o4,https://example.com/i4.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
+                '5,50,Roupa de la para cachorro tricot macio e quente,https://example.com/p5,https://example.com/o5,https://example.com/i5.jpg,5,100,3,4.8,10,"[""keyword:vestido""]"',
             ]
         ),
         encoding="utf-8",
@@ -74,7 +84,7 @@ def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> Non
         removed_rows = list(csv.DictReader(handle))
 
     assert summary["clean_rows"] == 1
-    assert summary["removed_forbidden_term_rows"] == 3
+    assert summary["removed_forbidden_term_rows"] == 4
     assert clean_rows[0]["itemId"] == "1"
     assert removed_rows[0]["itemId"] == "2"
     assert removed_rows[0]["removal_reason"] == "termo_proibido"
@@ -83,3 +93,5 @@ def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> Non
     assert json.loads(removed_rows[1]["forbidden_term_hits"]) == ["gestante", "maternidade"]
     assert removed_rows[2]["itemId"] == "4"
     assert json.loads(removed_rows[2]["forbidden_term_hits"]) == ["cueca", "masculina"]
+    assert removed_rows[3]["itemId"] == "5"
+    assert json.loads(removed_rows[3]["forbidden_term_hits"]) == ["cachorro", "para cachorro"]
