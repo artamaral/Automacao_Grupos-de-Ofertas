@@ -1,0 +1,344 @@
+from __future__ import annotations
+
+import tomllib
+from collections import Counter, defaultdict, deque
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+from pathlib import Path
+
+
+class DispatchPlanningError(ValueError):
+    """Raised when a daily dispatch plan cannot satisfy its contract."""
+
+
+@dataclass(frozen=True)
+class DispatchCandidate:
+    profile: str
+    marketplace: str
+    stable_key: str
+    item_id: int
+    primary_subniche: str
+    commercial_score: Decimal
+    sales_count: int
+    rating: Decimal | None
+
+
+@dataclass(frozen=True)
+class DailyPlanningPolicy:
+    profile: str
+    marketplace: str
+    items_per_window: int
+    schedule_hours: tuple[int, ...]
+    daily_total_items: int
+    rotation_items_per_day: int
+    max_items_per_subniche_per_window: int
+    fixed_daily_quotas: dict[str, int]
+    weekly_rotation_quotas: dict[str, int]
+
+
+@dataclass(frozen=True)
+class PlannedDispatch:
+    candidate: DispatchCandidate
+    selection_bucket: str
+    selection_reason: str
+    planned_date: date
+    planned_hour: int
+    slot_sequence: int
+    daily_sequence: int
+
+
+def load_daily_planning_policy(
+    path: Path,
+    *,
+    profile: str = "feminino",
+    marketplace: str = "shopee",
+) -> DailyPlanningPolicy:
+    raw = tomllib.loads(path.read_text(encoding="utf-8"))
+    for item in raw.get("policies", []):
+        if item.get("slug") != profile or item.get("planning_mode") != "daily_persisted":
+            continue
+        fixed = _quota_map(item.get("fixed_daily_quotas"), "fixed_daily_quotas")
+        rotation = _quota_map(
+            item.get("weekly_rotation_quotas"), "weekly_rotation_quotas"
+        )
+        policy = DailyPlanningPolicy(
+            profile=profile,
+            marketplace=marketplace,
+            items_per_window=int(item["total_items"]),
+            schedule_hours=tuple(int(hour) for hour in item["schedule_hours"]),
+            daily_total_items=int(item["daily_total_items"]),
+            rotation_items_per_day=int(item["rotation_items_per_day"]),
+            max_items_per_subniche_per_window=int(
+                item["max_items_per_subniche_per_window"]
+            ),
+            fixed_daily_quotas=fixed,
+            weekly_rotation_quotas=rotation,
+        )
+        validate_daily_planning_policy(policy)
+        return policy
+    raise DispatchPlanningError(f"daily persisted policy not found: {profile}")
+
+
+def validate_daily_planning_policy(policy: DailyPlanningPolicy) -> None:
+    if len(set(policy.schedule_hours)) != len(policy.schedule_hours):
+        raise DispatchPlanningError("schedule_hours must be unique")
+    if any(hour < 0 or hour > 23 for hour in policy.schedule_hours):
+        raise DispatchPlanningError("schedule_hours must be between 0 and 23")
+    if policy.items_per_window * len(policy.schedule_hours) != policy.daily_total_items:
+        raise DispatchPlanningError("daily total must match windows times items per window")
+    fixed_total = sum(policy.fixed_daily_quotas.values())
+    if fixed_total + policy.rotation_items_per_day != policy.daily_total_items:
+        raise DispatchPlanningError("fixed and rotation daily quotas must match daily total")
+    if sum(policy.weekly_rotation_quotas.values()) != policy.rotation_items_per_day * 7:
+        raise DispatchPlanningError("weekly rotation quota must fill seven daily rotations")
+    if set(policy.fixed_daily_quotas) & set(policy.weekly_rotation_quotas):
+        raise DispatchPlanningError("fixed and rotation subniches must be disjoint")
+    if policy.max_items_per_subniche_per_window <= 0:
+        raise DispatchPlanningError("window subniche cap must be positive")
+
+
+def weekly_rotation_daily_quotas(
+    policy: DailyPlanningPolicy,
+    *,
+    planned_date: date,
+) -> dict[str, int]:
+    day_index = planned_date.weekday()
+    weekly_matrix: dict[str, list[int]] = {}
+    day_loads = [0] * 7
+    for subniche, weekly_items in policy.weekly_rotation_quotas.items():
+        base, remainder = divmod(weekly_items, 7)
+        weekly_matrix[subniche] = [base] * 7
+        day_loads = [load + base for load in day_loads]
+        offset = _stable_offset(subniche) % 7
+        used_days: set[int] = set()
+        for _ in range(remainder):
+            selected_day = min(
+                (day for day in range(7) if day not in used_days),
+                key=lambda day: (day_loads[day], (day - offset) % 7),
+            )
+            weekly_matrix[subniche][selected_day] += 1
+            day_loads[selected_day] += 1
+            used_days.add(selected_day)
+    quotas = {subniche: days[day_index] for subniche, days in weekly_matrix.items()}
+    if sum(quotas.values()) != policy.rotation_items_per_day:
+        raise DispatchPlanningError("daily rotation allocation does not match reserved slots")
+    return quotas
+
+
+def plan_daily_dispatches(
+    candidates: list[DispatchCandidate],
+    *,
+    policy: DailyPlanningPolicy,
+    planned_date: date,
+) -> list[PlannedDispatch]:
+    validate_daily_planning_policy(policy)
+    eligible = [
+        item
+        for item in candidates
+        if item.profile == policy.profile and item.marketplace == policy.marketplace
+    ]
+    by_subniche: dict[str, deque[DispatchCandidate]] = {}
+    for subniche, items in _group_candidates(eligible).items():
+        by_subniche[subniche] = deque(items)
+
+    selected: list[tuple[DispatchCandidate, str, str]] = []
+    used_keys: set[str] = set()
+    unmet: Counter[str] = Counter()
+    daily_rotation = weekly_rotation_daily_quotas(policy, planned_date=planned_date)
+
+    for bucket, quotas in (
+        ("fixed_daily", policy.fixed_daily_quotas),
+        ("weekly_rotation", daily_rotation),
+    ):
+        for subniche, quota in quotas.items():
+            chosen = _take_candidates(by_subniche.get(subniche), quota, used_keys)
+            selected.extend(
+                (candidate, bucket, f"{bucket}:{subniche}") for candidate in chosen
+            )
+            unmet[bucket] += quota - len(chosen)
+
+    for bucket in ("fixed_daily", "weekly_rotation"):
+        if not unmet[bucket]:
+            continue
+        pool_subniches = (
+            policy.fixed_daily_quotas
+            if bucket == "fixed_daily"
+            else policy.weekly_rotation_quotas
+        )
+        fallback = _fallback_candidates(by_subniche, pool_subniches, used_keys)
+        if len(fallback) < unmet[bucket]:
+            raise DispatchPlanningError(
+                f"insufficient candidates for {bucket}: missing {unmet[bucket] - len(fallback)}"
+            )
+        selected.extend(
+            (candidate, bucket, f"{bucket}:redistributed")
+            for candidate in fallback[: unmet[bucket]]
+        )
+
+    if len(selected) != policy.daily_total_items:
+        raise DispatchPlanningError(
+            f"daily plan must contain {policy.daily_total_items} items, got {len(selected)}"
+        )
+
+    return _sequence_windows(selected, policy=policy, planned_date=planned_date)
+
+
+def _sequence_windows(
+    selected: list[tuple[DispatchCandidate, str, str]],
+    *,
+    policy: DailyPlanningPolicy,
+    planned_date: date,
+) -> list[PlannedDispatch]:
+    queues: dict[str, deque[tuple[DispatchCandidate, str, str]]] = defaultdict(deque)
+    for item in sorted(
+        selected,
+        key=lambda entry: (
+            entry[0].primary_subniche,
+            -entry[0].commercial_score,
+            -entry[0].sales_count,
+            entry[0].item_id,
+        ),
+    ):
+        queues[item[0].primary_subniche].append(item)
+
+    planned: list[PlannedDispatch] = []
+    daily_sequence = 0
+    extra_rotation_windows = _spread_indexes(
+        len(policy.schedule_hours),
+        policy.rotation_items_per_day - len(policy.schedule_hours),
+    )
+    for window_index, hour in enumerate(policy.schedule_hours):
+        window_counts: Counter[str] = Counter()
+        rotation_target = 1 + int(window_index in extra_rotation_windows)
+        rotation_selected = 0
+        for slot in range(1, policy.items_per_window + 1):
+            available = [
+                subniche
+                for subniche, queue in queues.items()
+                if queue
+                and window_counts[subniche] < policy.max_items_per_subniche_per_window
+            ]
+            if not available:
+                raise DispatchPlanningError(f"cannot fill hour {hour} under subniche cap")
+            preferred_bucket = (
+                "weekly_rotation"
+                if rotation_selected < rotation_target
+                else "fixed_daily"
+            )
+            preferred = [
+                subniche
+                for subniche in available
+                if queues[subniche][0][1] == preferred_bucket
+            ]
+            if preferred:
+                available = preferred
+            subniche = min(
+                available,
+                key=lambda key: (
+                    window_counts[key],
+                    -len(queues[key]),
+                    key,
+                ),
+            )
+            candidate, bucket, reason = queues[subniche].popleft()
+            if bucket == "weekly_rotation":
+                rotation_selected += 1
+            window_counts[subniche] += 1
+            daily_sequence += 1
+            planned.append(
+                PlannedDispatch(
+                    candidate=candidate,
+                    selection_bucket=bucket,
+                    selection_reason=reason,
+                    planned_date=planned_date,
+                    planned_hour=hour,
+                    slot_sequence=slot,
+                    daily_sequence=daily_sequence,
+                )
+            )
+    return planned
+
+
+def _spread_indexes(window_count: int, extra_count: int) -> set[int]:
+    if extra_count <= 0:
+        return set()
+    return {
+        min(window_count - 1, ((index + 1) * window_count) // (extra_count + 1))
+        for index in range(extra_count)
+    }
+
+
+def _group_candidates(
+    candidates: list[DispatchCandidate],
+) -> dict[str, list[DispatchCandidate]]:
+    grouped: dict[str, list[DispatchCandidate]] = defaultdict(list)
+    seen: set[str] = set()
+    for candidate in sorted(
+        candidates,
+        key=lambda item: (
+            item.primary_subniche,
+            -item.commercial_score,
+            -item.sales_count,
+            -(item.rating or Decimal(0)),
+            item.item_id,
+        ),
+    ):
+        if candidate.stable_key in seen:
+            continue
+        seen.add(candidate.stable_key)
+        grouped[candidate.primary_subniche].append(candidate)
+    return grouped
+
+
+def _take_candidates(
+    queue: deque[DispatchCandidate] | None,
+    count: int,
+    used_keys: set[str],
+) -> list[DispatchCandidate]:
+    selected: list[DispatchCandidate] = []
+    while queue and len(selected) < count:
+        candidate = queue.popleft()
+        if candidate.stable_key in used_keys:
+            continue
+        used_keys.add(candidate.stable_key)
+        selected.append(candidate)
+    return selected
+
+
+def _fallback_candidates(
+    queues: dict[str, deque[DispatchCandidate]],
+    allowed_subniches: dict[str, int],
+    used_keys: set[str],
+) -> list[DispatchCandidate]:
+    candidates = [
+        item
+        for subniche in allowed_subniches
+        for item in queues.get(subniche, ())
+        if item.stable_key not in used_keys
+    ]
+    candidates.sort(
+        key=lambda item: (-item.commercial_score, -item.sales_count, item.item_id)
+    )
+    for candidate in candidates:
+        used_keys.add(candidate.stable_key)
+    return candidates
+
+
+def _quota_map(raw: object, field: str) -> dict[str, int]:
+    if not isinstance(raw, list) or not raw:
+        raise DispatchPlanningError(f"{field} must contain quotas")
+    quotas: dict[str, int] = {}
+    for item in raw:
+        if not isinstance(item, dict):
+            raise DispatchPlanningError(f"invalid quota in {field}")
+        subniche = str(item.get("subniche", "")).strip()
+        count = int(item.get("items", 0))
+        if not subniche or count <= 0 or subniche in quotas:
+            raise DispatchPlanningError(f"invalid quota in {field}: {subniche}")
+        quotas[subniche] = count
+    return quotas
+
+
+def _stable_offset(value: str) -> int:
+    return sum((index + 1) * ord(character) for index, character in enumerate(value))

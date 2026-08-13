@@ -63,7 +63,7 @@ EXPECTED_SCHEDULE_CRON = "0 8-21 * * *"
 EXPECTED_WORKFLOW_TIMEZONE = "America/Sao_Paulo"
 EXPECTED_SCHEDULE_NODE = "Schedule Grupo Real"
 EXPECTED_SCHEDULE_CONTEXT_NODE = "Set Contexto Schedule Grupo"
-EXPECTED_SCHEDULE_LIMIT = 3
+EXPECTED_SCHEDULE_LIMIT = 8
 EXPECTED_SEND_DELAY_MIN = 45
 EXPECTED_SEND_DELAY_MAX = 90
 EXPECTED_LOOP_NODE = "Loop Ofertas"
@@ -253,6 +253,25 @@ def validate_send_loop(workflow: dict[str, Any], errors: list[str]) -> None:
         )
 
 
+def validate_daily_plan_claim(workflow: dict[str, Any], errors: list[str]) -> None:
+    context_node = node_by_name(workflow, "Validar Contexto")
+    if context_node is None:
+        errors.append("missing context node: Validar Contexto")
+        return
+    context_code = str(context_node.get("parameters", {}).get("jsCode", "")).lower()
+    for expected_text in (
+        "offers.daily_dispatch_plan",
+        "offers.v_daily_dispatch_ready",
+        "for update skip locked",
+        "dispatch_status = 'claimed'",
+        "claim_token",
+        "null::uuid as dispatch_plan_id",
+        "dryrun ? previewquery : claimquery",
+    ):
+        if expected_text not in context_code:
+            errors.append(f"Validar Contexto missing atomic claim: {expected_text}")
+
+
 def validate_message_template(workflow: dict[str, Any], errors: list[str]) -> None:
     message_node = node_by_name(workflow, "Montar Mensagens")
     if message_node is None:
@@ -286,6 +305,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
 
     validate_schedule(workflow, errors)
     validate_send_loop(workflow, errors)
+    validate_daily_plan_claim(workflow, errors)
     validate_message_template(workflow, errors)
 
     if errors:

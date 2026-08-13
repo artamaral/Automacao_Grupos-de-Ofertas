@@ -568,7 +568,7 @@ Objetivo desta etapa:
 - validar o fluxo MVP sem depender de VPS, Cloud Run, Google Sheets ou runner
   HTTP;
 - manter `dry_run=true` como padrao;
-- consultar o ranking atual no Supabase;
+- consultar a janela pronta em `offers.v_daily_dispatch_ready`;
 - montar uma mensagem minima com disclosure;
 - bloquear destinos fora da allowlist;
 - registrar a tentativa ou bloqueio em `offers.publication_events`.
@@ -579,7 +579,7 @@ Objetivo desta etapa:
 2. Importar `n8n/workflows/ofertas-mvp-supabase.json`.
 3. Criar ou selecionar uma credencial Postgres apontando para o Supabase.
 4. Associar essa credencial aos nodes:
-   - `Consultar Ranking Supabase`;
+   - `Consultar Fila Planejada Supabase`;
    - `Registrar Resultado Supabase`.
 5. Confirmar que o workflow permanece inativo ate o teste manual controlado.
 6. Conferir que `Set Contexto MVP` e `Simular Envio MVP` estao como nodes
@@ -769,12 +769,28 @@ Configuracao versionada do schedule:
 - cron: `0 8-21 * * *`;
 - timezone do workflow: `America/Sao_Paulo`;
 - frequencia: 1 execucao por hora, das 08:00 as 21:00;
-- volume: `limit=1` por execucao;
+- volume: `limit=8` por execucao;
 - destino: `grupo-ofertas-feminino`;
 - chat WAHA: `120363412864266334@g.us`;
 - `dry_run=false`;
 - `allowed_targets_csv=grupo-ofertas-feminino`;
 - envio por `POST /api/sendImage`.
+
+Antes de publicar o workflow, a fila do dia precisa estar pronta no Supabase:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.tools.plan_daily_dispatch --profile feminino
+.\.venv\Scripts\python.exe -m ofertas_bot.tools.plan_daily_dispatch --profile feminino --apply
+```
+
+O primeiro comando valida candidatos e sequenciamento sem escrita. O segundo
+substitui apenas um plano ainda nao consumido. Depois do primeiro slot
+confirmado, com falha ou cancelado, o plano do dia nao pode mais ser refeito.
+
+O schedule nao consulta mais os elegiveis do momento. Cada execucao le somente
+`offers.v_daily_dispatch_ready`, filtrando a data e a hora em
+`America/Sao_Paulo`. Bandas, rotacao semanal, diversidade, fallback e ordem das
+112 ofertas ficam fora do n8n.
 
 O `deploy_workflow_guard.py` valida esse schedule e continua gravando
 `active=false`. No painel desta instancia n8n, **Published** equivale a
@@ -901,49 +917,37 @@ Resultado esperado:
 O node do Supabase deve consultar:
 
 ```sql
-select
-  profile,
-  marketplace,
-  stable_key,
-  item_id,
-  product_name,
-  offer_link,
-  price,
-  reference_price,
-  rating,
-  sales_count,
-  primary_subniche,
-  commercial_score,
-  score_reasons,
-  rank_profile,
-  rank_subniche
-from offers.v_offer_ranking_current ranking
-where ranking.is_eligible = true
-  and ranking.profile = :profile
-  and ranking.marketplace = :marketplace
-  and not exists (
-    select 1
-    from offers.publication_events event
-    where event.profile = ranking.profile
-      and event.marketplace = ranking.marketplace
-      and event.stable_key = ranking.stable_key
-      and event.target = :target
-      and event.channel_adapter = :channel_adapter
-      and event.delivery_status = 'confirmed'
-  )
-order by
-  rank_profile nulls last,
-  commercial_score desc,
-  sales_count desc,
-  rating desc nulls last,
-  item_id
-limit :limit;
+with next_slots as (
+  select dispatch_plan_id
+  from offers.daily_dispatch_plan
+  where dispatch_status = 'planned'
+    and profile = :profile
+    and marketplace = :marketplace
+    and planned_date = (now() at time zone 'America/Sao_Paulo')::date
+    and planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer
+  order by slot_sequence
+  for update skip locked
+  limit :limit
+), claimed as (
+  update offers.daily_dispatch_plan plan
+  set dispatch_status = 'claimed',
+      claim_token = :run_id,
+      claimed_at = now()
+  from next_slots
+  where plan.dispatch_plan_id = next_slots.dispatch_plan_id
+  returning plan.dispatch_plan_id
+)
+select ready.*
+from claimed
+join offers.v_daily_dispatch_ready ready using (dispatch_plan_id)
+order by ready.slot_sequence;
 ```
 
-Regra: `delivery_status = 'confirmed'` bloqueia nova selecao do mesmo
-`stable_key` para o mesmo `target` e `channel_adapter`. Registros `cancelled`,
-incluindo dry-run e bloqueio por allowlist, nao retiram a oferta do ranking
-futuro.
+Regra: o n8n nao consulta nem reordena o ranking. O slot deixa de ficar pronto
+quando seu `dispatch_plan_id` e vinculado a um evento `confirmed`, `failed` ou
+`cancelled`. Repetir a janela faz upsert no mesmo evento, sem novo despacho.
+Em `dry_run`, a consulta apenas previsualiza a janela e retorna
+`dispatch_plan_id = null`; nenhum slot e reservado ou consumido.
 
 Nao adicionar filtros escondidos. Qualquer filtro novo precisa aparecer no
 workflow e na documentacao.

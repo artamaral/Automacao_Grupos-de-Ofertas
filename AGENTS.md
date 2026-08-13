@@ -23,7 +23,8 @@ O MVP deve ser lido assim:
 
 ```text
 Catalogo ativo no Supabase
-  -> n8n consulta ranking
+  -> planejador persiste a fila diaria do feminino
+  -> n8n consulta a janela pronta
   -> n8n monta mensagem
   -> n8n envia para allowlist
   -> Supabase registra historico
@@ -35,13 +36,16 @@ Diretrizes obrigatorias:
 - Implementar somente mudancas que ajudem diretamente o MVP ou reduzam
   complexidade do caminho principal.
 - O catalogo ativo do Supabase e a base operacional inicial.
-- n8n consulta `offers.v_offer_ranking_current` diretamente.
+- Para `feminino`, o planejador consulta `offers.v_offer_ranking_current` e
+  persiste `offers.daily_dispatch_plan`; o n8n consulta
+  `offers.v_daily_dispatch_ready` por data e hora.
 - n8n monta mensagens por template simples no workflow ou em configuracao
   segura do proprio n8n.
 - n8n so envia para destinos explicitamente allowlisted.
 - n8n registra tentativa e resultado em `offers.publication_events`.
 - Cloud Run nao e requisito do MVP; fica como evolucao futura ou ponte tecnica
   opcional.
+- Bandas, rotacao semanal, fallback e sequenciamento nao devem morar no n8n.
 - Descoberta, paginacao ampla, limpeza e curadoria de catalogos permanecem
   fora da rodada diaria.
 - Coleta automatica e revisao de nichos/subnichos sao melhorias pos-MVP.
@@ -109,7 +113,8 @@ descoberta diaria.
 Ranqueia ofertas por sinais comerciais simples: desconto, comissao, vendas,
 avaliacao, frete e aderencia.
 
-No MVP, o ranking operacional e consumido via `offers.v_offer_ranking_current`.
+No `feminino`, o ranking alimenta previamente `offers.daily_dispatch_plan`; o
+n8n consome a view `offers.v_daily_dispatch_ready`.
 
 ### Copywriter Agent
 
@@ -134,7 +139,7 @@ apoio de desenvolvimento ou evolucao futura.
 ## Criterios de aceite do MVP
 
 - Catalogo ativo do Supabase e usado como base.
-- n8n consulta `offers.v_offer_ranking_current` diretamente.
+- n8n consulta `offers.v_daily_dispatch_ready` para o `feminino`.
 - n8n monta mensagem com aviso de afiliado.
 - n8n bloqueia destino fora da allowlist.
 - n8n registra tentativa/resultado em `offers.publication_events`.

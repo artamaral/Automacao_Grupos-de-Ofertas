@@ -133,6 +133,32 @@ Config esperado:
 
 ## Regras operacionais da selecao
 
+### Planejamento diario persistido do feminino
+
+A operacao de `feminino` usa uma fila preparada antes das execucoes do n8n.
+Essa grade nao existia no fluxo anterior: a cada execucao, o n8n consultava os
+elegiveis do momento em `offers.v_offer_ranking_current`.
+
+Contrato vigente:
+
+- `112` mensagens por dia;
+- `14` janelas de `8` itens, das `08h` as `21h`, inclusive;
+- `96` slots diarios de bandas fixas;
+- `16` slots diarios de rotacao, fechando `112` por semana;
+- cobertura semanal dos `31` subnichos ativos;
+- no maximo `2` itens do mesmo subnicho por janela;
+- nenhum `stable_key` repetido no mesmo dia.
+
+O comando `ofertas-plan-daily-dispatch` le o ranking atual, aplica as cotas de
+`config/selection_profiles.toml`, sequencia as janelas e persiste o resultado em
+`offers.daily_dispatch_plan`. Sem `--apply`, ele apenas calcula e valida o plano.
+
+O n8n reserva atomicamente os slots `planned` da janela com
+`FOR UPDATE SKIP LOCKED`, muda-os para `claimed` e entao consulta
+`offers.v_daily_dispatch_ready`. Ele nao calcula bandas, rotacao, fallback ou
+ordem diaria. A gravacao de `publication_events.dispatch_plan_id` atualiza o
+estado final do slot e torna a repeticao da mesma janela idempotente.
+
 ### 1. Recorrencia temporal
 
 Ja fica registrada a decisao de que a data de selecao deve ser persistida.

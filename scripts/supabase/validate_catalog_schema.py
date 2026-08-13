@@ -13,12 +13,14 @@ EXPECTED_RELATIONS = {
     ("catalog_imports", "BASE TABLE"),
     ("catalog_item_import_history", "BASE TABLE"),
     ("catalog_items", "BASE TABLE"),
+    ("daily_dispatch_plan", "BASE TABLE"),
     ("offer_refresh_attempts", "BASE TABLE"),
     ("offer_selection_state", "BASE TABLE"),
     ("offer_snapshots", "BASE TABLE"),
     ("publication_events", "BASE TABLE"),
     ("schema_migrations", "BASE TABLE"),
     ("v_offer_latest_snapshot", "VIEW"),
+    ("v_daily_dispatch_ready", "VIEW"),
     ("v_offer_ranking_current", "VIEW"),
     ("v_offer_refresh_status", "VIEW"),
     ("v_offer_scoring_current", "VIEW"),
@@ -62,6 +64,7 @@ EXPECTED_SCORE_COLUMNS = {
 
 EXPECTED_PUBLICATION_EVENT_COLUMNS = {
     "publish_id",
+    "dispatch_plan_id",
     "profile",
     "marketplace",
     "stable_key",
@@ -79,6 +82,29 @@ EXPECTED_PUBLICATION_EVENT_COLUMNS = {
     "offer_price",
     "message_text",
     "payload",
+    "created_at",
+    "updated_at",
+}
+
+EXPECTED_DAILY_DISPATCH_COLUMNS = {
+    "dispatch_plan_id",
+    "profile",
+    "marketplace",
+    "stable_key",
+    "item_id",
+    "primary_subniche",
+    "commercial_score",
+    "selection_bucket",
+    "selection_reason",
+    "planned_date",
+    "planned_hour",
+    "slot_sequence",
+    "daily_sequence",
+    "dispatch_status",
+    "claim_token",
+    "claimed_at",
+    "publication_event_id",
+    "consumed_at",
     "created_at",
     "updated_at",
 }
@@ -247,6 +273,18 @@ def validate_candidate_refresh_columns(connection: psycopg.Connection) -> None:
                 f"missing {relation_name} columns: {sorted(missing)}"
             )
 
+    rows = connection.execute(
+        """
+        select column_name
+        from information_schema.columns
+        where table_schema = 'offers' and table_name = 'daily_dispatch_plan'
+        """
+    ).fetchall()
+    actual = {row[0] for row in rows}
+    missing = EXPECTED_DAILY_DISPATCH_COLUMNS - actual
+    if missing:
+        raise AssertionError(f"missing daily dispatch columns: {sorted(missing)}")
+
 
 def validate_security(connection: psycopg.Connection) -> None:
     rows = connection.execute(
@@ -260,6 +298,7 @@ def validate_security(connection: psycopg.Connection) -> None:
             'catalog_imports',
             'catalog_item_import_history',
             'catalog_items',
+            'daily_dispatch_plan',
             'candidate_refresh_policies',
             'offer_snapshots',
             'offer_refresh_attempts',

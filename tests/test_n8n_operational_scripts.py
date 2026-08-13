@@ -35,7 +35,7 @@ def test_operation_modes_define_expected_pindata() -> None:
     preserve = ops_common.resolve_mode("preserve-pindata")
 
     assert real_group.pin_data["Trigger Manual"][0]["json"]["target_chat_id"].endswith("@g.us")
-    assert real_group.pin_data["Trigger Manual"][0]["json"]["limit"] == 3
+    assert real_group.pin_data["Trigger Manual"][0]["json"]["limit"] == 8
     assert real_group.pin_data["Trigger Manual"][0]["json"]["send_delay_seconds_min"] == 45
     assert real_group.pin_data["Trigger Manual"][0]["json"]["send_delay_seconds_max"] == 90
     assert phone.pin_data["Trigger Manual"][0]["json"]["target_chat_id"].endswith("@c.us")

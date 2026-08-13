@@ -110,13 +110,13 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
         raise SelectionPolicyError(f"selection policy bands are required: {slug}")
 
     quotas: dict[str, int] = {}
-    total_share = 0
+    total_share = 0.0
     for raw_band in raw_bands:
         if not isinstance(raw_band, dict):
             raise SelectionPolicyError(f"selection policy band must be an object: {slug}")
         subniche = str(raw_band.get("subniche", "")).strip()
         items = int(raw_band.get("items", 0))
-        share_percent = int(raw_band.get("share_percent", 0))
+        share_percent = float(raw_band.get("share_percent", 0))
         if not subniche or items <= 0 or share_percent <= 0:
             raise SelectionPolicyError(f"invalid selection policy band: {slug}")
         if subniche in quotas:
@@ -130,7 +130,7 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
 
     if sum(quotas.values()) != total_items:
         raise SelectionPolicyError(f"selection policy item total must equal {total_items}: {slug}")
-    if total_share != 100:
+    if abs(total_share - 100) > 0.000001:
         raise SelectionPolicyError(f"selection policy shares must total 100: {slug}")
 
     return SelectionPolicy(
@@ -173,11 +173,11 @@ def _build_selection_policy_from_csv_rows(rows: list[dict[str, str]]) -> Selecti
         raise SelectionPolicyError(f"selection policy evidence is required: {slug}")
 
     quotas: dict[str, int] = {}
-    total_share = 0
+    total_share = 0.0
     for row in rows:
         subniche = (row.get("subniche") or "").strip()
         items = _csv_required_int(row.get("items"), "items")
-        share_percent = _csv_required_int(row.get("share_percent"), "share_percent")
+        share_percent = _csv_required_float(row.get("share_percent"), "share_percent")
         if not subniche or items <= 0 or share_percent <= 0:
             raise SelectionPolicyError(f"invalid selection policy band: {slug}")
         if subniche in quotas:
@@ -191,7 +191,7 @@ def _build_selection_policy_from_csv_rows(rows: list[dict[str, str]]) -> Selecti
 
     if sum(quotas.values()) != total_items:
         raise SelectionPolicyError(f"selection policy item total must equal {total_items}: {slug}")
-    if total_share != 100:
+    if abs(total_share - 100) > 0.000001:
         raise SelectionPolicyError(f"selection policy shares must total 100: {slug}")
 
     return SelectionPolicy(
@@ -339,6 +339,17 @@ def _csv_required_int(value: str | None, field_name: str) -> int:
     except ValueError as error:
         raise SelectionPolicyError(
             f"selection policy csv field must be integer: {field_name}"
+        ) from error
+
+
+def _csv_required_float(value: str | None, field_name: str) -> float:
+    if value is None or not value.strip():
+        raise SelectionPolicyError(f"selection policy csv field is required: {field_name}")
+    try:
+        return float(value.strip())
+    except ValueError as error:
+        raise SelectionPolicyError(
+            f"selection policy csv field must be numeric: {field_name}"
         ) from error
 
 

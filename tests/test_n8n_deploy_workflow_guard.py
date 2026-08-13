@@ -24,7 +24,7 @@ def workflow_payload(
     schedule_context: str | None = None,
 ) -> dict[str, object]:
     schedule_context = schedule_context or (
-        "return [{ json: { dry_run: false, limit: 3, "
+        "return [{ json: { dry_run: false, limit: 8, "
         "target: 'grupo-ofertas-feminino', "
         "target_chat_id: '120363412864266334@g.us', "
         "allowed_targets_csv: 'grupo-ofertas-feminino', "
@@ -58,6 +58,19 @@ def workflow_payload(
                 "name": "Montar Mensagens",
                 "parameters": {
                     "jsCode": f"const copy = `{message_layout}`;"
+                },
+            },
+            {
+                "name": "Validar Contexto",
+                "parameters": {
+                    "jsCode": (
+                        "select from offers.daily_dispatch_plan "
+                        "for update skip locked; "
+                        "update dispatch_status = 'claimed', claim_token = token; "
+                        "select null::uuid as dispatch_plan_id "
+                        "from offers.v_daily_dispatch_ready; "
+                        "const result = dryRun ? previewQuery : claimQuery;"
+                    )
                 },
             },
             {

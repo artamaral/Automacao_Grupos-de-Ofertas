@@ -46,7 +46,12 @@ def test_operational_selection_policies_cover_all_curated_niches() -> None:
         "feminino",
         "auto e moto",
     }
-    for policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.values():
+    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items():
+        if niche == "feminino":
+            assert policy.total_items == 8
+            assert sum(policy.subniche_quotas.values()) == 8
+            assert policy.minimum_daily_runs == 14
+            continue
         assert policy.total_items == 20
         assert sum(policy.subniche_quotas.values()) == 20
         assert policy.max_zero_sales_items == 4

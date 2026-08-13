@@ -1,5 +1,23 @@
 # Decisao de arquitetura MVP Supabase e n8n
 
+## Evolucao vigente para feminino
+
+O fluxo direto pelo ranking permanece como registro do MVP inicial, mas deixou
+de ser o contrato de selecao do grupo `feminino`. A operacao atual prepara uma
+fila diaria persistida antes do n8n:
+
+```text
+offers.v_offer_ranking_current
+  -> planejador de bandas e rotacao
+  -> offers.daily_dispatch_plan
+  -> offers.v_daily_dispatch_ready
+  -> n8n monta, envia e registra publication_events
+```
+
+O n8n executa de hora em hora entre `08h` e `21h` e consome `8` slots prontos.
+Ele nao decide banda, rotacao, fallback ou ordenacao diaria. O vinculo
+`publication_events.dispatch_plan_id` controla o consumo idempotente.
+
 Este documento e a decisao canonica do MVP operacional.
 
 Ele substitui, para a fase atual, a leitura anterior baseada em Supabase +
