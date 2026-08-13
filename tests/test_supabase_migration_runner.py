@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from scripts.supabase.apply_migrations import file_checksum, migration_files
+from scripts.supabase.apply_migrations import (
+    checksum_matches,
+    file_checksum,
+    legacy_file_checksum,
+    migration_files,
+)
 
 
 def test_migration_files_are_sorted_and_limited_to_sql(tmp_path: Path) -> None:
@@ -30,3 +35,21 @@ def test_file_checksum_is_stable_sha256(tmp_path: Path) -> None:
     assert file_checksum(migration) == (
         "4a45092ccf992ea92250053a80b931b787924ba61648f420555511b84f10ab6c"
     )
+
+
+def test_file_checksum_ignores_line_ending_differences(tmp_path: Path) -> None:
+    lf_migration = tmp_path / "lf.sql"
+    crlf_migration = tmp_path / "crlf.sql"
+    lf_migration.write_bytes(b"select 1;\nselect 2;\n")
+    crlf_migration.write_bytes(b"select 1;\r\nselect 2;\r\n")
+
+    assert file_checksum(lf_migration) == file_checksum(crlf_migration)
+
+
+def test_checksum_matches_legacy_raw_checksum(tmp_path: Path) -> None:
+    migration = tmp_path / "migration.sql"
+    migration.write_bytes(b"select 1;\r\n")
+
+    recorded_checksum = legacy_file_checksum(migration)
+
+    assert checksum_matches(migration, recorded_checksum)

@@ -43,7 +43,23 @@ def migration_files(migrations_dir: Path) -> list[Path]:
 
 
 def file_checksum(path: Path) -> str:
+    return hashlib.sha256(_canonical_migration_bytes(path)).hexdigest()
+
+
+def legacy_file_checksum(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def checksum_matches(path: Path, recorded_checksum: str) -> bool:
+    return recorded_checksum in {
+        file_checksum(path),
+        legacy_file_checksum(path),
+    }
+
+
+def _canonical_migration_bytes(path: Path) -> bytes:
+    content = path.read_bytes()
+    return content.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
 
 
 def connect() -> psycopg.Connection:
@@ -95,12 +111,11 @@ def inspect(files: list[Path]) -> int:
         applied = applied_migrations(connection)
     pending_count = 0
     for path in files:
-        checksum = file_checksum(path)
         recorded_checksum = applied.get(path.name)
         if recorded_checksum is None:
             status = "pending"
             pending_count += 1
-        elif recorded_checksum == checksum:
+        elif checksum_matches(path, recorded_checksum):
             status = "applied"
         else:
             status = "checksum-mismatch"
@@ -126,7 +141,7 @@ def apply(files: list[Path], confirmation: str | None) -> int:
             checksum = file_checksum(path)
             recorded_checksum = applied.get(path.name)
             if recorded_checksum is not None:
-                if recorded_checksum != checksum:
+                if not checksum_matches(path, recorded_checksum):
                     raise ValueError(
                         f"applied migration checksum changed: {path.name}"
                     )
