@@ -69,22 +69,31 @@
     "copo treinamento": "alimentacao-copos-treinamento",
     "cortador unha bebê": "higiene-saude-unhas",
     "enxoval bebê": "enxoval-kits",
+    "gravida": "roupas-geral",
+    "grávida": "roupas-geral",
     "esterilizador mamadeira": "alimentacao-esterilizadores",
     "fralda reutilizável": "troca-fraldas-reutilizaveis",
     "macacão bebê": "roupas-macacao",
     "mamadeira": "alimentacao-mamadeiras",
+    "moda gestante": "roupas-geral",
     "mochila maternidade": "maternidade-bolsas-mochilas",
     "monitor bebê": "quarto-monitoramento",
     "mordedor bebê": "oral-mordedores-chupetas",
     "mosquiteiro bebê": "quarto-sono-mosquiteiros",
     "organizador berço": "quarto-organizacao-berco",
     "organizador leite materno": "amamentacao-armazenamento-leite",
+    "pós parto": "roupas-geral",
+    "pos parto": "roupas-geral",
     "prato bebê": "alimentacao-pratos-talheres",
     "roupa bebê": "roupas-geral",
+    "roupa gestante": "roupas-geral",
+    "saída maternidade": "roupas-geral",
+    "saida maternidade": "roupas-geral",
     "sling bebê": "passeio-sling-wrap",
     "tapete atividade bebê": "brinquedos-tapetes-atividade",
     "termômetro bebê": "higiene-saude-termometros",
-    "trocador portátil": "troca-trocadores-portateis"
+    "trocador portátil": "troca-trocadores-portateis",
+    "vestido gestante": "roupas-geral"
   },
   "generic_source_hits": [
     "bebê",
@@ -126,6 +135,23 @@
       "order": 2
     },
     {
+      "subniche": "roupas-geral",
+      "keywords": [
+        "gestante",
+        "grávida",
+        "gravida",
+        "amamentação",
+        "amamentacao",
+        "pós parto",
+        "pos parto",
+        "saída maternidade",
+        "saida maternidade",
+        "parto"
+      ],
+      "pattern_regex": "gestante|gr[aá]vida|amamenta[cç][aã]o|p[oó]s\\s*-?\\s*parto|sa[ií]da\\s*maternidade|\\bparto\\b",
+      "order": 3
+    },
+    {
       "subniche": "maternidade-bolsas-mochilas",
       "keywords": [
         "maternidade",
@@ -135,7 +161,7 @@
         "necessere"
       ],
       "pattern_regex": "maternidade|saquinhos?|saco\\s*organizador|organizadores?\\s*mala|necessere",
-      "order": 3
+      "order": 4
     },
     {
       "subniche": "troca-fraldas-descartaveis",
@@ -145,7 +171,7 @@
         "lovecare"
       ],
       "pattern_regex": "fraldas?|babysec|lovecare",
-      "order": 4
+      "order": 5
     },
     {
       "subniche": "roupas-geral",
@@ -158,7 +184,7 @@
         "sandália"
       ],
       "pattern_regex": "\\b(t[eê]nis|tenis|meia|sapat|sand[aá]lia)\\b",
-      "order": 5
+      "order": 6
     },
     {
       "subniche": "alimentacao-pratos-talheres",
@@ -174,7 +200,7 @@
         "alimentação"
       ],
       "pattern_regex": "refei[cç][aã]o|introdu[cç][aã]o\\s*alimentar|caneca|garrafa|garrafinha|copo|bebedouro|pratinho|alimenta[cç][aã]o",
-      "order": 6
+      "order": 7
     },
     {
       "subniche": "seguranca-infantil",
@@ -192,7 +218,7 @@
         "assento trava"
       ],
       "pattern_regex": "seguran[cç]a|antiqueda|triciclo|motoca|moto\\b|motinha|cadeirinha\\s*carro|cinto|prote[cç][aã]o\\s*para\\s*piscina|prendedor\\s*assento|assento\\s*trava",
-      "order": 7
+      "order": 8
     },
     {
       "subniche": "quarto-sono",
@@ -203,7 +229,7 @@
         "paninho de dormir"
       ],
       "pattern_regex": "colch[aã]o|naninha|paninho\\s*de\\s*dormir",
-      "order": 8
+      "order": 9
     },
     {
       "subniche": "higiene-saude-cuidados",
@@ -219,7 +245,7 @@
         "bolsa para cólica"
       ],
       "pattern_regex": "eucalipto|repelente|colic|c[oó]lica|refluxo|kit\\s*de\\s*higiene|cuidados?\\s*do\\s*beb[eê]|bolsa\\s*para\\s*c[oó]lica",
-      "order": 9
+      "order": 10
     },
     {
       "subniche": "alimentacao-mamadeiras",
@@ -228,7 +254,7 @@
         "garrafinha com canudo"
       ],
       "pattern_regex": "piscina.*bomba\\s*de\\s*encher|garrafinha.*canudo",
-      "order": 10
+      "order": 11
     },
     {
       "subniche": "desfralde",
@@ -239,7 +265,7 @@
         "privadinha"
       ],
       "pattern_regex": "desfralde|troninho|pinico|privadinha",
-      "order": 11
+      "order": 12
     }
   ],
   "historical_subniche_counts": {

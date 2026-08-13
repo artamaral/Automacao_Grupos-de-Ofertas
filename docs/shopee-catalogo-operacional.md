@@ -347,3 +347,27 @@ Para qualidade do catalogo `feminino`:
 - a execucao de `2026-08-11` removeu `2.090` linhas do catalogo ativo
   `feminino/shopee`, ativando o import
   `d94d30be-576b-41a4-a504-cad83e69cec1` com `25.202` linhas.
+
+Atualizacao de `2026-08-13`:
+
+- `moda-gestante` deixou de existir no dominio `feminino`;
+- os termos proibidos de `feminino` foram ampliados para cobrir
+  `parto`, `gestante`, `bebe/bebê`, `infantil`, `juvenil`, `menino` e
+  `maternidade` com variantes operacionais;
+- a migracao local de linhas do catalogo curado moveu `8.532` candidatas do
+  insumo `feminino` para a relimpeza de `mae-e-bebe`;
+- a relimpeza local gerou `29.365` linhas operacionais em
+  `catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv` e `11.697`
+  linhas operacionais em
+  `catalogs/clean/mae-e-bebe/clean_catalog_rating_4_8_plus.csv`, ambas com
+  `sales > 1` e `ratingStar >= 4.8`;
+- a rodada remota de `2026-08-13T12:44:24-03:00` criou os imports
+  `40ac03c8-acc2-452d-a4a2-7fecc66f9fc2` (`feminino`) e
+  `6c9f60fe-86a0-430f-aae4-51532938a0f8` (`mae-e-bebe`);
+- no Supabase, `offers.catalog_items` passou a registrar
+  `30.362` itens para `feminino` e `11.697` para `mae-e-bebe`;
+- a verificacao pos-import mostrou um gap operacional preexistente: a tabela
+  `offers.candidate_refresh_policies` ainda so possui `feminino`, por isso
+  `offers.v_offer_ranking_current` e `offers.v_offer_refresh_status` continuam
+  expondo apenas esse profile ate que `mae-e-bebe` e `auto-e-moto` recebam
+  politicas remotas equivalentes.
