@@ -1,5 +1,9 @@
 # Descobridor Geral
 
+Leitura complementar:
+
+- [`docs/discovery-shopee-ate-supabase.md`](discovery-shopee-ate-supabase.md) para o fluxo completo de discovery ate a entrada no catalogo do Supabase.
+
 O `descobridor-geral` e o metodo operacional inicial para descoberta de itens
 na Shopee a partir de um nicho configurado.
 

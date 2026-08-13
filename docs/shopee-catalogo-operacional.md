@@ -1,5 +1,9 @@
 # Catalogo Shopee
 
+Leitura complementar:
+
+- [`docs/discovery-shopee-ate-supabase.md`](discovery-shopee-ate-supabase.md) para a visao etapa por etapa do discovery ate o catalogo no Supabase.
+
 Este documento define como organizar a construcao de catalogo de produtos da
 Shopee para nicho e subnicho, pensando no fluxo futuro com `n8n`.
 
