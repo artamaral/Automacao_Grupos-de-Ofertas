@@ -16,8 +16,8 @@ catalogo persistente
   -> SelectionGate
 ```
 
-A primeira versao atende somente `profile=feminino`, roda manualmente e nao
-altera `offers.catalog_items`.
+A implementacao atende somente `profile=feminino`, roda diariamente pelo
+service versionado e nao altera `offers.catalog_items`.
 
 ## Fila orientada ao ranking
 
@@ -94,8 +94,9 @@ Para confirmar manualmente uma rodada ja inspecionada:
 ## Execucao agendada na VPS
 
 O refresh operacional roda fora do n8n, por `systemd timer`, na VPS Hostinger.
-O n8n continua consultando `offers.v_offer_ranking_current`; o timer apenas
-atualiza snapshots antes da primeira publicacao do dia.
+Para `feminino`, o mesmo service gera a fila diaria depois de atualizar os
+snapshots. O n8n nao consulta o ranking nem planeja bandas: consome apenas
+`offers.v_daily_dispatch_ready` depois que a cadeia termina.
 
 - horario: 07:00 BRT, diario;
 - app path: `/opt/automacao_grupo_compras/app`;
@@ -112,11 +113,13 @@ Como a VPS esta em UTC, o timer usa timezone explicito:
 OnCalendar=*-*-* 07:00:00 America/Sao_Paulo
 ```
 
-O wrapper usa `flock`, preserva os artefatos locais, executa o refresh real e,
-por padrao, roda um pos-processo que confirma automaticamente itens com
-`no_node` recorrente quando a rodada termina com sucesso. O limite padrao e
-`AUTO_CONFIRM_UNAVAILABLE_MIN_NO_NODE_ATTEMPTS=2`, para evitar esconder um item
-por um `no_node` isolado.
+O wrapper usa um unico `flock` durante toda a cadeia, preserva os artefatos
+locais, executa o refresh real e, por padrao, roda um pos-processo que confirma
+automaticamente itens com `no_node` recorrente. Depois dessa pos-etapa, ou
+diretamente depois do refresh quando ela esta desabilitada, o wrapper persiste
+o plano de 112 slots. Qualquer erro impede as etapas seguintes e deixa o
+service com falha. O limite padrao de recorrencia e
+`AUTO_CONFIRM_UNAVAILABLE_MIN_NO_NODE_ATTEMPTS=2`.
 
 ```bash
 /opt/automacao_grupo_compras/app/.venv/bin/python \
@@ -143,6 +146,16 @@ Pos-etapa automatica do wrapper:
   --confirm-remote-write AUTO_CONFIRM_CANDIDATE_UNAVAILABLE
 ```
 
+Etapa final obrigatoria do mesmo wrapper:
+
+```bash
+/opt/automacao_grupo_compras/app/.venv/bin/python \
+  -m ofertas_bot.tools.plan_daily_dispatch \
+  --profile feminino \
+  --marketplace shopee \
+  --apply
+```
+
 Variaveis operacionais do wrapper:
 
 - `AUTO_CONFIRM_UNAVAILABLE_ENABLED=true` ativa a pos-etapa automatica;
@@ -152,6 +165,9 @@ Variaveis operacionais do wrapper:
   ledger;
 - `AUTO_CONFIRM_UNAVAILABLE_CONFIRMATION=AUTO_CONFIRM_CANDIDATE_UNAVAILABLE`
   protege a escrita remota da pos-etapa.
+
+Desabilitar a confirmacao automatica nao desabilita o planejamento. Nao existe
+timer separado para `plan_daily_dispatch`.
 
 Credenciais reais ficam somente no `.env` local da VPS, fora do Git. Antes de
 habilitar o timer, validar SSH, `git pull`, Python 3.11+, `.venv`, `.env`,
@@ -216,7 +232,8 @@ Os arquivos sao auditoria local. A verdade historica permanece no Supabase.
   valor em um campo, usa o dado correspondente do catalogo;
 - `commercial_data_source`, `refresh_status`, `last_checked_at` e `age_hours`
   deixam explicita a idade e a origem do score;
-- feeds 10k/100k, scheduler, n8n e publicacao permanecem fora deste fluxo.
+- feeds 10k/100k, discovery ampla, n8n e publicacao permanecem fora desta
+  cadeia; somente o planejamento diario persistido foi acoplado ao refresh.
 
 ## Payload real validado
 

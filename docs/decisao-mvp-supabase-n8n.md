@@ -7,12 +7,17 @@ de ser o contrato de selecao do grupo `feminino`. A operacao atual prepara uma
 fila diaria persistida antes do n8n:
 
 ```text
-offers.v_offer_ranking_current
+shopee-candidate-refresh.timer (07:00 BRT)
+  -> refresh/rechecagem Shopee
   -> planejador de bandas e rotacao
   -> offers.daily_dispatch_plan
   -> offers.v_daily_dispatch_ready
   -> n8n monta, envia e registra publication_events
 ```
+
+Refresh e planejamento pertencem ao mesmo service `systemd` e ao mesmo lock.
+O planejamento so comeca depois que o refresh e sua pos-etapa opcional terminam
+com sucesso; nao existe um segundo agendamento para gerar a fila.
 
 O n8n executa de hora em hora entre `08h` e `21h` e consome `8` slots prontos.
 Ele nao decide banda, rotacao, fallback ou ordenacao diaria. O vinculo
@@ -26,11 +31,12 @@ mas nao e requisito para colocar o MVP em operacao.
 
 ## Decisao registrada
 
-O fluxo oficial do MVP passa a ser:
+O fluxo oficial do MVP para `feminino` passa a ser:
 
 ```text
 Catalogo ativo no Supabase
-  -> n8n consulta ranking
+  -> cron atualiza snapshots e persiste a fila diaria
+  -> n8n consulta offers.v_daily_dispatch_ready
   -> n8n monta mensagem
   -> n8n envia para allowlist
   -> Supabase registra historico
@@ -65,8 +71,8 @@ Supabase e a fonte de verdade do MVP para:
 n8n e o orquestrador do MVP para:
 
 - iniciar a rodada;
-- consultar `offers.v_offer_ranking_current`;
-- aplicar limite por rodada;
+- consultar a janela corrente em `offers.v_daily_dispatch_ready`;
+- consumir ate 8 slots planejados por rodada;
 - montar `message_text`;
 - validar allowlist de destino;
 - enviar pelo canal configurado;
@@ -102,9 +108,10 @@ Ele pode voltar depois se houver necessidade de:
 - expor endpoints estaveis para workflows;
 - escalar processamento fora do n8n.
 
-## Contrato da query MVP
+## Contrato legado da query MVP
 
-O n8n deve consultar `offers.v_offer_ranking_current` com filtros explicitos e
+Antes da fila persistida, o n8n consultava `offers.v_offer_ranking_current` com
+filtros explicitos e
 excluir ofertas ja confirmadas para o mesmo destino logico e canal. Isso evita
 repostar o mesmo `stable_key` quando o topo do ranking permanece igual entre
 rodadas.
@@ -153,8 +160,9 @@ limit :limit;
 bloqueios de allowlist gravados como `cancelled` nao devem retirar a oferta do
 ranking futuro.
 
-O workflow nao deve inventar filtros escondidos. Qualquer filtro novo precisa
-ser explicito e documentado.
+Essa query permanece como registro do MVP inicial, nao como contrato vigente do
+`feminino`. O workflow atual nao deve inventar filtros escondidos nem voltar a
+selecionar diretamente do ranking.
 
 ## Segurança do MVP
 

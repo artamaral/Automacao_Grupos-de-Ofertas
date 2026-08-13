@@ -1,5 +1,5 @@
 [Unit]
-Description=Shopee candidate refresh for ofertas ranking
+Description=Shopee candidate refresh and daily dispatch planning
 Wants=network-online.target
 After=network-online.target
 

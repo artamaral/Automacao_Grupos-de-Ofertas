@@ -776,7 +776,16 @@ Configuracao versionada do schedule:
 - `allowed_targets_csv=grupo-ofertas-feminino`;
 - envio por `POST /api/sendImage`.
 
-Antes de publicar o workflow, a fila do dia precisa estar pronta no Supabase:
+O workflow pressupoe que a fila do dia esteja pronta no Supabase. Na operacao
+normal ela e criada automaticamente pelo mesmo cron que roda o refresh as
+07:00 BRT:
+
+```text
+refresh -> confirmacao opcional de no_node -> planejamento de 112 slots
+```
+
+Nao configurar um segundo cron para o planejador. Os comandos abaixo sao apenas
+para diagnostico ou recuperacao manual:
 
 ```powershell
 .\.venv\Scripts\python.exe -m ofertas_bot.tools.plan_daily_dispatch --profile feminino

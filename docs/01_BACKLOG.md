@@ -32,9 +32,10 @@ Por isso, este backlog foi reorganizado em quatro blocos:
 
 ### MVP Supabase, n8n e WAHA
 
-- Definido o caminho canonico do MVP: `Catalogo ativo no Supabase -> n8n
-  consulta ranking -> n8n monta mensagem -> n8n envia para allowlist ->
-  Supabase registra historico`.
+- Definido o caminho canonico vigente do `feminino`: `Catalogo ativo no
+  Supabase -> cron faz refresh e persiste a fila diaria -> n8n consome
+  offers.v_daily_dispatch_ready -> n8n envia para allowlist -> Supabase registra
+  historico`.
 - Workflow `ofertas-mvp-supabase` versionado e importavel em
   `n8n/workflows/ofertas-mvp-supabase.json`.
 - Ajustado o workflow MVP do n8n para registrar `delivery_status=confirmed`
@@ -91,6 +92,8 @@ Por isso, este backlog foi reorganizado em quatro blocos:
 - Validado smoke real de refresh em 2026-08-11.
 - Validado lote real com 500 chamadas, 490 snapshots e top 20 de `feminino`
   integralmente em `commercial_data_source=snapshot` e `refresh_status=FRESH`.
+- Encadeados refresh, confirmacao opcional de `no_node` e planejamento dos 112
+  slots no mesmo timer/service, sem segundo cron e sem selecao no n8n.
 
 ## Fora do MVP atual
 

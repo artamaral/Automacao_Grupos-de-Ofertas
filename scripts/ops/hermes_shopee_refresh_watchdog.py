@@ -108,6 +108,25 @@ def check_systemd() -> tuple[str, str, str]:
     return timer_enabled, timer_active, service_state
 
 
+def service_state_problems(service_state: str) -> list[str]:
+    properties = {}
+    for line in service_state.splitlines():
+        key, separator, value = line.partition("=")
+        if separator:
+            properties[key] = value
+
+    problems = []
+    result = properties.get("Result")
+    if result != "success":
+        problems.append(f"service Result inesperado: {result or 'ausente'}")
+    exec_main_status = properties.get("ExecMainStatus")
+    if exec_main_status != "0":
+        problems.append(
+            f"service ExecMainStatus inesperado: {exec_main_status or 'ausente'}"
+        )
+    return problems
+
+
 def report_value(report: dict[str, Any], *path: str) -> Any:
     current: Any = report
     for key in path:
@@ -126,7 +145,7 @@ def build_alert(
     report: dict[str, Any] | None,
     report_path: str | None,
 ) -> str:
-    lines = ["ALERTA refresh Shopee"]
+    lines = ["ALERTA refresh e planejamento Shopee"]
     lines.extend(f"- {problem}" for problem in problems)
     lines.append(f"- timer: enabled={timer_enabled}, active={timer_active}")
     lines.append(f"- service: {service_state.replace(chr(10), '; ')}")
@@ -143,7 +162,9 @@ def build_alert(
         lines.append(f"- duracao_s: {report_value(report, 'summary', 'elapsed_seconds')}")
     if report_path:
         lines.append(f"- report: {report_path}")
-    lines.append("- hipotese: refresh diario nao concluiu conforme contrato operacional")
+    lines.append(
+        "- hipotese: cadeia diaria de refresh e planejamento nao concluiu conforme contrato"
+    )
     return "\n".join(lines)
 
 
@@ -155,6 +176,7 @@ def main() -> int:
             problems.append(f"timer nao esta enabled: {timer_enabled}")
         if timer_active != "active":
             problems.append(f"timer nao esta active: {timer_active}")
+        problems.extend(service_state_problems(service_state))
 
         report = None
         report_path = None

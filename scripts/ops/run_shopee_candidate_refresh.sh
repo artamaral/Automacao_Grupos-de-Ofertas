@@ -52,26 +52,24 @@ REFRESH_ATTEMPTS_FILE="${OUTPUT_BASE_DIR}/${PROFILE}/${RUN_ID}/refresh_attempts.
   --run-id "${RUN_ID}" \
   --apply \
   --confirm-remote-write "${CONFIRM_REMOTE_WRITE}"
-refresh_exit=$?
 
-if [[ ${refresh_exit} -ne 0 ]]; then
-  exit "${refresh_exit}"
+if [[ "${AUTO_CONFIRM_UNAVAILABLE_ENABLED}" == "true" ]]; then
+  if [[ ! -f "${REFRESH_ATTEMPTS_FILE}" ]]; then
+    echo "ERRO refresh Shopee: refresh_attempts.csv ausente em ${REFRESH_ATTEMPTS_FILE}" >&2
+    exit 3
+  fi
+
+  "${PYTHON_BIN}" scripts/shopee/auto_confirm_candidate_unavailable.py \
+    --profile "${PROFILE}" \
+    --marketplace "${MARKETPLACE}" \
+    --refresh-attempts-file "${REFRESH_ATTEMPTS_FILE}" \
+    --min-no-node-attempts "${AUTO_CONFIRM_UNAVAILABLE_MIN_NO_NODE_ATTEMPTS}" \
+    --reason "${AUTO_CONFIRM_UNAVAILABLE_REASON}" \
+    --apply \
+    --confirm-remote-write "${AUTO_CONFIRM_UNAVAILABLE_CONFIRMATION}"
 fi
 
-if [[ "${AUTO_CONFIRM_UNAVAILABLE_ENABLED}" != "true" ]]; then
-  exit 0
-fi
-
-if [[ ! -f "${REFRESH_ATTEMPTS_FILE}" ]]; then
-  echo "ERRO refresh Shopee: refresh_attempts.csv ausente em ${REFRESH_ATTEMPTS_FILE}" >&2
-  exit 3
-fi
-
-exec "${PYTHON_BIN}" scripts/shopee/auto_confirm_candidate_unavailable.py \
+"${PYTHON_BIN}" -m ofertas_bot.tools.plan_daily_dispatch \
   --profile "${PROFILE}" \
   --marketplace "${MARKETPLACE}" \
-  --refresh-attempts-file "${REFRESH_ATTEMPTS_FILE}" \
-  --min-no-node-attempts "${AUTO_CONFIRM_UNAVAILABLE_MIN_NO_NODE_ATTEMPTS}" \
-  --reason "${AUTO_CONFIRM_UNAVAILABLE_REASON}" \
-  --apply \
-  --confirm-remote-write "${AUTO_CONFIRM_UNAVAILABLE_CONFIRMATION}"
+  --apply

@@ -578,17 +578,19 @@ regra de ouro: somente leitura.
 - Artefato esperado:
   `/opt/automacao_grupo_compras/app/.data/candidate_refresh/feminino/<run_id>/run_report.json`.
 
-O watchdog nao executa refresh, nao altera systemd, nao altera arquivos, nao
-escreve no Supabase e nao faz retry. Ele deve verificar se o timer esta
-`enabled/active`, ler o estado da ultima execucao do service e procurar o
-`run_report.json` mais recente de hoje apos 07:00 BRT.
+O watchdog nao executa refresh ou planejamento, nao altera systemd, nao altera
+arquivos, nao escreve no Supabase e nao faz retry. Ele deve verificar se o
+timer esta `enabled/active`, exigir `Result=success` e `ExecMainStatus=0` no
+service combinado e procurar o `run_report.json` mais recente de hoje apos
+07:00 BRT.
 
-Validacoes minimas do `run_report.json`:
+Validacoes minimas do watchdog:
 
 - `run_status` com prefixo `completed` ou `partial`;
 - `summary.api_calls_attempted > 0`;
 - `summary.snapshots_inserted > 0` quando houve chamadas;
 - `limits.max_api_calls` respeitado;
+- service combinado com `Result=success` e `ExecMainStatus=0`;
 - `summary.elapsed_seconds` presente.
 
 Saida:
