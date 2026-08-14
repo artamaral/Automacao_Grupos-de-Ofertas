@@ -46,8 +46,6 @@ Por isso, este backlog foi reorganizado em quatro blocos:
 - Ajustado `sent_at` no workflow MVP para permanecer `null` quando
   `dry_run=true`.
 - Validado o bloqueio de destino fora da allowlist antes do canal real.
-- Validada a regra anti-repost para nao reenviar a mesma oferta ja confirmada
-  ao mesmo `target` e `channel_adapter`.
 - WAHA definido como adapter WhatsApp atual, com operacao self-hosted na VPS e
   uso apenas como canal de envio, nunca como fonte de verdade.
 - Acoplado o envio real por imagem + legenda via `POST /api/sendImage`.
@@ -94,6 +92,10 @@ Por isso, este backlog foi reorganizado em quatro blocos:
   integralmente em `commercial_data_source=snapshot` e `refresh_status=FRESH`.
 - Encadeados refresh, confirmacao opcional de `no_node` e planejamento dos 112
   slots no mesmo timer/service, sem segundo cron e sem selecao no n8n.
+- Documentado em `2026-08-14` o estado vigente do `feminino` como
+  `v_offer_ranking_current -> daily_dispatch_plan -> v_daily_dispatch_ready ->
+  n8n -> publication_events`, com o fluxo direto `ranking -> n8n` rebaixado a
+  legado.
 
 ## Fora do MVP atual
 
@@ -121,9 +123,15 @@ como bloqueio da operacao minima:
 - Endurecer TLS da credencial Postgres do Supabase no n8n, substituindo
   `Ignore SSL Issues (Insecure)` por validacao completa da cadeia via CA
   confiavel quando a UI/container permitir.
+- Definir e implementar a trava canonica de anti-repost do caminho vigente do
+  `feminino`, escolhendo explicitamente se ela volta a morar em
+  `publication_events`, em `offer_selection_state`, ou nas duas camadas.
+- Recolocar no fluxo real a protecao por `target` e `channel_adapter`, porque o
+  estado atual protege o consumo idempotente do slot diario, mas nao fecha a
+  reentrada futura do mesmo item no ranking.
 - Atualizar `offers.offer_selection_state` no fluxo MVP apos envio confirmado,
   registrando `selected_at`, `last_sent_at`, `cooldown_until` e
-  `selection_count`, para evitar loop de reoferta do mesmo item elegivel.
+  `selection_count`, para fechar o ciclo de elegibilidade apos envio confirmado.
 - Endurecer a operacao da VPS apos a primeira subida do MVP: revisar firewall
   sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do
   Traefik, configurar backup externo com teste de restore e remover a stack
@@ -144,6 +152,12 @@ como bloqueio da operacao minima:
 
 ### Catalogo e qualidade semantica
 
+- Revisar com prioridade a taxonomia e a limpeza semantica de `feminino`,
+  porque o estado atual da similaridade esta suprimindo muitos itens que
+  parecem denunciar contaminacao de catalogo, nao apenas duplicidade legitima.
+- Separar nos casos de `similarity_suppressed` do `feminino` o que e:
+  item realmente duplicado, item semanticamente mal classificado e item fora do
+  nicho.
 - Refinar keywords e taxonomia de `auto-e-moto`, reduzindo concentracao em
   subnichos genericos e volume de `unmapped_source_keywords`.
 - Revisar a qualidade semantica dos subnichos nos catalogos operacionais `4.8+`,
@@ -204,6 +218,8 @@ como bloqueio da operacao minima:
 Para consulta rapida, os principais pontos realmente em aberto hoje sao:
 
 - endurecer TLS da conexao n8n -> Supabase;
+- definir onde mora a trava canonica de anti-repost do fluxo atual;
+- recolocar a protecao por `target` e `channel_adapter` no caminho vigente;
 - atualizar `offer_selection_state` apos envio confirmado no fluxo real;
 - melhorar a qualidade semantica dos subnichos, especialmente em
   `auto-e-moto` e `feminino`;

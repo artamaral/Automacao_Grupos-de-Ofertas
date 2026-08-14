@@ -42,8 +42,7 @@ O objetivo desta tabela e responder:
 - para qual `target`;
 - com qual `publish_id`;
 - a partir de qual item da rodada;
-- quais ofertas ja foram confirmadas e nao devem ser repostadas para o mesmo
-  destino/canal no MVP.
+- quais ofertas ja foram confirmadas e precisam permanecer auditaveis no MVP.
 
 ## Papel operacional no MVP
 
@@ -62,8 +61,9 @@ desde que exista informacao suficiente para auditoria da rodada.
 
 ## Papel na selecao anti-repost
 
-A query MVP do n8n usa `publication_events` para nao selecionar novamente uma
-oferta ja confirmada para o mesmo `target` e `channel_adapter`.
+A query MVP inicial do n8n usava `publication_events` para nao selecionar
+novamente uma oferta ja confirmada para o mesmo `target` e
+`channel_adapter`.
 
 A regra e intencionalmente conservadora:
 
@@ -74,7 +74,7 @@ A regra e intencionalmente conservadora:
 - a idempotencia de uma mesma rodada continua separada e usa
   `(profile, target, manifest_item_number, artifact_generated_at)`.
 
-Filtro esperado na query de ranking:
+Filtro historico da query de ranking:
 
 ```sql
 and not exists (
@@ -88,6 +88,18 @@ and not exists (
     and event.delivery_status = 'confirmed'
 )
 ```
+
+Esse desenho permanece como referencia do MVP inicial, mas nao deve ser descrito
+como comportamento ativo do caminho vigente do `feminino`. No estado operacional
+observado em `2026-08-14`, `publication_events` cumpre estes papeis reais:
+
+- prova operacional de envio confirmado;
+- ledger auditavel de tentativas, falhas e bloqueios;
+- vinculo idempotente com `offers.daily_dispatch_plan` por `dispatch_plan_id`;
+- fonte de conciliacao e watchdog.
+
+No caminho atual, `publication_events` nao fecha sozinho a trava de anti-repost
+do `feminino` no momento de montar a fila diaria.
 
 ## Colunas principais
 
@@ -220,7 +232,7 @@ group by 1, 2
 order by artifact_generated_at desc, profile;
 ```
 
-Ofertas confirmadas que bloqueiam repost para um destino/canal:
+Ofertas confirmadas auditadas para um destino/canal:
 
 ```sql
 select

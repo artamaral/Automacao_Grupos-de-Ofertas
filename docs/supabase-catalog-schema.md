@@ -39,9 +39,18 @@ supabase/migrations/202608110001_candidate_refresh_snapshots.sql
 supabase/migrations/202608130001_incremental_discovery_catalog.sql
 ```
 
-A migration incremental foi adicionada ao repositorio, mas nao foi aplicada ao
-Supabase remoto nesta alteracao. Ate sua aplicacao, os numeros operacionais
-abaixo continuam descrevendo o modelo anterior por catalogo ativo.
+A migration incremental foi aplicada e o estado operacional vigente de
+`2026-08-14` deve ser lido assim:
+
+- `offers.v_offer_ranking_current` e a superficie de elegibilidade que alimenta
+  o planejador diario;
+- `offers.daily_dispatch_plan` e `offers.v_daily_dispatch_ready` governam o
+  consumo horario do `feminino`;
+- `offers.offer_selection_state` continua no schema, mas hoje nao esta
+  alimentando no banco remoto os campos `selected_at`, `cooldown_until` e
+  `last_sent_at` de forma a governar o repost do `feminino`;
+- o fluxo anterior em que o n8n consumia diretamente
+  `offers.v_offer_ranking_current` ficou como legado.
 
 Os campos temporais continuam usando `timestamptz`. A configuracao de timezone
 altera a exibicao e interpretacao padrao das sessoes novas do Postgres, sem
@@ -204,6 +213,14 @@ Campos exigidos pelos contratos de selecao:
 
 O estado e isolado por `profile + marketplace + stable_key`.
 
+Estado observado no remoto em `2026-08-14` para `feminino/shopee`:
+
+- existem linhas materializadas na tabela;
+- os campos `selected_at`, `cooldown_until` e `last_sent_at` permanecem nulos
+  nas linhas observadas;
+- por isso a tabela participa do calculo da view, mas nao fecha hoje o ciclo
+  operacional de anti-repost no caminho vigente.
+
 ## publication_events
 
 Mantem o ledger auditavel de entregas confirmadas pelo worker.
@@ -307,6 +324,10 @@ Uma oferta fica elegivel quando:
 O ranking e calculado apenas para itens elegiveis. Itens bloqueados continuam
 visiveis na view, mas recebem ranking nulo e motivo explicito.
 
+No estado remoto observado em `2026-08-14`, a inelegibilidade pratica do
+`feminino` esta vindo principalmente de `similarity_suppressed`, nao de
+`cooldown_active`.
+
 ## Seguranca
 
 - tabelas com RLS habilitado;
@@ -374,42 +395,22 @@ REMOTE_WRITE=OK profile=feminino import_id=d94d30be-576b-41a4-a504-cad83e69cec1 
 
 ## Uso no MVP
 
-No MVP, o n8n consome diretamente `offers.v_offer_ranking_current`.
+No estado vigente do `feminino`, o n8n nao consome mais diretamente
+`offers.v_offer_ranking_current`. O caminho atual e:
 
-Query minima recomendada:
-
-```sql
-select
-  profile,
-  marketplace,
-  stable_key,
-  item_id,
-  product_name,
-  offer_link,
-  price,
-  reference_price,
-  rating,
-  sales_count,
-  primary_subniche,
-  commercial_score,
-  score_reasons,
-  rank_profile,
-  rank_subniche
-from offers.v_offer_ranking_current
-where is_eligible = true
-  and profile = :profile
-  and marketplace = :marketplace
-order by
-  rank_profile nulls last,
-  commercial_score desc,
-  sales_count desc,
-  rating desc nulls last,
-  item_id
-limit :limit;
+```text
+offers.v_offer_ranking_current
+  -> planner diario
+  -> offers.daily_dispatch_plan
+  -> offers.v_daily_dispatch_ready
+  -> n8n
 ```
 
-O n8n nao deve alterar ranking, score ou elegibilidade no MVP. Ele apenas
-aplica o limite da rodada, monta a mensagem e registra o resultado.
+O n8n nao deve alterar ranking, score ou elegibilidade. Ele apenas consome a
+janela pronta, monta a mensagem e registra o resultado.
+
+O consumo direto da view de ranking deve ser lido como contrato legado do MVP
+inicial, nao como padrao operacional vigente.
 
 ## Proxima etapa
 
