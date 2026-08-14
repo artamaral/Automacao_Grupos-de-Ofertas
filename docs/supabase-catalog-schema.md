@@ -37,6 +37,7 @@ Migrations complementares:
 supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql
 supabase/migrations/202608110001_candidate_refresh_snapshots.sql
 supabase/migrations/202608130001_incremental_discovery_catalog.sql
+supabase/migrations/202608140001_publication_cooldown_2d.sql
 ```
 
 A migration incremental foi aplicada e o estado operacional vigente de
@@ -46,9 +47,8 @@ A migration incremental foi aplicada e o estado operacional vigente de
   o planejador diario;
 - `offers.daily_dispatch_plan` e `offers.v_daily_dispatch_ready` governam o
   consumo horario do `feminino`;
-- `offers.offer_selection_state` continua no schema, mas hoje nao esta
-  alimentando no banco remoto os campos `selected_at`, `cooldown_until` e
-  `last_sent_at` de forma a governar o repost do `feminino`;
+- confirmacoes novas alimentam `offers.offer_selection_state` e governam a
+  reentrada do item por `cooldown_until`;
 - o fluxo anterior em que o n8n consumia diretamente
   `offers.v_offer_ranking_current` ficou como legado.
 
@@ -213,13 +213,19 @@ Campos exigidos pelos contratos de selecao:
 
 O estado e isolado por `profile + marketplace + stable_key`.
 
-Estado observado no remoto em `2026-08-14` para `feminino/shopee`:
+Para `feminino/shopee`, a tabela e a projecao operacional reconstruivel de
+`publication_events`:
 
-- existem linhas materializadas na tabela;
-- os campos `selected_at`, `cooldown_until` e `last_sent_at` permanecem nulos
-  nas linhas observadas;
-- por isso a tabela participa do calculo da view, mas nao fecha hoje o ciclo
-  operacional de anti-repost no caminho vigente.
+- somente `confirmed` com `sent_at` participa;
+- `selection_count` e `last_sent_at` sao recalculados do ledger;
+- `cooldown_until` e meia-noite BRT do terceiro dia apos a publicacao;
+- o item fica inelegivel nos dois dias operacionais seguintes;
+- similaridade, taxonomia e estado de refresh sao preservados;
+- o bloqueio abrange todos os destinos e canais do perfil.
+
+`offers.rebuild_offer_publication_state('feminino', 'shopee')` recompoe a
+projecao. O wrapper `scripts/supabase/rebuild_publication_cooldown.py` exige
+confirmacao explicita e recusa execucao entre `07h` e `21h`.
 
 ## publication_events
 
@@ -324,9 +330,8 @@ Uma oferta fica elegivel quando:
 O ranking e calculado apenas para itens elegiveis. Itens bloqueados continuam
 visiveis na view, mas recebem ranking nulo e motivo explicito.
 
-No estado remoto observado em `2026-08-14`, a inelegibilidade pratica do
-`feminino` esta vindo principalmente de `similarity_suppressed`, nao de
-`cooldown_active`.
+Itens em cooldown permanecem visiveis com `cooldown_active`; itens de qualidade
+ou similaridade continuam usando seus motivos independentes.
 
 ## Seguranca
 

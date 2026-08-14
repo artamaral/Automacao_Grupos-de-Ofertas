@@ -31,11 +31,13 @@ Estado observado como padrao vigente em `2026-08-14`:
   `offers.v_daily_dispatch_ready`;
 - o planejador carrega candidatos apenas de `offers.v_offer_ranking_current`
   com `is_eligible = true`;
-- `offers.publication_events` e a prova operacional de envio confirmado, mas
-  nao atua sozinho como trava ativa de anti-repost no caminho atual;
-- `offers.offer_selection_state` existe no schema e participa da view de
-  ranking, mas seus campos `selected_at`, `cooldown_until` e `last_sent_at`
-  nao estao governando o repost do `feminino` no estado real atual;
+- `offers.publication_events` e a fonte historica da verdade para envios;
+- confirmacoes novas de `feminino/shopee` sao projetadas em
+  `offers.offer_selection_state` por trigger;
+- `cooldown_until` retira o item dos dois proximos dias operacionais, de forma
+  global para o perfil e independente de destino/canal;
+- a reconstrucao historica permanece separada da migration e so pode rodar
+  entre `21h` e `07h`, preservando a fila materializada em andamento;
 - tudo que dependia do fluxo direto `ranking -> n8n -> anti-repost por query`
   deve ser lido como legado.
 
@@ -63,11 +65,12 @@ flowchart TD
     K --> L[v_daily_dispatch_ready]
     L --> M[n8n envia para destino allowlisted]
     M --> N[publication_events registra o resultado]
-    N --> O[Trigger consome apenas o slot daquele dia]
-
-    O -. nao atualiza selected_at,<br/>last_sent_at ou cooldown_until .-> P[LACUNA: item continua elegivel]
-    P --> Q[Planejamento do dia seguinte]
-    Q --> H
+    N --> O[Trigger consome o slot daquele dia]
+    N --> P[Trigger reconcilia offer_selection_state]
+    P --> Q[cooldown_until: meia-noite BRT de D mais 3]
+    Q --> R[Item inelegivel nos dois proximos dias]
+    R --> S[Item volta ao ranking no terceiro dia]
+    S --> H
 ```
 
 O refresh nao e uma descoberta de novos produtos nem uma regra de diversidade.
@@ -78,17 +81,21 @@ o refresh preserva sua capacidade de competir pelo topo do ranking.
 A ordenacao usada para carregar candidatos e estavel: `commercial_score desc`,
 `sales_count desc`, `rating desc nulls last` e `item_id`. Em seguida, o
 planejador escolhe os primeiros itens de cada subnicho conforme as cotas e os
-espalha pelas janelas. A data altera a parcela da rotacao semanal, mas nao cria
-uma penalidade para o item publicado no dia anterior.
+espalha pelas janelas. A diversidade temporal agora entra antes dessa etapa,
+pela elegibilidade calculada a partir de `cooldown_until`.
 
-## Lacuna de diversidade entre dias
+## Politica de diversidade entre dias
 
-As travas atuais respondem a pergunta "o item esta saudavel para publicar?",
-mas nao respondem a pergunta "este item foi publicado recentemente?". A coluna
-`cooldown_until` participa de `is_eligible` e a configuracao declara um cooldown
-padrao de `24` horas, porem o fluxo vigente nao preenche `cooldown_until`,
-`selected_at` ou `last_sent_at` depois da confirmacao em `publication_events`.
-Assim, a regra existe no modelo, mas nao fecha o ciclo operacional.
+O fluxo responde separadamente se o item esta saudavel e se foi publicado
+recentemente. Uma confirmacao com `sent_at` preenche `last_sent_at`,
+`selected_at`, `selection_count` e `cooldown_until` em
+`offers.offer_selection_state`. O ranking continua usando apenas
+`is_eligible`, sem consultar o ledger nem esconder uma subquery temporal no
+planejador.
+
+A regra usa dias de calendario em `America/Sao_Paulo`, nao uma janela movel de
+48 horas. Um item publicado no dia `14` fica fora dos planos dos dias `15` e
+`16` e retorna no dia `17`; seu `cooldown_until` sera `17 00:00 BRT`.
 
 Leitura real do banco em `2026-08-14`, sem escrita:
 
@@ -102,17 +109,16 @@ Leitura real do banco em `2026-08-14`, sem escrita:
 - uma simulacao somente em memoria do plano de `2026-08-15`, usando o ranking
   atual, repetiu `110` dos `112` itens do plano de `2026-08-14`.
 
-A simulacao nao e uma previsao exata do plano seguinte, pois o proximo refresh
-pode alterar disponibilidade, preco e score. Ela mede a exposicao estrutural:
-se os produtos continuarem saudaveis e bem ranqueados, quase nada no algoritmo
-atual os faz ceder lugar a outros produtos elegiveis do mesmo subnicho.
+A evidencia motivou a politica atual. Em simulacao somente leitura, bloquear as
+confirmacoes dos dois dias anteriores ainda deixou `28.207` candidatos
+elegiveis, gerou os `112` slots e manteve pelo menos `214` candidatos de folga
+no subnicho mais restrito entre os selecionados.
 
-Essa lacuna e importante porque a fila diaria garante unicidade apenas dentro
-do mesmo `planned_date`. Ela impede duplicar um item no mesmo plano e impede
-consumir duas vezes o mesmo slot, mas nao impede repetir o mesmo `stable_key` em
-datas consecutivas. Com cotas fixas e ordenacao deterministica, o topo de cada
-subnicho tende a se cristalizar, reduzindo variedade para o publico e deixando
-grande parte do catalogo saudavel sem exposicao.
+`publication_events` permanece autoritativo e `offer_selection_state` e uma
+projecao reconstruivel. A migration nao executa backfill automaticamente: novas
+confirmacoes passam a ser projetadas imediatamente, enquanto
+`scripts/supabase/rebuild_publication_cooldown.py` reconcilia o historico
+somente fora da janela diaria.
 
 Ele substitui, para a fase atual, a leitura anterior baseada em Supabase +
 Cloud Run. Cloud Run permanece como evolucao futura ou ponte tecnica opcional,
@@ -252,29 +258,23 @@ Essa query permanece como registro historico, nao como contrato vigente do
 `feminino`. O workflow atual nao deve voltar a selecionar diretamente do
 ranking nem ser descrito como se ainda aplicasse essa trava no caminho real.
 
-## Perdas de escopo e feature no estado atual
+## Escopo preservado e legado
 
 Ao migrar do fluxo direto por query para a fila diaria persistida, o projeto
-ganhou previsibilidade operacional, mas perdeu capacidades que existiam ou
-estavam implicitas no desenho anterior:
+ganhou previsibilidade operacional e recompos o anti-repost temporal sem
+devolver a selecao ao n8n:
 
-- a trava anti-repost por `publication_events.confirmed` deixou de ser aplicada
-  diretamente na query de selecao do caminho vigente;
-- a selecao deixou de considerar `target` e `channel_adapter` no momento do
-  ranking, entao o bloqueio por destino/canal passou a depender de outra camada
-  que hoje nao esta fechada no caminho principal;
-- `offers.offer_selection_state` continua no modelo, mas nao fecha hoje o ciclo
-  de `selected_at`, `cooldown_until`, `last_sent_at` e `selection_count` apos
-  envio confirmado;
-- a arquitetura atual protege muito bem o consumo idempotente do slot diario,
-  mas protege pior a reentrada futura do mesmo item no ranking do `feminino`;
+- `publication_events` guarda o historico e permite reconstruir a projecao;
+- `offer_selection_state` governa a reentrada pelo `cooldown_until`;
+- a protecao e global em `feminino/shopee`, por decisao operacional, e nao por
+  `target` ou `channel_adapter`;
+- o slot diario continua idempotente por `dispatch_plan_id`;
 - a camada de similaridade continua operante, porem hoje tambem mascara parte
   da contaminacao semantica da taxonomia do `feminino`, o que reduz a clareza
   entre "duplicidade legitima" e "item fora do perfil".
 
-Essas perdas nao invalidam o fluxo atual. Elas apenas registram que o estado
-vigente ficou mais enxuto do que o desenho anterior e ainda nao recompôs todas
-as travas de elegibilidade e anti-repost prometidas historicamente.
+O filtro direto em `publication_events` por destino/canal permanece apenas como
+registro do MVP inicial.
 
 ## Seguranca do MVP
 
@@ -283,9 +283,8 @@ as travas de elegibilidade e anti-repost prometidas historicamente.
 - O workflow deve bloquear destino ausente da allowlist.
 - O texto deve conter disclosure de afiliado.
 - O registro em `publication_events` deve ser idempotente.
-- O anti-repost por `target` e `channel_adapter` continua como requisito
-  desejado do MVP, mas nao deve ser descrito como comportamento ativo do caminho
-  vigente do `feminino` enquanto a trava nao estiver recolocada no fluxo real.
+- O anti-repost temporal e global para `feminino/shopee` e usa dois dias
+  operacionais completos.
 
 ## Melhorias fora do MVP
 

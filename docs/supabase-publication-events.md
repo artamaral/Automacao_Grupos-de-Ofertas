@@ -98,8 +98,15 @@ observado em `2026-08-14`, `publication_events` cumpre estes papeis reais:
 - vinculo idempotente com `offers.daily_dispatch_plan` por `dispatch_plan_id`;
 - fonte de conciliacao e watchdog.
 
-No caminho atual, `publication_events` nao fecha sozinho a trava de anti-repost
-do `feminino` no momento de montar a fila diaria.
+No caminho atual, `publication_events` permanece autoritativo e um trigger
+projeta confirmacoes de `feminino/shopee` em `offer_selection_state`. A projecao
+define `cooldown_until` para bloquear os dois dias operacionais seguintes,
+independentemente de `target` e `channel_adapter`.
+
+Retries e correcoes nao incrementam contadores de forma cega: o estado e
+recalculado a partir de todos os eventos confirmados do `stable_key`. O backfill
+historico nao roda junto com a migration, para nao invalidar uma fila diaria em
+andamento.
 
 ## Colunas principais
 

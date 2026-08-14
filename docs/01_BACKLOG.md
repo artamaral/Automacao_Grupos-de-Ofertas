@@ -96,6 +96,9 @@ Por isso, este backlog foi reorganizado em quatro blocos:
   `v_offer_ranking_current -> daily_dispatch_plan -> v_daily_dispatch_ready ->
   n8n -> publication_events`, com o fluxo direto `ranking -> n8n` rebaixado a
   legado.
+- Implementada a projecao reconstruivel `publication_events ->
+  offer_selection_state` para `feminino/shopee`, com cooldown global de dois
+  dias operacionais completos e ativacao sem backfill durante a fila corrente.
 
 ## Fora do MVP atual
 
@@ -123,15 +126,10 @@ como bloqueio da operacao minima:
 - Endurecer TLS da credencial Postgres do Supabase no n8n, substituindo
   `Ignore SSL Issues (Insecure)` por validacao completa da cadeia via CA
   confiavel quando a UI/container permitir.
-- Definir e implementar a trava canonica de anti-repost do caminho vigente do
-  `feminino`, escolhendo explicitamente se ela volta a morar em
-  `publication_events`, em `offer_selection_state`, ou nas duas camadas.
-- Recolocar no fluxo real a protecao por `target` e `channel_adapter`, porque o
-  estado atual protege o consumo idempotente do slot diario, mas nao fecha a
-  reentrada futura do mesmo item no ranking.
-- Atualizar `offers.offer_selection_state` no fluxo MVP apos envio confirmado,
-  registrando `selected_at`, `last_sent_at`, `cooldown_until` e
-  `selection_count`, para fechar o ciclo de elegibilidade apos envio confirmado.
+- Executar, depois das `21h` e antes das `07h`, a primeira reconstrucao
+  historica com `scripts/supabase/rebuild_publication_cooldown.py`, validando
+  que o plano seguinte preserva `112` slots e exclui confirmacoes dos dois dias
+  anteriores.
 - Endurecer a operacao da VPS apos a primeira subida do MVP: revisar firewall
   sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do
   Traefik, configurar backup externo com teste de restore e remover a stack
@@ -218,9 +216,7 @@ como bloqueio da operacao minima:
 Para consulta rapida, os principais pontos realmente em aberto hoje sao:
 
 - endurecer TLS da conexao n8n -> Supabase;
-- definir onde mora a trava canonica de anti-repost do fluxo atual;
-- recolocar a protecao por `target` e `channel_adapter` no caminho vigente;
-- atualizar `offer_selection_state` apos envio confirmado no fluxo real;
+- concluir a primeira reconstrucao historica do cooldown fora da janela diaria;
 - melhorar a qualidade semantica dos subnichos, especialmente em
   `auto-e-moto` e `feminino`;
 - definir claramente o limite entre discovery ampla, refresh operacional e
