@@ -262,7 +262,8 @@ def validate_daily_plan_claim(workflow: dict[str, Any], errors: list[str]) -> No
     for expected_text in (
         "offers.daily_dispatch_plan",
         "offers.v_daily_dispatch_ready",
-        "for update skip locked",
+        "for update of plan skip locked",
+        "ready.is_ready_for_dispatch",
         "dispatch_status = 'claimed'",
         "claim_token",
         "null::uuid as dispatch_plan_id",

@@ -43,6 +43,7 @@ class SupabaseDispatchPlanStore:
             where profile = %s
               and marketplace = %s
               and is_eligible
+              and refresh_status = 'FRESH'
             order by commercial_score desc, sales_count desc, rating desc nulls last, item_id
             """,
             (profile, marketplace),

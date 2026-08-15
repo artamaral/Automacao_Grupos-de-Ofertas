@@ -7,6 +7,27 @@ from ofertas_bot.daily_dispatch_planner import DispatchCandidate, PlannedDispatc
 from ofertas_bot.storage.supabase_dispatch_plan_store import SupabaseDispatchPlanStore
 
 
+def test_load_candidates_requires_fresh_ranking_rows() -> None:
+    execute_calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeResult:
+        def fetchall(self) -> list[dict[str, object]]:
+            return []
+
+    class FakeConnection:
+        def execute(self, sql: str, params: tuple[object, ...]) -> FakeResult:
+            execute_calls.append((sql, params))
+            return FakeResult()
+
+    store = SupabaseDispatchPlanStore(FakeConnection())  # type: ignore[arg-type]
+
+    assert store.load_candidates(profile="feminino", marketplace="shopee") == []
+    assert len(execute_calls) == 1
+    sql, params = execute_calls[0]
+    assert "refresh_status = 'FRESH'" in sql
+    assert params == ("feminino", "shopee")
+
+
 def test_replace_day_uses_cursor_executemany_for_batch_insert() -> None:
     execute_calls: list[tuple[str, tuple[object, ...]]] = []
     executemany_calls: list[tuple[str, list[tuple[object, ...]]]] = []

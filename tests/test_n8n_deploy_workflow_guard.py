@@ -64,8 +64,10 @@ def workflow_payload(
                 "name": "Validar Contexto",
                 "parameters": {
                     "jsCode": (
-                        "select from offers.daily_dispatch_plan "
-                        "for update skip locked; "
+                        "select from offers.daily_dispatch_plan plan "
+                        "join offers.v_daily_dispatch_ready ready using (dispatch_plan_id) "
+                        "where ready.is_ready_for_dispatch "
+                        "for update of plan skip locked; "
                         "update dispatch_status = 'claimed', claim_token = token; "
                         "select null::uuid as dispatch_plan_id "
                         "from offers.v_daily_dispatch_ready; "
@@ -113,6 +115,18 @@ def workflow_payload(
 
 def test_validate_versioned_workflow_accepts_send_image_template() -> None:
     guard.validate_versioned_workflow(workflow_payload(), "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_claim_without_ready_filter() -> None:
+    workflow = workflow_payload()
+    context_code = workflow["nodes"][3]["parameters"]["jsCode"]
+    workflow["nodes"][3]["parameters"]["jsCode"] = context_code.replace(
+        "where ready.is_ready_for_dispatch ",
+        "",
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="ready.is_ready_for_dispatch"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
 def test_validate_versioned_workflow_rejects_send_text() -> None:
