@@ -232,6 +232,13 @@ Os arquivos sao auditoria local. A verdade historica permanece no Supabase.
   valor em um campo, usa o dado correspondente do catalogo;
 - `commercial_data_source`, `refresh_status`, `last_checked_at` e `age_hours`
   deixam explicita a idade e a origem do score;
+- o planejador diario do `feminino` nao consome itens `STALE`: ele carrega
+  apenas linhas `refresh_status='FRESH'` de `offers.v_offer_ranking_current`;
+- se o refresh terminar sem candidatos `FRESH` suficientes para preencher os
+  112 slots, o planejador falha e nao persiste plano parcial;
+- um slot planejado que fique `STALE` depois disso continua auditavel em
+  `offers.daily_dispatch_plan`, mas deixa de aparecer como pronto em
+  `offers.v_daily_dispatch_ready`;
 - feeds 10k/100k, discovery ampla, n8n e publicacao permanecem fora desta
   cadeia; somente o planejamento diario persistido foi acoplado ao refresh.
 
@@ -287,3 +294,20 @@ Validacao real de 2026-08-11:
 - os 490 IDs de snapshot foram confirmados no Supabase;
 - depois do lote, o top 20 de `feminino` ficou integralmente em
   `commercial_data_source=snapshot` e `refresh_status=FRESH`.
+
+## Relacao com a fila diaria
+
+O refresh comercial continua sendo a fonte da freshness operacional do
+`feminino`, mas o consumo nao depende apenas da ordem do cron. O contrato
+vigente e:
+
+```text
+refresh/rechecagem
+  -> ranking pode continuar exibindo itens stale para diagnostico e priorizacao
+  -> planner diario persiste apenas candidatos FRESH
+  -> v_daily_dispatch_ready revalida freshness antes do claim
+  -> n8n so claima slots aprovados pela view
+```
+
+Essa separacao evita que um item stale entre no envio mesmo quando o plano foi
+gravado antes de uma mudanca de freshness.

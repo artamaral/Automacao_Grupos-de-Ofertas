@@ -25,7 +25,7 @@ Ele nao decide banda, rotacao, fallback ou ordenacao diaria. O vinculo
 
 Este documento e a decisao canonica do MVP operacional.
 
-Estado observado como padrao vigente em `2026-08-14`:
+Estado observado como padrao vigente em `2026-08-15`:
 
 - o `feminino` opera por `offers.daily_dispatch_plan` e
   `offers.v_daily_dispatch_ready`;
@@ -33,6 +33,8 @@ Estado observado como padrao vigente em `2026-08-14`:
   com `is_eligible = true` e `refresh_status = 'FRESH'`;
 - `offers.v_daily_dispatch_ready` so considera pronto o slot que continua
   elegivel e `FRESH` no momento do consumo;
+- o claim do n8n reserva apenas slots aprovados pela view pronta, mantendo o
+  lock concorrente na linha real de `offers.daily_dispatch_plan`;
 - `offers.publication_events` e a fonte historica da verdade para envios;
 - confirmacoes novas de `feminino/shopee` sao projetadas em
   `offers.offer_selection_state` por trigger;

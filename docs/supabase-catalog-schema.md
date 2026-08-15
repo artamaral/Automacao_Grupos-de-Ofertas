@@ -38,15 +38,18 @@ supabase/migrations/202608090002_set_database_timezone_sao_paulo.sql
 supabase/migrations/202608110001_candidate_refresh_snapshots.sql
 supabase/migrations/202608130001_incremental_discovery_catalog.sql
 supabase/migrations/202608140001_publication_cooldown_2d.sql
+supabase/migrations/202608150001_daily_dispatch_fresh_only.sql
 ```
 
 A migration incremental foi aplicada e o estado operacional vigente de
-`2026-08-14` deve ser lido assim:
+`2026-08-15` deve ser lido assim:
 
 - `offers.v_offer_ranking_current` e a superficie de elegibilidade que alimenta
-  o planejador diario;
+  o planejador diario, mas o planner do `feminino` persiste somente itens
+  `refresh_status='FRESH'`;
 - `offers.daily_dispatch_plan` e `offers.v_daily_dispatch_ready` governam o
-  consumo horario do `feminino`;
+  consumo horario do `feminino`, com a view revalidando freshness no momento do
+  claim;
 - confirmacoes novas alimentam `offers.offer_selection_state` e governam a
   reentrada do item por `cooldown_until`;
 - o fluxo anterior em que o n8n consumia diretamente
@@ -333,6 +336,12 @@ visiveis na view, mas recebem ranking nulo e motivo explicito.
 Itens em cooldown permanecem visiveis com `cooldown_active`; itens de qualidade
 ou similaridade continuam usando seus motivos independentes.
 
+Freshness continua sendo um eixo operacional separado de elegibilidade. Um item
+`STALE` pode continuar visivel em `offers.v_offer_ranking_current` para
+diagnostico, score e priorizacao de refresh, mas nao deve entrar em
+`offers.daily_dispatch_plan` nem ser considerado pronto em
+`offers.v_daily_dispatch_ready`.
+
 ## Seguranca
 
 - tabelas com RLS habilitado;
@@ -405,14 +414,17 @@ No estado vigente do `feminino`, o n8n nao consome mais diretamente
 
 ```text
 offers.v_offer_ranking_current
-  -> planner diario
+  -> planner diario so com FRESH
   -> offers.daily_dispatch_plan
-  -> offers.v_daily_dispatch_ready
+  -> offers.v_daily_dispatch_ready revalida FRESH e elegibilidade
   -> n8n
 ```
 
 O n8n nao deve alterar ranking, score ou elegibilidade. Ele apenas consome a
 janela pronta, monta a mensagem e registra o resultado.
+
+A view `offers.v_daily_dispatch_ready` tambem expoe `refresh_status`,
+`last_checked_at`, `age_hours` e `latest_snapshot_id` para auditoria da fila.
 
 O consumo direto da view de ranking deve ser lido como contrato legado do MVP
 inicial, nao como padrao operacional vigente.

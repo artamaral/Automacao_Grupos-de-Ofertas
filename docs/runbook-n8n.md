@@ -943,15 +943,16 @@ O node do Supabase deve consultar:
 
 ```sql
 with next_slots as (
-  select dispatch_plan_id
-  from offers.daily_dispatch_plan
-  where dispatch_status = 'planned'
-    and profile = :profile
-    and marketplace = :marketplace
-    and planned_date = (now() at time zone 'America/Sao_Paulo')::date
-    and planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer
+  select plan.dispatch_plan_id
+  from offers.daily_dispatch_plan plan
+  join offers.v_daily_dispatch_ready ready using (dispatch_plan_id)
+  where ready.is_ready_for_dispatch
+    and ready.profile = :profile
+    and ready.marketplace = :marketplace
+    and ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date
+    and ready.planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer
   order by slot_sequence
-  for update skip locked
+  for update of plan skip locked
   limit :limit
 ), claimed as (
   update offers.daily_dispatch_plan plan
@@ -969,7 +970,8 @@ order by ready.slot_sequence;
 ```
 
 Regra: o n8n nao consulta nem reordena o ranking. O slot deixa de ficar pronto
-quando seu `dispatch_plan_id` e vinculado a um evento `confirmed`, `failed` ou
+quando deixa de atender `ready.is_ready_for_dispatch`, inclusive se ficar
+`STALE`, perder elegibilidade ou for finalizado como `confirmed`, `failed` ou
 `cancelled`. Repetir a janela faz upsert no mesmo evento, sem novo despacho.
 Em `dry_run`, a consulta apenas previsualiza a janela e retorna
 `dispatch_plan_id = null`; nenhum slot e reservado ou consumido.

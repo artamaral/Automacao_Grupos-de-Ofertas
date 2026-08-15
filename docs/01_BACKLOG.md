@@ -57,11 +57,10 @@ Por isso, este backlog foi reorganizado em quatro blocos:
 - Monitoramento Hermes ajustado para detectar o caso de `success sem entrega`,
   usando `publication_events.confirmed` como prova operacional da rodada. Essa
   mudanca fecha a lacuna exposta pela execucao `78` de 2026-08-11.
-- Freshness operacional da frente do ranking hoje esta coberta pelo desenho do
-  refresh diario: 500 itens refreshados por dia, consumo atual abaixo de 50,
-  plano de 135 mensagens por dia ainda com folga e selecao concentrada no topo
-  do score, alem do cron do Hermes que verifica a execucao e o status do
-  refresh.
+- Endurecido o bloqueio de freshness na fila diaria com tres travas pequenas e
+  complementares: planner persiste apenas itens `FRESH`, a
+  `v_daily_dispatch_ready` revalida freshness antes do envio, e o claim do n8n
+  so reserva slots aprovados por essa view.
 
 ### Fundacao de dados no Supabase
 
@@ -73,7 +72,8 @@ Por isso, este backlog foi reorganizado em quatro blocos:
 - Criadas as views `v_offer_ranking_current`, `v_offer_latest_snapshot`,
   `v_offer_refresh_status` e `v_offer_scoring_current`.
 - Validada a importacao idempotente de catalogos locais para o Supabase.
-- Validada a view de ranking e elegibilidade usada pelo n8n.
+- Validado o consumo do n8n pela `v_daily_dispatch_ready`, sem claim direto do
+  ranking.
 - Validada a idempotencia operacional de `publication_events`.
 - Ajustado o timezone padrao do database para `America/Sao_Paulo`.
 - Atualizado o catalogo ativo `feminino/shopee` em 2026-08-11 com relimpeza

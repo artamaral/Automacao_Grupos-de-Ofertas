@@ -37,8 +37,9 @@ Diretrizes obrigatorias:
   complexidade do caminho principal.
 - O catalogo ativo do Supabase e a base operacional inicial.
 - Para `feminino`, o planejador consulta `offers.v_offer_ranking_current` e
-  persiste `offers.daily_dispatch_plan`; o n8n consulta
-  `offers.v_daily_dispatch_ready` por data e hora.
+  persiste `offers.daily_dispatch_plan` somente com itens
+  `refresh_status='FRESH'`; o n8n consulta `offers.v_daily_dispatch_ready` por
+  data e hora e so claima slots que continuam prontos nessa view.
 - n8n monta mensagens por template simples no workflow ou em configuracao
   segura do proprio n8n.
 - n8n so envia para destinos explicitamente allowlisted.
@@ -114,7 +115,8 @@ Ranqueia ofertas por sinais comerciais simples: desconto, comissao, vendas,
 avaliacao, frete e aderencia.
 
 No `feminino`, o ranking alimenta previamente `offers.daily_dispatch_plan`; o
-n8n consome a view `offers.v_daily_dispatch_ready`.
+n8n consome a view `offers.v_daily_dispatch_ready`, que revalida elegibilidade
+e freshness no momento do envio.
 
 ### Copywriter Agent
 
@@ -139,7 +141,9 @@ apoio de desenvolvimento ou evolucao futura.
 ## Criterios de aceite do MVP
 
 - Catalogo ativo do Supabase e usado como base.
-- n8n consulta `offers.v_daily_dispatch_ready` para o `feminino`.
+- o planejador do `feminino` persiste somente itens `FRESH`.
+- n8n consulta `offers.v_daily_dispatch_ready` para o `feminino` e nao pode
+  claimar slot stale.
 - n8n monta mensagem com aviso de afiliado.
 - n8n bloqueia destino fora da allowlist.
 - n8n registra tentativa/resultado em `offers.publication_events`.

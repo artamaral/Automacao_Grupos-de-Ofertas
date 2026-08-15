@@ -552,11 +552,12 @@ Os watchdogs são scripts `no_agent`, com custo zero de LLM, por isso podem roda
 As lacunas abaixo nao sao arquitetura extra nem burocracia. Sao apenas pontos
 que ainda podem proteger melhor a execucao:
 
-- adicionar uma checagem operacional simples de freshness para os snapshots que
-  abastecem o topo do ranking antes da janela de envio, usando sinais ja
-  existentes como `refresh_status`, `last_checked_at` ou `age_hours`;
-- definir qual deve ser o alerta util quando o refresh do dia roda, mas deixa a
-  frente do ranking velha demais para a primeira janela de publicacao.
+- a trava operacional de freshness no envio ja existe: planner so persiste
+  itens `FRESH`, `v_daily_dispatch_ready` revalida freshness e o claim do n8n
+  so usa slots aprovados pela view;
+- o ponto ainda aberto e definir o alerta util quando o refresh do dia roda,
+  mas deixa candidatos `FRESH` insuficientes para a primeira janela de
+  publicacao.
 
 ## Watchdog Shopee refresh diario
 

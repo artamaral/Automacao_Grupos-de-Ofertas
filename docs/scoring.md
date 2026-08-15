@@ -151,13 +151,16 @@ Contrato vigente:
 
 O comando `ofertas-plan-daily-dispatch` le o ranking atual, aplica as cotas de
 `config/selection_profiles.toml`, sequencia as janelas e persiste o resultado em
-`offers.daily_dispatch_plan`. Sem `--apply`, ele apenas calcula e valida o plano.
+`offers.daily_dispatch_plan`. Para o `feminino`, esse carregamento agora aceita
+somente itens `refresh_status='FRESH'`. Sem `--apply`, ele apenas calcula e
+valida o plano.
 
-O n8n reserva atomicamente os slots `planned` da janela com
-`FOR UPDATE SKIP LOCKED`, muda-os para `claimed` e entao consulta
-`offers.v_daily_dispatch_ready`. Ele nao calcula bandas, rotacao, fallback ou
-ordem diaria. A gravacao de `publication_events.dispatch_plan_id` atualiza o
-estado final do slot e torna a repeticao da mesma janela idempotente.
+O n8n reserva atomicamente apenas os slots que continuam prontos em
+`offers.v_daily_dispatch_ready`, usando `FOR UPDATE OF plan SKIP LOCKED` sobre
+`offers.daily_dispatch_plan`, muda-os para `claimed` e segue a partir da view.
+Ele nao calcula bandas, rotacao, fallback ou ordem diaria. A gravacao de
+`publication_events.dispatch_plan_id` atualiza o estado final do slot e torna a
+repeticao da mesma janela idempotente.
 
 ### 1. Recorrencia temporal
 
@@ -267,16 +270,13 @@ sem uma rechecagem operacional de preco e comissao.
 
 Decisao registrada:
 
-- o refresh deve acontecer apenas sobre os itens selecionados para a rodada;
-- na rodada padrao atual, isso significa rechecagem dos `20` itens escolhidos;
-- a chamada da API deve usar apenas `itemId`;
-- nesta etapa, o refresh deve conferir somente os campos `price` e
-  `commissionRate`;
-- se pelo menos um item mudar, a lista inteira precisa ser reprocessada:
-  recalcular score de todos os itens, aplicar novamente a selecao dos `20` e
-  repetir o refresh;
-- esse ciclo deve continuar ate que a lista selecionada nao tenha mais nenhum
-  item alterado no refresh.
+- historicamente, esta secao descrevia uma proposta iterativa de refresh sobre
+  os itens selecionados da rodada;
+- a operacao vigente do `feminino` nao usa mais esse ciclo iterativo para o
+  claim do n8n;
+- hoje o refresh comercial acontece antes do planejamento diario, o planner
+  persiste apenas itens `FRESH` e a view de consumo bloqueia slots que fiquem
+  stale depois do plano.
 
 Leitura pratica:
 
