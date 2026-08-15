@@ -53,3 +53,14 @@ def test_checksum_matches_legacy_raw_checksum(tmp_path: Path) -> None:
     recorded_checksum = legacy_file_checksum(migration)
 
     assert checksum_matches(migration, recorded_checksum)
+
+
+def test_checksum_matches_legacy_crlf_checksum_from_lf_checkout(tmp_path: Path) -> None:
+    migration = tmp_path / "migration.sql"
+    migration.write_bytes(b"select 1;\nselect 2;\n")
+    crlf_copy = tmp_path / "migration-crlf.sql"
+    crlf_copy.write_bytes(b"select 1;\r\nselect 2;\r\n")
+
+    recorded_checksum = legacy_file_checksum(crlf_copy)
+
+    assert checksum_matches(migration, recorded_checksum)

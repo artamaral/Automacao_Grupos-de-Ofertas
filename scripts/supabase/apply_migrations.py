@@ -50,10 +50,16 @@ def legacy_file_checksum(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def legacy_crlf_file_checksum(path: Path) -> str:
+    content = _canonical_migration_bytes(path).replace(b"\n", b"\r\n")
+    return hashlib.sha256(content).hexdigest()
+
+
 def checksum_matches(path: Path, recorded_checksum: str) -> bool:
     return recorded_checksum in {
         file_checksum(path),
         legacy_file_checksum(path),
+        legacy_crlf_file_checksum(path),
     }
 
 
