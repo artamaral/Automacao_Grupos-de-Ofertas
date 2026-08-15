@@ -69,6 +69,7 @@ def test_instagram_guard_build_update_sql_keeps_workflow_inactive() -> None:
     assert "insert into workflow_entity" in sql
     assert "insert into shared_workflow" in sql
     assert "on conflict (id)" in sql
+    assert 'coalesce(workflow_entity."versionCounter", 0) + 1' in sql
     assert "insert into workflow_history" in sql
     assert "autosaved" in sql
 

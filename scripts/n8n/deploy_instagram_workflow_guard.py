@@ -219,7 +219,7 @@ def build_update_sql(
         f"settings = {dollar_quote(compact_json(workflow.get('settings', {})))}::json",
         "active = false",
         '"versionId" = gen_random_uuid()::text',
-        '"versionCounter" = coalesce("versionCounter", 0) + 1',
+        '"versionCounter" = coalesce(workflow_entity."versionCounter", 0) + 1',
         '"updatedAt" = now()',
     ]
     if pin_data is not None:
