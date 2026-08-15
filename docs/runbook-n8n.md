@@ -466,6 +466,22 @@ O acesso bootstrap fica em
 Trocar email e senha no primeiro acesso e remover esse arquivo depois da
 rotacao.
 
+Para atualizar esse arquivo a partir do Windows sem colocar a senha na linha de
+comando ou no historico do shell, executar primeiro o preflight:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\n8n\update_bootstrap_owner_vps.py
+```
+
+Depois aplicar. O CLI solicita email, senha e confirmacao de senha de forma
+interativa, cria `bootstrap-owner.txt.bak` e valida apenas metadados:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\n8n\update_bootstrap_owner_vps.py `
+  --apply `
+  --confirm-remote-write UPDATE_N8N_BOOTSTRAP_OWNER
+```
+
 ### Backup e rollback da instalacao anterior
 
 O backup verificado da instalacao anterior esta em
