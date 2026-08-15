@@ -41,6 +41,13 @@ supabase/migrations/202608140001_publication_cooldown_2d.sql
 supabase/migrations/202608150001_daily_dispatch_fresh_only.sql
 ```
 
+Migrations versionadas para aplicacao da feature Instagram:
+
+```text
+supabase/migrations/202608150002_offer_media_assets.sql
+supabase/migrations/202608150003_instagram_media_ready_view.sql
+```
+
 A migration incremental foi aplicada e o estado operacional vigente de
 `2026-08-15` deve ser lido assim:
 
@@ -267,6 +274,46 @@ Regra operacional:
 O detalhamento de uso e consultas esta em
 `docs/supabase-publication-events.md`.
 
+## offer_media_assets
+
+Apos aplicar a migration Instagram, mantem os metadados de midia resolvida para
+publicacao Instagram, separado do catalogo comercial. A identidade operacional
+e:
+
+```text
+profile + marketplace + item_id
+```
+
+Campos principais:
+
+- `shop_id`;
+- `product_link`, usado como fonte canonica do scrape;
+- `image_urls`, lista ordenada de imagens validas;
+- `video_url`, primeiro video valido quando existir;
+- `source`, inicialmente `shopee_product_html`;
+- `status`, com `valid`, `no_media`, `failed` ou `stale`;
+- `resolved_at`, `last_checked_at` e `error_detail`.
+
+Essa tabela nao armazena arquivos de imagem ou video. Ela guarda apenas URLs e
+metadados validados para que o n8n consuma midia pronta.
+
+## v_instagram_dispatch_ready
+
+Apos aplicar a migration Instagram, sera a superficie de consumo para o workflow
+Instagram. A view junta
+`offers.v_daily_dispatch_ready` com `offers.offer_media_assets` e expoe somente
+itens com:
+
+- slot pronto na fila diaria;
+- `offer_media_assets.status = 'valid'`;
+- `video_url` para formato `reels`, ou `image_urls` nao vazio para formato
+  `carousel`.
+
+A view pode retornar o mesmo item em mais de um formato quando ele tem video e
+imagens. A ordem preserva `planned_date`, `planned_hour`, `slot_sequence` e
+`daily_sequence`. O claim concorrente deve continuar acontecendo sobre
+`offers.daily_dispatch_plan`, com `FOR UPDATE SKIP LOCKED`.
+
 ## v_offer_ranking_current
 
 A view considera todos os itens do catalogo persistente.
@@ -425,6 +472,11 @@ janela pronta, monta a mensagem e registra o resultado.
 
 A view `offers.v_daily_dispatch_ready` tambem expoe `refresh_status`,
 `last_checked_at`, `age_hours` e `latest_snapshot_id` para auditoria da fila.
+
+Para Instagram, o n8n deve consumir `offers.v_instagram_dispatch_ready`, que ja
+inclui midia resolvida e validada. O workflow Instagram e separado do workflow
+WhatsApp e registra resultados em `offers.publication_events` com
+`channel_adapter='instagram_reels'` ou `channel_adapter='instagram_carousel'`.
 
 O consumo direto da view de ranking deve ser lido como contrato legado do MVP
 inicial, nao como padrao operacional vigente.

@@ -1,0 +1,17 @@
+{
+  "Trigger Manual": [
+    {
+      "json": {
+        "dry_run": true,
+        "profile": "feminino",
+        "marketplace": "shopee",
+        "target": "oferta.femininas",
+        "allowed_targets_csv": "oferta.femininas",
+        "limit": 1,
+        "run_id": "instagram-safe-dry-run",
+        "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
+        "instagram_username": "oferta.femininas"
+      }
+    }
+  ]
+}

@@ -1,0 +1,463 @@
+{
+  "id": "OfertasInstagramSupab1",
+  "name": "ofertas-instagram-supabase",
+  "active": false,
+  "settings": {
+    "timezone": "America/Sao_Paulo"
+  },
+  "nodes": [
+    {
+      "id": "manual-trigger",
+      "name": "Trigger Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "schedule-instagram",
+      "name": "Schedule Instagram Controlado",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -900,
+        220
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10,14,18 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "set-schedule-context",
+      "name": "Set Contexto Schedule Instagram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -680,
+        220
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { dry_run: true, profile: 'feminino', marketplace: 'shopee', target: 'oferta.femininas', allowed_targets_csv: 'oferta.femininas', limit: 1, run_id: 'instagram-schedule-safe', instagram_account_email: 'grupodeofertas.mktdigital.fem@gmail.com', instagram_username: 'oferta.femininas' } }];"
+      }
+    },
+    {
+      "id": "validar-contexto",
+      "name": "Validar Contexto Instagram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const context = $json;\nconst allowedTargets = new Set(String(context.allowed_targets_csv || '').split(',').map((value) => value.trim()).filter(Boolean));\nif (!allowedTargets.has(context.target)) {\n  return [{ json: { ...context, blocked_reason: 'target_not_allowlisted', delivery_status: 'cancelled' } }];\n}\nreturn [{ json: { ...context, target_allowed: true, delivery_status: context.dry_run ? 'cancelled' : 'confirmed' } }];"
+      }
+    },
+    {
+      "id": "claim-item",
+      "name": "Claim Item Instagram",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "with candidate as (\n  select plan.dispatch_plan_id\n  from offers.daily_dispatch_plan plan\n  join offers.v_instagram_dispatch_ready ready\n    on ready.dispatch_plan_id = plan.dispatch_plan_id\n  where ready.profile = '{{ $json.profile }}'\n    and ready.marketplace = '{{ $json.marketplace }}'\n    and ready.instagram_format = coalesce('{{ $json.instagram_format }}', ready.instagram_format)\n  order by ready.planned_date, ready.planned_hour, ready.slot_sequence, ready.daily_sequence\n  limit 1\n  for update of plan skip locked\n), claimed as (\n  update offers.daily_dispatch_plan plan\n  set dispatch_status = 'claimed',\n      claim_token = coalesce('{{ $json.run_id }}', gen_random_uuid()::text),\n      claimed_at = now(),\n      updated_at = now()\n  from candidate\n  where plan.dispatch_plan_id = candidate.dispatch_plan_id\n  returning plan.dispatch_plan_id\n)\nselect ready.*\nfrom offers.v_instagram_dispatch_ready ready\njoin claimed using (dispatch_plan_id)\nlimit 1;"
+      },
+      "notes": "Claim atomico do item pronto; a selecao vem de offers.v_instagram_dispatch_ready e o lock acontece na tabela real."
+    },
+    {
+      "id": "revalidar-midia",
+      "name": "Revalidar Midia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        20,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $json;\nconst urls = item.instagram_format === 'reels' ? [item.video_url] : (item.image_urls || []).slice(0, 10);\nconst media_validation = urls.filter(Boolean).map((url) => ({ url, expected: String(url).includes('.mp4') ? 'video/' : 'image/', status: 'pending_http_range_validation' }));\nreturn [{ json: { ...item, media_validation, media_revalidation_required: true } }];"
+      },
+      "notes": "No workflow real, substituir o placeholder por HTTP Request leve com Range bytes=0-0 e Content-Type compativel antes de criar container."
+    },
+    {
+      "id": "rota-formato",
+      "name": "Roteador Formato",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-reels",
+              "leftValue": "={{ $json.instagram_format }}",
+              "rightValue": "reels",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "criar-container-reels",
+      "name": "Criar Container Reels",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        -120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "video_url",
+              "value": "={{ $json.video_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption_base }}"
+            }
+          ]
+        }
+      },
+      "notes": "media_type=REELS"
+    },
+    {
+      "id": "criar-filhos-carrossel",
+      "name": "Criar Filhos Carrossel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "is_carousel_item",
+              "value": "true"
+            },
+            {
+              "name": "image_url",
+              "value": "={{ ($json.image_urls || [])[0] }}"
+            }
+          ]
+        }
+      },
+      "notes": "is_carousel_item=true; repetir por ate 10 image_urls no workflow operacional."
+    },
+    {
+      "id": "criar-pai-carrossel",
+      "name": "Criar Container Pai Carrossel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "CAROUSEL"
+            },
+            {
+              "name": "children",
+              "value": "={{ $json.carousel_child_ids }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption_base }}"
+            }
+          ]
+        }
+      },
+      "notes": "media_type=CAROUSEL"
+    },
+    {
+      "id": "checar-status",
+      "name": "Checar Status Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.facebook.com/v20.0/' + $json.creation_id + '?fields=status_code' }}"
+      },
+      "notes": "Publicar somente quando status_code=FINISHED."
+    },
+    {
+      "id": "publicar-container",
+      "name": "Publicar Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media_publish' }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.creation_id }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "marcar-midia-expirada",
+      "name": "Marcar Midia Expirada",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        520,
+        360
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update offers.offer_media_assets\nset status = 'stale',\n    last_checked_at = now(),\n    error_detail = 'media_revalidation_failed'\nwhere profile = '{{ $json.profile }}'\n  and marketplace = '{{ $json.marketplace }}'\n  and item_id = {{ $json.item_id }};"
+      }
+    },
+    {
+      "id": "registrar-resultado",
+      "name": "Registrar Resultado Supabase",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1500,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into offers.publication_events (\n  dispatch_plan_id, profile, marketplace, stable_key, item_id,\n  target, channel_adapter, delivery_status, manifest_item_number,\n  artifact_generated_at, manifest_created_at, planned_at, sent_at,\n  offer_title, offer_url, offer_price, message_text, payload\n)\nvalues (\n  '{{ $json.dispatch_plan_id }}'::uuid,\n  '{{ $json.profile }}',\n  '{{ $json.marketplace }}',\n  '{{ $json.stable_key }}',\n  {{ $json.item_id }},\n  '{{ $json.target || \"oferta.femininas\" }}',\n  case when '{{ $json.instagram_format }}' = 'reels' then 'instagram_reels' else 'instagram_carousel' end,\n  '{{ $json.delivery_status || \"cancelled\" }}',\n  coalesce({{ $json.daily_sequence }}, 1),\n  now(),\n  now(),\n  '{{ $json.planned_at }}'::timestamptz,\n  case when '{{ $json.delivery_status }}' = 'confirmed' then now() else null end,\n  '{{ $json.product_name }}',\n  '{{ $json.offer_link }}',\n  {{ $json.price || 'null' }},\n  '{{ $json.caption_base }}',\n  jsonb_build_object(\n    'run_id', '{{ $json.run_id }}',\n    'dry_run', {{ $json.dry_run ? 'true' : 'false' }},\n    'instagram_format', '{{ $json.instagram_format }}',\n    'media_validation', '{{ JSON.stringify($json.media_validation || []) }}'::jsonb,\n    'blocked_reason', '{{ $json.blocked_reason || \"\" }}',\n    'container_status', '{{ $json.container_status || \"\" }}',\n    'container_id', '{{ $json.creation_id || \"\" }}'\n  )\n)\non conflict (dispatch_plan_id) where dispatch_plan_id is not null\ndo update\nset delivery_status = excluded.delivery_status,\n    sent_at = excluded.sent_at,\n    message_text = excluded.message_text,\n    payload = excluded.payload,\n    updated_at = now()\nreturning publish_id;"
+      }
+    }
+  ],
+  "connections": {
+    "Trigger Manual": {
+      "main": [
+        [
+          {
+            "node": "Validar Contexto Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Instagram Controlado": {
+      "main": [
+        [
+          {
+            "node": "Set Contexto Schedule Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto Schedule Instagram": {
+      "main": [
+        [
+          {
+            "node": "Validar Contexto Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Contexto Instagram": {
+      "main": [
+        [
+          {
+            "node": "Claim Item Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Item Instagram": {
+      "main": [
+        [
+          {
+            "node": "Revalidar Midia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revalidar Midia": {
+      "main": [
+        [
+          {
+            "node": "Roteador Formato",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Marcar Midia Expirada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteador Formato": {
+      "main": [
+        [
+          {
+            "node": "Criar Container Reels",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Criar Filhos Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Container Reels": {
+      "main": [
+        [
+          {
+            "node": "Checar Status Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Filhos Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Criar Container Pai Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Container Pai Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Checar Status Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checar Status Container": {
+      "main": [
+        [
+          {
+            "node": "Publicar Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar Container": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Midia Expirada": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Trigger Manual": [
+      {
+        "json": {
+          "dry_run": true,
+          "profile": "feminino",
+          "marketplace": "shopee",
+          "target": "oferta.femininas",
+          "allowed_targets_csv": "oferta.femininas",
+          "limit": 1,
+          "run_id": "instagram-safe-dry-run",
+          "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
+          "instagram_username": "oferta.femininas"
+        }
+      }
+    ]
+  }
+}

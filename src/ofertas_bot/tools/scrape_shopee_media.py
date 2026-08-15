@@ -133,7 +133,29 @@ def run(
 def scrape_shopee_media(
     *,
     source_url: str,
-    output_path: Path,
+    output_path: Path | None,
+    item_id: str | None = None,
+    shop_id: str | None = None,
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
+    validate: bool = True,
+    opener: Callable[..., Any] = urlopen,
+) -> ScrapeResult:
+    result = resolve_shopee_media(
+        source_url=source_url,
+        item_id=item_id,
+        shop_id=shop_id,
+        timeout_seconds=timeout_seconds,
+        validate=validate,
+        opener=opener,
+    )
+    if output_path is not None:
+        write_media_csv(output_path=output_path, result=result)
+    return result
+
+
+def resolve_shopee_media(
+    *,
+    source_url: str,
     item_id: str | None = None,
     shop_id: str | None = None,
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
@@ -172,7 +194,6 @@ def scrape_shopee_media(
         scraped_at=datetime.now(UTC),
         assets=assets,
     )
-    write_media_csv(output_path=output_path, result=result)
     return result
 
 

@@ -269,6 +269,30 @@ def test_scrape_shopee_media_validates_with_range_request(tmp_path: Path) -> Non
     assert rows[0]["content_type"] == "image/jpeg"
 
 
+def test_scrape_shopee_media_can_return_result_without_csv(tmp_path: Path) -> None:
+    output_path = tmp_path / "media.csv"
+    page_url = "https://shopee.com.br/product/1/2"
+    opener = FakeOpener(
+        {
+            ("GET", page_url): (
+                b'{"images":["br-11134207-820m6-primary"],'
+                b'"video":"https://down-aka-br.vod.susercontent.com/api/v4/11110105/mms/item.mp4"}'
+            )
+        }
+    )
+
+    result = scrape_shopee_media(
+        source_url=page_url,
+        output_path=None,
+        validate=False,
+        opener=opener,
+    )
+
+    assert not output_path.exists()
+    assert result.item_id == "2"
+    assert [asset.media_type for asset in result.assets] == ["image", "video"]
+
+
 class FakeResponse:
     def __init__(
         self,
