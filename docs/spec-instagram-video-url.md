@@ -96,6 +96,7 @@ validas, aplicar fallback pela ordem ja materializada em
 
 - a conta/canal Instagram do MVP usa o email operacional
   `grupodeofertas.mktdigital.fem@gmail.com`;
+- o usuario Instagram do MVP e `oferta.femininas`;
 - `video_url` deve estar publica no momento da publicacao.
 - `caption` pode reutilizar a copy ja montada, com ajustes especificos para
   Instagram quando necessario.
