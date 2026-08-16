@@ -83,6 +83,15 @@ def test_instagram_claim_query_preserves_dry_run_context() -> None:
     assert "case when ctx.dry_run then 'cancelled'" in query
 
 
+def test_instagram_publication_event_keeps_dry_run_out_of_dispatch_trigger() -> None:
+    workflow = load_instagram_workflow()
+    register_node = guard.node_by_name(workflow, "Registrar Resultado Supabase")
+    query = register_node["parameters"]["query"]
+
+    assert "case when {{ $json.dry_run ? 'true' : 'false' }} then null" in query
+    assert "source_dispatch_plan_id" in query
+
+
 def test_validate_pin_data_requires_allowlisted_instagram_target() -> None:
     pin_data = guard.build_pin_data(dry_run=True, run_id="test")
     pin_data["Trigger Manual"][0]["json"]["allowed_targets_csv"] = "outro"

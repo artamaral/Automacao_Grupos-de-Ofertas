@@ -204,6 +204,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "nullif",
         "context.dry_run",
         "ctx.dry_run",
+        "source_dispatch_plan_id",
+        "case when {{ $json.dry_run ? 'true' : 'false' }} then null",
         "offers.offer_media_assets",
         "status = 'stale'",
         "media_revalidation_failed",
