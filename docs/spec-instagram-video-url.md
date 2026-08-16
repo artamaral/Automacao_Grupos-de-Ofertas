@@ -113,12 +113,13 @@ Template:
 
 ```text
 🔥 [descricao curta com produto + beneficio]
+Copie o link da oferta: [offer_link]
 
-💸 [preco] hoje
+💸 [preco]
 ⭐ [avaliacao]/5 na Shopee
 
 💬 Quer receber mais ofertas assim?
-Entre no grupo do WhatsApp: [whatsapp_group_url]
+Entre no grupo do WhatsApp pelo link no perfil.
 
 ⚠️ Preco e disponibilidade podem mudar.
 #ad #shopee #[hashtag_nicho] #achadinhos
@@ -128,8 +129,16 @@ Regras:
 
 - nao usar titulo como "Achado de maquiagem na Shopee";
 - nao repetir "preco" ou "avaliacao" depois dos emojis;
+- incluir `offer_link` como segunda linha da legenda, logo apos a descricao e
+  antes do preco, mas tratar como texto copiavel porque URLs em legendas de
+  Reels/feed nao ficam clicaveis;
 - `whatsapp_group_url` e configuracao do canal/perfil, separada de
   `offer_link` e `coupon_url`;
+- no n8n, `whatsapp_group_url` deve vir de configuracao operacional segura,
+  como `INSTAGRAM_WHATSAPP_GROUP_URL`. No MVP atual, o link publico do grupo e
+  `https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K`;
+- a legenda nao deve prometer URL clicavel. O CTA clicavel deve apontar para o
+  link do perfil ou para Story com sticker de link quando esse fluxo existir;
 - a descricao deve explicar o produto e o beneficio em uma frase curta;
 - hashtags devem refletir o nicho/subnicho do item quando disponivel.
 

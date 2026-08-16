@@ -23,6 +23,7 @@ DEFAULT_COMPOSE_FILE = Path("/opt/automacao_grupo_compras/n8n/docker-compose.yml
 DEFAULT_WORKFLOW_ID = "OfertasInstagramSupab1"
 EXPECTED_WORKFLOW_TIMEZONE = "America/Sao_Paulo"
 EXPECTED_TARGET = "oferta.femininas"
+DEFAULT_WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
 
 
 class InstagramWorkflowGuardError(RuntimeError):
@@ -53,6 +54,7 @@ def build_pin_data(*, dry_run: bool, run_id: str) -> dict[str, Any]:
                     "run_id": run_id,
                     "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
                     "instagram_username": EXPECTED_TARGET,
+                    "whatsapp_group_url": DEFAULT_WHATSAPP_GROUP_URL,
                 }
             }
         ]
@@ -139,6 +141,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "Trigger Manual",
         "Validar Contexto Instagram",
         "Claim Item Instagram",
+        "Montar Copy Instagram",
         "Revalidar Midia",
         "Dry Run Instagram?",
         "Roteador Formato",
@@ -176,6 +179,17 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
     }
     if revalidation_targets != {"Dry Run Instagram?"}:
         errors.append("Revalidar Midia must only connect to Dry Run Instagram?")
+
+    copy_outputs = connections.get("Montar Copy Instagram", {}).get("main", [])
+    copy_targets = {
+        target.get("node")
+        for output in copy_outputs
+        if isinstance(output, list)
+        for target in output
+        if isinstance(target, dict)
+    }
+    if copy_targets != {"Revalidar Midia"}:
+        errors.append("Montar Copy Instagram must only connect to Revalidar Midia")
 
     dry_run_outputs = connections.get("Dry Run Instagram?", {}).get("main", [])
     dry_run_targets = [
@@ -215,6 +229,12 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "instagram_carousel",
         "delivery_status",
         "INSTAGRAM_ACCESS_TOKEN",
+        "INSTAGRAM_WHATSAPP_GROUP_URL",
+        "Quer receber mais ofertas assim?",
+        "Entre no grupo do WhatsApp",
+        "link no perfil",
+        "Copie o link da oferta",
+        "graph.instagram.com",
         "media_type=REELS",
         "media_type=CAROUSEL",
         "is_carousel_item=true",
@@ -226,7 +246,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "/api/sendImage",
         "/api/sendText",
         "WAHA",
-        "WhatsApp",
+        "graph.facebook.com",
         "target_chat_id",
         "120363412864266334",
     ):
@@ -251,6 +271,8 @@ def validate_pin_data(pin_data: dict[str, Any] | None) -> None:
     allowed_targets = str(payload.get("allowed_targets_csv", "")).split(",")
     if EXPECTED_TARGET not in {target.strip() for target in allowed_targets}:
         raise InstagramWorkflowGuardError("pinData target must be allowlisted")
+    if payload.get("whatsapp_group_url") != DEFAULT_WHATSAPP_GROUP_URL:
+        raise InstagramWorkflowGuardError("pinData whatsapp_group_url must match public MVP URL")
 
 
 def build_update_sql(

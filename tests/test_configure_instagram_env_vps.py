@@ -40,7 +40,11 @@ def test_dry_run_only_inspects_remote_env(monkeypatch, capsys) -> None:
 
     def fake_run_ssh(_config, command: str, *, payload: str | None = None) -> str:
         calls.append((command, payload))
-        return "INSTAGRAM_ACCESS_TOKEN=missing\nINSTAGRAM_BUSINESS_ACCOUNT_ID=missing"
+        return (
+            "INSTAGRAM_ACCESS_TOKEN=missing\n"
+            "INSTAGRAM_BUSINESS_ACCOUNT_ID=missing\n"
+            "INSTAGRAM_WHATSAPP_GROUP_URL=missing"
+        )
 
     monkeypatch.setattr(module, "run_ssh", fake_run_ssh)
 
@@ -57,6 +61,7 @@ def test_apply_requires_explicit_confirmation() -> None:
             config(apply=True),
             access_token="EAA" + "x" * 30,
             business_account_id="17841400000000000",
+            whatsapp_group_url="https://chat.whatsapp.com/abc123",
         )
 
 
@@ -86,6 +91,7 @@ def test_apply_sends_values_only_through_stdin(monkeypatch, capsys) -> None:
         ),
         access_token="EAA" + "x" * 30,
         business_account_id="17841400000000000",
+        whatsapp_group_url="https://chat.whatsapp.com/abc123",
     ) == 0
 
     command_text = " ".join(captured["command"])
@@ -94,7 +100,10 @@ def test_apply_sends_values_only_through_stdin(monkeypatch, capsys) -> None:
     payload = json.loads(captured["input"])
     assert payload["values"]["INSTAGRAM_ACCESS_TOKEN"] == "EAA" + "x" * 30
     assert payload["values"]["INSTAGRAM_BUSINESS_ACCOUNT_ID"] == "17841400000000000"
-    assert "EAA" not in capsys.readouterr().out
+    assert payload["values"]["INSTAGRAM_WHATSAPP_GROUP_URL"] == "https://chat.whatsapp.com/abc123"
+    output = capsys.readouterr().out
+    assert "EAA" not in output
+    assert "chat.whatsapp.com" not in output
 
 
 def test_local_dry_run_does_not_use_ssh(monkeypatch, tmp_path, capsys) -> None:
@@ -122,6 +131,7 @@ def test_local_dry_run_does_not_use_ssh(monkeypatch, tmp_path, capsys) -> None:
     output = capsys.readouterr().out
     assert "LOCAL_ENV mode=" in output
     assert "INSTAGRAM_ACCESS_TOKEN=missing" in output
+    assert "INSTAGRAM_WHATSAPP_GROUP_URL=missing" in output
 
 
 def test_local_apply_uses_current_python_without_ssh(monkeypatch) -> None:
@@ -150,18 +160,34 @@ def test_local_apply_uses_current_python_without_ssh(monkeypatch) -> None:
         ),
         access_token="EAA" + "x" * 30,
         business_account_id="17841400000000000",
+        whatsapp_group_url="https://chat.whatsapp.com/abc123",
     ) == 0
 
     assert captured["command"][:2] == [sys.executable, "-c"]
     payload = json.loads(captured["input"])
     assert payload["values"]["INSTAGRAM_BUSINESS_ACCOUNT_ID"] == "17841400000000000"
+    assert payload["values"]["INSTAGRAM_WHATSAPP_GROUP_URL"] == "https://chat.whatsapp.com/abc123"
 
 
 def test_validate_instagram_values_rejects_malformed_values() -> None:
     with pytest.raises(module.InstagramEnvConfigError, match="curto"):
-        module.validate_instagram_values("short", "17841400000000000")
+        module.validate_instagram_values(
+            "short",
+            "17841400000000000",
+            "https://chat.whatsapp.com/abc123",
+        )
     with pytest.raises(module.InstagramEnvConfigError, match="digitos"):
-        module.validate_instagram_values("EAA" + "x" * 30, "abc")
+        module.validate_instagram_values(
+            "EAA" + "x" * 30,
+            "abc",
+            "https://chat.whatsapp.com/abc123",
+        )
+    with pytest.raises(module.InstagramEnvConfigError, match="link publico"):
+        module.validate_instagram_values(
+            "EAA" + "x" * 30,
+            "17841400000000000",
+            "https://example.com/grupo",
+        )
 
 
 def test_remote_paths_stay_posix() -> None:
@@ -169,6 +195,7 @@ def test_remote_paths_stay_posix() -> None:
         config(apply=True, confirmation=module.CONFIRMATION),
         access_token="EAA" + "x" * 30,
         business_account_id="17841400000000000",
+        whatsapp_group_url="https://chat.whatsapp.com/abc123",
     )
 
     assert "/opt/automacao_grupo_compras/n8n/.env" in payload

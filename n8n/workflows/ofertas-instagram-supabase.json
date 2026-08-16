@@ -47,7 +47,7 @@
         220
       ],
       "parameters": {
-        "jsCode": "return [{ json: { dry_run: true, profile: 'feminino', marketplace: 'shopee', target: 'oferta.femininas', allowed_targets_csv: 'oferta.femininas', limit: 1, run_id: 'instagram-schedule-safe', instagram_account_email: 'grupodeofertas.mktdigital.fem@gmail.com', instagram_username: 'oferta.femininas' } }];"
+        "jsCode": "return [{ json: { dry_run: true, profile: 'feminino', marketplace: 'shopee', target: 'oferta.femininas', allowed_targets_csv: 'oferta.femininas', limit: 1, run_id: 'instagram-schedule-safe', instagram_account_email: 'grupodeofertas.mktdigital.fem@gmail.com', instagram_username: 'oferta.femininas', whatsapp_group_url: 'https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K' } }];"
       }
     },
     {
@@ -85,12 +85,25 @@
       "notes": "Claim atomico do item pronto; a selecao vem de offers.v_instagram_dispatch_ready e o lock acontece na tabela real."
     },
     {
+      "id": "montar-copy-instagram",
+      "name": "Montar Copy Instagram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $json;\nconst whatsappGroupUrl = String(process.env.INSTAGRAM_WHATSAPP_GROUP_URL || item.whatsapp_group_url || '').trim();\nif (!/^https:\\/\\/(chat\\.whatsapp\\.com|whatsapp\\.com\\/channel|wa\\.me)\\//i.test(whatsappGroupUrl)) {\n  throw new Error('INSTAGRAM_WHATSAPP_GROUP_URL obrigatorio para copy Instagram');\n}\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return null;\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`;\n  return String(value).trim();\n};\nconst formatRating = (value) => {\n  const rating = Number(value);\n  if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ',');\n  return String(value || '').trim();\n};\nconst hashtag = String(item.primary_subniche || 'ofertas')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '') || 'ofertas';\nconst metrics = [\n  formatMoney(item.price) ? `💸 ${formatMoney(item.price)}` : null,\n  formatRating(item.rating) ? `⭐ ${formatRating(item.rating)}/5 na Shopee` : null,\n].filter(Boolean).join('\\n');\nconst captionBase = [\n  [`🔥 ${item.product_name}`, `Copie o link da oferta: ${String(item.offer_link || '').trim()}`].filter(Boolean).join('\\n'),\n  metrics,\n  '💬 Quer receber mais ofertas assim?\\nEntre no grupo do WhatsApp pelo link no perfil.',\n  '⚠️ Preco e disponibilidade podem mudar.',\n  `#ad #shopee #${hashtag} #achadinhos`,\n].filter(Boolean).join('\\n\\n');\nreturn [{ json: { ...item, whatsapp_group_url: whatsappGroupUrl, caption_base: captionBase } }];"
+      }
+    },
+    {
       "id": "revalidar-midia",
       "name": "Revalidar Midia",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20,
+        140,
         0
       ],
       "parameters": {
@@ -172,7 +185,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -209,7 +222,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -242,7 +255,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -279,7 +292,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "={{ 'https://graph.facebook.com/v20.0/' + $json.creation_id + '?fields=status_code&access_token=' + $env.INSTAGRAM_ACCESS_TOKEN }}"
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.creation_id + '?fields=status_code&access_token=' + $env.INSTAGRAM_ACCESS_TOKEN }}"
       },
       "notes": "Publicar somente quando status_code=FINISHED."
     },
@@ -294,7 +307,7 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v20.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media_publish' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media_publish' }}",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -398,6 +411,17 @@
       ]
     },
     "Claim Item Instagram": {
+      "main": [
+        [
+          {
+            "node": "Montar Copy Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Copy Instagram": {
       "main": [
         [
           {
@@ -534,7 +558,8 @@
           "limit": 1,
           "run_id": "instagram-safe-dry-run",
           "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
-          "instagram_username": "oferta.femininas"
+          "instagram_username": "oferta.femininas",
+          "whatsapp_group_url": "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
         }
       }
     ]

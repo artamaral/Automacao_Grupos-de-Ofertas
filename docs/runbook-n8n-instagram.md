@@ -129,6 +129,7 @@ sem versionar:
 ```env
 INSTAGRAM_ACCESS_TOKEN=<token>
 INSTAGRAM_BUSINESS_ACCOUNT_ID=<id>
+INSTAGRAM_WHATSAPP_GROUP_URL=https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K
 ```
 
 Depois de atualizar o `.env`, reiniciar o container n8n para que `$env` fique
@@ -146,6 +147,8 @@ grep -q '^INSTAGRAM_ACCESS_TOKEN=' /opt/automacao_grupo_compras/n8n/.env \
   && echo INSTAGRAM_ACCESS_TOKEN=present
 grep -q '^INSTAGRAM_BUSINESS_ACCOUNT_ID=' /opt/automacao_grupo_compras/n8n/.env \
   && echo INSTAGRAM_BUSINESS_ACCOUNT_ID=present
+grep -q '^INSTAGRAM_WHATSAPP_GROUP_URL=' /opt/automacao_grupo_compras/n8n/.env \
+  && echo INSTAGRAM_WHATSAPP_GROUP_URL=present
 ```
 
 ## Teste real controlado
@@ -158,7 +161,12 @@ Pre-condicoes:
 - workflow Instagram importado e `active=false`;
 - target `oferta.femininas` presente na allowlist/config;
 - credenciais da Instagram Graph API configuradas no ambiente operacional, fora
-  do Git.
+  do Git;
+- `INSTAGRAM_WHATSAPP_GROUP_URL` configurado no ambiente operacional para a
+  copy final do Instagram. Link publico atual:
+  `https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K`.
+- O link deve ficar cadastrado tambem no perfil do Instagram. Links em legenda
+  de Reels/feed aparecem como texto, nao como URL clicavel.
 
 Execucao controlada:
 

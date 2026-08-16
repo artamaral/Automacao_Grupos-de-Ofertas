@@ -314,6 +314,12 @@ imagens. A ordem preserva `planned_date`, `planned_hour`, `slot_sequence` e
 `daily_sequence`. O claim concorrente deve continuar acontecendo sobre
 `offers.daily_dispatch_plan`, com `FOR UPDATE SKIP LOCKED`.
 
+O campo `caption_base` inclui descricao com emoji inicial, `offer_link`
+afiliado na segunda linha, preco sem "hoje", avaliacao, aviso de
+disponibilidade e hashtags. O workflow Instagram pode reconstruir a legenda
+final para tratar o `offer_link` como texto copiavel e direcionar o CTA
+clicavel para o link do perfil.
+
 ## v_offer_ranking_current
 
 A view considera todos os itens do catalogo persistente.

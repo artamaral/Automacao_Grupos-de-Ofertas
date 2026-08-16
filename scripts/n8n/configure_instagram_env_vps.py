@@ -120,7 +120,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Configura INSTAGRAM_ACCESS_TOKEN e INSTAGRAM_BUSINESS_ACCOUNT_ID "
-            "no .env do n8n na VPS sem imprimir segredos."
+            "e INSTAGRAM_WHATSAPP_GROUP_URL no .env do n8n na VPS sem imprimir valores."
         )
     )
     parser.add_argument("--host", default=DEFAULT_HOST)
@@ -175,13 +175,23 @@ def validate_config(config: UpdateConfig) -> None:
         )
 
 
-def validate_instagram_values(access_token: str, business_account_id: str) -> None:
+def validate_instagram_values(
+    access_token: str,
+    business_account_id: str,
+    whatsapp_group_url: str,
+) -> None:
     if not access_token or len(access_token.strip()) < 20:
         raise InstagramEnvConfigError("INSTAGRAM_ACCESS_TOKEN parece vazio ou curto demais")
     if any(character.isspace() for character in access_token):
         raise InstagramEnvConfigError("INSTAGRAM_ACCESS_TOKEN nao deve conter espacos/quebras")
     if not business_account_id.isdigit():
         raise InstagramEnvConfigError("INSTAGRAM_BUSINESS_ACCOUNT_ID deve conter apenas digitos")
+    if not whatsapp_group_url.startswith(
+        ("https://chat.whatsapp.com/", "https://whatsapp.com/channel/", "https://wa.me/")
+    ):
+        raise InstagramEnvConfigError(
+            "INSTAGRAM_WHATSAPP_GROUP_URL deve ser um link publico do WhatsApp"
+        )
 
 
 def ssh_command(config: UpdateConfig, remote_command: str) -> list[str]:
@@ -232,6 +242,7 @@ def build_payload(
     *,
     access_token: str,
     business_account_id: str,
+    whatsapp_group_url: str,
 ) -> str:
     return json.dumps(
         {
@@ -241,6 +252,7 @@ def build_payload(
             "values": {
                 "INSTAGRAM_ACCESS_TOKEN": access_token,
                 "INSTAGRAM_BUSINESS_ACCOUNT_ID": business_account_id,
+                "INSTAGRAM_WHATSAPP_GROUP_URL": whatsapp_group_url,
             },
         },
         separators=(",", ":"),
@@ -261,7 +273,10 @@ def inspect_remote(config: UpdateConfig) -> str:
             "else echo INSTAGRAM_ACCESS_TOKEN=missing; fi; "
             f"if grep -q '^INSTAGRAM_BUSINESS_ACCOUNT_ID=' {str(config.remote_env)!r}; "
             "then echo INSTAGRAM_BUSINESS_ACCOUNT_ID=present; "
-            "else echo INSTAGRAM_BUSINESS_ACCOUNT_ID=missing; fi"
+            "else echo INSTAGRAM_BUSINESS_ACCOUNT_ID=missing; fi; "
+            f"if grep -q '^INSTAGRAM_WHATSAPP_GROUP_URL=' {str(config.remote_env)!r}; "
+            "then echo INSTAGRAM_WHATSAPP_GROUP_URL=present; "
+            "else echo INSTAGRAM_WHATSAPP_GROUP_URL=missing; fi"
         ),
     )
 
@@ -306,9 +321,18 @@ def inspect_local(config: UpdateConfig) -> str:
             if "\nINSTAGRAM_BUSINESS_ACCOUNT_ID=" in f"\n{content}"
             else "INSTAGRAM_BUSINESS_ACCOUNT_ID=missing"
         )
+        lines.append(
+            "INSTAGRAM_WHATSAPP_GROUP_URL=present"
+            if "\nINSTAGRAM_WHATSAPP_GROUP_URL=" in f"\n{content}"
+            else "INSTAGRAM_WHATSAPP_GROUP_URL=missing"
+        )
     else:
         lines.extend(
-            ["INSTAGRAM_ACCESS_TOKEN=missing", "INSTAGRAM_BUSINESS_ACCOUNT_ID=missing"]
+            [
+                "INSTAGRAM_ACCESS_TOKEN=missing",
+                "INSTAGRAM_BUSINESS_ACCOUNT_ID=missing",
+                "INSTAGRAM_WHATSAPP_GROUP_URL=missing",
+            ]
         )
     return "\n".join(lines)
 
@@ -318,6 +342,7 @@ def run(
     *,
     access_token: str | None = None,
     business_account_id: str | None = None,
+    whatsapp_group_url: str | None = None,
 ) -> int:
     validate_config(config)
     if not config.apply:
@@ -329,11 +354,19 @@ def run(
     resolved_business_account_id = (
         business_account_id or getpass.getpass("INSTAGRAM_BUSINESS_ACCOUNT_ID: ").strip()
     )
-    validate_instagram_values(resolved_access_token, resolved_business_account_id)
+    resolved_whatsapp_group_url = (
+        whatsapp_group_url or getpass.getpass("INSTAGRAM_WHATSAPP_GROUP_URL: ").strip()
+    )
+    validate_instagram_values(
+        resolved_access_token,
+        resolved_business_account_id,
+        resolved_whatsapp_group_url,
+    )
     payload = build_payload(
         config,
         access_token=resolved_access_token,
         business_account_id=resolved_business_account_id,
+        whatsapp_group_url=resolved_whatsapp_group_url,
     )
     if config.local:
         output = run_local_update(config, payload=payload)

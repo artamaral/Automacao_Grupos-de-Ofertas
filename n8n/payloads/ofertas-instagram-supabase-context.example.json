@@ -10,7 +10,8 @@
         "limit": 1,
         "run_id": "instagram-safe-dry-run",
         "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
-        "instagram_username": "oferta.femininas"
+        "instagram_username": "oferta.femininas",
+        "whatsapp_group_url": "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
       }
     }
   ]
