@@ -99,6 +99,38 @@
       "notes": "No workflow real, substituir o placeholder por HTTP Request leve com Range bytes=0-0 e Content-Type compativel antes de criar container."
     },
     {
+      "id": "dry-run-gate",
+      "name": "Dry Run Instagram?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        260,
+        -220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-dry-run",
+              "leftValue": "={{ String($json.dry_run) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Quando dry_run=true, registra publication_events como cancelled e nao chama Instagram Graph API."
+    },
+    {
       "id": "rota-formato",
       "name": "Roteador Formato",
       "type": "n8n-nodes-base.if",
@@ -380,12 +412,25 @@
       "main": [
         [
           {
-            "node": "Roteador Formato",
+            "node": "Dry Run Instagram?",
             "type": "main",
             "index": 0
-          },
+          }
+        ]
+      ]
+    },
+    "Dry Run Instagram?": {
+      "main": [
+        [
           {
-            "node": "Marcar Midia Expirada",
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Roteador Formato",
             "type": "main",
             "index": 0
           }

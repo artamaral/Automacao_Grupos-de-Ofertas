@@ -140,6 +140,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "Validar Contexto Instagram",
         "Claim Item Instagram",
         "Revalidar Midia",
+        "Dry Run Instagram?",
         "Roteador Formato",
         "Criar Container Reels",
         "Criar Filhos Carrossel",
@@ -161,6 +162,38 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
             continue
         if not postgres_credentials.get("id") or not postgres_credentials.get("name"):
             errors.append(f"incomplete postgres credentials: {node.get('name')}")
+
+    connections = (
+        workflow.get("connections") if isinstance(workflow.get("connections"), dict) else {}
+    )
+    revalidation_outputs = connections.get("Revalidar Midia", {}).get("main", [])
+    revalidation_targets = {
+        target.get("node")
+        for output in revalidation_outputs
+        if isinstance(output, list)
+        for target in output
+        if isinstance(target, dict)
+    }
+    if revalidation_targets != {"Dry Run Instagram?"}:
+        errors.append("Revalidar Midia must only connect to Dry Run Instagram?")
+
+    dry_run_outputs = connections.get("Dry Run Instagram?", {}).get("main", [])
+    dry_run_targets = [
+        {
+            target.get("node")
+            for target in output
+            if isinstance(target, dict)
+        }
+        for output in dry_run_outputs
+        if isinstance(output, list)
+    ]
+    if len(dry_run_targets) < 2:
+        errors.append("Dry Run Instagram? must have true and false branches")
+    else:
+        if "Registrar Resultado Supabase" not in dry_run_targets[0]:
+            errors.append("dry-run true branch must register result")
+        if "Roteador Formato" not in dry_run_targets[1]:
+            errors.append("dry-run false branch must route to Instagram format")
 
     text = workflow_text(workflow)
     for required_text in (

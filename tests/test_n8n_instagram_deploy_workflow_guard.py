@@ -59,6 +59,19 @@ def test_validate_instagram_workflow_rejects_missing_postgres_credentials() -> N
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
+def test_validate_instagram_workflow_requires_dry_run_gate_before_http_nodes() -> None:
+    workflow = load_instagram_workflow()
+    workflow["connections"]["Revalidar Midia"]["main"] = [
+        [
+            {"node": "Roteador Formato", "type": "main", "index": 0},
+            {"node": "Marcar Midia Expirada", "type": "main", "index": 0},
+        ]
+    ]
+
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="Dry Run Instagram"):
+        guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
+
+
 def test_validate_pin_data_requires_allowlisted_instagram_target() -> None:
     pin_data = guard.build_pin_data(dry_run=True, run_id="test")
     pin_data["Trigger Manual"][0]["json"]["allowed_targets_csv"] = "outro"
