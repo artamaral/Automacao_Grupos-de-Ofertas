@@ -139,8 +139,9 @@ o Supabase entrega apenas o proximo item pronto e ordenado.
 
 ## Credenciais Instagram na VPS
 
-O workflow usa variaveis de ambiente do n8n. Cadastrar no ambiente operacional,
-sem versionar:
+O ambiente operacional ainda guarda os valores brutos no `.env` da VPS, sem
+versionar, mas o workflow publicado deve usar credencial `httpHeaderAuth` do
+n8n para evitar `access to env vars denied` nos nodes HTTP:
 
 ```env
 INSTAGRAM_ACCESS_TOKEN=<token>
@@ -148,8 +149,7 @@ INSTAGRAM_BUSINESS_ACCOUNT_ID=<id>
 INSTAGRAM_WHATSAPP_GROUP_URL=https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K
 ```
 
-Depois de atualizar o `.env`, reiniciar o container n8n para que `$env` fique
-disponivel dentro do workflow:
+Depois de atualizar o `.env`, reiniciar o stack do n8n:
 
 ```bash
 cd /opt/automacao_grupo_compras/n8n
@@ -166,6 +166,30 @@ grep -q '^INSTAGRAM_BUSINESS_ACCOUNT_ID=' /opt/automacao_grupo_compras/n8n/.env 
 grep -q '^INSTAGRAM_WHATSAPP_GROUP_URL=' /opt/automacao_grupo_compras/n8n/.env \
   && echo INSTAGRAM_WHATSAPP_GROUP_URL=present
 ```
+
+Criar ou recriar a credencial HTTP do Instagram a partir do token ja presente
+no `.env`, sem expor o valor:
+
+```bash
+cd /opt/automacao_grupo_compras/app
+python3 scripts/n8n/configure_instagram_http_credential_vps.py --apply --host <ssh-host> --confirm-remote-write CREATE_INSTAGRAM_HTTP_CREDENTIAL
+```
+
+Se algum node como `Criar Filhos Carrossel` continuar acusando
+`access to env vars denied`, inspecione a credencial antes de testar de novo:
+
+```bash
+cd /opt/automacao_grupo_compras/app
+python3 scripts/n8n/configure_instagram_http_credential_vps.py --inspect --host <ssh-host>
+```
+
+Esperado no `--inspect`:
+
+- `value_has_bearer_prefix=true`
+- `value_uses_expression=false`
+- `value_uses_env=false`
+- `workflow_has_process_env=false`
+- `workflow_has_env_expression=false`
 
 ## Teste real controlado
 
