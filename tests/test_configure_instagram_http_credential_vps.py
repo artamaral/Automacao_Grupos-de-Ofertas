@@ -44,3 +44,12 @@ def test_remote_inspect_script_checks_env_usage_without_exposing_token() -> None
     assert '"workflow_has_env_expression"' in script
     assert "print(json.dumps(report, ensure_ascii=False))" in script
     assert "Bearer " in script
+
+
+def test_remote_apply_script_falls_back_to_sql_delete_when_cli_is_missing() -> None:
+    script = module.REMOTE_SCRIPT
+
+    assert 'Command "delete:credentials" not found' in script
+    assert "delete from credentials_entity where id =" in script
+    assert "shared_credentials" in script
+    assert "CREDENTIAL_SQL_REPLACED=" in script

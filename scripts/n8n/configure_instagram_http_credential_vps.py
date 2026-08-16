@@ -122,8 +122,24 @@ if existing:
         check=False,
     )
     if completed.returncode != 0:
-        raise SystemExit(f"DELETE_FAILED={completed.stderr.strip() or completed.stdout.strip()}")
-    print(f"CREDENTIAL_REPLACED={existing}")
+        delete_message = (completed.stderr.strip() or completed.stdout.strip())
+        if 'Command "delete:credentials" not found' not in delete_message:
+            raise SystemExit(f"DELETE_FAILED={delete_message}")
+        run_psql(
+            "do $$\n"
+            "begin\n"
+            "  if exists (\n"
+            "    select 1 from information_schema.tables\n"
+            "    where table_schema = 'public' and table_name = 'shared_credentials'\n"
+            "  ) then\n"
+            f"    delete from shared_credentials where \"credentialsId\" = '{existing}';\n"
+            "  end if;\n"
+            f"  delete from credentials_entity where id = '{existing}';\n"
+            "end $$;"
+        )
+        print(f"CREDENTIAL_SQL_REPLACED={existing}")
+    else:
+        print(f"CREDENTIAL_REPLACED={existing}")
 
 completed = subprocess.run(
     compose_prefix
