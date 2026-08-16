@@ -16,7 +16,13 @@ sys.modules[SPEC.name] = module
 SPEC.loader.exec_module(module)
 
 
-def config(*, apply: bool, restart_n8n: bool = False, confirmation: str | None = None):
+def config(
+    *,
+    apply: bool,
+    restart_n8n: bool = False,
+    confirmation: str | None = None,
+    local: bool = False,
+):
     return module.UpdateConfig(
         host="hostinger-n8n",
         ssh_bin="ssh",
@@ -25,6 +31,7 @@ def config(*, apply: bool, restart_n8n: bool = False, confirmation: str | None =
         apply=apply,
         confirmation=confirmation,
         restart_n8n=restart_n8n,
+        local=local,
     )
 
 
@@ -88,6 +95,66 @@ def test_apply_sends_values_only_through_stdin(monkeypatch, capsys) -> None:
     assert payload["values"]["INSTAGRAM_ACCESS_TOKEN"] == "EAA" + "x" * 30
     assert payload["values"]["INSTAGRAM_BUSINESS_ACCOUNT_ID"] == "17841400000000000"
     assert "EAA" not in capsys.readouterr().out
+
+
+def test_local_dry_run_does_not_use_ssh(monkeypatch, tmp_path, capsys) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_text("N8N_HOST=localhost\n", encoding="utf-8")
+
+    def fail_run_ssh(*_args, **_kwargs):
+        raise AssertionError("local mode must not call ssh")
+
+    monkeypatch.setattr(module, "run_ssh", fail_run_ssh)
+
+    local_config = module.UpdateConfig(
+        host="",
+        ssh_bin="ssh",
+        remote_env=module.PurePosixPath(str(env_file).replace("\\", "/")),
+        compose_file=module.PurePosixPath(str(tmp_path / "docker-compose.yml").replace("\\", "/")),
+        apply=False,
+        confirmation=None,
+        restart_n8n=False,
+        local=True,
+    )
+
+    assert module.run(local_config) == 0
+
+    output = capsys.readouterr().out
+    assert "LOCAL_ENV mode=" in output
+    assert "INSTAGRAM_ACCESS_TOKEN=missing" in output
+
+
+def test_local_apply_uses_current_python_without_ssh(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_subprocess_run(command, **kwargs):
+        captured["command"] = command
+        captured["input"] = kwargs["input"]
+        return type(
+            "Completed",
+            (),
+            {
+                "returncode": 0,
+                "stdout": "UPDATED_ENV mode=600 bytes=100\nN8N_RESTART=SKIPPED\n",
+                "stderr": "",
+            },
+        )()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_subprocess_run)
+
+    assert module.run(
+        config(
+            apply=True,
+            confirmation=module.CONFIRMATION,
+            local=True,
+        ),
+        access_token="EAA" + "x" * 30,
+        business_account_id="17841400000000000",
+    ) == 0
+
+    assert captured["command"][:2] == [sys.executable, "-c"]
+    payload = json.loads(captured["input"])
+    assert payload["values"]["INSTAGRAM_BUSINESS_ACCOUNT_ID"] == "17841400000000000"
 
 
 def test_validate_instagram_values_rejects_malformed_values() -> None:

@@ -4,6 +4,7 @@ import argparse
 import getpass
 import json
 import os
+import stat
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -102,6 +103,7 @@ class UpdateConfig:
     apply: bool
     confirmation: str | None
     restart_n8n: bool
+    local: bool = False
 
 
 def default_ssh_bin() -> Path | str:
@@ -128,6 +130,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--restart-n8n", action="store_true")
     parser.add_argument("--confirm-remote-write")
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Atualiza o .env diretamente na maquina atual, sem SSH.",
+    )
     return parser.parse_args(argv)
 
 
@@ -140,15 +147,27 @@ def config_from_args(args: argparse.Namespace) -> UpdateConfig:
         apply=bool(args.apply),
         confirmation=args.confirm_remote_write,
         restart_n8n=bool(args.restart_n8n),
+        local=bool(args.local),
     )
 
 
 def validate_config(config: UpdateConfig) -> None:
-    if not config.host or any(character.isspace() for character in config.host):
+    if not config.local and (
+        not config.host or any(character.isspace() for character in config.host)
+    ):
         raise InstagramEnvConfigError("host SSH invalido")
-    if not str(config.remote_env).startswith("/"):
+    remote_env_path = str(config.remote_env)
+    compose_file_path = str(config.compose_file)
+    if config.local:
+        if not (Path(remote_env_path).is_absolute() or remote_env_path.startswith("/")):
+            raise InstagramEnvConfigError("remote-env deve ser um caminho absoluto")
+        if not (
+            Path(compose_file_path).is_absolute() or compose_file_path.startswith("/")
+        ):
+            raise InstagramEnvConfigError("compose-file deve ser um caminho absoluto")
+    elif not remote_env_path.startswith("/"):
         raise InstagramEnvConfigError("remote-env deve ser um caminho absoluto POSIX")
-    if not str(config.compose_file).startswith("/"):
+    if not config.local and not compose_file_path.startswith("/"):
         raise InstagramEnvConfigError("compose-file deve ser um caminho absoluto POSIX")
     if config.apply and config.confirmation != CONFIRMATION:
         raise InstagramEnvConfigError(
@@ -186,6 +205,23 @@ def run_ssh(
     if completed.returncode != 0:
         raise InstagramEnvConfigError(
             "comando SSH falhou; "
+            f"codigo={completed.returncode}; stderr={completed.stderr.strip()}"
+        )
+    return completed.stdout.strip()
+
+
+def run_local_update(config: UpdateConfig, *, payload: str) -> str:
+    completed = subprocess.run(
+        [sys.executable, "-c", REMOTE_SCRIPT],
+        input=payload,
+        text=True,
+        check=False,
+        capture_output=True,
+        timeout=60,
+    )
+    if completed.returncode != 0:
+        raise InstagramEnvConfigError(
+            "comando local falhou; "
             f"codigo={completed.returncode}; stderr={completed.stderr.strip()}"
         )
     return completed.stdout.strip()
@@ -230,6 +266,53 @@ def inspect_remote(config: UpdateConfig) -> str:
     )
 
 
+def _owner_group(path: Path) -> tuple[str, str]:
+    try:
+        import grp
+        import pwd
+
+        stat_result = path.stat()
+        return (
+            pwd.getpwuid(stat_result.st_uid).pw_name,
+            grp.getgrgid(stat_result.st_gid).gr_name,
+        )
+    except (ImportError, KeyError, OSError):
+        stat_result = path.stat()
+        return (str(stat_result.st_uid), str(stat_result.st_gid))
+
+
+def inspect_local(config: UpdateConfig) -> str:
+    target = Path(str(config.remote_env))
+    lines: list[str] = []
+    if target.is_file():
+        mode = stat.S_IMODE(target.stat().st_mode)
+        owner, group = _owner_group(target)
+        lines.append(
+            f"LOCAL_ENV mode={mode:o} owner={owner} group={group} "
+            f"bytes={target.stat().st_size}"
+        )
+    else:
+        lines.append("LOCAL_ENV=missing")
+
+    if target.is_file():
+        content = target.read_text(encoding="utf-8")
+        lines.append(
+            "INSTAGRAM_ACCESS_TOKEN=present"
+            if "\nINSTAGRAM_ACCESS_TOKEN=" in f"\n{content}"
+            else "INSTAGRAM_ACCESS_TOKEN=missing"
+        )
+        lines.append(
+            "INSTAGRAM_BUSINESS_ACCOUNT_ID=present"
+            if "\nINSTAGRAM_BUSINESS_ACCOUNT_ID=" in f"\n{content}"
+            else "INSTAGRAM_BUSINESS_ACCOUNT_ID=missing"
+        )
+    else:
+        lines.extend(
+            ["INSTAGRAM_ACCESS_TOKEN=missing", "INSTAGRAM_BUSINESS_ACCOUNT_ID=missing"]
+        )
+    return "\n".join(lines)
+
+
 def run(
     config: UpdateConfig,
     *,
@@ -238,7 +321,7 @@ def run(
 ) -> int:
     validate_config(config)
     if not config.apply:
-        print(inspect_remote(config))
+        print(inspect_local(config) if config.local else inspect_remote(config))
         print("DRY_RUN=true; nenhum segredo foi alterado")
         return 0
 
@@ -252,11 +335,14 @@ def run(
         access_token=resolved_access_token,
         business_account_id=resolved_business_account_id,
     )
-    output = run_ssh(
-        config,
-        f"python3 -c {REMOTE_SCRIPT!r}",
-        payload=payload,
-    )
+    if config.local:
+        output = run_local_update(config, payload=payload)
+    else:
+        output = run_ssh(
+            config,
+            f"python3 -c {REMOTE_SCRIPT!r}",
+            payload=payload,
+        )
     print(output)
     print("INSTAGRAM_ENV_UPDATE=OK; valores nao foram exibidos")
     return 0
