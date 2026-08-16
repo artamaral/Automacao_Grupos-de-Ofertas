@@ -300,14 +300,18 @@ metadados validados para que o n8n consuma midia pronta.
 ## v_instagram_dispatch_ready
 
 Apos aplicar a migration Instagram, sera a superficie de consumo para o workflow
-Instagram. A view junta
-`offers.v_daily_dispatch_ready` com `offers.offer_media_assets` e expoe somente
+Instagram. A view junta `offers.daily_dispatch_plan`,
+`offers.v_offer_ranking_current` e `offers.offer_media_assets`, expondo somente
 itens com:
 
-- slot pronto na fila diaria;
+- `dispatch_status = 'planned'`;
 - `offer_media_assets.status = 'valid'`;
 - `video_url` para formato `reels`, ou `image_urls` nao vazio para formato
   `carousel`.
+
+Para Instagram, `refresh_status`, `is_eligible` e `ineligibility_reasons`
+continuam visiveis na view como observabilidade, mas nao bloqueiam a fila por
+`is_ready_for_dispatch`.
 
 A view pode retornar o mesmo item em mais de um formato quando ele tem video e
 imagens. Para Instagram, a ordenacao operacional usa `planned_date` e

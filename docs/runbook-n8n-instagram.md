@@ -73,6 +73,14 @@ No contrato atual, `planned_hour` continua exposto apenas como auditoria herdada
 do planner diario. O horario efetivo da publicacao Instagram e definido pelo
 schedule do n8n ou pela execucao manual.
 
+A superficie Instagram nao depende mais de
+`offers.v_daily_dispatch_ready.is_ready_for_dispatch`. Ela usa:
+
+- `offers.daily_dispatch_plan` com `dispatch_status='planned'`;
+- `offers.offer_media_assets` com `status='valid'`;
+- `offers.v_offer_ranking_current` apenas para enriquecer copy e observabilidade
+  (`refresh_status`, `is_eligible`, `ineligibility_reasons`).
+
 Reels:
 
 ```sql

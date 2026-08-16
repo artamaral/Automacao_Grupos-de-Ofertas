@@ -24,6 +24,9 @@ DEFAULT_WORKFLOW_ID = "OfertasInstagramSupab1"
 EXPECTED_WORKFLOW_TIMEZONE = "America/Sao_Paulo"
 EXPECTED_TARGET = "oferta.femininas"
 DEFAULT_WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
+DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID = "__configure_instagram_business_account_id__"
+EXPECTED_HTTP_HEADER_CREDENTIAL_ID = "instagramGraphHdrAuth1"
+EXPECTED_HTTP_HEADER_CREDENTIAL_NAME = "Instagram Graph Bearer"
 
 
 class InstagramWorkflowGuardError(RuntimeError):
@@ -54,6 +57,7 @@ def build_pin_data(*, dry_run: bool, run_id: str) -> dict[str, Any]:
                     "run_id": run_id,
                     "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
                     "instagram_username": EXPECTED_TARGET,
+                    "instagram_business_account_id": DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID,
                     "whatsapp_group_url": DEFAULT_WHATSAPP_GROUP_URL,
                 }
             }
@@ -166,6 +170,25 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         if not postgres_credentials.get("id") or not postgres_credentials.get("name"):
             errors.append(f"incomplete postgres credentials: {node.get('name')}")
 
+    for node_name in (
+        "Criar Container Reels",
+        "Criar Filhos Carrossel",
+        "Criar Container Pai Carrossel",
+        "Checar Status Container",
+        "Publicar Container",
+    ):
+        node = node_by_name(workflow, node_name)
+        if not isinstance(node, dict):
+            continue
+        credentials = node.get("credentials", {}).get("httpHeaderAuth")
+        if not isinstance(credentials, dict):
+            errors.append(f"missing httpHeaderAuth credentials: {node_name}")
+            continue
+        if credentials.get("id") != EXPECTED_HTTP_HEADER_CREDENTIAL_ID:
+            errors.append(f"httpHeaderAuth id mismatch: {node_name}")
+        if credentials.get("name") != EXPECTED_HTTP_HEADER_CREDENTIAL_NAME:
+            errors.append(f"httpHeaderAuth name mismatch: {node_name}")
+
     connections = (
         workflow.get("connections") if isinstance(workflow.get("connections"), dict) else {}
     )
@@ -218,6 +241,10 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "nullif",
         "context.dry_run",
         "ctx.dry_run",
+        "instagram_business_account_id",
+        "ctx.instagram_business_account_id",
+        "ctx.whatsapp_group_url",
+        "whatsapp_group_url",
         "source_dispatch_plan_id",
         "case when {{ $json.dry_run ? 'true' : 'false' }} then null",
         "offers.offer_media_assets",
@@ -228,11 +255,12 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "instagram_reels",
         "instagram_carousel",
         "delivery_status",
-        "INSTAGRAM_ACCESS_TOKEN",
-        "INSTAGRAM_WHATSAPP_GROUP_URL",
+        "genericCredentialType",
+        "httpHeaderAuth",
+        EXPECTED_HTTP_HEADER_CREDENTIAL_ID,
+        EXPECTED_HTTP_HEADER_CREDENTIAL_NAME,
         "Quer receber mais ofertas assim?",
         "Entre no grupo do WhatsApp",
-        "link no perfil",
         "Copie o link da oferta",
         "graph.instagram.com",
         "media_type=REELS",
@@ -272,6 +300,8 @@ def validate_pin_data(pin_data: dict[str, Any] | None) -> None:
     allowed_targets = str(payload.get("allowed_targets_csv", "")).split(",")
     if EXPECTED_TARGET not in {target.strip() for target in allowed_targets}:
         raise InstagramWorkflowGuardError("pinData target must be allowlisted")
+    if not str(payload.get("instagram_business_account_id", "")).strip():
+        raise InstagramWorkflowGuardError("pinData instagram_business_account_id must be set")
     if payload.get("whatsapp_group_url") != DEFAULT_WHATSAPP_GROUP_URL:
         raise InstagramWorkflowGuardError("pinData whatsapp_group_url must match public MVP URL")
 

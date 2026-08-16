@@ -47,7 +47,7 @@
         220
       ],
       "parameters": {
-        "jsCode": "return [{ json: { dry_run: true, profile: 'feminino', marketplace: 'shopee', target: 'oferta.femininas', allowed_targets_csv: 'oferta.femininas', limit: 1, run_id: 'instagram-schedule-safe', instagram_account_email: 'grupodeofertas.mktdigital.fem@gmail.com', instagram_username: 'oferta.femininas', whatsapp_group_url: 'https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K' } }];"
+        "jsCode": "return [{ json: { dry_run: true, profile: 'feminino', marketplace: 'shopee', target: 'oferta.femininas', allowed_targets_csv: 'oferta.femininas', limit: 1, run_id: 'instagram-schedule-safe', instagram_account_email: 'grupodeofertas.mktdigital.fem@gmail.com', instagram_username: 'oferta.femininas', instagram_business_account_id: '__configure_instagram_business_account_id__', whatsapp_group_url: 'https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K' } }];"
       }
     },
     {
@@ -74,7 +74,7 @@
       ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "with context as (\n  select\n    '{{ $json.profile }}'::text as profile,\n    '{{ $json.marketplace }}'::text as marketplace,\n    nullif('{{ $json.instagram_format || \"\" }}', '')::text as instagram_format,\n    {{ $json.dry_run ? 'true' : 'false' }}::boolean as dry_run,\n    '{{ $json.target || \"oferta.femininas\" }}'::text as target,\n    '{{ $json.run_id || \"instagram-manual\" }}'::text as run_id\n), candidate as (\n  select plan.dispatch_plan_id\n  from context ctx\n  join offers.daily_dispatch_plan plan on true\n  join offers.v_instagram_dispatch_ready ready\n    on ready.dispatch_plan_id = plan.dispatch_plan_id\n  where ready.profile = ctx.profile\n    and ready.marketplace = ctx.marketplace\n    and ready.planned_date <= (now() at time zone 'America/Sao_Paulo')::date\n    and (ctx.instagram_format is null or ready.instagram_format = ctx.instagram_format)\n  order by ready.planned_date, ready.daily_sequence, ready.instagram_format desc\n  limit 1\n  for update of plan skip locked\n), claimed as (\n  update offers.daily_dispatch_plan plan\n  set dispatch_status = 'claimed',\n      claim_token = (select run_id from context),\n      claimed_at = now(),\n      updated_at = now()\n  from candidate\n  where plan.dispatch_plan_id = candidate.dispatch_plan_id\n    and not (select dry_run from context)\n  returning plan.dispatch_plan_id\n), selected as (\n  select candidate.dispatch_plan_id\n  from candidate\n  cross join context\n  where context.dry_run\n  union all\n  select claimed.dispatch_plan_id\n  from claimed\n)\nselect\n  ready.*,\n  ctx.dry_run,\n  ctx.target,\n  ctx.run_id,\n  case when ctx.dry_run then 'cancelled' else 'confirmed' end as delivery_status\nfrom selected\njoin offers.v_instagram_dispatch_ready ready using (dispatch_plan_id)\ncross join context ctx\nlimit 1;"
+        "query": "with context as (\n  select\n    '{{ $json.profile }}'::text as profile,\n    '{{ $json.marketplace }}'::text as marketplace,\n    nullif('{{ $json.instagram_format || \"\" }}', '')::text as instagram_format,\n    {{ $json.dry_run ? 'true' : 'false' }}::boolean as dry_run,\n    '{{ $json.target || \"oferta.femininas\" }}'::text as target,\n    '{{ $json.run_id || \"instagram-manual\" }}'::text as run_id,\n    nullif('{{ $json.instagram_business_account_id || \"\" }}', '')::text as instagram_business_account_id,\n    nullif('{{ $json.whatsapp_group_url || \"\" }}', '')::text as whatsapp_group_url\n), candidate as (\n  select plan.dispatch_plan_id\n  from context ctx\n  join offers.daily_dispatch_plan plan on true\n  join offers.v_instagram_dispatch_ready ready\n    on ready.dispatch_plan_id = plan.dispatch_plan_id\n  where ready.profile = ctx.profile\n    and ready.marketplace = ctx.marketplace\n    and ready.planned_date <= (now() at time zone 'America/Sao_Paulo')::date\n    and (ctx.instagram_format is null or ready.instagram_format = ctx.instagram_format)\n  order by ready.planned_date, ready.daily_sequence, ready.instagram_format desc\n  limit 1\n  for update of plan skip locked\n), claimed as (\n  update offers.daily_dispatch_plan plan\n  set dispatch_status = 'claimed',\n      claim_token = (select run_id from context),\n      claimed_at = now(),\n      updated_at = now()\n  from candidate\n  where plan.dispatch_plan_id = candidate.dispatch_plan_id\n    and not (select dry_run from context)\n  returning plan.dispatch_plan_id\n), selected as (\n  select candidate.dispatch_plan_id\n  from candidate\n  cross join context\n  where context.dry_run\n  union all\n  select claimed.dispatch_plan_id\n  from claimed\n)\nselect\n  ready.*,\n  ctx.dry_run,\n  ctx.target,\n  ctx.run_id,\n  ctx.instagram_business_account_id,\n  ctx.whatsapp_group_url,\n  case when ctx.dry_run then 'cancelled' else 'confirmed' end as delivery_status\nfrom selected\njoin offers.v_instagram_dispatch_ready ready using (dispatch_plan_id)\ncross join context ctx\nlimit 1;"
       },
       "credentials": {
         "postgres": {
@@ -94,7 +94,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "const item = $json;\nconst whatsappGroupUrl = String($env.INSTAGRAM_WHATSAPP_GROUP_URL || item.whatsapp_group_url || '').trim();\nif (!/^https:\\/\\/(chat\\.whatsapp\\.com|whatsapp\\.com\\/channel|wa\\.me)\\//i.test(whatsappGroupUrl)) {\n  throw new Error('INSTAGRAM_WHATSAPP_GROUP_URL obrigatorio para copy Instagram');\n}\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return null;\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`;\n  return String(value).trim();\n};\nconst formatRating = (value) => {\n  const rating = Number(value);\n  if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ',');\n  return String(value || '').trim();\n};\nconst hashtag = String(item.primary_subniche || 'ofertas')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '') || 'ofertas';\nconst metrics = [\n  formatMoney(item.price) ? `💸 ${formatMoney(item.price)}` : null,\n  formatRating(item.rating) ? `⭐ ${formatRating(item.rating)}/5 na Shopee` : null,\n].filter(Boolean).join('\\n');\nconst captionBase = [\n  [`🔥 ${item.product_name}`, `Copie o link da oferta: ${String(item.offer_link || '').trim()}`].filter(Boolean).join('\\n'),\n  metrics,\n  '💬 Quer receber mais ofertas assim?\\nEntre no grupo do WhatsApp pelo link no perfil.',\n  '⚠️ Preco e disponibilidade podem mudar.',\n  `#ad #shopee #${hashtag} #achadinhos`,\n].filter(Boolean).join('\\n\\n');\nreturn [{ json: { ...item, whatsapp_group_url: whatsappGroupUrl, caption_base: captionBase } }];"
+        "jsCode": "const item = $json;\nconst whatsappGroupUrl = String(item.whatsapp_group_url || '').trim();\nif (!/^https:\\/\\/(chat\\.whatsapp\\.com|whatsapp\\.com\\/channel|wa\\.me)\\//i.test(whatsappGroupUrl)) {\n  throw new Error('whatsapp_group_url obrigatorio para copy Instagram');\n}\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return null;\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`;\n  return String(value).trim();\n};\nconst formatRating = (value) => {\n  const rating = Number(value);\n  if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ',');\n  return String(value || '').trim();\n};\nconst hashtag = String(item.primary_subniche || 'ofertas')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '') || 'ofertas';\nconst metrics = [\n  formatMoney(item.price) ? `💸 ${formatMoney(item.price)}` : null,\n  formatRating(item.rating) ? `⭐ ${formatRating(item.rating)}/5 na Shopee` : null,\n].filter(Boolean).join('\\n');\nconst captionBase = [\n  [`🔥 ${item.product_name}`, `Copie o link da oferta: ${String(item.offer_link || '').trim()}`].filter(Boolean).join('\\n'),\n  metrics,\n  `💬 Quer receber mais ofertas assim?\\nEntre no grupo do WhatsApp: ${whatsappGroupUrl}`,\n  '⚠️ Preco e disponibilidade podem mudar.',\n  `#ad #shopee #${hashtag} #achadinhos`,\n].filter(Boolean).join('\\n\\n');\nreturn [{ json: { ...item, whatsapp_group_url: whatsappGroupUrl, caption_base: captionBase } }];"
       }
     },
     {
@@ -185,7 +185,9 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -201,15 +203,17 @@
             {
               "name": "caption",
               "value": "={{ $json.caption_base }}"
-            },
-            {
-              "name": "access_token",
-              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
         }
       },
-      "notes": "media_type=REELS"
+      "notes": "media_type=REELS",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
     },
     {
       "id": "criar-filhos-carrossel",
@@ -222,7 +226,9 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -234,15 +240,17 @@
             {
               "name": "image_url",
               "value": "={{ ($json.image_urls || [])[0] }}"
-            },
-            {
-              "name": "access_token",
-              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
         }
       },
-      "notes": "is_carousel_item=true; repetir por ate 10 image_urls no workflow operacional."
+      "notes": "is_carousel_item=true; repetir por ate 10 image_urls no workflow operacional.",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
     },
     {
       "id": "criar-pai-carrossel",
@@ -255,7 +263,9 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -271,15 +281,17 @@
             {
               "name": "caption",
               "value": "={{ $json.caption_base }}"
-            },
-            {
-              "name": "access_token",
-              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
         }
       },
-      "notes": "media_type=CAROUSEL"
+      "notes": "media_type=CAROUSEL",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
     },
     {
       "id": "checar-status",
@@ -292,9 +304,17 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.creation_id + '?fields=status_code&access_token=' + $env.INSTAGRAM_ACCESS_TOKEN }}"
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.creation_id + '?fields=status_code' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
-      "notes": "Publicar somente quando status_code=FINISHED."
+      "notes": "Publicar somente quando status_code=FINISHED.",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
     },
     {
       "id": "publicar-container",
@@ -307,7 +327,9 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.instagram.com/v23.0/' + $env.INSTAGRAM_BUSINESS_ACCOUNT_ID + '/media_publish' }}",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media_publish' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
@@ -315,12 +337,14 @@
             {
               "name": "creation_id",
               "value": "={{ $json.creation_id }}"
-            },
-            {
-              "name": "access_token",
-              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
         }
       }
     },

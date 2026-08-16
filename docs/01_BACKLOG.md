@@ -123,6 +123,14 @@ como bloqueio da operacao minima:
 
 ### Operacao do MVP
 
+- PRIORIDADE TOTAL: endurecer a fila Instagram para nao publicar item
+  `refresh_status='STALE'`. A correcao imediata desacoplou a superficie
+  Instagram de `is_ready_for_dispatch` para destravar a operacao com midia
+  valida, mas ainda falta introduzir uma regra propria do canal que bloqueie
+  stale sem herdar indevidamente o cooldown/global readiness do WhatsApp.
+  Caminho esperado: criar prontidao especifica do Instagram com revalidacao
+  recente de midia e trava channel-specific de repost/publicacao.
+
 - Endurecer TLS da credencial Postgres do Supabase no n8n, substituindo
   `Ignore SSL Issues (Insecure)` por validacao completa da cadeia via CA
   confiavel quando a UI/container permitir.

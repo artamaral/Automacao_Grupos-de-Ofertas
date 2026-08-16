@@ -80,9 +80,25 @@ def test_instagram_claim_query_preserves_dry_run_context() -> None:
     assert "nullif" in query
     assert "context.dry_run" in query
     assert "ctx.dry_run" in query
+    assert "ctx.instagram_business_account_id" in query
+    assert (
+        "nullif('{{ $json.instagram_business_account_id || \"\" }}', '')::text as "
+        "instagram_business_account_id" in query
+    )
+    assert "ctx.whatsapp_group_url" in query
+    assert "nullif('{{ $json.whatsapp_group_url || \"\" }}', '')::text as whatsapp_group_url" in query
     assert "case when ctx.dry_run then 'cancelled'" in query
     assert "ready.planned_date <= (now() at time zone 'america/sao_paulo')::date" in query.lower()
     assert "order by ready.planned_date, ready.daily_sequence, ready.instagram_format desc" in query
+
+
+def test_validate_instagram_workflow_requires_http_header_auth_credentials() -> None:
+    workflow = load_instagram_workflow()
+    reels_node = guard.node_by_name(workflow, "Criar Container Reels")
+    reels_node.pop("credentials", None)
+
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="httpHeaderAuth"):
+        guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
 def test_validate_instagram_workflow_rejects_process_env_in_code_node() -> None:
@@ -147,3 +163,4 @@ def test_instagram_real_test_mode_sets_dry_run_false() -> None:
     payload = config.pin_data["Trigger Manual"][0]["json"]
     assert payload["dry_run"] is False
     assert payload["target"] == "oferta.femininas"
+    assert payload["instagram_business_account_id"] == "__configure_instagram_business_account_id__"
