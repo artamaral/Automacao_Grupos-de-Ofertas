@@ -156,11 +156,33 @@ def test_instagram_guard_preserves_pindata_when_requested() -> None:
     assert "active = false" in sql
 
 
-def test_instagram_real_test_mode_sets_dry_run_false() -> None:
+def test_instagram_real_test_mode_sets_dry_run_false(tmp_path: Path) -> None:
     args = guard.parse_args(["--mode", "instagram-real-test"])
+    args.compose_env = tmp_path / "instagram-real.env"
+    args.compose_env.write_text(
+        "INSTAGRAM_BUSINESS_ACCOUNT_ID=17841400000000000\n"
+        "INSTAGRAM_WHATSAPP_GROUP_URL=https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K\n",
+        encoding="utf-8",
+    )
     config = guard.config_from_args(args)
 
     payload = config.pin_data["Trigger Manual"][0]["json"]
     assert payload["dry_run"] is False
     assert payload["target"] == "oferta.femininas"
-    assert payload["instagram_business_account_id"] == "__configure_instagram_business_account_id__"
+    assert payload["instagram_business_account_id"] == "17841400000000000"
+    assert payload["whatsapp_group_url"] == "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
+
+
+def test_instagram_real_test_mode_requires_business_account_id_in_compose_env(tmp_path: Path) -> None:
+    args = guard.parse_args(["--mode", "instagram-real-test"])
+    args.compose_env = tmp_path / "instagram-real-missing.env"
+    args.compose_env.write_text(
+        "INSTAGRAM_WHATSAPP_GROUP_URL=https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        guard.InstagramWorkflowGuardError,
+        match="INSTAGRAM_BUSINESS_ACCOUNT_ID ausente",
+    ):
+        guard.config_from_args(args)

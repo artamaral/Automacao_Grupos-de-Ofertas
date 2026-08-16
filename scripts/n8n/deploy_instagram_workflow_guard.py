@@ -43,7 +43,13 @@ class DeployConfig:
     dry_run: bool
 
 
-def build_pin_data(*, dry_run: bool, run_id: str) -> dict[str, Any]:
+def build_pin_data(
+    *,
+    dry_run: bool,
+    run_id: str,
+    instagram_business_account_id: str = DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID,
+    whatsapp_group_url: str = DEFAULT_WHATSAPP_GROUP_URL,
+) -> dict[str, Any]:
     return {
         "Trigger Manual": [
             {
@@ -57,8 +63,8 @@ def build_pin_data(*, dry_run: bool, run_id: str) -> dict[str, Any]:
                     "run_id": run_id,
                     "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
                     "instagram_username": EXPECTED_TARGET,
-                    "instagram_business_account_id": DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID,
-                    "whatsapp_group_url": DEFAULT_WHATSAPP_GROUP_URL,
+                    "instagram_business_account_id": instagram_business_account_id,
+                    "whatsapp_group_url": whatsapp_group_url,
                 }
             }
         ]
@@ -66,7 +72,6 @@ def build_pin_data(*, dry_run: bool, run_id: str) -> dict[str, Any]:
 
 
 SAFE_PINDATA = build_pin_data(dry_run=True, run_id="instagram-safe-dry-run")
-REAL_TEST_PINDATA = build_pin_data(dry_run=False, run_id="instagram-real-test")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -86,16 +91,47 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def read_operational_env(compose_env: Path) -> dict[str, str]:
+    if not compose_env.is_file():
+        raise InstagramWorkflowGuardError(f"compose env not found: {compose_env}")
+    values: dict[str, str] = {}
+    for raw_line in compose_env.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip()
+    return values
+
+
 def config_from_args(args: argparse.Namespace) -> DeployConfig:
-    pin_data = {
-        "safe": SAFE_PINDATA,
-        "instagram-real-test": REAL_TEST_PINDATA,
-        "preserve-pindata": None,
-    }[args.mode]
+    compose_env = args.compose_env
+    pin_data: dict[str, Any] | None
+    if args.mode == "safe":
+        pin_data = SAFE_PINDATA
+    elif args.mode == "instagram-real-test":
+        env_values = read_operational_env(compose_env)
+        instagram_business_account_id = env_values.get("INSTAGRAM_BUSINESS_ACCOUNT_ID", "").strip()
+        whatsapp_group_url = (
+            env_values.get("INSTAGRAM_WHATSAPP_GROUP_URL", "").strip()
+            or DEFAULT_WHATSAPP_GROUP_URL
+        )
+        if not instagram_business_account_id:
+            raise InstagramWorkflowGuardError(
+                "INSTAGRAM_BUSINESS_ACCOUNT_ID ausente no compose env para instagram-real-test"
+            )
+        pin_data = build_pin_data(
+            dry_run=False,
+            run_id="instagram-real-test",
+            instagram_business_account_id=instagram_business_account_id,
+            whatsapp_group_url=whatsapp_group_url,
+        )
+    else:
+        pin_data = None
     return DeployConfig(
         workflow_json=args.workflow_json,
         workflow_id=args.workflow_id,
-        compose_env=args.compose_env,
+        compose_env=compose_env,
         compose_file=args.compose_file,
         pin_data=pin_data,
         dry_run=args.dry_run,
