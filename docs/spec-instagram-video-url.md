@@ -72,7 +72,7 @@ Para a primeira rodada controlada, usar ate 3 posts por dia, nesta ordem:
 2. `skincare-facial`
 3. `acessorios-femininos`
 
-Horarios fixos da rodada:
+Horarios fixos da rodada no n8n:
 
 - `10:00` BRT: primeiro post elegivel;
 - `14:00` BRT: segundo post elegivel;
@@ -80,9 +80,9 @@ Horarios fixos da rodada:
 
 Se algum nicho nao tiver item elegivel com `video_url` valido, aplicar fallback
 pela ordem ja disponivel em `offers.daily_dispatch_plan`, preservando a
-ordenacao materializada pelo planejador (`planned_date`, `planned_hour`,
-`slot_sequence` e `daily_sequence`). O resolvedor de midia nao deve recalcular
-score, diversidade ou prioridade.
+ordenacao materializada pelo planejador. Para Instagram, `planned_hour`
+permanece apenas como auditoria herdada; o horario real de disparo vem do n8n.
+O resolvedor de midia nao deve recalcular score, diversidade ou prioridade.
 
 Adicionar tambem 1 carrossel diario para moda, separado da selecao de Reels.
 Esse post deve recuperar as midias do anuncio na ordem em que aparecem,
@@ -100,6 +100,8 @@ validas, aplicar fallback pela ordem ja materializada em
 - `video_url` deve estar publica no momento da publicacao.
 - `caption` pode reutilizar a copy ja montada, com ajustes especificos para
   Instagram quando necessario.
+- a fila/prioridade do Instagram vem do Supabase, mas a definicao de horario de
+  publicacao vem do n8n;
 - se a URL expirar, bloquear o post e marcar a midia como `stale` ou `failed`.
 - se nao houver video, o item pode ficar inelegivel para Instagram/Reels ou
   cair para fluxo futuro de imagem, fora desta spec.
@@ -410,12 +412,13 @@ Entrega esperada:
 
 - view ou query documentada juntando plano diario + midia resolvida;
 - campos minimos para o n8n: `dispatch_plan_id`, `item_id`, `product_name`,
-  `offer_link`, `image_urls`, `video_url`, `caption`, `planned_hour`;
+  `offer_link`, `image_urls`, `video_url`, `caption`; `planned_hour` pode
+  permanecer apenas como campo de auditoria herdado;
 - filtro de `status = 'valid'`;
 - filtro especifico para Reels quando exigir `video_url is not null`;
 - filtro especifico para Carrossel quando exigir imagens;
-- ordenacao preservando `planned_date`, `planned_hour`, `slot_sequence` e
-  `daily_sequence`.
+- ordenacao preservando a sequencia materializada do planner, mas sem tratar
+  `planned_hour` como gatilho de horario do Instagram.
 
 ### E/F. Criar workflow unico n8n Instagram
 
@@ -437,6 +440,9 @@ Trigger horario
   -> checar status do container
   -> publicar
   -> registrar resultado em publication_events
+
+O trigger horario pertence ao n8n. O Supabase entrega somente o proximo item
+pronto e ordenado.
 ```
 
 Nodes Reels:

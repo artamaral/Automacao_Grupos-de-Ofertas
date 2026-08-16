@@ -69,6 +69,10 @@ total_images=<n>
 
 O workflow deve consultar `offers.v_instagram_dispatch_ready`.
 
+No contrato atual, `planned_hour` continua exposto apenas como auditoria herdada
+do planner diario. O horario efetivo da publicacao Instagram e definido pelo
+schedule do n8n ou pela execucao manual.
+
 Reels:
 
 ```sql
@@ -77,7 +81,7 @@ from offers.v_instagram_dispatch_ready
 where profile = 'feminino'
   and marketplace = 'shopee'
   and instagram_format = 'reels'
-order by planned_date, planned_hour, slot_sequence, daily_sequence
+order by planned_date, daily_sequence, instagram_format desc
 limit 1;
 ```
 
@@ -89,12 +93,14 @@ from offers.v_instagram_dispatch_ready
 where profile = 'feminino'
   and marketplace = 'shopee'
   and instagram_format = 'carousel'
-order by planned_date, planned_hour, slot_sequence, daily_sequence
+order by planned_date, daily_sequence, instagram_format desc
 limit 1;
 ```
 
 O claim concorrente deve travar a linha de `offers.daily_dispatch_plan` com
-`FOR UPDATE SKIP LOCKED`; a view so define a superficie pronta.
+`FOR UPDATE SKIP LOCKED`; a view so define a superficie pronta e a ordenacao.
+O workflow Instagram nao deve depender da hora materializada na fila para
+decidir quando publicar.
 
 ## Workflow
 
@@ -120,6 +126,8 @@ python scripts/n8n/deploy_instagram_workflow_guard.py --mode safe
 ```
 
 O guard mantem `active=false`. A ativacao automatica nao faz parte do MVP.
+Quando o workflow for ativado, o cron do n8n passa a ser a fonte de horario;
+o Supabase entrega apenas o proximo item pronto e ordenado.
 
 ## Credenciais Instagram na VPS
 
@@ -221,7 +229,8 @@ Se a revalidacao falhar antes da publicacao:
 
 ## Limites do MVP
 
-- ate 3 Reels por dia, nas janelas 10:00, 14:00 e 18:00 BRT;
+- ate 3 Reels por dia; as janelas efetivas ficam no schedule do n8n, nao na
+  view do Supabase;
 - nichos preferenciais: `maquiagem-geral`, `skincare-facial` e
   `acessorios-femininos`;
 - 1 carrossel diario para moda quando houver midia valida;

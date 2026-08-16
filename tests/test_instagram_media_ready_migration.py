@@ -6,6 +6,9 @@ MIGRATION = Path("supabase/migrations/202608150003_instagram_media_ready_view.sq
 CAPTION_MIGRATION = Path(
     "supabase/migrations/202608160002_instagram_caption_template_order.sql"
 )
+QUEUE_MIGRATION = Path(
+    "supabase/migrations/202608160003_instagram_queue_decoupled_from_hour.sql"
+)
 
 
 def test_instagram_media_ready_view_joins_daily_plan_and_media_assets() -> None:
@@ -42,3 +45,14 @@ def test_instagram_media_ready_caption_includes_offer_link() -> None:
     assert "'⭐ ' || ready.rating::text || '/5 na shopee'" in sql
     assert "ready.offer_link" in sql
     assert "nullif(btrim(coalesce(ready.offer_link, '')), '')" in sql
+
+
+def test_instagram_queue_uses_daily_sequence_over_planned_hour() -> None:
+    sql = QUEUE_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "ready.planned_hour" in sql
+    assert "planned_hour permanece apenas como auditoria" in sql
+    assert "order by" in sql
+    assert "ready.planned_date," in sql
+    assert "ready.daily_sequence," in sql
+    assert "format.instagram_format desc" in sql

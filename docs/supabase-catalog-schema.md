@@ -310,8 +310,9 @@ itens com:
   `carousel`.
 
 A view pode retornar o mesmo item em mais de um formato quando ele tem video e
-imagens. A ordem preserva `planned_date`, `planned_hour`, `slot_sequence` e
-`daily_sequence`. O claim concorrente deve continuar acontecendo sobre
+imagens. Para Instagram, a ordenacao operacional usa `planned_date` e
+`daily_sequence`; `planned_hour` permanece apenas como auditoria herdada do
+planner. O claim concorrente deve continuar acontecendo sobre
 `offers.daily_dispatch_plan`, com `FOR UPDATE SKIP LOCKED`.
 
 O campo `caption_base` inclui descricao com emoji inicial, `offer_link`

@@ -81,6 +81,8 @@ def test_instagram_claim_query_preserves_dry_run_context() -> None:
     assert "context.dry_run" in query
     assert "ctx.dry_run" in query
     assert "case when ctx.dry_run then 'cancelled'" in query
+    assert "ready.planned_date <= (now() at time zone 'america/sao_paulo')::date" in query.lower()
+    assert "order by ready.planned_date, ready.daily_sequence, ready.instagram_format desc" in query
 
 
 def test_instagram_publication_event_keeps_dry_run_out_of_dispatch_trigger() -> None:
