@@ -85,6 +85,15 @@ def test_instagram_claim_query_preserves_dry_run_context() -> None:
     assert "order by ready.planned_date, ready.daily_sequence, ready.instagram_format desc" in query
 
 
+def test_validate_instagram_workflow_rejects_process_env_in_code_node() -> None:
+    workflow = load_instagram_workflow()
+    copy_node = guard.node_by_name(workflow, "Montar Copy Instagram")
+    copy_node["parameters"]["jsCode"] = "const x = process.env.INSTAGRAM_WHATSAPP_GROUP_URL;"
+
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="process.env"):
+        guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
+
+
 def test_instagram_publication_event_keeps_dry_run_out_of_dispatch_trigger() -> None:
     workflow = load_instagram_workflow()
     register_node = guard.node_by_name(workflow, "Registrar Resultado Supabase")

@@ -149,6 +149,7 @@ def run_psql(sql: str, config: ComposeConfig) -> str:
         compose_psql_command(config),
         input=sql,
         text=True,
+        encoding="utf-8",
         check=False,
         capture_output=True,
     )
@@ -165,6 +166,7 @@ def fetch_psql_value(sql: str, config: ComposeConfig) -> str:
     completed = subprocess.run(
         compose_psql_command(config, "-At", "-c", sql),
         text=True,
+        encoding="utf-8",
         check=False,
         capture_output=True,
     )

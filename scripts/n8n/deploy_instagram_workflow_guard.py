@@ -247,6 +247,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "/api/sendText",
         "WAHA",
         "graph.facebook.com",
+        "process.env",
         "target_chat_id",
         "120363412864266334",
     ):
@@ -389,6 +390,7 @@ def run_update(sql: str, config: DeployConfig) -> None:
         compose_psql_command(ComposeConfig(config.compose_env, config.compose_file)),
         input=sql,
         text=True,
+        encoding="utf-8",
         check=False,
         capture_output=True,
     )
@@ -409,6 +411,7 @@ def fetch_status(config: DeployConfig) -> dict[str, Any]:
             build_status_query(config.workflow_id),
         ),
         text=True,
+        encoding="utf-8",
         check=False,
         capture_output=True,
     )
