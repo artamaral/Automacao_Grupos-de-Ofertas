@@ -121,6 +121,33 @@ python scripts/n8n/deploy_instagram_workflow_guard.py --mode safe
 
 O guard mantem `active=false`. A ativacao automatica nao faz parte do MVP.
 
+## Credenciais Instagram na VPS
+
+O workflow usa variaveis de ambiente do n8n. Cadastrar no ambiente operacional,
+sem versionar:
+
+```env
+INSTAGRAM_ACCESS_TOKEN=<token>
+INSTAGRAM_BUSINESS_ACCOUNT_ID=<id>
+```
+
+Depois de atualizar o `.env`, reiniciar o container n8n para que `$env` fique
+disponivel dentro do workflow:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+docker compose --env-file .env -f docker-compose.yml up -d
+```
+
+Validacao sem imprimir segredo:
+
+```bash
+grep -q '^INSTAGRAM_ACCESS_TOKEN=' /opt/automacao_grupo_compras/n8n/.env \
+  && echo INSTAGRAM_ACCESS_TOKEN=present
+grep -q '^INSTAGRAM_BUSINESS_ACCOUNT_ID=' /opt/automacao_grupo_compras/n8n/.env \
+  && echo INSTAGRAM_BUSINESS_ACCOUNT_ID=present
+```
+
 ## Teste real controlado
 
 Pre-condicoes:

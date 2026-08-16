@@ -150,6 +150,10 @@
             {
               "name": "caption",
               "value": "={{ $json.caption_base }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
         }
@@ -179,6 +183,10 @@
             {
               "name": "image_url",
               "value": "={{ ($json.image_urls || [])[0] }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
         }
@@ -212,6 +220,10 @@
             {
               "name": "caption",
               "value": "={{ $json.caption_base }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
         }
@@ -229,7 +241,7 @@
       ],
       "parameters": {
         "method": "GET",
-        "url": "={{ 'https://graph.facebook.com/v20.0/' + $json.creation_id + '?fields=status_code' }}"
+        "url": "={{ 'https://graph.facebook.com/v20.0/' + $json.creation_id + '?fields=status_code&access_token=' + $env.INSTAGRAM_ACCESS_TOKEN }}"
       },
       "notes": "Publicar somente quando status_code=FINISHED."
     },
@@ -252,6 +264,10 @@
             {
               "name": "creation_id",
               "value": "={{ $json.creation_id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $env.INSTAGRAM_ACCESS_TOKEN }}"
             }
           ]
         }

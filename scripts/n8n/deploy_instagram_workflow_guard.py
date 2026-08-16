@@ -166,6 +166,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "instagram_reels",
         "instagram_carousel",
         "delivery_status",
+        "INSTAGRAM_ACCESS_TOKEN",
         "media_type=REELS",
         "media_type=CAROUSEL",
         "is_carousel_item=true",
