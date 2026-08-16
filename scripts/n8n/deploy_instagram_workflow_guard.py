@@ -518,7 +518,12 @@ def print_summary(status: dict[str, Any] | None, pin_data: dict[str, Any] | None
     pin_mode = "preserve"
     if pin_data == SAFE_PINDATA:
         pin_mode = "safe"
-    if pin_data == REAL_TEST_PINDATA:
+    elif (
+        isinstance(pin_data, dict)
+        and pin_data.get("Trigger Manual")
+        and pin_data["Trigger Manual"][0].get("json", {}).get("run_id") == "instagram-real-test"
+        and pin_data["Trigger Manual"][0].get("json", {}).get("dry_run") is False
+    ):
         pin_mode = "instagram-real-test"
     if status is None:
         print("INFO | dry_run=true; no changes applied")
