@@ -72,6 +72,17 @@ def test_validate_instagram_workflow_requires_dry_run_gate_before_http_nodes() -
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
+def test_instagram_claim_query_preserves_dry_run_context() -> None:
+    workflow = load_instagram_workflow()
+    claim_node = guard.node_by_name(workflow, "Claim Item Instagram")
+    query = claim_node["parameters"]["query"]
+
+    assert "nullif" in query
+    assert "context.dry_run" in query
+    assert "ctx.dry_run" in query
+    assert "case when ctx.dry_run then 'cancelled'" in query
+
+
 def test_validate_pin_data_requires_allowlisted_instagram_target() -> None:
     pin_data = guard.build_pin_data(dry_run=True, run_id="test")
     pin_data["Trigger Manual"][0]["json"]["allowed_targets_csv"] = "outro"
