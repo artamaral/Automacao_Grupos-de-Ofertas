@@ -48,6 +48,17 @@ def test_validate_instagram_workflow_rejects_waha_endpoint() -> None:
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
+def test_validate_instagram_workflow_rejects_missing_postgres_credentials() -> None:
+    workflow = load_instagram_workflow()
+    for node in workflow["nodes"]:
+        if node["name"] == "Claim Item Instagram":
+            node.pop("credentials", None)
+            break
+
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="missing postgres"):
+        guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
+
+
 def test_validate_pin_data_requires_allowlisted_instagram_target() -> None:
     pin_data = guard.build_pin_data(dry_run=True, run_id="test")
     pin_data["Trigger Manual"][0]["json"]["allowed_targets_csv"] = "outro"

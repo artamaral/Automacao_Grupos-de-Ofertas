@@ -152,6 +152,16 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         if node_by_name(workflow, node_name) is None:
             errors.append(f"missing node: {node_name}")
 
+    for node in workflow.get("nodes") or []:
+        if not isinstance(node, dict) or node.get("type") != "n8n-nodes-base.postgres":
+            continue
+        postgres_credentials = node.get("credentials", {}).get("postgres")
+        if not isinstance(postgres_credentials, dict):
+            errors.append(f"missing postgres credentials: {node.get('name')}")
+            continue
+        if not postgres_credentials.get("id") or not postgres_credentials.get("name"):
+            errors.append(f"incomplete postgres credentials: {node.get('name')}")
+
     text = workflow_text(workflow)
     for required_text in (
         "offers.v_instagram_dispatch_ready",

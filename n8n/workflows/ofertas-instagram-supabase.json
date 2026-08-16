@@ -76,6 +76,12 @@
         "operation": "executeQuery",
         "query": "with candidate as (\n  select plan.dispatch_plan_id\n  from offers.daily_dispatch_plan plan\n  join offers.v_instagram_dispatch_ready ready\n    on ready.dispatch_plan_id = plan.dispatch_plan_id\n  where ready.profile = '{{ $json.profile }}'\n    and ready.marketplace = '{{ $json.marketplace }}'\n    and ready.instagram_format = coalesce('{{ $json.instagram_format }}', ready.instagram_format)\n  order by ready.planned_date, ready.planned_hour, ready.slot_sequence, ready.daily_sequence\n  limit 1\n  for update of plan skip locked\n), claimed as (\n  update offers.daily_dispatch_plan plan\n  set dispatch_status = 'claimed',\n      claim_token = coalesce('{{ $json.run_id }}', gen_random_uuid()::text),\n      claimed_at = now(),\n      updated_at = now()\n  from candidate\n  where plan.dispatch_plan_id = candidate.dispatch_plan_id\n  returning plan.dispatch_plan_id\n)\nselect ready.*\nfrom offers.v_instagram_dispatch_ready ready\njoin claimed using (dispatch_plan_id)\nlimit 1;"
       },
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      },
       "notes": "Claim atomico do item pronto; a selecao vem de offers.v_instagram_dispatch_ready e o lock acontece na tabela real."
     },
     {
@@ -285,6 +291,12 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "update offers.offer_media_assets\nset status = 'stale',\n    last_checked_at = now(),\n    error_detail = 'media_revalidation_failed'\nwhere profile = '{{ $json.profile }}'\n  and marketplace = '{{ $json.marketplace }}'\n  and item_id = {{ $json.item_id }};"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
       }
     },
     {
@@ -299,6 +311,12 @@
       "parameters": {
         "operation": "executeQuery",
         "query": "insert into offers.publication_events (\n  dispatch_plan_id, profile, marketplace, stable_key, item_id,\n  target, channel_adapter, delivery_status, manifest_item_number,\n  artifact_generated_at, manifest_created_at, planned_at, sent_at,\n  offer_title, offer_url, offer_price, message_text, payload\n)\nvalues (\n  '{{ $json.dispatch_plan_id }}'::uuid,\n  '{{ $json.profile }}',\n  '{{ $json.marketplace }}',\n  '{{ $json.stable_key }}',\n  {{ $json.item_id }},\n  '{{ $json.target || \"oferta.femininas\" }}',\n  case when '{{ $json.instagram_format }}' = 'reels' then 'instagram_reels' else 'instagram_carousel' end,\n  '{{ $json.delivery_status || \"cancelled\" }}',\n  coalesce({{ $json.daily_sequence }}, 1),\n  now(),\n  now(),\n  '{{ $json.planned_at }}'::timestamptz,\n  case when '{{ $json.delivery_status }}' = 'confirmed' then now() else null end,\n  '{{ $json.product_name }}',\n  '{{ $json.offer_link }}',\n  {{ $json.price || 'null' }},\n  '{{ $json.caption_base }}',\n  jsonb_build_object(\n    'run_id', '{{ $json.run_id }}',\n    'dry_run', {{ $json.dry_run ? 'true' : 'false' }},\n    'instagram_format', '{{ $json.instagram_format }}',\n    'media_validation', '{{ JSON.stringify($json.media_validation || []) }}'::jsonb,\n    'blocked_reason', '{{ $json.blocked_reason || \"\" }}',\n    'container_status', '{{ $json.container_status || \"\" }}',\n    'container_id', '{{ $json.creation_id || \"\" }}'\n  )\n)\non conflict (dispatch_plan_id) where dispatch_plan_id is not null\ndo update\nset delivery_status = excluded.delivery_status,\n    sent_at = excluded.sent_at,\n    message_text = excluded.message_text,\n    payload = excluded.payload,\n    updated_at = now()\nreturning publish_id;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
       }
     }
   ],
