@@ -168,12 +168,29 @@ def plan_daily_dispatches(
         )
         fallback = _fallback_candidates(by_subniche, pool_subniches, used_keys)
         if len(fallback) < unmet[bucket]:
+            general_fallback = _fallback_candidates(
+                by_subniche,
+                None,
+                used_keys | {candidate.stable_key for candidate in fallback},
+            )
+            fallback.extend(general_fallback)
+        if len(fallback) < unmet[bucket]:
             raise DispatchPlanningError(
                 f"insufficient candidates for {bucket}: missing {unmet[bucket] - len(fallback)}"
             )
+        selected_fallback = fallback[: unmet[bucket]]
+        used_keys.update(candidate.stable_key for candidate in selected_fallback)
         selected.extend(
-            (candidate, bucket, f"{bucket}:redistributed")
-            for candidate in fallback[: unmet[bucket]]
+            (
+                candidate,
+                bucket,
+                (
+                    f"{bucket}:redistributed"
+                    if candidate.primary_subniche in pool_subniches
+                    else f"{bucket}:top_score_fallback"
+                ),
+            )
+            for candidate in selected_fallback
         )
 
     if len(selected) != policy.daily_total_items:
@@ -213,12 +230,13 @@ def _sequence_windows(
         rotation_target = 1 + int(window_index in extra_rotation_windows)
         rotation_selected = 0
         for slot in range(1, policy.items_per_window + 1):
-            available = [
-                subniche
-                for subniche, queue in queues.items()
-                if queue
-                and window_counts[subniche] < policy.max_items_per_subniche_per_window
-            ]
+            remaining_windows = len(policy.schedule_hours) - window_index - 1
+            available = _available_window_subniches(
+                queues,
+                window_counts=window_counts,
+                remaining_windows=remaining_windows,
+                policy=policy,
+            )
             if not available:
                 raise DispatchPlanningError(f"cannot fill hour {hour} under subniche cap")
             preferred_bucket = (
@@ -231,13 +249,20 @@ def _sequence_windows(
                 for subniche in available
                 if queues[subniche][0][1] == preferred_bucket
             ]
-            if preferred:
-                available = preferred
+            preferred_set = set(preferred)
             subniche = min(
                 available,
                 key=lambda key: (
-                    window_counts[key],
+                    _remaining_window_capacity(
+                        key,
+                        window_counts=window_counts,
+                        remaining_windows=remaining_windows,
+                        policy=policy,
+                    )
+                    - len(queues[key]),
                     -len(queues[key]),
+                    window_counts[key],
+                    int(key not in preferred_set),
                     key,
                 ),
             )
@@ -258,6 +283,48 @@ def _sequence_windows(
                 )
             )
     return planned
+
+
+def _available_window_subniches(
+    queues: dict[str, deque[tuple[DispatchCandidate, str, str]]],
+    *,
+    window_counts: Counter[str],
+    remaining_windows: int,
+    policy: DailyPlanningPolicy,
+) -> list[str]:
+    available = [
+        subniche
+        for subniche, queue in queues.items()
+        if queue and window_counts[subniche] < policy.max_items_per_subniche_per_window
+    ]
+    urgent = [
+        subniche
+        for subniche in available
+        if len(queues[subniche])
+        > _remaining_window_capacity(
+            subniche,
+            window_counts=window_counts,
+            remaining_windows=remaining_windows,
+            policy=policy,
+        )
+    ]
+    return urgent or available
+
+
+def _remaining_window_capacity(
+    subniche: str,
+    *,
+    window_counts: Counter[str],
+    remaining_windows: int,
+    policy: DailyPlanningPolicy,
+) -> int:
+    current_window_capacity = (
+        policy.max_items_per_subniche_per_window - window_counts[subniche]
+    )
+    return (
+        current_window_capacity
+        + remaining_windows * policy.max_items_per_subniche_per_window
+    )
 
 
 def _spread_indexes(window_count: int, extra_count: int) -> set[int]:
@@ -308,20 +375,19 @@ def _take_candidates(
 
 def _fallback_candidates(
     queues: dict[str, deque[DispatchCandidate]],
-    allowed_subniches: dict[str, int],
+    allowed_subniches: dict[str, int] | None,
     used_keys: set[str],
 ) -> list[DispatchCandidate]:
+    subniches = allowed_subniches if allowed_subniches is not None else queues
     candidates = [
         item
-        for subniche in allowed_subniches
+        for subniche in subniches
         for item in queues.get(subniche, ())
         if item.stable_key not in used_keys
     ]
     candidates.sort(
         key=lambda item: (-item.commercial_score, -item.sales_count, item.item_id)
     )
-    for candidate in candidates:
-        used_keys.add(candidate.stable_key)
     return candidates
 
 

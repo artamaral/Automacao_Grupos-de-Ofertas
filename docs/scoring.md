@@ -155,6 +155,11 @@ O comando `ofertas-plan-daily-dispatch` le o ranking atual, aplica as cotas de
 somente itens `refresh_status='FRESH'`. Sem `--apply`, ele apenas calcula e
 valida o plano.
 
+Quando uma cota nao fecha por falta de `FRESH`, o planejador redistribui primeiro
+dentro da mesma classe. Se ainda faltar slot, completa pelo melhor score geral
+`FRESH` ainda nao usado. Essa degradacao preserva o dia completo e fica
+auditavel em `selection_reason` como `<bucket>:top_score_fallback`.
+
 O n8n reserva atomicamente apenas os slots que continuam prontos em
 `offers.v_daily_dispatch_ready`, usando `FOR UPDATE OF plan SKIP LOCKED` sobre
 `offers.daily_dispatch_plan`, muda-os para `claimed` e segue a partir da view.

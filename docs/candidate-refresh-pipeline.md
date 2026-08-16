@@ -27,16 +27,16 @@ ordena cada banda por `rank_subniche`, `commercial_score desc` e `item_id`.
 `MISSING` e `STALE` disputam pela posicao no ranking: um `STALE` melhor colocado
 vem antes de um `MISSING` pior colocado.
 
-Uma execucao padrao distribui ate 500 chamadas reais:
+Uma execucao padrao distribui ate 1000 chamadas reais:
 
-- 80%, ou 400, para a fronteira do ranking;
-- 20%, ou 100, para `MISSING` nunca tentados fora da fronteira;
-- se a descoberta nao preencher 100 vagas, a sobra volta para os proximos
+- 80%, ou 800, para a fronteira do ranking;
+- 20%, ou 200, para `MISSING` nunca tentados fora da fronteira;
+- se a descoberta nao preencher 200 vagas, a sobra volta para os proximos
   `MISSING/STALE` das bandas do ranking.
 
-As quotas de `config/selection_profiles.toml` escalam de 20 para 500. No
-profile `feminino`, cada banda de 10% recebe 40 vagas de ranking e 10 de
-descoberta; cada banda de 5% recebe 20 e 5, respectivamente. Dedupe por
+As quotas de `config/selection_profiles.toml` escalam de 20 para 1000. No
+profile `feminino`, cada banda de 10% recebe 80 vagas de ranking e 20 de
+descoberta; cada banda de 5% recebe 40 e 10, respectivamente. Dedupe por
 `marketplace + item_id` e diversidade de seller continuam obrigatorios.
 
 Itens `FRESH` encontrados durante a varredura geram cache hit, nao ocupam vaga
@@ -73,8 +73,8 @@ Dry-run, tambem usado quando nenhuma flag de escrita e informada:
 ```powershell
 .\.venv\Scripts\python.exe scripts\shopee\run_candidate_refresh.py `
   --profile feminino `
-  --discovery-limit 500 `
-  --scoring-limit 200 `
+  --discovery-limit 1000 `
+  --scoring-limit 1000 `
   --dry-run
 ```
 
@@ -98,7 +98,7 @@ Para `feminino`, o mesmo service gera a fila diaria depois de atualizar os
 snapshots. O n8n nao consulta o ranking nem planeja bandas: consome apenas
 `offers.v_daily_dispatch_ready` depois que a cadeia termina.
 
-- horario: 07:00 BRT, diario;
+- horario: 06:30 BRT, diario;
 - app path: `/opt/automacao_grupo_compras/app`;
 - n8n path: `/opt/automacao_grupo_compras/n8n`;
 - service: `shopee-candidate-refresh.service`;
@@ -110,7 +110,7 @@ snapshots. O n8n nao consulta o ranking nem planeja bandas: consome apenas
 Como a VPS esta em UTC, o timer usa timezone explicito:
 
 ```ini
-OnCalendar=*-*-* 07:00:00 America/Sao_Paulo
+OnCalendar=*-*-* 06:30:00 America/Sao_Paulo
 ```
 
 O wrapper usa um unico `flock` durante toda a cadeia, preserva os artefatos
@@ -126,9 +126,9 @@ service com falha. O limite padrao de recorrencia e
   /opt/automacao_grupo_compras/app/scripts/shopee/run_candidate_refresh.py \
   --profile feminino \
   --marketplace shopee \
-  --discovery-limit 500 \
-  --scoring-limit 200 \
-  --max-api-calls 500 \
+  --discovery-limit 1000 \
+  --scoring-limit 1000 \
+  --max-api-calls 1000 \
   --apply \
   --confirm-remote-write REFRESH_SHOPEE_CANDIDATES
 ```

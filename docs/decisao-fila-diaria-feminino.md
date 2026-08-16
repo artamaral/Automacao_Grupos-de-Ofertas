@@ -32,8 +32,12 @@ O planejador decide score, cotas, rotacao, fallback, diversidade e sequencia.
 O n8n consulta a janela corrente, monta a copy, envia para a allowlist e grava
 `offers.publication_events`.
 
-Se nao houver 112 candidatos `FRESH` suficientes, o planejador falha com o erro
-ja existente e nao persiste um plano parcial.
+Se uma cota nao tiver candidatos `FRESH` suficientes, o planejador tenta
+redistribuir dentro da mesma classe. Se ainda faltar slot, ele completa pelo
+melhor score geral `FRESH` ainda nao usado, registrando
+`selection_reason = <bucket>:top_score_fallback`. O planejador so falha quando
+nao houver 112 candidatos `FRESH` suficientes no total para persistir um dia
+completo.
 
 Antes do envio, a consulta do n8n reserva os slots com `FOR UPDATE SKIP LOCKED`
 na tabela-base, mas so para linhas que continuam prontas em
@@ -52,7 +56,7 @@ nao faz claim e nao vincula `dispatch_plan_id`, preservando a fila real.
 O caminho operacional normal e unico e sequencial:
 
 ```text
-shopee-candidate-refresh.timer (07:00 BRT)
+shopee-candidate-refresh.timer (06:30 BRT)
   -> refresh/rechecagem Shopee
   -> confirmacao automatica de no_node, quando habilitada
   -> planejamento e persistencia dos 112 slots do dia

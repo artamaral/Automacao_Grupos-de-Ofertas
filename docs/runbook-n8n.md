@@ -794,7 +794,7 @@ Configuracao versionada do schedule:
 
 O workflow pressupoe que a fila do dia esteja pronta no Supabase. Na operacao
 normal ela e criada automaticamente pelo mesmo cron que roda o refresh as
-07:00 BRT:
+06:30 BRT:
 
 ```text
 refresh -> confirmacao opcional de no_node -> planejamento de 112 slots

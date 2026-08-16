@@ -115,7 +115,7 @@ errada do monitoramento vigente.
 | `n8n_resumo_diario_2130` | `52c3b1a9d822` | `30 0 * * *` | 21:30 diário | LLM | `deepseek/deepseek-v4-flash` | Telegram |
 | `n8n_watchdog_horario` | `ae32f2900683` | `5 0,11-23 * * *` | 08:05-21:05 | Script `no_agent` | Não usa LLM | Telegram quando há alerta |
 | `waha_watchdog_horario` | `d528f5e917a1` | `7 * * * *` | 1x/hora, 24/7 | Script `no_agent` | Não usa LLM | Telegram quando há alerta |
-| `shopee_refresh_watchdog_diario` | criado | `35 10 * * *` | 07:35 diário | Script `no_agent` | Não usa LLM | Telegram quando há alerta |
+| `shopee_refresh_watchdog_diario` | criado | `20 10 * * *` | 07:20 diário | Script `no_agent` | Não usa LLM | Telegram quando há alerta |
 
 ## Os 3 crons LLM
 
@@ -561,13 +561,13 @@ que ainda podem proteger melhor a execucao:
 
 ## Watchdog Shopee refresh diario
 
-O refresh comercial Shopee roda fora do n8n, por `systemd timer`, as 07:00 BRT.
+O refresh comercial Shopee roda fora do n8n, por `systemd timer`, as 06:30 BRT.
 O Hermes deve monitorar esse job como script puro `no_agent`, mantendo a mesma
 regra de ouro: somente leitura.
 
 - Nome: `shopee_refresh_watchdog_diario`.
 - Status: criado no Hermes em 2026-08-11.
-- Agendamento: `35 10 * * *` UTC = 07:35 BRT.
+- Agendamento: `20 10 * * *` UTC = 07:20 BRT.
 - Tipo: script `no_agent`.
 - Custo LLM: zero.
 - Script base versionado: `scripts/ops/hermes_shopee_refresh_watchdog.py`.
@@ -583,7 +583,7 @@ O watchdog nao executa refresh ou planejamento, nao altera systemd, nao altera
 arquivos, nao escreve no Supabase e nao faz retry. Ele deve verificar se o
 timer esta `enabled/active`, exigir `Result=success` e `ExecMainStatus=0` no
 service combinado e procurar o `run_report.json` mais recente de hoje apos
-07:00 BRT.
+06:30 BRT.
 
 Validacoes minimas do watchdog:
 
@@ -593,6 +593,9 @@ Validacoes minimas do watchdog:
 - `limits.max_api_calls` respeitado;
 - service combinado com `Result=success` e `ExecMainStatus=0`;
 - `summary.elapsed_seconds` presente.
+- `offers.daily_dispatch_plan` com 112 slots para o dia;
+- primeira janela (`planned_hour = 8`) com 8 slots prontos em
+  `offers.v_daily_dispatch_ready`.
 
 Saida:
 
@@ -609,10 +612,15 @@ Crie um watchdog no_agent chamado shopee_refresh_watchdog_diario.
 Papel: monitor read-only do refresh diario Shopee. Nao execute refresh, nao
 altere arquivos, nao altere systemd, nao escreva no Supabase e nao faca retry.
 
-Agendamento: diariamente as 07:35 BRT. Como o ambiente usa cron UTC, agende como
-35 10 * * *.
+Agendamento: diariamente as 07:20 BRT. Como o ambiente usa cron UTC, agende como
+20 10 * * *.
 
 Use o script base versionado em scripts/ops/hermes_shopee_refresh_watchdog.py.
+Ele deve continuar read-only e, alem do status do systemd/run_report, deve
+consultar o Supabase pela VPS para verificar:
+- `offers.daily_dispatch_plan` tem 112 slots para `feminino/shopee` no dia;
+- `offers.v_daily_dispatch_ready` tem 8 slots prontos para `planned_hour = 8`;
+- se refresh rodou mas a fila nao ficou pronta, alertar antes do n8n das 08:00.
 
 Semantica no_agent:
 - stdout vazio = silencio

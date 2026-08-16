@@ -7,7 +7,7 @@ de ser o contrato de selecao do grupo `feminino`. A operacao atual prepara uma
 fila diaria persistida antes do n8n:
 
 ```text
-shopee-candidate-refresh.timer (07:00 BRT)
+shopee-candidate-refresh.timer (06:30 BRT)
   -> refresh/rechecagem Shopee
   -> planejador de bandas e rotacao
   -> offers.daily_dispatch_plan
@@ -49,7 +49,7 @@ Estado observado como padrao vigente em `2026-08-15`:
 
 ```mermaid
 flowchart TD
-    A[07:00 BRT: timer diario] --> B[Refresh comercial dos candidatos]
+    A[06:30 BRT: timer diario] --> B[Refresh comercial dos candidatos]
     B --> C{Resultado do refresh}
     C -->|snapshot atualizado| D[v_offer_ranking_current recalcula dados e score]
     C -->|no_node repetido e confirmado| E[Item fica indisponivel]

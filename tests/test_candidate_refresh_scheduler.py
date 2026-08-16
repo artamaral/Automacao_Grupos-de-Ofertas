@@ -62,3 +62,18 @@ def test_watchdog_reports_planning_or_refresh_service_failure() -> None:
         "service Result inesperado: exit-code",
         "service ExecMainStatus inesperado: 1",
     ]
+
+
+def test_watchdog_reports_missing_daily_dispatch_plan() -> None:
+    state = {"total_slots": 0, "first_window_ready": 0}
+
+    assert watchdog.dispatch_state_problems(state) == [
+        "daily_dispatch_plan incompleto: 0/112",
+        "primeira janela sem slots prontos: 0/8",
+    ]
+
+
+def test_watchdog_accepts_ready_daily_dispatch_plan() -> None:
+    state = {"total_slots": 112, "first_window_ready": 8}
+
+    assert watchdog.dispatch_state_problems(state) == []

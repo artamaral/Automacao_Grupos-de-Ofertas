@@ -22,7 +22,11 @@ APP_DIR = PurePosixPath("/opt/automacao_grupo_compras/app")
 SERVICE_NAME = "shopee-candidate-refresh.service"
 TIMER_NAME = "shopee-candidate-refresh.timer"
 PROFILE = "feminino"
-LOOKBACK_AFTER_BRT = "07:00"
+MARKETPLACE = "shopee"
+LOOKBACK_AFTER_BRT = "06:30"
+EXPECTED_DAILY_PLAN_SLOTS = 112
+FIRST_DISPATCH_HOUR = 8
+EXPECTED_FIRST_WINDOW_READY = 8
 
 
 @dataclass(frozen=True)
@@ -86,8 +90,63 @@ def load_remote_report() -> tuple[dict[str, Any], str]:
         raise RuntimeError(f"SSH report check failed: {result.stderr or result.stdout}")
     data = json.loads(result.stdout)
     if data.get("error") == "NO_REPORT_TODAY":
-        raise FileNotFoundError("nenhum run_report.json de hoje apos 07:00 BRT")
+        raise FileNotFoundError(
+            f"nenhum run_report.json de hoje apos {LOOKBACK_AFTER_BRT} BRT"
+        )
     return data["report"], data["path"]
+
+
+def load_remote_dispatch_state() -> dict[str, Any]:
+    command = (
+        f"cd {APP_DIR} && .venv/bin/python - <<'PY'\n"
+        "import json\n"
+        "import os\n"
+        "from dotenv import load_dotenv\n"
+        "import psycopg\n"
+        "load_dotenv('.env')\n"
+        "url = os.environ.get('SUPABASE_DB_URL', '').strip()\n"
+        "if not url:\n"
+        "    print(json.dumps({'error': 'SUPABASE_DB_URL_MISSING'}))\n"
+        "    raise SystemExit(0)\n"
+        "with psycopg.connect(url, connect_timeout=15) as conn:\n"
+        "    row = conn.execute(\"\"\"\n"
+        "      select\n"
+        "        (now() at time zone 'America/Sao_Paulo')::date::text as planned_date,\n"
+        "        count(*) as total_slots,\n"
+        "        count(*) filter (where dispatch_status = 'planned') as planned_slots,\n"
+        f"        count(*) filter (where planned_hour = {FIRST_DISPATCH_HOUR}) "
+        "as first_window_slots\n"
+        "      from offers.daily_dispatch_plan\n"
+        "      where profile = %s\n"
+        "        and marketplace = %s\n"
+        "        and planned_date = (now() at time zone 'America/Sao_Paulo')::date\n"
+        f"    \"\"\", ('{PROFILE}', '{MARKETPLACE}')).fetchone()\n"
+        "    ready = conn.execute(\"\"\"\n"
+        "      select count(*)\n"
+        "      from offers.v_daily_dispatch_ready\n"
+        "      where profile = %s\n"
+        "        and marketplace = %s\n"
+        "        and planned_date = (now() at time zone 'America/Sao_Paulo')::date\n"
+        f"        and planned_hour = {FIRST_DISPATCH_HOUR}\n"
+        "        and is_ready_for_dispatch\n"
+        f"    \"\"\", ('{PROFILE}', '{MARKETPLACE}')).fetchone()[0]\n"
+        "print(json.dumps({\n"
+        "  'planned_date': row[0],\n"
+        "  'total_slots': int(row[1] or 0),\n"
+        "  'planned_slots': int(row[2] or 0),\n"
+        "  'first_window_slots': int(row[3] or 0),\n"
+        "  'first_window_ready': int(ready or 0),\n"
+        "}))\n"
+        "PY"
+    )
+    result = run_ssh(command, timeout=60)
+    if result.returncode != 0:
+        detail = result.stderr or result.stdout
+        raise RuntimeError(f"SSH dispatch plan check failed: {detail}")
+    data = json.loads(result.stdout)
+    if data.get("error"):
+        raise RuntimeError(f"dispatch plan check failed: {data['error']}")
+    return data
 
 
 def check_systemd() -> tuple[str, str, str]:
@@ -127,6 +186,22 @@ def service_state_problems(service_state: str) -> list[str]:
     return problems
 
 
+def dispatch_state_problems(dispatch_state: dict[str, Any]) -> list[str]:
+    problems = []
+    total_slots = int(dispatch_state.get("total_slots") or 0)
+    first_window_ready = int(dispatch_state.get("first_window_ready") or 0)
+    if total_slots != EXPECTED_DAILY_PLAN_SLOTS:
+        problems.append(
+            f"daily_dispatch_plan incompleto: {total_slots}/{EXPECTED_DAILY_PLAN_SLOTS}"
+        )
+    if first_window_ready < EXPECTED_FIRST_WINDOW_READY:
+        problems.append(
+            "primeira janela sem slots prontos: "
+            f"{first_window_ready}/{EXPECTED_FIRST_WINDOW_READY}"
+        )
+    return problems
+
+
 def report_value(report: dict[str, Any], *path: str) -> Any:
     current: Any = report
     for key in path:
@@ -144,6 +219,7 @@ def build_alert(
     service_state: str,
     report: dict[str, Any] | None,
     report_path: str | None,
+    dispatch_state: dict[str, Any] | None,
 ) -> str:
     lines = ["ALERTA refresh e planejamento Shopee"]
     lines.extend(f"- {problem}" for problem in problems)
@@ -162,6 +238,15 @@ def build_alert(
         lines.append(f"- duracao_s: {report_value(report, 'summary', 'elapsed_seconds')}")
     if report_path:
         lines.append(f"- report: {report_path}")
+    if dispatch_state:
+        lines.append(
+            "- fila: "
+            f"data={dispatch_state.get('planned_date', '?')}, "
+            f"slots={dispatch_state.get('total_slots', '?')}, "
+            f"planned={dispatch_state.get('planned_slots', '?')}, "
+            f"janela_08={dispatch_state.get('first_window_ready', '?')}/"
+            f"{EXPECTED_FIRST_WINDOW_READY}"
+        )
     lines.append(
         "- hipotese: cadeia diaria de refresh e planejamento nao concluiu conforme contrato"
     )
@@ -183,6 +268,13 @@ def main() -> int:
         try:
             report, report_path = load_remote_report()
         except FileNotFoundError as error:
+            problems.append(str(error))
+
+        dispatch_state = None
+        try:
+            dispatch_state = load_remote_dispatch_state()
+            problems.extend(dispatch_state_problems(dispatch_state))
+        except RuntimeError as error:
             problems.append(str(error))
 
         if report is not None:
@@ -212,6 +304,7 @@ def main() -> int:
                 service_state=service_state,
                 report=report,
                 report_path=report_path,
+                dispatch_state=dispatch_state,
             )
         )
         return 0

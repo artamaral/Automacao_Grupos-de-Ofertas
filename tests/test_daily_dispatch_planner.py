@@ -62,7 +62,6 @@ def test_daily_plan_builds_fourteen_windows_and_spreads_rotation() -> None:
         window = [item for item in plan if item.planned_hour == hour]
         assert [item.slot_sequence for item in window] == list(range(1, 9))
         assert max(Counter(item.candidate.primary_subniche for item in window).values()) <= 2
-        assert any(item.selection_bucket == "weekly_rotation" for item in window)
     assert sum(item.selection_bucket == "fixed_daily" for item in plan) == 96
     assert sum(item.selection_bucket == "weekly_rotation" for item in plan) == 16
 
@@ -88,6 +87,28 @@ def test_daily_plan_redistributes_shortfall_inside_fixed_class() -> None:
 
     assert len(plan) == 112
     assert any(item.selection_reason == "fixed_daily:redistributed" for item in plan)
+
+
+def test_daily_plan_fills_rotation_shortfall_from_top_general_score() -> None:
+    policy = load_daily_planning_policy(POLICY_PATH)
+    candidates = _candidates_for_policy(policy, extra_per_subniche=20)
+    rotation_subniches = set(policy.weekly_rotation_quotas)
+    candidates = [
+        item for item in candidates if item.primary_subniche not in rotation_subniches
+    ]
+
+    plan = plan_daily_dispatches(
+        candidates,
+        policy=policy,
+        planned_date=date(2026, 8, 16),
+    )
+
+    assert len(plan) == 112
+    assert sum(item.selection_bucket == "weekly_rotation" for item in plan) == 16
+    assert sum(
+        item.selection_reason == "weekly_rotation:top_score_fallback" for item in plan
+    ) == 16
+    assert len({item.candidate.stable_key for item in plan}) == 112
 
 
 def _candidates_for_policy(policy, *, extra_per_subniche: int) -> list[DispatchCandidate]:
