@@ -134,6 +134,18 @@ def test_normalize_container_node_accepts_id_or_creation_id() -> None:
     assert "creation_id: creationId" in js_code
 
 
+def test_restore_publish_context_node_keeps_account_and_creation_id() -> None:
+    workflow = load_instagram_workflow()
+    restore_node = guard.node_by_name(workflow, "Restaurar Contexto Publicacao")
+    js_code = restore_node["parameters"]["jsCode"]
+
+    assert "$('Normalizar Container Criado').first().json" in js_code
+    assert "instagram_business_account_id: original.instagram_business_account_id" in js_code
+    assert "creation_id: original.creation_id" in js_code
+    assert "container_status" in js_code
+    assert "instagram_graph_container_id" in js_code
+
+
 def test_validate_instagram_workflow_rejects_process_env_in_code_node() -> None:
     workflow = load_instagram_workflow()
     copy_node = guard.node_by_name(workflow, "Montar Copy Instagram")

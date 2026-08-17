@@ -192,6 +192,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "Criar Container Pai Carrossel",
         "Normalizar Container Criado",
         "Checar Status Container",
+        "Restaurar Contexto Publicacao",
         "Publicar Container",
         "Marcar Midia Expirada",
         "Registrar Resultado Supabase",
@@ -253,6 +254,30 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
     if copy_targets != {"Revalidar Midia"}:
         errors.append("Montar Copy Instagram must only connect to Revalidar Midia")
 
+    status_outputs = connections.get("Checar Status Container", {}).get("main", [])
+    status_targets = {
+        target.get("node")
+        for output in status_outputs
+        if isinstance(output, list)
+        for target in output
+        if isinstance(target, dict)
+    }
+    if status_targets != {"Restaurar Contexto Publicacao"}:
+        errors.append(
+            "Checar Status Container must only connect to Restaurar Contexto Publicacao"
+        )
+
+    restore_outputs = connections.get("Restaurar Contexto Publicacao", {}).get("main", [])
+    restore_targets = {
+        target.get("node")
+        for output in restore_outputs
+        if isinstance(output, list)
+        for target in output
+        if isinstance(target, dict)
+    }
+    if restore_targets != {"Publicar Container"}:
+        errors.append("Restaurar Contexto Publicacao must only connect to Publicar Container")
+
     dry_run_outputs = connections.get("Dry Run Instagram?", {}).get("main", [])
     dry_run_targets = [
         {
@@ -308,6 +333,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "carousel_child_ids",
         "instagram container creation id ausente",
         "item.creation_id || item.id",
+        "container_status",
+        "instagram_graph_container_id",
         "media_type=REELS",
         "media_type=CAROUSEL",
         "is_carousel_item=true",
