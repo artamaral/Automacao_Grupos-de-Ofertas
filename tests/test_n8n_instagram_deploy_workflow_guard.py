@@ -140,12 +140,30 @@ def test_restore_publish_context_node_keeps_account_and_creation_id() -> None:
     js_code = restore_node["parameters"]["jsCode"]
 
     assert "$('Normalizar Container Criado').first().json" in js_code
+    assert "$('Aguardar Container Instagram').first().json" in js_code
     assert "$('Montar Payload Pai Carrossel').first().json" in js_code
     assert "$('Montar Copy Instagram').first().json" in js_code
     assert "if (!original || !String(original.instagram_business_account_id || '').trim())" in js_code
     assert "creation_id: String(normalized.creation_id || '').trim()" in js_code
+    assert "poll_attempt: Number(original.poll_attempt || 0) + 1" in js_code
     assert "container_status" in js_code
     assert "instagram_graph_container_id" in js_code
+
+
+def test_container_polling_nodes_exist_with_expected_contract() -> None:
+    workflow = load_instagram_workflow()
+    ready_node = guard.node_by_name(workflow, "Container Pronto?")
+    retry_node = guard.node_by_name(workflow, "Pode Repetir Poll Container?")
+    wait_node = guard.node_by_name(workflow, "Aguardar Container Instagram")
+    fail_node = guard.node_by_name(workflow, "Falhar Container Nao Pronto")
+
+    assert ready_node["parameters"]["conditions"]["conditions"][0]["rightValue"] == "FINISHED"
+    assert retry_node["parameters"]["conditions"]["conditions"][0]["rightValue"] == 6
+    assert wait_node["parameters"]["resume"] == "timeInterval"
+    assert wait_node["parameters"]["amount"] == 20
+    assert wait_node["parameters"]["unit"] == "seconds"
+    assert "container_not_ready_timeout" in fail_node["parameters"]["jsCode"]
+    assert "delivery_status: 'failed'" in fail_node["parameters"]["jsCode"]
 
 
 def test_validate_instagram_workflow_rejects_process_env_in_code_node() -> None:

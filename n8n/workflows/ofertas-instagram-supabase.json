@@ -369,9 +369,103 @@
         0
       ],
       "parameters": {
-        "jsCode": "const statusResponse = $json;\nconst normalized = $('Normalizar Container Criado').first().json;\nlet original = null;\ntry {\n  original = $('Montar Payload Pai Carrossel').first().json;\n} catch (error) {\n  original = null;\n}\nif (!original || !String(original.instagram_business_account_id || '').trim()) {\n  original = $('Montar Copy Instagram').first().json;\n}\nreturn [{ json: { ...original, creation_id: String(normalized.creation_id || '').trim(), container_status: String(statusResponse.status_code || '').trim(), instagram_graph_container_id: String(statusResponse.id || '').trim() } }];"
+        "jsCode": "const statusResponse = $json;\nconst normalized = $('Normalizar Container Criado').first().json;\nlet original = null;\ntry {\n  original = $('Aguardar Container Instagram').first().json;\n} catch (error) {\n  original = null;\n}\nif (!original || !String(original.instagram_business_account_id || '').trim()) {\n  try {\n    original = $('Montar Payload Pai Carrossel').first().json;\n  } catch (error) {\n    original = null;\n  }\n}\nif (!original || !String(original.instagram_business_account_id || '').trim()) {\n  original = $('Montar Copy Instagram').first().json;\n}\nreturn [{ json: { ...original, creation_id: String(normalized.creation_id || '').trim(), container_status: String(statusResponse.status_code || '').trim(), instagram_graph_container_id: String(statusResponse.id || '').trim(), poll_attempt: Number(original.poll_attempt || 0) + 1 } }];"
       },
       "notes": "Restaura creation_id e instagram_business_account_id apos o check de status para o publish final."
+    },
+    {
+      "id": "container-pronto",
+      "name": "Container Pronto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-finished",
+              "leftValue": "={{ $json.container_status }}",
+              "rightValue": "FINISHED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "So publica quando o container estiver FINISHED."
+    },
+    {
+      "id": "pode-repetir-poll",
+      "name": "Pode Repetir Poll Container?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "poll-attempt-limit",
+              "leftValue": "={{ Number($json.poll_attempt || 0) }}",
+              "rightValue": 6,
+              "operator": {
+                "type": "number",
+                "operation": "smallerEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Limita o polling do container antes de registrar falha auditavel."
+    },
+    {
+      "id": "aguardar-container-instagram",
+      "name": "Aguardar Container Instagram",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        120
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 20,
+        "unit": "seconds"
+      },
+      "webhookId": "7bc6f7d0-4f4c-4d0e-8ae1-1d4878af7291"
+    },
+    {
+      "id": "falhar-container-nao-pronto",
+      "name": "Falhar Container Nao Pronto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        260
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, blocked_reason: 'container_not_ready_timeout', delivery_status: 'failed' } }];"
+      },
+      "notes": "Registra falha quando o container nao fica pronto apos o numero maximo de polls."
     },
     {
       "id": "publicar-container",
@@ -379,7 +473,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1380,
+        1800,
         0
       ],
       "parameters": {
@@ -641,7 +735,54 @@
       "main": [
         [
           {
+            "node": "Container Pronto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Container Pronto?": {
+      "main": [
+        [
+          {
             "node": "Publicar Container",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pode Repetir Poll Container?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pode Repetir Poll Container?": {
+      "main": [
+        [
+          {
+            "node": "Aguardar Container Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Falhar Container Nao Pronto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar Container Instagram": {
+      "main": [
+        [
+          {
+            "node": "Checar Status Container",
             "type": "main",
             "index": 0
           }
@@ -660,6 +801,17 @@
       ]
     },
     "Marcar Midia Expirada": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Falhar Container Nao Pronto": {
       "main": [
         [
           {

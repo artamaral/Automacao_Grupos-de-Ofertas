@@ -193,6 +193,10 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "Normalizar Container Criado",
         "Checar Status Container",
         "Restaurar Contexto Publicacao",
+        "Container Pronto?",
+        "Pode Repetir Poll Container?",
+        "Aguardar Container Instagram",
+        "Falhar Container Nao Pronto",
         "Publicar Container",
         "Marcar Midia Expirada",
         "Registrar Resultado Supabase",
@@ -275,8 +279,68 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         for target in output
         if isinstance(target, dict)
     }
-    if restore_targets != {"Publicar Container"}:
-        errors.append("Restaurar Contexto Publicacao must only connect to Publicar Container")
+    if restore_targets != {"Container Pronto?"}:
+        errors.append("Restaurar Contexto Publicacao must only connect to Container Pronto?")
+
+    ready_outputs = connections.get("Container Pronto?", {}).get("main", [])
+    ready_targets = [
+        {
+            target.get("node")
+            for target in output
+            if isinstance(target, dict)
+        }
+        for output in ready_outputs
+        if isinstance(output, list)
+    ]
+    if len(ready_targets) < 2:
+        errors.append("Container Pronto? must have true and false branches")
+    else:
+        if "Publicar Container" not in ready_targets[0]:
+            errors.append("Container Pronto? true branch must publish container")
+        if "Pode Repetir Poll Container?" not in ready_targets[1]:
+            errors.append("Container Pronto? false branch must evaluate poll retry")
+
+    retry_outputs = connections.get("Pode Repetir Poll Container?", {}).get("main", [])
+    retry_targets = [
+        {
+            target.get("node")
+            for target in output
+            if isinstance(target, dict)
+        }
+        for output in retry_outputs
+        if isinstance(output, list)
+    ]
+    if len(retry_targets) < 2:
+        errors.append("Pode Repetir Poll Container? must have true and false branches")
+    else:
+        if "Aguardar Container Instagram" not in retry_targets[0]:
+            errors.append("Pode Repetir Poll Container? true branch must wait before retry")
+        if "Falhar Container Nao Pronto" not in retry_targets[1]:
+            errors.append("Pode Repetir Poll Container? false branch must register failure")
+
+    wait_outputs = connections.get("Aguardar Container Instagram", {}).get("main", [])
+    wait_targets = {
+        target.get("node")
+        for output in wait_outputs
+        if isinstance(output, list)
+        for target in output
+        if isinstance(target, dict)
+    }
+    if wait_targets != {"Checar Status Container"}:
+        errors.append("Aguardar Container Instagram must only connect to Checar Status Container")
+
+    failed_container_outputs = connections.get("Falhar Container Nao Pronto", {}).get("main", [])
+    failed_container_targets = {
+        target.get("node")
+        for output in failed_container_outputs
+        if isinstance(output, list)
+        for target in output
+        if isinstance(target, dict)
+    }
+    if failed_container_targets != {"Registrar Resultado Supabase"}:
+        errors.append(
+            "Falhar Container Nao Pronto must only connect to Registrar Resultado Supabase"
+        )
 
     dry_run_outputs = connections.get("Dry Run Instagram?", {}).get("main", [])
     dry_run_targets = [
@@ -335,6 +399,9 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "item.creation_id || item.id",
         "container_status",
         "instagram_graph_container_id",
+        "poll_attempt",
+        "container_not_ready_timeout",
+        "resume\": \"timeInterval",
         "media_type=REELS",
         "media_type=CAROUSEL",
         "is_carousel_item=true",
