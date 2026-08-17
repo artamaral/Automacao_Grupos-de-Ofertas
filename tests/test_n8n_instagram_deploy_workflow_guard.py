@@ -104,6 +104,7 @@ def test_validate_instagram_workflow_requires_http_header_auth_credentials() -> 
 def test_carousel_payload_node_restores_original_context() -> None:
     workflow = load_instagram_workflow()
     payload_node = guard.node_by_name(workflow, "Montar Payload Pai Carrossel")
+    assert payload_node["parameters"]["mode"] == "runOnceForAllItems"
     js_code = payload_node["parameters"]["jsCode"]
 
     assert "$('Montar Copy Instagram').first().json" in js_code

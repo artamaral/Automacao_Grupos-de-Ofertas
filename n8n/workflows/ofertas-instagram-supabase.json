@@ -276,6 +276,7 @@
         120
       ],
       "parameters": {
+        "mode": "runOnceForAllItems",
         "jsCode": "const original = $('Montar Copy Instagram').first().json;\nconst childResponses = $input.all();\nconst childIds = childResponses.map((item) => String(item.json.id || item.json.creation_id || '').trim()).filter(Boolean);\nif (childIds.length < 2 || childIds.length > 10) {\n  throw new Error('carousel requires between 2 and 10 child containers');\n}\nreturn [{ json: { ...original, instagram_business_account_id: original.instagram_business_account_id, caption_base: original.caption_base, carousel_child_ids: childIds.join(','), carousel_child_creation_ids: childIds } }];"
       },
       "notes": "Restaura o contexto original apos criar o item do carrossel e prepara os children para o container pai."
