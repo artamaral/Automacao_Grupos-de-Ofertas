@@ -140,8 +140,10 @@ def test_restore_publish_context_node_keeps_account_and_creation_id() -> None:
     js_code = restore_node["parameters"]["jsCode"]
 
     assert "$('Normalizar Container Criado').first().json" in js_code
-    assert "instagram_business_account_id: original.instagram_business_account_id" in js_code
-    assert "creation_id: original.creation_id" in js_code
+    assert "$('Montar Payload Pai Carrossel').first().json" in js_code
+    assert "$('Montar Copy Instagram').first().json" in js_code
+    assert "if (!original || !String(original.instagram_business_account_id || '').trim())" in js_code
+    assert "creation_id: String(normalized.creation_id || '').trim()" in js_code
     assert "container_status" in js_code
     assert "instagram_graph_container_id" in js_code
 

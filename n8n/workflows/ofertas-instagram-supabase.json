@@ -369,7 +369,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "const statusResponse = $json;\nconst original = $('Normalizar Container Criado').first().json;\nreturn [{ json: { ...original, instagram_business_account_id: original.instagram_business_account_id, creation_id: original.creation_id, container_status: String(statusResponse.status_code || '').trim(), instagram_graph_container_id: String(statusResponse.id || '').trim() } }];"
+        "jsCode": "const statusResponse = $json;\nconst normalized = $('Normalizar Container Criado').first().json;\nlet original = null;\ntry {\n  original = $('Montar Payload Pai Carrossel').first().json;\n} catch (error) {\n  original = null;\n}\nif (!original || !String(original.instagram_business_account_id || '').trim()) {\n  original = $('Montar Copy Instagram').first().json;\n}\nreturn [{ json: { ...original, creation_id: String(normalized.creation_id || '').trim(), container_status: String(statusResponse.status_code || '').trim(), instagram_graph_container_id: String(statusResponse.id || '').trim() } }];"
       },
       "notes": "Restaura creation_id e instagram_business_account_id apos o check de status para o publish final."
     },
