@@ -92,7 +92,9 @@ class ShopeeProductResolver:
             marketplace=Marketplace.SHOPEE,
             shop_id=returned_shop_id,
             item_id=returned_item_id,
-            title=_text(node.get("productName")) or _text(node.get("shopName")) or "Produto Shopee",
+            title=_text(node.get("productName"))
+            or _text(node.get("shopName"))
+            or "Produto Shopee",
             price=price,
             old_price=old_price,
             discount_pct=discount_pct,
@@ -113,7 +115,8 @@ class ShopeeProductResolver:
             return self.redirect_resolver(url)
         if not self.settings.enable_real_http:
             raise ShopeeUrlError(
-                "Link curto Shopee exige resolucao HTTP. Use a URL completa ou habilite ENABLE_REAL_HTTP."
+                "Link curto Shopee exige resolucao HTTP. Use a URL completa "
+                "ou habilite ENABLE_REAL_HTTP."
             )
         request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urlopen(request, timeout=15) as response:  # noqa: S310
@@ -127,7 +130,8 @@ class ShopeeProductResolver:
         gateway = provider._get_graphql_gateway()
         if gateway.transport is None:
             raise NotImplementedError(
-                "Shopee GraphQL transport is not configured. Enable real HTTP to generate affiliate links."
+                "Shopee GraphQL transport is not configured. Enable real HTTP "
+                "to generate affiliate links."
             )
         return gateway.execute_short_link(
             origin_url=product_url,
@@ -149,15 +153,19 @@ def extract_shopee_product_ids(url: str) -> tuple[int, int]:
     if shop_id is not None and item_id is not None:
         return shop_id, item_id
     raise ShopeeUrlError(
-        "Nao foi possivel identificar shop_id e item_id na URL Shopee. Use uma URL completa do produto."
+        "Nao foi possivel identificar shop_id e item_id na URL Shopee. "
+        "Use uma URL completa do produto."
     )
 
 
 def _validate_shopee_url(value: str) -> str:
     url = value.strip()
     parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() not in _SHOPEE_HOSTS:
-        raise ShopeeUrlError("A entrada deve ser uma URL valida de shopee.com.br ou s.shopee.com.br.")
+    valid_host = parsed.netloc.lower() in _SHOPEE_HOSTS
+    if parsed.scheme not in {"http", "https"} or not valid_host:
+        raise ShopeeUrlError(
+            "A entrada deve ser uma URL valida de shopee.com.br ou s.shopee.com.br."
+        )
     return url
 
 
@@ -170,7 +178,12 @@ def _extract_product_node(response: dict[str, object]) -> dict[str, object]:
     return nodes[0]
 
 
-def _extract_old_price(node: dict[str, object], *, price: float, discount_pct: float) -> float | None:
+def _extract_old_price(
+    node: dict[str, object],
+    *,
+    price: float,
+    discount_pct: float,
+) -> float | None:
     for key in ("priceBeforeDiscount", "originalPrice", "priceOriginal"):
         value = _float_value(node.get(key))
         if value is not None and value > price:
