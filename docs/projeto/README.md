@@ -18,6 +18,7 @@ Objetivo:
 5. [`05-migracao.md`](05-migracao.md)
 6. [`06-proximas-etapas.md`](06-proximas-etapas.md)
 7. [`07-catalogos-operacionais.md`](07-catalogos-operacionais.md)
+8. [`08-spec-distribuicao-editorial-feminino.md`](08-spec-distribuicao-editorial-feminino.md)
 
 ## Fonte canonica e legado
 
