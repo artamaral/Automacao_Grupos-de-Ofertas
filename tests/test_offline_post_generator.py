@@ -58,10 +58,14 @@ def test_generate_all_outputs_and_reuses_official_copy(tmp_path: Path) -> None:
     expected_copy = CopywriterAgent().create_message(
         ScoredOffer(offer=product.to_offer(), score=0.0, reasons=["test"])
     ).text
+    reel_caption = (package.root / "reels" / "caption.txt").read_text(encoding="utf-8")
+    carousel_caption = (package.root / "carousel" / "caption.txt").read_text(encoding="utf-8")
+    story_link = (package.root / "story" / "link.txt").read_text(encoding="utf-8")
+
     assert package.caption == expected_copy
-    assert (package.root / "reels" / "caption.txt").read_text(encoding="utf-8").strip() == expected_copy
-    assert (package.root / "carousel" / "caption.txt").read_text(encoding="utf-8").strip() == expected_copy
-    assert (package.root / "story" / "link.txt").read_text(encoding="utf-8").strip() == product.affiliate_url
+    assert reel_caption.strip() == expected_copy
+    assert carousel_caption.strip() == expected_copy
+    assert story_link.strip() == product.affiliate_url
     assert (package.root / "story" / "story.jpg").exists()
     assert (package.root / "reels" / "reel.mp4").read_bytes() == b"fake-mp4"
     assert (package.root / "preview.html").exists()
