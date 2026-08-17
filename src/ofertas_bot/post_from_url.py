@@ -4,16 +4,15 @@ import argparse
 from pathlib import Path
 
 from ofertas_bot.offline_post_generator import OfflinePostGenerator
-from ofertas_bot.product_resolver import ShopeeProductResolver
-from ofertas_bot.settings import get_settings
+from ofertas_bot.product_resolver import ShopeePublicPageResolver
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ofertas-post-from-url",
-        description="Gera posts offline a partir de uma URL de produto da Shopee.",
+        description="Gera posts offline a partir de uma URL afiliada da Shopee.",
     )
-    parser.add_argument("url", help="URL completa ou curta de produto da Shopee")
+    parser.add_argument("url", help="URL afiliada da Shopee")
     parser.add_argument("--reels", action="store_true", help="Gera Reel 9:16 e legenda")
     parser.add_argument("--carousel", action="store_true", help="Gera carrossel e legenda")
     parser.add_argument(
@@ -50,8 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         parser.error(str(exc))
 
-    settings = get_settings()
-    product = ShopeeProductResolver(settings=settings).resolve(args.url)
+    product = ShopeePublicPageResolver().resolve(args.url)
     package = OfflinePostGenerator().generate(
         product,
         formats=formats,
