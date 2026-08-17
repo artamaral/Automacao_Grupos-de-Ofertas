@@ -16,10 +16,12 @@ _ITEM_PATH_PATTERNS = (
     re.compile(r"-i\.(?P<shop_id>\d+)\.(?P<item_id>\d+)(?:[/?#]|$)"),
     re.compile(r"/product/(?P<shop_id>\d+)/(?P<item_id>\d+)(?:[/?#]|$)"),
 )
-_META_RE = re.compile(
-    r'<meta\s+[^>]*(?:property|name)=["\'](?P<key>[^"\']+)["\'][^>]*content=["\'](?P<value>.*?)["\'][^>]*>',
+_META_TAG_RE = re.compile(r"<meta\b[^>]*>", re.IGNORECASE | re.DOTALL)
+_ATTR_RE = re.compile(
+    r"(?P<key>[\w:-]+)\s*=\s*([\"'])(?P<value>.*?)\2",
     re.IGNORECASE | re.DOTALL,
 )
+_TITLE_RE = re.compile(r"<title\b[^>]*>(?P<value>.*?)</title>", re.IGNORECASE | re.DOTALL)
 _JSON_LD_RE = re.compile(
     r'<script\s+[^>]*type=["\']application/ld\+json["\'][^>]*>(?P<body>.*?)</script>',
     re.IGNORECASE | re.DOTALL,
@@ -87,7 +89,13 @@ class ShopeePublicPageResolver:
         meta = _extract_meta(html)
         shop_id, item_id = extract_shopee_product_ids(resolved_url)
 
-        title = _first_text(structured.get("name"), meta.get("og:title"))
+        title = _first_text(
+            structured.get("name"),
+            meta.get("og:title"),
+            meta.get("twitter:title"),
+            _extract_title(html),
+            _search_string(html, ("productName", "product_name")),
+        )
         price = _first_float(
             _nested(structured, "offers", "price"),
             _nested(structured, "offers", "lowPrice"),
@@ -96,11 +104,14 @@ class ShopeePublicPageResolver:
         )
         if not title:
             raise ShopeePublicPageError(
-                "Nao foi possivel extrair o titulo da pagina publica Shopee."
+                "Nao foi possivel extrair o titulo da resposta publica da Shopee. "
+                f"URL final: {resolved_url}. HTML recebido: {len(html)} bytes. "
+                "A pagina pode ter sido entregue como shell JavaScript ou challenge anti-bot."
             )
         if price is None:
             raise ShopeePublicPageError(
-                "Nao foi possivel extrair o preco da pagina publica Shopee."
+                "Nao foi possivel extrair o preco da resposta publica da Shopee. "
+                f"URL final: {resolved_url}. HTML recebido: {len(html)} bytes."
             )
 
         old_price = _first_float(
@@ -113,6 +124,7 @@ class ShopeePublicPageResolver:
         images = _collect_urls(
             structured.get("image"),
             meta.get("og:image"),
+            meta.get("twitter:image"),
             _search_urls(html, ("imageUrl",), media="image"),
         )
         videos = _collect_urls(
@@ -127,7 +139,11 @@ class ShopeePublicPageResolver:
             affiliate_url=supplied_url,
             resolved_url=resolved_url,
             title=title,
-            description=_first_text(structured.get("description"), meta.get("og:description")),
+            description=_first_text(
+                structured.get("description"),
+                meta.get("og:description"),
+                meta.get("description"),
+            ),
             price=price,
             old_price=old_price,
             discount_pct=_discount_percent(price, old_price),
@@ -156,8 +172,14 @@ def fetch_public_page(url: str) -> tuple[str, str]:
     request = Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 AppleWebKit/537.36 Chrome/124 Safari/537.36",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+            "Cache-Control": "no-cache",
         },
     )
     with urlopen(request, timeout=20) as response:  # noqa: S310
@@ -185,10 +207,25 @@ def _validate_shopee_url(value: str) -> str:
 
 
 def _extract_meta(html: str) -> dict[str, str]:
-    return {
-        match.group("key").lower(): unescape(match.group("value")).strip()
-        for match in _META_RE.finditer(html)
-    }
+    result: dict[str, str] = {}
+    for tag in _META_TAG_RE.findall(html):
+        attrs = {
+            match.group("key").lower(): unescape(match.group("value")).strip()
+            for match in _ATTR_RE.finditer(tag)
+        }
+        key = attrs.get("property") or attrs.get("name")
+        content = attrs.get("content")
+        if key and content:
+            result[key.lower()] = content
+    return result
+
+
+def _extract_title(html: str) -> str | None:
+    match = _TITLE_RE.search(html)
+    if not match:
+        return None
+    value = re.sub(r"\s+", " ", unescape(match.group("value"))).strip()
+    return value or None
 
 
 def _extract_structured_product(html: str) -> dict[str, object]:
