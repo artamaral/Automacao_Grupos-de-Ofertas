@@ -1,5 +1,12 @@
 # Decisao de arquitetura n8n cloud nativo
 
+> **Status: substituida.**
+>
+> Esta decisao foi substituida por
+> [`docs/decisao-mvp-supabase-n8n.md`](decisao-mvp-supabase-n8n.md).
+> O documento abaixo permanece apenas como historico e nao deve orientar novas
+> implementacoes.
+
 Este documento consolida a decisao arquitetural atual do projeto para a
 operacao com `n8n`.
 

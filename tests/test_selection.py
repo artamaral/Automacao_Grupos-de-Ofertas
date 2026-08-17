@@ -46,7 +46,12 @@ def test_operational_selection_policies_cover_all_curated_niches() -> None:
         "feminino",
         "auto e moto",
     }
-    for policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.values():
+    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items():
+        if niche == "feminino":
+            assert policy.total_items == 8
+            assert sum(policy.subniche_quotas.values()) == 8
+            assert policy.minimum_daily_runs == 14
+            continue
         assert policy.total_items == 20
         assert sum(policy.subniche_quotas.values()) == 20
         assert policy.max_zero_sales_items == 4
@@ -114,6 +119,33 @@ def test_default_selection_policy_keeps_top_scores_within_subniche_quota(tmp_pat
     assert result.applied_default_policy is True
     assert result.selected_count == 2
     assert [item.offer.title for item in result.scored_offers] == ["Item 1", "Item 2"]
+
+
+def test_default_selection_policy_accepts_subniche_map_without_catalog_file() -> None:
+    scored_offers = [
+        _make_scored_offer("Item 1", 20.0, "https://example.com/1"),
+        _make_scored_offer("Item 2", 19.0, "https://example.com/2"),
+    ]
+
+    from ofertas_bot import selection
+
+    original = selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE
+    selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {"mae e bebe": {"mamadeiras": 1}}
+    try:
+        result = apply_default_selection_policy(
+            scored_offers,
+            niche="mae e bebe",
+            catalog_source_path=None,
+            subniche_by_url={
+                "https://example.com/1": "mamadeiras",
+                "https://example.com/2": "mamadeiras",
+            },
+        )
+    finally:
+        selection.DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = original
+
+    assert result.applied_default_policy is True
+    assert [item.offer.title for item in result.scored_offers] == ["Item 1"]
 
 
 def test_default_selection_policy_limits_zero_sales_items_without_forcing_them(

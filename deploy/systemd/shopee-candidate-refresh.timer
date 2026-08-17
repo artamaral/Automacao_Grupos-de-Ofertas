@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Shopee candidate refresh daily at 06:30 BRT
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 America/Sao_Paulo
+Persistent=true
+RandomizedDelaySec=0
+Unit=shopee-candidate-refresh.service
+
+[Install]
+WantedBy=timers.target

@@ -63,3 +63,33 @@ def test_project_operational_catalog_filters_sales_less_or_equal_one(tmp_path) -
 
     assert exit_code == 0
     assert [row["itemId"] for row in rows] == ["3"]
+
+
+def test_project_operational_catalog_filters_rating_below_4_8(tmp_path) -> None:
+    input_path = tmp_path / "input.csv"
+    output_path = tmp_path / "output.csv"
+    input_path.write_text(
+        "\n".join(
+            [
+                "itemId,productName,productLink,offerLink,imageUrl,price,priceMax,sales,ratingStar,shopType,sellerCommissionRate,shopeeCommissionRate,subniches",
+                '1,Produto A,https://example.com/product-a,https://example.com/offer-a,https://example.com/image-a.jpg,100,120,2,4.7,"[2]",0.12,0.03,"[""teste""]"',
+                '2,Produto B,https://example.com/product-b,https://example.com/offer-b,https://example.com/image-b.jpg,100,120,2,4.8,"[2]",0.12,0.03,"[""teste""]"',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = project_operational_catalog.run(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    with output_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert exit_code == 0
+    assert [row["itemId"] for row in rows] == ["2"]

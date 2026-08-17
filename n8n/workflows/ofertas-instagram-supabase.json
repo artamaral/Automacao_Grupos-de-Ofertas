@@ -1,0 +1,844 @@
+{
+  "id": "OfertasInstagramSupab1",
+  "name": "ofertas-instagram-supabase",
+  "active": false,
+  "settings": {
+    "timezone": "America/Sao_Paulo"
+  },
+  "nodes": [
+    {
+      "id": "manual-trigger",
+      "name": "Trigger Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "schedule-instagram",
+      "name": "Schedule Instagram Controlado",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -900,
+        220
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10,14,18 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "set-schedule-context",
+      "name": "Set Contexto Schedule Instagram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -680,
+        220
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { dry_run: true, profile: 'feminino', marketplace: 'shopee', target: 'oferta.femininas', allowed_targets_csv: 'oferta.femininas', limit: 1, run_id: 'instagram-schedule-safe', instagram_account_email: 'grupodeofertas.mktdigital.fem@gmail.com', instagram_username: 'oferta.femininas', instagram_business_account_id: '__configure_instagram_business_account_id__', whatsapp_group_url: 'https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K' } }];"
+      }
+    },
+    {
+      "id": "validar-contexto",
+      "name": "Validar Contexto Instagram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const context = $json;\nconst allowedTargets = new Set(String(context.allowed_targets_csv || '').split(',').map((value) => value.trim()).filter(Boolean));\nif (!allowedTargets.has(context.target)) {\n  return [{ json: { ...context, blocked_reason: 'target_not_allowlisted', delivery_status: 'cancelled' } }];\n}\nreturn [{ json: { ...context, target_allowed: true, delivery_status: context.dry_run ? 'cancelled' : 'confirmed' } }];"
+      }
+    },
+    {
+      "id": "claim-item",
+      "name": "Claim Item Instagram",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "with context as (\n  select\n    '{{ $json.profile }}'::text as profile,\n    '{{ $json.marketplace }}'::text as marketplace,\n    nullif('{{ $json.instagram_format || \"\" }}', '')::text as instagram_format,\n    {{ $json.dry_run ? 'true' : 'false' }}::boolean as dry_run,\n    '{{ $json.target || \"oferta.femininas\" }}'::text as target,\n    '{{ $json.run_id || \"instagram-manual\" }}'::text as run_id,\n    nullif('{{ $json.instagram_business_account_id || \"\" }}', '')::text as instagram_business_account_id,\n    nullif('{{ $json.whatsapp_group_url || \"\" }}', '')::text as whatsapp_group_url\n), candidate as (\n  select plan.dispatch_plan_id\n  from context ctx\n  join offers.daily_dispatch_plan plan on true\n  join offers.v_instagram_dispatch_ready ready\n    on ready.dispatch_plan_id = plan.dispatch_plan_id\n  where ready.profile = ctx.profile\n    and ready.marketplace = ctx.marketplace\n    and ready.planned_date <= (now() at time zone 'America/Sao_Paulo')::date\n    and (ctx.instagram_format is null or ready.instagram_format = ctx.instagram_format)\n  order by ready.planned_date, ready.daily_sequence, ready.instagram_format desc\n  limit 1\n  for update of plan skip locked\n), claimed as (\n  update offers.daily_dispatch_plan plan\n  set dispatch_status = 'claimed',\n      claim_token = (select run_id from context),\n      claimed_at = now(),\n      updated_at = now()\n  from candidate\n  where plan.dispatch_plan_id = candidate.dispatch_plan_id\n    and not (select dry_run from context)\n  returning plan.dispatch_plan_id\n), selected as (\n  select candidate.dispatch_plan_id\n  from candidate\n  cross join context\n  where context.dry_run\n  union all\n  select claimed.dispatch_plan_id\n  from claimed\n)\nselect\n  ready.*,\n  ctx.dry_run,\n  ctx.target,\n  ctx.run_id,\n  ctx.instagram_business_account_id,\n  ctx.whatsapp_group_url,\n  case when ctx.dry_run then 'cancelled' else 'confirmed' end as delivery_status\nfrom selected\njoin offers.v_instagram_dispatch_ready ready using (dispatch_plan_id)\ncross join context ctx\nlimit 1;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      },
+      "notes": "Claim atomico do item pronto; a selecao vem de offers.v_instagram_dispatch_ready e o lock acontece na tabela real."
+    },
+    {
+      "id": "montar-copy-instagram",
+      "name": "Montar Copy Instagram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $json;\nconst whatsappGroupUrl = String(item.whatsapp_group_url || '').trim();\nif (!/^https:\\/\\/(chat\\.whatsapp\\.com|whatsapp\\.com\\/channel|wa\\.me)\\//i.test(whatsappGroupUrl)) {\n  throw new Error('whatsapp_group_url obrigatorio para copy Instagram');\n}\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return null;\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`;\n  return String(value).trim();\n};\nconst formatRating = (value) => {\n  const rating = Number(value);\n  if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ',');\n  return String(value || '').trim();\n};\nconst hashtag = String(item.primary_subniche || 'ofertas')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '') || 'ofertas';\nconst metrics = [\n  formatMoney(item.price) ? `💸 ${formatMoney(item.price)}` : null,\n  formatRating(item.rating) ? `⭐ ${formatRating(item.rating)}/5 na Shopee` : null,\n].filter(Boolean).join('\\n');\nconst captionBase = [\n  [`🔥 ${item.product_name}`, `Copie o link da oferta: ${String(item.offer_link || '').trim()}`].filter(Boolean).join('\\n'),\n  metrics,\n  `💬 Quer receber mais ofertas assim?\\nEntre no grupo do WhatsApp: ${whatsappGroupUrl}`,\n  '⚠️ Preco e disponibilidade podem mudar.',\n  `#ad #shopee #${hashtag} #achadinhos`,\n].filter(Boolean).join('\\n\\n');\nreturn [{ json: { ...item, whatsapp_group_url: whatsappGroupUrl, caption_base: captionBase } }];"
+      }
+    },
+    {
+      "id": "revalidar-midia",
+      "name": "Revalidar Midia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        140,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $json;\nconst urls = item.instagram_format === 'reels' ? [item.video_url] : (item.image_urls || []).slice(0, 10);\nconst media_validation = urls.filter(Boolean).map((url) => ({ url, expected: String(url).includes('.mp4') ? 'video/' : 'image/', status: 'pending_http_range_validation' }));\nreturn [{ json: { ...item, media_validation, media_revalidation_required: true } }];"
+      },
+      "notes": "No workflow real, substituir o placeholder por HTTP Request leve com Range bytes=0-0 e Content-Type compativel antes de criar container."
+    },
+    {
+      "id": "dry-run-gate",
+      "name": "Dry Run Instagram?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        260,
+        -220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-dry-run",
+              "leftValue": "={{ String($json.dry_run) }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Quando dry_run=true, registra publication_events como cancelled e nao chama Instagram Graph API."
+    },
+    {
+      "id": "rota-formato",
+      "name": "Roteador Formato",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-reels",
+              "leftValue": "={{ $json.instagram_format }}",
+              "rightValue": "reels",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "criar-container-reels",
+      "name": "Criar Container Reels",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        -120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "video_url",
+              "value": "={{ $json.video_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption_base }}"
+            }
+          ]
+        }
+      },
+      "notes": "media_type=REELS",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
+    },
+    {
+      "id": "preparar-filhos-carrossel",
+      "name": "Preparar Filhos Carrossel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        120
+      ],
+      "parameters": {
+        "jsCode": "const original = $json;\nconst imageUrls = Array.isArray(original.image_urls) ? original.image_urls.filter(Boolean).slice(0, 10) : [];\nif (imageUrls.length < 2) {\n  throw new Error('carousel requires between 2 and 10 image urls');\n}\nreturn imageUrls.map((imageUrl, index) => ({ json: { ...original, carousel_image_url: imageUrl, carousel_item_index: index + 1, carousel_item_total: imageUrls.length } }));"
+      },
+      "notes": "Expande o contexto do carrossel em ate 10 itens filhos; o Instagram exige no minimo 2 imagens."
+    },
+    {
+      "id": "criar-filhos-carrossel",
+      "name": "Criar Filhos Carrossel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "is_carousel_item",
+              "value": "true"
+            },
+            {
+              "name": "image_url",
+              "value": "={{ $json.carousel_image_url }}"
+            }
+          ]
+        }
+      },
+      "notes": "is_carousel_item=true; executa uma vez por imagem preparada no node anterior.",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
+    },
+    {
+      "id": "montar-payload-pai-carrossel",
+      "name": "Montar Payload Pai Carrossel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const original = $('Montar Copy Instagram').first().json;\nconst childResponses = $input.all();\nconst childIds = childResponses.map((item) => String(item.json.id || item.json.creation_id || '').trim()).filter(Boolean);\nif (childIds.length < 2 || childIds.length > 10) {\n  throw new Error('carousel requires between 2 and 10 child containers');\n}\nreturn [{ json: { ...original, instagram_business_account_id: original.instagram_business_account_id, caption_base: original.caption_base, carousel_child_ids: childIds.join(','), carousel_child_creation_ids: childIds } }];"
+      },
+      "notes": "Restaura o contexto original apos criar o item do carrossel e prepara os children para o container pai."
+    },
+    {
+      "id": "criar-pai-carrossel",
+      "name": "Criar Container Pai Carrossel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "CAROUSEL"
+            },
+            {
+              "name": "children",
+              "value": "={{ $json.carousel_child_ids }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption_base }}"
+            }
+          ]
+        }
+      },
+      "notes": "media_type=CAROUSEL",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
+    },
+    {
+      "id": "normalizar-container-criado",
+      "name": "Normalizar Container Criado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $json;\nconst creationId = String(item.creation_id || item.id || '').trim();\nif (!creationId) {\n  throw new Error('instagram container creation id ausente');\n}\nreturn [{ json: { ...item, creation_id: creationId } }];"
+      },
+      "notes": "Normaliza a resposta da Graph API para garantir creation_id nos passos seguintes."
+    },
+    {
+      "id": "checar-status",
+      "name": "Checar Status Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.creation_id + '?fields=status_code' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "notes": "Publicar somente quando status_code=FINISHED.",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
+    },
+    {
+      "id": "restaurar-contexto-publicacao",
+      "name": "Restaurar Contexto Publicacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const statusResponse = $json;\nconst normalized = $('Normalizar Container Criado').first().json;\nlet original = null;\ntry {\n  original = $('Aguardar Container Instagram').first().json;\n} catch (error) {\n  original = null;\n}\nif (!original || !String(original.instagram_business_account_id || '').trim()) {\n  try {\n    original = $('Montar Payload Pai Carrossel').first().json;\n  } catch (error) {\n    original = null;\n  }\n}\nif (!original || !String(original.instagram_business_account_id || '').trim()) {\n  original = $('Montar Copy Instagram').first().json;\n}\nreturn [{ json: { ...original, creation_id: String(normalized.creation_id || '').trim(), container_status: String(statusResponse.status_code || '').trim(), instagram_graph_container_id: String(statusResponse.id || '').trim(), poll_attempt: Number(original.poll_attempt || 0) + 1 } }];"
+      },
+      "notes": "Restaura creation_id e instagram_business_account_id apos o check de status para o publish final."
+    },
+    {
+      "id": "container-pronto",
+      "name": "Container Pronto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "status-finished",
+              "leftValue": "={{ $json.container_status }}",
+              "rightValue": "FINISHED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "So publica quando o container estiver FINISHED."
+    },
+    {
+      "id": "pode-repetir-poll",
+      "name": "Pode Repetir Poll Container?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "poll-attempt-limit",
+              "leftValue": "={{ Number($json.poll_attempt || 0) }}",
+              "rightValue": 6,
+              "operator": {
+                "type": "number",
+                "operation": "smallerEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "notes": "Limita o polling do container antes de registrar falha auditavel."
+    },
+    {
+      "id": "aguardar-container-instagram",
+      "name": "Aguardar Container Instagram",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        120
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 20,
+        "unit": "seconds"
+      },
+      "webhookId": "7bc6f7d0-4f4c-4d0e-8ae1-1d4878af7291"
+    },
+    {
+      "id": "falhar-container-nao-pronto",
+      "name": "Falhar Container Nao Pronto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        260
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { ...$json, blocked_reason: 'container_not_ready_timeout', delivery_status: 'failed' } }];"
+      },
+      "notes": "Registra falha quando o container nao fica pronto apos o numero maximo de polls."
+    },
+    {
+      "id": "publicar-container",
+      "name": "Publicar Container",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.instagram.com/v23.0/' + $json.instagram_business_account_id + '/media_publish' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.creation_id }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "instagramGraphHdrAuth1",
+          "name": "Instagram Graph Bearer"
+        }
+      }
+    },
+    {
+      "id": "marcar-midia-expirada",
+      "name": "Marcar Midia Expirada",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        520,
+        360
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "update offers.offer_media_assets\nset status = 'stale',\n    last_checked_at = now(),\n    error_detail = 'media_revalidation_failed'\nwhere profile = '{{ $json.profile }}'\n  and marketplace = '{{ $json.marketplace }}'\n  and item_id = {{ $json.item_id }};"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "registrar-resultado",
+      "name": "Registrar Resultado Supabase",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        1620,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "insert into offers.publication_events (\n  dispatch_plan_id, profile, marketplace, stable_key, item_id,\n  target, channel_adapter, delivery_status, manifest_item_number,\n  artifact_generated_at, manifest_created_at, planned_at, sent_at,\n  offer_title, offer_url, offer_price, message_text, payload\n)\nvalues (\n  case when {{ $json.dry_run ? 'true' : 'false' }} then null else '{{ $json.dispatch_plan_id }}'::uuid end,\n  '{{ $json.profile }}',\n  '{{ $json.marketplace }}',\n  '{{ $json.stable_key }}',\n  {{ $json.item_id }},\n  '{{ $json.target || \"oferta.femininas\" }}',\n  case when '{{ $json.instagram_format }}' = 'reels' then 'instagram_reels' else 'instagram_carousel' end,\n  '{{ $json.delivery_status || \"cancelled\" }}',\n  coalesce({{ $json.daily_sequence }}, 1),\n  now(),\n  now(),\n  '{{ $json.planned_at }}'::timestamptz,\n  case when '{{ $json.delivery_status }}' = 'confirmed' then now() else null end,\n  '{{ $json.product_name }}',\n  '{{ $json.offer_link }}',\n  {{ $json.price || 'null' }},\n  '{{ $json.caption_base }}',\n  jsonb_build_object(\n    'run_id', '{{ $json.run_id }}',\n    'dry_run', {{ $json.dry_run ? 'true' : 'false' }},\n    'source_dispatch_plan_id', '{{ $json.dispatch_plan_id }}',\n    'instagram_format', '{{ $json.instagram_format }}',\n    'media_validation', '{{ JSON.stringify($json.media_validation || []) }}'::jsonb,\n    'blocked_reason', '{{ $json.blocked_reason || \"\" }}',\n    'container_status', '{{ $json.container_status || \"\" }}',\n    'container_id', '{{ $json.creation_id || \"\" }}'\n  )\n)\non conflict (dispatch_plan_id) where dispatch_plan_id is not null\ndo update\nset delivery_status = excluded.delivery_status,\n    sent_at = excluded.sent_at,\n    message_text = excluded.message_text,\n    payload = excluded.payload,\n    updated_at = now()\nreturning publish_id;"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Trigger Manual": {
+      "main": [
+        [
+          {
+            "node": "Validar Contexto Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Instagram Controlado": {
+      "main": [
+        [
+          {
+            "node": "Set Contexto Schedule Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto Schedule Instagram": {
+      "main": [
+        [
+          {
+            "node": "Validar Contexto Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Contexto Instagram": {
+      "main": [
+        [
+          {
+            "node": "Claim Item Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Item Instagram": {
+      "main": [
+        [
+          {
+            "node": "Montar Copy Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Copy Instagram": {
+      "main": [
+        [
+          {
+            "node": "Revalidar Midia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revalidar Midia": {
+      "main": [
+        [
+          {
+            "node": "Dry Run Instagram?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dry Run Instagram?": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Roteador Formato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteador Formato": {
+      "main": [
+        [
+          {
+            "node": "Criar Container Reels",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Filhos Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Filhos Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Criar Filhos Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Container Reels": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Container Criado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Filhos Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Montar Payload Pai Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Payload Pai Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Criar Container Pai Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Container Pai Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Container Criado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Container Criado": {
+      "main": [
+        [
+          {
+            "node": "Checar Status Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checar Status Container": {
+      "main": [
+        [
+          {
+            "node": "Restaurar Contexto Publicacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restaurar Contexto Publicacao": {
+      "main": [
+        [
+          {
+            "node": "Container Pronto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Container Pronto?": {
+      "main": [
+        [
+          {
+            "node": "Publicar Container",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pode Repetir Poll Container?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pode Repetir Poll Container?": {
+      "main": [
+        [
+          {
+            "node": "Aguardar Container Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Falhar Container Nao Pronto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar Container Instagram": {
+      "main": [
+        [
+          {
+            "node": "Checar Status Container",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar Container": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Midia Expirada": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Falhar Container Nao Pronto": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Trigger Manual": [
+      {
+        "json": {
+          "dry_run": true,
+          "profile": "feminino",
+          "marketplace": "shopee",
+          "target": "oferta.femininas",
+          "allowed_targets_csv": "oferta.femininas",
+          "limit": 1,
+          "run_id": "instagram-safe-dry-run",
+          "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
+          "instagram_username": "oferta.femininas",
+          "whatsapp_group_url": "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
+        }
+      }
+    ]
+  }
+}

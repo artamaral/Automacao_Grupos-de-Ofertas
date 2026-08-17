@@ -46,7 +46,7 @@ Este arquivo é a lista fechada de `subniches` permitidos e suas respectivas pal
 | `quarto-sono` | — | colchão<br>colchao<br>naninha<br>paninho de dormir | 5 |
 | `quarto-sono-mosquiteiros` | mosquiteiro bebê | — | 1349 |
 | `roupas-body` | body bebê | — | 1056 |
-| `roupas-geral` | roupa bebê | tênis<br>tenis<br>meia<br>sapato<br>sapatinho<br>sandália | 1162 |
+| `roupas-geral` | roupa bebê<br>moda gestante<br>roupa gestante<br>vestido gestante<br>saida maternidade<br>saída maternidade<br>gravida<br>grávida<br>pos parto<br>pós parto | gestante<br>grávida<br>gravida<br>amamentação<br>amamentacao<br>pós parto<br>pos parto<br>saída maternidade<br>saida maternidade<br>parto<br>tênis<br>tenis<br>meia<br>sapato<br>sapatinho<br>sandália | 1162 |
 | `roupas-macacao` | macacão bebê | — | 794 |
 | `seguranca-infantil` | — | segurança<br>antiqueda<br>triciclo<br>motoca<br>moto<br>motinha<br>cadeirinha carro<br>cinto<br>proteção para piscina<br>prendedor assento<br>assento trava | 15 |
 | `troca-fraldas-descartaveis` | — | fralda<br>babysec<br>lovecare | 26 |

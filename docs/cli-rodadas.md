@@ -1,5 +1,10 @@
 # Chamadas CLI das Rodadas
 
+> **Status: referencia/legado.**
+>
+> CLIs locais continuam como apoio tecnico. Eles nao sao o caminho diario do
+> MVP, que deve rodar com n8n consultando o Supabase diretamente.
+
 Este documento registra como rodar o fluxo local por CLI, quais flags usar e
 quais arquivos entram e saem em cada chamada.
 

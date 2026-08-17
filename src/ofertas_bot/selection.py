@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import tomllib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -109,13 +110,13 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
         raise SelectionPolicyError(f"selection policy bands are required: {slug}")
 
     quotas: dict[str, int] = {}
-    total_share = 0
+    total_share = 0.0
     for raw_band in raw_bands:
         if not isinstance(raw_band, dict):
             raise SelectionPolicyError(f"selection policy band must be an object: {slug}")
         subniche = str(raw_band.get("subniche", "")).strip()
         items = int(raw_band.get("items", 0))
-        share_percent = int(raw_band.get("share_percent", 0))
+        share_percent = float(raw_band.get("share_percent", 0))
         if not subniche or items <= 0 or share_percent <= 0:
             raise SelectionPolicyError(f"invalid selection policy band: {slug}")
         if subniche in quotas:
@@ -129,7 +130,7 @@ def _build_selection_policy(raw_policy: object) -> SelectionPolicy:
 
     if sum(quotas.values()) != total_items:
         raise SelectionPolicyError(f"selection policy item total must equal {total_items}: {slug}")
-    if total_share != 100:
+    if abs(total_share - 100) > 0.000001:
         raise SelectionPolicyError(f"selection policy shares must total 100: {slug}")
 
     return SelectionPolicy(
@@ -172,11 +173,11 @@ def _build_selection_policy_from_csv_rows(rows: list[dict[str, str]]) -> Selecti
         raise SelectionPolicyError(f"selection policy evidence is required: {slug}")
 
     quotas: dict[str, int] = {}
-    total_share = 0
+    total_share = 0.0
     for row in rows:
         subniche = (row.get("subniche") or "").strip()
         items = _csv_required_int(row.get("items"), "items")
-        share_percent = _csv_required_int(row.get("share_percent"), "share_percent")
+        share_percent = _csv_required_float(row.get("share_percent"), "share_percent")
         if not subniche or items <= 0 or share_percent <= 0:
             raise SelectionPolicyError(f"invalid selection policy band: {slug}")
         if subniche in quotas:
@@ -190,7 +191,7 @@ def _build_selection_policy_from_csv_rows(rows: list[dict[str, str]]) -> Selecti
 
     if sum(quotas.values()) != total_items:
         raise SelectionPolicyError(f"selection policy item total must equal {total_items}: {slug}")
-    if total_share != 100:
+    if abs(total_share - 100) > 0.000001:
         raise SelectionPolicyError(f"selection policy shares must total 100: {slug}")
 
     return SelectionPolicy(
@@ -218,6 +219,7 @@ def apply_default_selection_policy(
     *,
     niche: str,
     catalog_source_path: Path | None,
+    subniche_by_url: Mapping[str, str] | None = None,
 ) -> SelectionResult:
     normalized_niche = niche.strip().lower()
     eligible_scored_offers = _filter_eligible_scored_offers(scored_offers)
@@ -225,8 +227,13 @@ def apply_default_selection_policy(
     max_zero_sales_items = DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE.get(normalized_niche)
     if (
         quotas is None
-        or catalog_source_path is None
-        or catalog_source_path.suffix.lower() != ".csv"
+        or (
+            subniche_by_url is None
+            and (
+                catalog_source_path is None
+                or catalog_source_path.suffix.lower() != ".csv"
+            )
+        )
     ):
         return SelectionResult(
             scored_offers=eligible_scored_offers,
@@ -235,14 +242,18 @@ def apply_default_selection_policy(
             quota_count=0,
         )
 
-    subniche_by_url = _load_first_subniche_by_url(catalog_source_path)
+    resolved_subniche_by_url = (
+        dict(subniche_by_url)
+        if subniche_by_url is not None
+        else _load_first_subniche_by_url(catalog_source_path)
+    )
     selected: list[ScoredOffer] = []
     zero_sales_selected = 0
     for subniche, quota in quotas.items():
         candidates = [
             item
             for item in eligible_scored_offers
-            if subniche_by_url.get(item.offer.url) == subniche
+            if resolved_subniche_by_url.get(item.offer.url) == subniche
         ]
         selected_in_subniche = 0
         for candidate in candidates:
@@ -326,15 +337,25 @@ def _csv_required_int(value: str | None, field_name: str) -> int:
     try:
         return int(value.strip())
     except ValueError as error:
-        raise SelectionPolicyError(f"selection policy csv field must be integer: {field_name}") from error
+        raise SelectionPolicyError(
+            f"selection policy csv field must be integer: {field_name}"
+        ) from error
 
 
-DEFAULT_SELECTION_POLICIES_BY_NICHE = load_selection_policies(
-    DEFAULT_SELECTION_PROFILES_PATH
-)
+def _csv_required_float(value: str | None, field_name: str) -> float:
+    if value is None or not value.strip():
+        raise SelectionPolicyError(f"selection policy csv field is required: {field_name}")
+    try:
+        return float(value.strip())
+    except ValueError as error:
+        raise SelectionPolicyError(
+            f"selection policy csv field must be numeric: {field_name}"
+        ) from error
+
+
+DEFAULT_SELECTION_POLICIES_BY_NICHE = load_selection_policies(DEFAULT_SELECTION_PROFILES_PATH)
 DEFAULT_SUBNICHE_QUOTAS_BY_NICHE = {
-    niche: policy.subniche_quotas
-    for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
+    niche: policy.subniche_quotas for niche, policy in DEFAULT_SELECTION_POLICIES_BY_NICHE.items()
 }
 DEFAULT_MAX_ZERO_SALES_ITEMS_BY_NICHE = {
     niche: policy.max_zero_sales_items

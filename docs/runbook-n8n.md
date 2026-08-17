@@ -1,234 +1,1090 @@
-# Runbook n8n
+# Runbook n8n MVP
 
-Este runbook descreve o estado atual da integracao com `n8n`.
+Este runbook descreve apenas o fluxo MVP.
 
-Leitura correta:
+Fluxos antigos com runner HTTP, self-hosted/local, Cloud Run ou Google
+Planilhas como fonte principal ficam como referencia historica. Eles nao devem
+guiar a primeira operacao minima.
 
-- `self-hosted/local` continua existindo apenas como apoio;
-- `hosted/cloud` por `cloud runner` continua existindo como ponte tecnica;
-- o alvo oficial do projeto passa a ser `n8n cloud` com operacao nativa.
-
-Documentos complementares:
-
-- [`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md)
-- [`docs/n8n-workflow.md`](n8n-workflow.md)
-- [`docs/n8n-workflow-implementavel.md`](n8n-workflow-implementavel.md)
-- [`docs/n8n-cloud-runner.md`](n8n-cloud-runner.md)
-- [`docs/n8n-validation.md`](n8n-validation.md)
-
-## Decisao operacional atual
-
-O fluxo principal e automatico.
-
-Portanto:
-
-- `review_queue.json` permanece como artefato tecnico;
-- `prepare` nao cria mais dependencia de validacao humana;
-- `finalize` pode seguir automaticamente no contrato default;
-- qualquer gate manual futuro sera opcional.
-
-## 1. Artefatos oficiais
-
-### Workflow hosted/cloud
-
-- [`n8n/workflows/ofertas-rodada-skeleton.json`](../n8n/workflows/ofertas-rodada-skeleton.json)
-
-### Workflow self-hosted/local
-
-- [`n8n/workflows/ofertas-rodada-self-hosted-skeleton.json`](../n8n/workflows/ofertas-rodada-self-hosted-skeleton.json)
-
-### Payloads de exemplo
-
-- [`n8n/payloads/ofertas-janela-multi-profile.example.json`](../n8n/payloads/ofertas-janela-multi-profile.example.json)
-- [`n8n/payloads/prepare-window-runner.example.json`](../n8n/payloads/prepare-window-runner.example.json)
-- [`n8n/payloads/finalize-window-runner.example.json`](../n8n/payloads/finalize-window-runner.example.json)
-- [`n8n/payloads/run-window-runner.example.json`](../n8n/payloads/run-window-runner.example.json)
-- [`n8n/payloads/confirm-window-deliveries-runner.example.json`](../n8n/payloads/confirm-window-deliveries-runner.example.json)
-
-## 2. Perfis permitidos
-
-- `feminino`
-- `mae-e-bebe`
-- `auto-e-moto`
-
-## 2.1 Regra de execucao por profile
-
-No `n8n cloud`, as etapas de maior volume nao devem processar os tres catalogos
-em um unico bloco.
-
-Regra obrigatoria desta fase:
-
-- a janela continua sendo `1` execucao;
-- os `profiles` devem ser expandidos para `N` items logo no inicio;
-- cada item do workflow passa a representar exatamente `1 profile`;
-- `parser`, `scorer`, `selecao` e `copy` rodam nesse item isolado;
-- o merge dos resultados acontece so no fim da janela.
-
-Motivo:
-
-- `feminino` sozinho ja pode passar de `45k` linhas;
-- o timeout apareceu quando o fluxo tentava concentrar volume demais no mesmo
-  bloco;
-- separar por `profile` acompanha a escala natural do projeto, que cresce com
-  novos nichos.
-
-## 3. Trilha self-hosted/local
-
-Use esta trilha quando o `n8n` conseguir acessar o host e executar comandos.
-
-### Estrutura base
+## Fluxo oficial
 
 ```text
-C:\Automacao_Grupos-de-Ofertas\n8n\root\
-  catalogs\<profile>\clean_catalog_rating_4_8_plus.csv
-  data\<profile>\
-  logs\
+Trigger
+  -> Definir contexto
+  -> Consultar Supabase
+  -> Montar mensagens
+  -> Validar allowlist
+  -> Simular envio logico
+  -> Preparar envio WAHA
+  -> Enviar imagem + legenda WhatsApp WAHA quando dry_run=false e target allowlisted
+  -> Registrar resultado no Supabase
 ```
 
-### Variaveis base
+## Entradas minimas
+
+O workflow deve receber ou definir:
+
+- `profile`: exemplo `feminino`;
+- `marketplace`: exemplo `shopee`;
+- `limit`: quantidade maxima de ofertas da rodada;
+- `target`: destino logico do envio;
+- `dry_run`: `true` por padrao;
+- `run_id`: identificador da rodada.
+- `target_chat_id` opcional: chat id WAHA explicito. Se ausente, o workflow
+  tenta normalizar `target` para `${digits}@c.us`.
+- `coupon_url` opcional: URL de cupom usada no template Shopee. Se ausente, o
+  workflow usa a URL global versionada em `config/coupon_urls.toml`.
+
+## Credenciais
+
+Configurar no n8n, fora do Git:
+
+- conexao segura com Supabase;
+- credencial do canal de envio;
+- allowlist de destinos permitidos;
+- template ou texto-base da mensagem.
+
+## Adapter WhatsApp atual
+
+O adapter WhatsApp definido para uso agora e o WAHA self-hosted.
+
+A decisao completa esta em
+[`docs/decisao-waha-whatsapp-n8n.md`](decisao-waha-whatsapp-n8n.md).
+
+Leitura operacional:
+
+- usar WAHA apenas como canal de envio, nao como fonte de verdade;
+- manter `dry_run=true` por padrao;
+- validar allowlist antes de chamar o adapter;
+- registrar aceite, falha, bloqueio ou sessao desconectada em
+  `offers.publication_events`;
+- nao versionar API key, QR Code, sessoes, cookies, tokens ou `.env`;
+- nao tratar aceite do adapter como prova absoluta de entrega final.
+
+### Implantacao WAHA na VPS
+
+Estado implantado em 2026-08-09:
+
+- servico `waha` adicionado ao Compose operacional em
+  `/opt/automacao_grupo_compras/n8n/docker-compose.yml`;
+- imagem: `devlikeapro/waha`;
+- porta publicada somente em `127.0.0.1:3000`;
+- volume persistente de sessao:
+  `/opt/automacao_grupo_compras/n8n/data/waha/.sessions`;
+- API protegida por `X-Api-Key`;
+- valor hash da API key no `.env`; valor plain apenas em
+  `/opt/automacao_grupo_compras/n8n/waha-operator.txt` com modo `0600`;
+- dashboard e Swagger protegidos por credenciais locais no `.env`;
+- `health` e `ping` liberados sem API key para healthcheck;
+- sessao `default` criada, pareada e conectada;
+- status atual esperado: `WORKING` / `CONNECTED`.
+
+Base URL para o n8n:
 
 ```text
-N8N_OFERTAS_ROOT=C:\Automacao_Grupos-de-Ofertas\n8n\root
-N8N_OFERTAS_APP=C:\Automacao_Grupos-de-Ofertas
-N8N_OFERTAS_CATALOGS=C:\Automacao_Grupos-de-Ofertas\n8n\root\catalogs
-N8N_OFERTAS_DATA=C:\Automacao_Grupos-de-Ofertas\n8n\root\data
+http://waha:3000
 ```
 
-### Passos
-
-1. importar `ofertas-rodada-self-hosted-skeleton.json`
-2. subir catalogos ativos em `n8n/root/catalogs/<profile>/`
-3. executar `prepare`
-4. validar artefatos
-5. executar `finalize`
-6. validar `dispatch_artifact.json`
-
-## 4. Trilha hosted/cloud
-
-Use esta trilha quando o `n8n` for hospedado e nao tiver `Execute Command`.
-
-### Contrato
-
-O `n8n` fala com um runner HTTP do projeto:
-
-- `GET /health`
-- `POST /prepare-window`
-- `POST /finalize-window`
-- `POST /dispatch-window`
-- `POST /run-window`
-- `POST /confirm-delivery`
-- `POST /confirm-window-deliveries`
-
-### Entry point do runner
+Base URL local na VPS:
 
 ```text
-ofertas-cloud-runner
+http://127.0.0.1:3000
 ```
 
-### Passos
+Para acessar o dashboard sem expor a API publicamente, abrir tunel SSH local:
 
-1. publicar o runner HTTP em um ambiente proprio
-2. garantir acesso do runner ao app e aos catalogos
-3. importar `ofertas-rodada-skeleton.json`
-4. configurar `runner_base_url`
-5. disparar a rodada pelo payload da janela
+```bash
+ssh -L 3000:127.0.0.1:3000 <usuario>@<host-da-vps>
+```
 
-Na versao nativa em construcao, a ordem equivalente deve ser:
+Depois abrir no navegador local:
 
-1. validar contexto da janela;
-2. expandir `profiles`;
-3. ler regras e catalogo do `profile`;
-4. executar `parser -> scorer -> selecao -> copy` para aquele `profile`;
-5. persistir os artefatos do `profile`;
-6. consolidar a janela apenas depois dos tres `profiles`.
+```text
+http://127.0.0.1:3000/dashboard
+```
 
-### Modo real controlado
+Usar as credenciais de `/opt/automacao_grupo_compras/n8n/waha-operator.txt`.
+Esse arquivo nao deve ser copiado para o repositorio.
 
-Para avaliar o resultado final com apenas um grupo controlado:
+#### Conexao do dashboard WAHA
 
-1. preencher `allowed_targets_csv` no workflow com o destino de teste;
-2. executar `dispatch-window` ou `run-window`;
-3. enviar no provedor real do `WhatsApp` apenas as mensagens devolvidas em
-   `deliveries[]`;
-4. confirmar cada sucesso em `confirm-delivery` ou fechar em lote com
-   `confirm-window-deliveries`.
+O dashboard tem duas camadas de credencial:
 
-Observacao de estabilidade:
+- usuario/senha do dashboard: apenas abre a interface web;
+- `X-Api-Key`: autoriza as chamadas da interface para a API WAHA.
 
-- `Quick Tunnel` da Cloudflare serve para validacao;
-- `named tunnel` com hostname estavel exige uma decisao adicional de dominio e
-  operacao;
-- como isso pode gerar custo ou antecipar uma decisao de infra, nao e
-  pre-requisito desta fase;
-- a linha pragmatica atual e continuar a validacao com `Quick Tunnel` enquanto
-  o fluxo real controlado estiver sendo provado;
-- `named tunnel` ou URL estavel ficam como evolucao posterior, quando houver
-  decisao explicita de seguir para operacao repetivel.
+Ao abrir o dashboard pelo tunel local, configurar a conexao do servidor como:
 
-### Payload base do workflow hosted
+```text
+WAHA VPS URL: http://127.0.0.1:3000
+```
+
+Nao incluir `/dashboard` nesse campo.
+
+No campo de API key, usar o valor plain da linha `X-Api-Key:` do arquivo
+operacional:
+
+```text
+/opt/automacao_grupo_compras/n8n/waha-operator.txt
+```
+
+Esse valor nao deve ser colado em issues, logs, mensagens, commits ou docs.
+
+Se o dashboard mostrar:
+
+```text
+Server connection failed
+WAHA VPS (http://127.0.0.1:3000) is not connected.
+Please make sure it's online and set right API key in the configuration.
+```
+
+validar na ordem:
+
+1. manter o tunel SSH aberto no computador local:
+
+```bash
+ssh -N -L 3000:127.0.0.1:3000 <usuario>@<host-da-vps>
+```
+
+2. abrir no navegador local:
+
+```text
+http://127.0.0.1:3000/health
+```
+
+3. confirmar que o retorno contem `status: ok`;
+4. voltar ao dashboard e conferir se a URL esta como
+   `http://127.0.0.1:3000`;
+5. conferir se a API key usada no dashboard e o valor de `X-Api-Key`, nao a
+   senha do dashboard.
+
+Se `/health` responder `status: ok`, o tunel e o servico estao acessiveis pelo
+navegador. Nesse caso, a causa mais provavel do erro e API key ausente ou
+incorreta na configuracao do dashboard.
+
+Para verificar a sessao pela VPS sem depender do dashboard:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+WAHA_KEY=$(awk -F': ' '/^X-Api-Key:/ {print $2}' waha-operator.txt)
+curl -fsSL -H "X-Api-Key: ${WAHA_KEY}" \
+  http://127.0.0.1:3000/api/sessions/default
+```
+
+Estado esperado para a sessao principal:
+
+```text
+name: default
+status: WORKING
+engine.state: CONNECTED
+```
+
+### Acoplamento WAHA no workflow
+
+O workflow `ofertas-mvp-supabase` chama a WAHA somente depois de:
+
+- ranking consultar uma oferta elegivel ainda nao confirmada para o mesmo
+  `target` e `channel_adapter`;
+- ranking retornar `image_url` publica valida;
+- allowlist aprovar o destino;
+- `dry_run` ser `false`;
+- `send_result` estar como `ready_for_real_channel_node`.
+
+Nodes WAHA no workflow:
+
+```text
+Simular Envio MVP
+  -> Preparar Envio WAHA
+  -> IF Pode Enviar WAHA
+     -> true: Enviar WhatsApp WAHA -> Normalizar Resultado WAHA
+     -> false: Montar Upsert Publication Event
+  -> Montar Upsert Publication Event
+  -> Registrar Resultado Supabase
+```
+
+Configuracao esperada do node `Enviar WhatsApp WAHA`:
+
+- metodo: `POST`;
+- URL: `http://waha:3000/api/sendImage`;
+- autenticacao: credencial n8n `WAHA Header Auth` do tipo `httpHeaderAuth`;
+- body JSON:
+
+```javascript
+JSON.stringify({
+  session: 'default',
+  chatId: $json.waha_chat_id,
+  file: {
+    mimetype: 'image/jpeg',
+    url: $json.waha_image_url,
+    filename: $json.waha_image_filename || 'oferta.jpg',
+  },
+  caption: $json.message_text,
+})
+```
+
+O node `Normalizar Resultado WAHA` registra no payload:
+
+- `adapter_status`;
+- `adapter_message_id`;
+- `adapter_ack`;
+- `adapter_response_type`.
+
+O node `Preparar Envio WAHA` bloqueia envio real com
+`adapter_missing_image_url` quando `image_url` estiver ausente ou nao for uma
+URL `http(s)`. O bloqueio e registrado no Supabase como `delivery_status =
+failed`, sem chamar a WAHA.
+
+### Envio manual para grupo WhatsApp
+
+Para enviar para um grupo, o workflow usa dois conceitos separados:
+
+- `target`: nome logico versionado/auditavel do destino;
+- `target_chat_id`: id real do chat WAHA, normalmente terminado em `@g.us`.
+
+O `target` precisa estar autorizado por `allowed_targets_csv`. O
+`target_chat_id`, quando informado, substitui o `target` somente no envio para a
+WAHA. Assim o log continua usando o nome logico, enquanto o adapter recebe o id
+real do grupo.
+
+Exemplo de `pinData` para execucao manual controlada:
 
 ```json
 {
-  "profiles_csv": "feminino,mae-e-bebe,auto-e-moto",
-  "run_id": "2026-06-28-janela-01",
-  "requested_by": "arthur",
-  "notes": "rodada controlada",
-  "allowed_targets_csv": "grupo-teste-controlado",
-  "runner_base_url": "https://SEU-RUNNER-HTTP",
-  "root_dir": "C:\\Automacao_Grupos-de-Ofertas\\n8n\\root",
-  "app_dir": "C:\\Automacao_Grupos-de-Ofertas"
+  "Trigger Manual": [
+    {
+      "json": {
+        "dry_run": false,
+        "limit": 1,
+        "profile": "feminino",
+        "marketplace": "shopee",
+        "target": "grupo-ofertas-feminino",
+        "target_chat_id": "120363XXXXXXXXXXXX@g.us",
+        "allowed_targets_csv": "grupo-ofertas-feminino",
+        "channel_adapter": "whatsapp"
+      }
+    }
+  ]
 }
 ```
 
-## 5. Saidas esperadas
+Checklist antes de executar manualmente para grupo:
 
-### Prepare
+1. confirmar que o grupo e opt-in;
+2. obter o `chatId` real do grupo no WAHA;
+3. usar um `target` logico claro e estavel;
+4. incluir o mesmo `target` em `allowed_targets_csv`;
+5. manter `limit=1` no primeiro teste;
+6. restaurar `dry_run=true` e o destino de teste apos a execucao.
 
-- `offers.json`
-- `selection_state.json`
-- `copy_briefs.json`
-- `messages_preview.html`
-- `review_queue.json`
+Para descobrir grupos pela API WAHA, com a sessao `default` conectada, consultar
+os endpoints disponiveis no Swagger local:
 
-### Finalize
+```text
+http://127.0.0.1:3000/swagger
+```
 
-- `approved_messages.json`
-- `publication_manifest.json`
-- `dispatch_artifact.json`
-- `dispatch_report.json`
+ou no JSON da especificacao:
 
-### Dispatch real controlado
+```bash
+cd /opt/automacao_grupo_compras/n8n
+WAHA_KEY=$(awk -F': ' '/^X-Api-Key:/ {print $2}' waha-operator.txt)
+curl -fsSL -H "X-Api-Key: ${WAHA_KEY}" \
+  http://127.0.0.1:3000/api-docs-json
+```
 
-- `deliveries[]` no retorno do runner
-- confirmacao por mensagem em `confirm-delivery`
-- confirmacao em lote por `confirm-window-deliveries`
+O id usado pelo n8n deve ser o chat id do grupo, nao o nome exibido do grupo.
 
-## 6. Regra de horizontalizacao
+### Template Shopee
 
-Toda evolucao do fluxo principal deve respeitar:
+O node `Montar Mensagens` deve seguir o template Shopee oficial versionado em
+[`config/message_templates/shopee.txt`](../config/message_templates/shopee.txt).
 
-- o contrato funcional precisa permanecer equivalente nas duas trilhas;
-- a unica diferenca estrutural aceita e o meio de execucao:
-  - script local
-  - HTTP
-- melhorias em score, selecao, copy e dispatch devem refletir nas duas.
+Formato esperado:
 
-Complemento obrigatorio desta fase:
+```text
+🔥 {{facts.title}}
 
-- a horizontalizacao acontece por contrato, nao por monobloco;
-- o workflow deve escalar adicionando novos `profiles`, e nao tornando um unico
-  node de `scorer` cada vez maior;
-- quando um novo nicho entrar, ele deve reutilizar o mesmo pipeline unitario
-  por `profile`.
+🏪 Loja: {{facts.marketplace}}
 
-## 7. Estado desta fase
+💵 {{facts.price | brl}}
 
-Hoje o repositorio fica assim:
+🏷️ {{facts.discount_percent | round}}% OFF
 
-- a solucao local continua sendo a oficial e operacional;
-- a solucao cloud foi criada em paralelo para uso futuro;
-- nenhuma das duas depende de validacao humana obrigatoria;
-- o `n8n` ja pode executar o envio real controlado usando `deliveries[]`;
-- o runner HTTP ja consegue receber a confirmacao das mensagens realmente
-  enviadas.
-- dominio proprio e hostname estavel nao sao obrigatorios nesta fase.
+⭐ Avaliação: {{facts.rating | rating_br}}/5
+
+🎟️ Resgate o cupom desta página:
+{{coupon_url}}
+
+✅ Link do produto:
+{{facts.url}}
+
+(anúncio)
+```
+
+Mapeamento atual do n8n:
+
+- `facts.title`: `product_name`;
+- `facts.marketplace`: `marketplace`, formatado como `Shopee` quando
+  `marketplace = shopee`;
+- `facts.price`: `price`, formatado em BRL;
+- `facts.discount_percent`: calculado a partir de `reference_price` e `price`;
+- `facts.rating`: `rating`;
+- `facts.url`: `offer_link`;
+- `coupon_url`: entrada opcional do workflow ou URL global versionada em
+  `config/coupon_urls.toml`.
+
+O antigo template minimo do MVP foi mantido apenas como historico dos dry-runs
+iniciais. Novos envios devem usar o template Shopee acima, com `(anúncio)` como
+marcador explicito de publicidade/afiliado.
+
+### Teste real controlado
+
+Manter o workflow inativo e executar manualmente com destino controlado:
+
+```json
+{
+  "dry_run": false,
+  "limit": 1,
+  "profile": "feminino",
+  "marketplace": "shopee",
+  "target": "55DDDNUMERO",
+  "allowed_targets_csv": "55DDDNUMERO",
+  "channel_adapter": "whatsapp"
+}
+```
+
+Validar no Supabase:
+
+```sql
+select
+  publish_id,
+  target,
+  delivery_status,
+  sent_at,
+  payload->>'send_result' as send_result,
+  payload->>'adapter_status' as adapter_status,
+  payload->>'adapter_message_id' as adapter_message_id,
+  payload->>'waha_image_url' as waha_image_url,
+  created_at
+from offers.publication_events
+where target = '55DDDNUMERO'
+order by created_at desc
+limit 5;
+```
+
+Resultado esperado: `delivery_status = confirmed`,
+`send_result = sent_to_adapter`, `adapter_status = sent_to_adapter` e envio
+recebido no WhatsApp de teste como imagem com legenda.
+
+Ultimo teste real validado em 2026-08-09:
+
+- workflow executado manualmente pelo n8n com `dry_run=false`, `limit=1` e
+  destino explicitamente allowlisted;
+- execucao n8n: `23`;
+- WAHA: `POST /api/sendText` com HTTP 201;
+- `delivery_status`: `confirmed`;
+- `send_result`: `sent_to_adapter`;
+- `adapter_status`: `sent_to_adapter`;
+- `publish_id`: `1e99a91a-9684-4e69-9024-f0c4ae0ea0f3`;
+- oferta enviada: `58211202356`;
+- workflow permaneceu inativo e o `pinData` foi restaurado para `dry_run=true`
+  depois do teste.
+
+Observacao: esse teste validou a integracao n8n -> WAHA -> Supabase usando o
+template minimo anterior. Apos a validacao de canal, o workflow foi alinhado ao
+template Shopee oficial documentado acima. Em seguida, o workflow foi ajustado
+para enviar `image_url` via `POST /api/sendImage`, usando `message_text` como
+legenda.
+
+Observacao operacional: neste ambiente o n8n roda com task runners externos.
+Evitar `n8n execute --id ...` dentro do container principal para testes reais,
+pois a CLI tenta abrir um broker proprio e pode falhar antes dos nodes `Code`.
+Executar testes controlados pelo painel ou pela API REST local da instancia
+n8n ja em execucao.
+
+## Acessos para iniciar
+
+Antes de criar arquivos na VPS ou executar o fluxo real, separar os acessos por
+responsabilidade.
+
+## Hospedagem proposta: Hostinger VPS
+
+Para o MVP, a proposta e rodar o n8n self-hosted em uma VPS da Hostinger.
+
+Objetivo:
+
+- manter o n8n em ambiente sempre disponivel;
+- evitar dependencia do PC local ligado;
+- permitir manutencao pelo VSCode Remote SSH;
+- manter segredos fora do repositorio;
+- importar o workflow versionado do projeto no painel do n8n.
+
+Leitura operacional:
+
+- a VPS hospeda o n8n e seus dados persistentes;
+- o repositorio continua sendo a fonte de workflows exportaveis, payloads de
+  exemplo, docs e scripts de apoio;
+- credenciais reais ficam no painel do n8n, no banco/volume persistente do n8n
+  ou em arquivos locais da VPS excluidos do Git;
+- a conexao com Supabase deve usar credencial especifica para a operacao do
+  workflow, nunca secrets versionados;
+- acesso SSH deve usar chave local, nao senha colocada em documento.
+
+### Implantacao atual da VPS
+
+Estado implantado em 2026-08-08:
+
+- diretorio operacional: `/opt/automacao_grupo_compras/n8n`;
+- Compose com `n8n` 2.32.6, `n8nio/runners` 2.32.6 e Postgres
+  16.14 Alpine;
+- dados persistentes em `data/n8n` e `data/postgres`;
+- `.env` local com modo `0600`, fora do repositorio;
+- URL publica de webhooks configurada via `N8N_WEBHOOK_URL`;
+- timezone `America/Sao_Paulo` em `TZ` e `GENERIC_TIMEZONE`;
+- painel em `https://n8n-owco.srv1805131.hstgr.cloud/`, servido pelo
+  Traefik existente;
+- porta `5678` publicada somente em `127.0.0.1`; Postgres sem porta publicada;
+- workflow `ofertas-mvp-supabase` importado e inativo;
+- credencial Postgres para o Supabase criada no painel do n8n;
+- primeiro `dry_run` manual executado com sucesso em 2026-08-09.
+
+O Postgres local guarda somente o estado interno do n8n. O Supabase continua
+como fonte de verdade para catalogo, ranking e historico de publicacao.
+
+Comandos operacionais:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+docker compose --env-file .env -f docker-compose.yml ps
+docker compose --env-file .env -f docker-compose.yml logs --tail=200 n8n n8n-runner postgres
+docker compose --env-file .env -f docker-compose.yml logs --tail=200 waha
+docker compose --env-file .env -f docker-compose.yml up -d --wait
+```
+
+O acesso bootstrap fica em
+`/opt/automacao_grupo_compras/n8n/bootstrap-owner.txt`, com modo `0600`.
+Trocar email e senha no primeiro acesso e remover esse arquivo depois da
+rotacao.
+
+Para atualizar esse arquivo a partir do Windows sem colocar a senha na linha de
+comando ou no historico do shell, executar primeiro o preflight:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\n8n\update_bootstrap_owner_vps.py
+```
+
+Depois aplicar. O CLI solicita email, senha e confirmacao de senha de forma
+interativa, cria `bootstrap-owner.txt.bak` e valida apenas metadados:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\n8n\update_bootstrap_owner_vps.py `
+  --apply `
+  --confirm-remote-write UPDATE_N8N_BOOTSTRAP_OWNER
+```
+
+### Backup e rollback da instalacao anterior
+
+O backup verificado da instalacao anterior esta em
+`/opt/automacao_grupo_compras/backups/legacy-n8n/20260808T220448Z` e inclui
+configuracao, volume e `SHA256SUMS`. O projeto antigo em `/docker/n8n-owco`
+permanece parado, sem remocao do volume.
+
+Para rollback:
+
+1. Desativar a label Traefik da stack nova e recriar o servico `n8n`.
+2. Subir `/docker/n8n-owco/docker-compose.yml` com o project directory
+   `/docker/n8n-owco`.
+3. Validar `/healthz` pelo dominio HTTPS.
+4. Nao usar `down -v` em nenhuma das stacks.
+
+Checklist antes de instalar/configurar n8n:
+
+1. Confirmar IP/host da VPS Hostinger, usuario SSH e porta.
+2. Criar ou selecionar chave SSH local para VSCode Remote SSH.
+3. Registrar a chave publica no painel/servidor da Hostinger.
+4. Conectar no VSCode Remote SSH.
+5. Validar persistencia da VPS antes de subir o n8n.
+6. Configurar n8n com armazenamento persistente e credenciais fora do Git.
+7. Importar `n8n/workflows/ofertas-mvp-supabase.json`.
+8. Rodar primeiro teste com `dry_run=true`.
+
+### VSCode/Codex para VPS
+
+O acesso recomendado e VSCode Remote SSH usando chave local.
+
+Objetivo:
+
+- abrir a VPS como ambiente remoto;
+- criar ou editar arquivos operacionais no servidor;
+- manter segredos fora do repositorio;
+- evitar copiar artefatos manualmente entre PC local e servidor.
+
+O repositorio continua sendo a fonte versionada. Arquivos com segredo, sessoes,
+tokens, QR codes ou credenciais ficam apenas na VPS ou no painel seguro do
+servico correspondente.
+
+### Codex para n8n
+
+Codex nao deve depender de acesso direto ao painel do n8n para gerar a primeira
+versao do fluxo.
+
+O caminho inicial recomendado e:
+
+- versionar no repositorio um workflow exportavel;
+- importar esse workflow no n8n;
+- configurar credenciais e destinos manualmente no painel do n8n;
+- validar o fluxo em `dry_run=true` antes de qualquer envio real.
+
+Se houver necessidade de operar o painel, o acesso deve acontecer por sessao
+autorizada pelo operador, sem registrar credenciais no Git.
+
+### n8n para Supabase
+
+O n8n precisa de credencial segura para:
+
+- consultar `offers.v_offer_ranking_current`;
+- registrar eventos em `offers.publication_events`.
+
+Essa credencial deve ficar configurada no proprio n8n. Ela nao deve aparecer em
+workflow versionado, arquivo `.env` commitado, print, log publico ou documento
+do repositorio.
+
+Na validacao de 2026-08-09, a credencial foi criada como credencial `Postgres`
+do n8n, apontando para o Postgres do Supabase. Para o pooler do Supabase, o
+campo SSL precisou ficar em `require` com `Ignore SSL Issues (Insecure)`
+habilitado, pois apenas `allow`/`require`/`disable` sem ignorar a cadeia gerou
+erro de certificado autoassinado na cadeia.
+
+Essa configuracao desbloqueia o MVP mantendo transporte criptografado, mas
+ainda nao e o estado ideal de seguranca porque desabilita validacao completa da
+cadeia TLS. Endurecimento futuro: configurar CA confiavel no container/n8n ou
+ajustar a credencial quando a UI permitir fornecer o certificado CA.
+
+Validacao minima dessa conexao:
+
+1. consultar `offers.v_offer_ranking_current` com `profile`, `marketplace` e
+   `limit` explicitos;
+2. montar `message_text` com disclosure;
+3. registrar um evento de `dry_run` ou bloqueio em
+   `offers.publication_events`;
+4. repetir o mesmo registro e confirmar que a idempotencia nao duplica a linha.
+
+## Etapa 1: pacote versionado
+
+Arquivo importavel:
+
+- [`n8n/workflows/ofertas-mvp-supabase.json`](../n8n/workflows/ofertas-mvp-supabase.json)
+
+Payload seguro de referencia:
+
+- [`n8n/payloads/ofertas-mvp-supabase-context.example.json`](../n8n/payloads/ofertas-mvp-supabase-context.example.json)
+
+Objetivo desta etapa:
+
+- validar o fluxo MVP sem depender de VPS, Cloud Run, Google Sheets ou runner
+  HTTP;
+- manter `dry_run=true` como padrao;
+- consultar a janela pronta em `offers.v_daily_dispatch_ready`;
+- montar uma mensagem minima com disclosure;
+- bloquear destinos fora da allowlist;
+- registrar a tentativa ou bloqueio em `offers.publication_events`.
+
+### Como importar
+
+1. Abrir o n8n.
+2. Importar `n8n/workflows/ofertas-mvp-supabase.json`.
+3. Criar ou selecionar uma credencial Postgres apontando para o Supabase.
+4. Associar essa credencial aos nodes:
+   - `Consultar Fila Planejada Supabase`;
+   - `Registrar Resultado Supabase`.
+5. Confirmar que o workflow permanece inativo ate o teste manual controlado.
+6. Conferir que `Set Contexto MVP` e `Simular Envio MVP` estao como nodes
+   `Code`.
+
+Credenciais reais devem ficar apenas no painel do n8n. O arquivo exportado do
+workflow pode referenciar o nome logico da credencial, mas nao deve carregar
+host privado, usuario, senha, service role key, token ou cookie.
+
+### Observacao de compatibilidade da importacao
+
+Na instancia `n8n` 2.32.6 da VPS, os nodes `Set` do workflow importado
+produziram output vazio (`[{}]`) durante o teste manual. O contorno operacional
+foi substituir esses nodes por `Code` nodes diretamente no painel:
+
+- `Set Contexto MVP`: preenche `dry_run`, `limit`, `profile`, `marketplace`,
+  `target`, `allowed_targets_csv`, `channel_adapter` e `run_id`;
+- `Simular Envio MVP`: preserva o item recebido e adiciona `send_result` e
+  `sent_at`.
+
+O arquivo versionado `n8n/workflows/ofertas-mvp-supabase.json` ja foi
+atualizado para refletir essa correcao. Novas importacoes devem preservar esses
+dois nodes como `Code`.
+
+### Deploy guard do workflow
+
+Antes de testar envios reais, reaplicar e validar o workflow versionado com:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
+```
+
+Esse comando atualiza o workflow `OfertasMvpSupab1` diretamente no banco do
+n8n a partir de `n8n/workflows/ofertas-mvp-supabase.json`, mantendo
+`active=false` e validando:
+
+- existe `/api/sendImage`;
+- nao existe `/api/sendText`;
+- o template contem `Resgate o cupom desta página`;
+- o `pinData` esta pronto para execucao manual do grupo real com
+  `dry_run=false`, `limit=1` e `target_chat_id` terminado em `@g.us`.
+
+Modos operacionais:
+
+- `grupo-real`: prepara envio real para `grupo-ofertas-feminino`;
+- `teste-telefone`: prepara envio real para o telefone de teste
+  `5511975235421`;
+- `dry-run`: prepara `dry_run=true` com `target=teste-whatsapp`;
+- `preserve-pindata`: reaplica o workflow sem alterar `pinData`.
+
+Para validar sem alterar o n8n:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --dry-run --mode grupo-real
+```
+
+Modos alternativos:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --safe-pindata
+python3 scripts/n8n/deploy_workflow_guard.py --preserve-pindata
+```
+
+`--safe-pindata` deixa `dry_run=true` e `target=teste-whatsapp`. Essa flag e
+mantida por compatibilidade; preferir `--mode dry-run` em novos comandos.
+`--preserve-pindata` e equivalente a `--mode preserve-pindata`.
+
+Se uma aba antiga do editor n8n estiver aberta, ela pode salvar uma versao
+antiga por cima do workflow correto. Antes de executar testes reais:
+
+1. fechar abas antigas do workflow;
+2. rodar o deploy guard;
+3. abrir o workflow novamente pela lista do n8n;
+4. executar manualmente;
+5. conferir no log da WAHA se houve `POST /api/sendImage`.
+
+### Checklist operacional por rodada
+
+Comando principal:
+
+```bash
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+```
+
+O wrapper executa, em ordem:
+
+1. `deploy_workflow_guard.py --mode <mode>`;
+2. `run_workflow_manual.py --mode <mode>`;
+3. `check_last_execution.py`.
+
+Modos aceitos:
+
+- `teste-telefone`: envio real controlado para o telefone de teste;
+- `grupo-real`: envio real controlado para o grupo allowlisted;
+- `dry-run`: sem envio real.
+
+Nos modos `grupo-real` e `teste-telefone`, a checagem final usa
+`--expect-real-image`. No modo `dry-run`, ela nao exige
+`adapter_response_type=image`.
+
+O wrapper para no primeiro erro e imprime resumo final com `execution_id`,
+`endpoint`, `publish_id`, `delivery_status`, `adapter_response_type` e
+`copy_template`. Linhas contendo senha, cookie, token ou API key sao redigidas
+antes de serem impressas.
+
+Rodada manual pelo painel n8n:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
+```
+
+Confirmar WAHA:
+
+```bash
+cd /opt/automacao_grupo_compras/n8n
+WAHA_KEY=$(awk -F': ' '/^X-Api-Key:/ {print $2}' waha-operator.txt)
+curl -fsSL -H "X-Api-Key: ${WAHA_KEY}" \
+  http://127.0.0.1:3000/api/sessions/default
+```
+
+Estado esperado: `WORKING` / `CONNECTED`.
+
+Depois executar manualmente no painel n8n e checar:
+
+```bash
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+Resultado esperado:
+
+```text
+status=success
+endpoint=sendImage
+delivery_status=confirmed
+adapter_response_type=image
+copy_template=novo
+publish_id=<uuid>
+```
+
+### Evidencia operacional atual
+
+Validacao executada em 2026-08-09 na branch `feat/supabase-cloud-run`, com
+workflow inativo e wrapper operacional:
+
+```bash
+.venv/bin/python -m ruff check .
+.venv/bin/python -m pytest
+python3 scripts/n8n/run_operational_round.py --mode dry-run
+python3 scripts/n8n/run_operational_round.py --mode teste-telefone
+python3 scripts/n8n/run_operational_round.py --mode grupo-real
+```
+
+Resultado da validacao local:
+
+- `ruff check .`: passou;
+- `pytest`: `451 passed`.
+
+Rodadas n8n validadas:
+
+- `dry-run`: execucao `44`, `delivery_status=cancelled`,
+  `send_result=dry_run_not_sent`, `copy_template=novo`;
+- `teste-telefone`: execucao `45`, `endpoint=sendImage`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`;
+- `grupo-real`: execucao `46`, `endpoint=sendImage`,
+  `publish_id=029c13e7-8236-4a73-8beb-cbb797b2a576`,
+  `delivery_status=confirmed`, `adapter_response_type=image`,
+  `copy_template=novo`.
+
+O envio real para `grupo-ofertas-feminino` foi aceito pelo adapter WAHA como
+imagem com legenda. O workflow permaneceu `active=false`; a operacao foi
+manual/controlada via API do n8n.
+
+### Schedule automatico controlado
+
+O workflow versionado mantem o `Trigger Manual` e adiciona um schedule para o
+grupo real:
+
+```text
+Schedule Grupo Real
+  -> Set Contexto Schedule Grupo
+  -> Validar Contexto
+```
+
+Configuracao versionada do schedule:
+
+- cron: `0 8-21 * * *`;
+- timezone do workflow: `America/Sao_Paulo`;
+- frequencia: 1 execucao por hora, das 08:00 as 21:00;
+- volume: `limit=8` por execucao;
+- destino: `grupo-ofertas-feminino`;
+- chat WAHA: `120363412864266334@g.us`;
+- `dry_run=false`;
+- `allowed_targets_csv=grupo-ofertas-feminino`;
+- envio por `POST /api/sendImage`.
+
+O workflow pressupoe que a fila do dia esteja pronta no Supabase. Na operacao
+normal ela e criada automaticamente pelo mesmo cron que roda o refresh as
+06:30 BRT:
+
+```text
+refresh -> confirmacao opcional de no_node -> planejamento de 112 slots
+```
+
+Nao configurar um segundo cron para o planejador. Os comandos abaixo sao apenas
+para diagnostico ou recuperacao manual:
+
+```powershell
+.\.venv\Scripts\python.exe -m ofertas_bot.tools.plan_daily_dispatch --profile feminino
+.\.venv\Scripts\python.exe -m ofertas_bot.tools.plan_daily_dispatch --profile feminino --apply
+```
+
+O primeiro comando valida candidatos e sequenciamento sem escrita. O segundo
+substitui apenas um plano ainda nao consumido. Depois do primeiro slot
+confirmado, com falha ou cancelado, o plano do dia nao pode mais ser refeito.
+
+O schedule nao consulta mais os elegiveis do momento. Cada execucao le somente
+`offers.v_daily_dispatch_ready`, filtrando a data e a hora em
+`America/Sao_Paulo`. Bandas, rotacao semanal, diversidade, fallback e ordem das
+112 ofertas ficam fora do n8n.
+
+O `deploy_workflow_guard.py` valida esse schedule e continua gravando
+`active=false`. No painel desta instancia n8n, **Published** equivale a
+`active=true` no banco; **Unpublished** equivale a `active=false`.
+
+Para iniciar a automacao, o operador deve publicar o workflow no painel do n8n
+depois do deploy guard. Para pausar, deixar o workflow como unpublished no
+painel.
+
+Estado aplicado em 2026-08-09:
+
+- workflow `OfertasMvpSupab1` atualizado no n8n com `versionCounter=40`;
+- `active=false` preservado pelo deploy guard;
+- schedule e contexto do grupo real presentes no workflow versionado e no n8n;
+- a acao operacional inicial foi publicar o workflow manualmente no painel do
+  n8n para liberar o schedule automatico controlado.
+
+Estado apos publicacao pelo painel:
+
+- banco n8n retornou `OfertasMvpSupab1|t|41|2026-08-09 23:55:41.116+00`;
+- isso confirma `active=true` e `versionCounter=41`;
+- a execucao `50` ficou com `status=success`, mas sem `publish_id`,
+  `delivery_status`, `adapter_response_type` ou `copy_template`; portanto, ela
+  nao e evidencia de envio automatico valido;
+- a primeira execucao automatica da nova versao foi reportada pelo operador em
+  2026-08-11 as 17:00, encerrando a pendencia operacional de provar que o
+  schedule voltou a rodar a versao atual;
+- os identificadores detalhados dessa rodada automatica permanecem no ambiente
+  operacional do n8n/Supabase e nao foram versionados neste repositorio.
+
+Comando recomendado para rechecagem quando for necessario auditar a ultima
+rodada automatica:
+
+```bash
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+Resultado esperado:
+
+```text
+endpoint=sendImage
+delivery_status=confirmed
+adapter_response_type=image
+copy_template=novo
+```
+
+Para reduzir dependencia do painel e de abas antigas do editor, executar via
+API local do n8n:
+
+```bash
+python3 scripts/n8n/deploy_workflow_guard.py --mode grupo-real
+python3 scripts/n8n/run_workflow_manual.py --mode grupo-real
+python3 scripts/n8n/check_last_execution.py --expect-real-image
+```
+
+O script `run_workflow_manual.py` exige `--mode` explicitamente. Ele atualiza o
+`pinData`, autentica no n8n usando
+`/opt/automacao_grupo_compras/n8n/bootstrap-owner.txt` e chama
+`POST /rest/workflows/OfertasMvpSupab1/run` ate o node
+`Registrar Resultado Supabase`. O script usa a URL HTTPS publica do n8n por
+padrao, porque o cookie `n8n-auth` e seguro e nao e reenviado em chamadas HTTP
+locais. O script nao imprime senha, cookie ou token.
+
+### Teste controlado
+
+Executar com o contexto minimo:
+
+```json
+{
+  "profile": "feminino",
+  "marketplace": "shopee",
+  "limit": 1,
+  "target": "teste-whatsapp",
+  "allowed_targets_csv": "teste-whatsapp",
+  "channel_adapter": "whatsapp",
+  "dry_run": true,
+  "artifact_generated_at": "2026-07-18T00:00:00.000Z",
+  "run_id": "manual-YYYY-MM-DD-001"
+}
+```
+
+Resultado esperado:
+
+- a query retorna no maximo 1 oferta elegivel;
+- `message_text` contem produto, preco, avaliacao, link e disclosure;
+- `send_result` fica como `dry_run_not_sent`;
+- `delivery_status` fica como `cancelled`, porque nao houve envio real;
+- uma linha e registrada em `offers.publication_events`.
+
+### Teste de bloqueio
+
+Repetir o teste com:
+
+```json
+{
+  "target": "destino-nao-permitido",
+  "allowed_targets_csv": "teste-whatsapp"
+}
+```
+
+Resultado esperado:
+
+- o envio e bloqueado antes de qualquer node de canal real;
+- `blocked_reason` fica como `target_not_allowlisted`;
+- o bloqueio tambem e registrado em `offers.publication_events`.
+
+### Teste de idempotencia
+
+Reexecutar o mesmo teste mantendo iguais:
+
+- `profile`;
+- `target`;
+- `manifest_item_number`;
+- `artifact_generated_at`.
+
+Resultado esperado:
+
+- o `on conflict` atualiza a linha existente;
+- `publish_id` permanece o mesmo;
+- nao surge uma segunda publicacao para a mesma mensagem da rodada.
+
+## Query MVP
+
+O node do Supabase deve consultar:
+
+```sql
+with next_slots as (
+  select plan.dispatch_plan_id
+  from offers.daily_dispatch_plan plan
+  join offers.v_daily_dispatch_ready ready using (dispatch_plan_id)
+  where ready.is_ready_for_dispatch
+    and ready.profile = :profile
+    and ready.marketplace = :marketplace
+    and ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date
+    and ready.planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer
+  order by slot_sequence
+  for update of plan skip locked
+  limit :limit
+), claimed as (
+  update offers.daily_dispatch_plan plan
+  set dispatch_status = 'claimed',
+      claim_token = :run_id,
+      claimed_at = now()
+  from next_slots
+  where plan.dispatch_plan_id = next_slots.dispatch_plan_id
+  returning plan.dispatch_plan_id
+)
+select ready.*
+from claimed
+join offers.v_daily_dispatch_ready ready using (dispatch_plan_id)
+order by ready.slot_sequence;
+```
+
+Regra: o n8n nao consulta nem reordena o ranking. O slot deixa de ficar pronto
+quando deixa de atender `ready.is_ready_for_dispatch`, inclusive se ficar
+`STALE`, perder elegibilidade ou for finalizado como `confirmed`, `failed` ou
+`cancelled`. Repetir a janela faz upsert no mesmo evento, sem novo despacho.
+Em `dry_run`, a consulta apenas previsualiza a janela e retorna
+`dispatch_plan_id = null`; nenhum slot e reservado ou consumido.
+
+Nao adicionar filtros escondidos. Qualquer filtro novo precisa aparecer no
+workflow e na documentacao.
+
+## Template historico do dry-run inicial
+
+O primeiro dry-run do MVP usou o formato minimo abaixo para validar consulta,
+allowlist e auditoria. Ele nao e mais o padrao para novos envios Shopee.
+
+```text
+{{product_name}}
+
+Preco: R$ {{price}}
+Avaliacao: {{rating}}
+
+Link: {{offer_link}}
+
+Aviso: este link pode gerar comissao de afiliado. Preco e disponibilidade
+podem mudar.
+```
+
+## Allowlist
+
+Antes de qualquer envio real, o workflow deve verificar:
+
+- `target` existe na allowlist;
+- canal do target esta ativo;
+- `dry_run` esta coerente com a etapa da rodada.
+
+Se o destino nao estiver na allowlist, o workflow deve bloquear o envio e
+registrar o bloqueio como resultado da rodada.
+
+## Registro em publication_events
+
+Apos tentativa de envio, o n8n deve gravar em `offers.publication_events`:
+
+- `profile`;
+- `marketplace`;
+- `stable_key`;
+- `item_id`;
+- `target`;
+- `channel_adapter`;
+- `delivery_status`;
+- `manifest_item_number`;
+- `artifact_generated_at`;
+- `sent_at`;
+- `offer_title`;
+- `offer_url`;
+- `offer_price`;
+- `message_text`;
+- `payload`.
+
+Retries nao devem duplicar publicacao. A chave operacional documentada em
+[`supabase-publication-events.md`](supabase-publication-events.md) deve ser
+preservada.
+
+## Validacao minima
+
+1. Rodar a query para 1 profile e confirmar ofertas elegiveis.
+2. Rodar o workflow em `dry_run=true` para 1 destino allowlisted.
+3. Testar destino fora da allowlist e confirmar bloqueio.
+4. Rodar envio controlado para 1 destino allowlisted.
+5. Registrar o resultado em `publication_events`.
+6. Repetir o mesmo registro e confirmar que nao duplica.
+
+## Resultado do primeiro dry-run manual
+
+Validacao manual realizada em 2026-08-09:
+
+- contexto efetivo:
+  - `dry_run=true`;
+  - `limit=1`;
+  - `profile=feminino`;
+  - `marketplace=shopee`;
+  - `target=teste-whatsapp`;
+  - `allowed_targets_csv=teste-whatsapp`;
+  - `channel_adapter=whatsapp`;
+- query executada contra `offers.v_offer_ranking_current`;
+- oferta retornada:
+  - `item_id=58211202356`;
+  - `offer_title=Bolsa Feminina Clutch De Ombro Pequena Sofisticada Alça Regulável`;
+  - `offer_price=16.99`;
+  - `rank_profile=1`;
+  - `rank_subniche=1`;
+- registro criado em `offers.publication_events`:
+  - `publish_id=461e54bf-aff6-4907-870d-3eedc15d047d`;
+  - `delivery_status=cancelled`;
+  - `payload.dry_run=true`;
+  - `payload.send_result=dry_run_not_sent`;
+  - `payload.target_allowed=true`;
+  - `payload.blocked_reason=null`.
+
+Esse resultado confirmou consulta, montagem de mensagem, allowlist e auditoria
+em modo dry-run. Depois da correcao dos nodes `Code`, tambem foram validados:
+
+- `sent_at = null` em dry-run;
+- idempotencia sem duplicatas;
+- anti-repost para ofertas ja confirmadas no mesmo `target` e
+  `channel_adapter`;
+- teste logico com `dry_run=false`, registrando
+  `send_result=ready_for_real_channel_node`.
+
+O workflow deve permanecer inativo ate o node real WAHA ser acoplado e passar
+por teste minimo controlado com allowlist.
+
+## Fora do MVP
+
+- Cloud Run.
+- Runner HTTP.
+- Revisao humana item a item.
+- Coleta automatica do catalogo.
+- Revisao completa dos nichos.
+- Roteamento complexo por multiplos grupos.

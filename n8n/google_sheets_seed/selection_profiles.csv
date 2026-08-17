@@ -15,21 +15,14 @@ mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_pondera
 mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,brinquedos-montessori,5,1
 mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,passeio-carrinhos,5,1
 mae-e-bebe,mae e bebe,20,4,5,24,tmp/mae-e-bebe-score-test-taxonomy/score_ponderado_por_subnicho.csv,banho-banheiras,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,cabelo-tratamento,10,2
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-calcas,10,2
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-inverno,10,2
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-saias-e-shorts,10,2
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-partes-de-cima,10,2
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,unhas-manicure,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,maquiagem-olhos,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,lingerie-e-intimos,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-vestidos,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,cabelo-ferramentas,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-fitness,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,skincare-facial,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,maquiagem-labios,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-social-e-trabalho,5,1
-feminino,feminino,20,4,5,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,maquiagem-pele,5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,cabelo-tratamento,12.5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,skincare-facial,12.5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-calcas,12.5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-partes-de-cima,12.5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-fitness,12.5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,moda-vestidos,12.5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,lingerie-e-intimos,12.5,1
+feminino,feminino,8,4,14,24,catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv,maquiagem-olhos,12.5,1
 auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,acessorios-geral,15,3
 auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,pneus-rodas-e-calibragem,15,3
 auto-e-moto,auto e moto,20,4,5,24,tmp/auto-e-moto-score-test-taxonomy/top10_por_subnicho.csv,energia-e-conectividade,15,3

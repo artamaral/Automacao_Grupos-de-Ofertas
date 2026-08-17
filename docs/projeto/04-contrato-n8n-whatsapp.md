@@ -1,5 +1,10 @@
 # Contrato n8n e WhatsApp
 
+> **Status: referencia/legado.** Este contrato registra um desenho anterior do
+> n8n. No MVP atual, o n8n volta a ser orquestrador, mas pelo caminho simples
+> definido em [`../runbook-n8n.md`](../runbook-n8n.md): consultar Supabase,
+> montar mensagem, validar allowlist, enviar e registrar historico.
+
 ## Canal real inicial
 
 O primeiro canal real alvo continua sendo `WhatsApp`.

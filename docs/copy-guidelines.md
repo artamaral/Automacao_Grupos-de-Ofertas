@@ -110,3 +110,19 @@ Aviso: este é um link de afiliado; podemos receber comissão pela compra. Preç
 ```
 
 Essa regra é validada pelo `ComplianceAgent` e coberta pelos testes automatizados.
+
+## Apresentacao do grupo feminino
+
+Texto institucional curto para apresentar o grupo `feminino` a novas
+participantes. O link real do WhatsApp deve ser mantido em configuracao
+operacional segura e allowlisted, nao hardcoded na documentacao.
+
+```text
+O Grupo Feminino foi criado para reunir ofertas selecionadas com cuidado, priorizando produtos úteis, bonitos e com bom custo-benefício para o dia a dia da mulher.
+A curadoria inclui principalmente maquiagem, cuidados com cabelo, itens de beleza e moda. As ofertas são filtradas antes de entrar no grupo e distribuídas ao longo do dia, evitando excesso de mensagens e mantendo tudo organizado.
+Você receberá ofertas todos os dias em horários estratégicos (8-21h), com quantidade controlada de mensagens para não poluir o WhatsApp.
+Antes de comprar, consulte sempre a página de cupons, podem existir descontos adicionais e frete grátis disponíveis.
+
+Link do grupo:
+[inserir link allowlisted do WhatsApp]
+```

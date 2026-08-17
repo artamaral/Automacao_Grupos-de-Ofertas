@@ -1,5 +1,9 @@
 # Google Planilhas
 
+> **Status: legado.** Esta politica foi substituida por
+> [`../decisao-mvp-supabase-n8n.md`](../decisao-mvp-supabase-n8n.md).
+> Google Planilhas nao e mais a fonte final de verdade operacional.
+
 ## Decisao
 
 Todos os arquivos de regras operacionais devem migrar para Google Planilhas.

@@ -21,6 +21,7 @@ venv/
 logs/
 exports/
 n8n/root/data/
+cloud_run_worker.py
 src/*.egg-info/
 src/ofertas_bot.egg-info/
 

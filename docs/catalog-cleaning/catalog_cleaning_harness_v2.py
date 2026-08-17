@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
 """
 Harness deterministico para limpar catalogo de produtos Shopee e popular subniches.
-Usa arquivo-base externo de taxonomia. Nao usa internet. Nao inventa taxonomia. Falha quando o contrato minimo de colunas nao e atendido.
+Usa arquivo-base externo de taxonomia. Nao usa internet. Nao inventa taxonomia.
+Falha quando o contrato minimo de colunas nao e atendido.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import math
 import re
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any
 
 import pandas as pd
 
@@ -30,35 +33,52 @@ REQUIRED_COLUMNS = [
     "source_hits",
 ]
 
-def load_taxonomy(taxonomy_path: Path) -> Dict[str, Any]:
+
+def load_taxonomy(taxonomy_path: Path) -> dict[str, Any]:
     if not taxonomy_path.exists():
         raise SystemExit(f"Arquivo-base de taxonomia ausente: {taxonomy_path}")
     try:
         data = json.loads(taxonomy_path.read_text(encoding="utf-8"))
     except Exception as exc:
-        raise SystemExit(f"Arquivo-base de taxonomia inválido: {taxonomy_path}. Erro: {exc}")
+        raise SystemExit(
+            f"Arquivo-base de taxonomia inválido: {taxonomy_path}. Erro: {exc}"
+        ) from exc
 
     allowed = set(data.get("allowed_subniches") or [])
     keyword_map = data.get("source_keyword_to_subniche") or {}
     generic_hits = set(data.get("generic_source_hits") or [])
     default_subniche = data.get("generic_default_subniche") or "bebe-geral"
+    forbidden_terms_raw = data.get("forbidden_terms") or []
     fallback_rules = data.get("fallback_product_name_rules") or []
 
     if not allowed:
         raise SystemExit("Taxonomia inválida: allowed_subniches vazio ou ausente")
+    if not isinstance(forbidden_terms_raw, list):
+        raise SystemExit("Taxonomia invalida: forbidden_terms deve ser lista")
     if default_subniche not in allowed:
-        raise SystemExit(f"Taxonomia inválida: generic_default_subniche fora de allowed_subniches: {default_subniche}")
+        raise SystemExit(
+            "Taxonomia inválida: generic_default_subniche fora de "
+            f"allowed_subniches: {default_subniche}"
+        )
 
     empty_keywords = [k for k in keyword_map if not as_text(k)]
     if empty_keywords:
-        raise SystemExit("Taxonomia inválida: existe palavra-chave vazia em source_keyword_to_subniche")
+        raise SystemExit(
+            "Taxonomia inválida: existe palavra-chave vazia em source_keyword_to_subniche"
+        )
     bad_keyword_targets = {k: v for k, v in keyword_map.items() if v not in allowed}
     if bad_keyword_targets:
-        raise SystemExit(f"Taxonomia inválida: source_keyword_to_subniche aponta para subniche não permitido: {bad_keyword_targets}")
+        raise SystemExit(
+            "Taxonomia inválida: source_keyword_to_subniche aponta para "
+            f"subniche não permitido: {bad_keyword_targets}"
+        )
 
     for rule in fallback_rules:
         if rule.get("subniche") not in allowed:
-            raise SystemExit(f"Taxonomia inválida: fallback_product_name_rules aponta para subniche não permitido: {rule}")
+            raise SystemExit(
+                "Taxonomia inválida: fallback_product_name_rules aponta para "
+                f"subniche não permitido: {rule}"
+            )
         if not rule.get("pattern_regex"):
             raise SystemExit(f"Taxonomia inválida: fallback sem pattern_regex: {rule}")
 
@@ -68,7 +88,12 @@ def load_taxonomy(taxonomy_path: Path) -> Dict[str, Any]:
         "source_keyword_to_subniche": {normalize_name(k): v for k, v in keyword_map.items()},
         "generic_source_hits": {normalize_name(k) for k in generic_hits},
         "generic_default_subniche": default_subniche,
-        "fallback_product_name_rules": sorted(fallback_rules, key=lambda r: int(r.get("order", 999999))),
+        "forbidden_terms": {
+            normalize_name(term) for term in forbidden_terms_raw if normalize_name(term)
+        },
+        "fallback_product_name_rules": sorted(
+            fallback_rules, key=lambda r: int(r.get("order", 999999))
+        ),
         "raw": data,
     }
 
@@ -106,10 +131,14 @@ def normalize_name(value: Any) -> str:
 
 def valid_image(value: Any) -> bool:
     text = as_text(value).lower()
-    return bool(text) and text not in {"nan", "none", "null", "[]"} and text.startswith(("http://", "https://"))
+    return (
+        bool(text)
+        and text not in {"nan", "none", "null", "[]"}
+        and text.startswith(("http://", "https://"))
+    )
 
 
-def parse_source_hits(value: Any) -> List[str]:
+def parse_source_hits(value: Any) -> list[str]:
     text = as_text(value)
     if not text or text in {"[]", "nan", "None", "null"}:
         return []
@@ -122,7 +151,9 @@ def parse_source_hits(value: Any) -> List[str]:
     except Exception:
         pass
     # Fallback estrito: extrai tokens separados por virgula/ponto-e-virgula sem inventar termos.
-    return [as_text(x).strip('"\'[] ') for x in re.split(r"[,;]", text) if as_text(x).strip('"\'[] ')]
+    return [
+        as_text(x).strip("\"'[] ") for x in re.split(r"[,;]", text) if as_text(x).strip("\"'[] ")
+    ]
 
 
 def normalize_source_keyword(hit: str) -> str:
@@ -134,8 +165,8 @@ def normalize_source_keyword(hit: str) -> str:
     return h
 
 
-def dedupe_preserve_order(values: Iterable[str]) -> List[str]:
-    out: List[str] = []
+def dedupe_preserve_order(values: Iterable[str]) -> list[str]:
+    out: list[str] = []
     seen = set()
     for value in values:
         if value and value not in seen:
@@ -144,7 +175,9 @@ def dedupe_preserve_order(values: Iterable[str]) -> List[str]:
     return out
 
 
-def classify_subniches(source_hits: Any, product_name: Any, taxonomy: Dict[str, Any]) -> Tuple[List[str], str, List[str], List[str]]:
+def classify_subniches(
+    source_hits: Any, product_name: Any, taxonomy: dict[str, Any]
+) -> tuple[list[str], str, list[str], list[str]]:
     hits = parse_source_hits(source_hits)
     normalized = [normalize_source_keyword(h) for h in hits]
     normalized = [h for h in normalized if h]
@@ -190,7 +223,21 @@ def build_removal_reason(row: pd.Series) -> str:
     return "|".join(reasons)
 
 
-def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str, int] | None = None) -> Dict[str, Any]:
+def forbidden_term_hits(row: pd.Series, forbidden_terms: set[str]) -> list[str]:
+    if not forbidden_terms:
+        return []
+    haystack = normalize_name(
+        " ".join(
+            as_text(row.get(field, ""))
+            for field in ("productName", "shopName", "productLink", "offerLink")
+        )
+    )
+    return sorted(term for term in forbidden_terms if term in haystack)
+
+
+def run(
+    input_path: Path, outdir: Path, taxonomy_path: Path, expected: dict[str, int] | None = None
+) -> dict[str, Any]:
     expected = expected or {}
     taxonomy = load_taxonomy(taxonomy_path)
     outdir.mkdir(parents=True, exist_ok=True)
@@ -202,7 +249,9 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
 
     original_rows = len(df)
     df = df.copy()
-    df["_source_row"] = df.index + 2  # numero da linha no CSV original, considerando cabecalho na linha 1
+    df["_source_row"] = (
+        df.index + 2
+    )  # numero da linha no CSV original, considerando cabecalho na linha 1
 
     df["_price_num"] = to_number(df["price"])
     df["_commission_num"] = to_number(df["commission"])
@@ -216,12 +265,25 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
     df["_valid_rating"] = df["_rating_num"].notna() & (df["_rating_num"] >= 4.5)
     df["_valid_ids"] = df["shopId"].map(as_text).ne("") & df["itemId"].map(as_text).ne("")
 
-    valid_mask = df[["_valid_image", "_valid_price", "_valid_commission", "_valid_rating", "_valid_ids"]].all(axis=1)
-    removed_quality = df.loc[~valid_mask].copy()
+    quality_mask = df[
+        ["_valid_image", "_valid_price", "_valid_commission", "_valid_rating", "_valid_ids"]
+    ].all(axis=1)
+    removed_quality = df.loc[~quality_mask].copy()
     if len(removed_quality):
         removed_quality["removal_reason"] = removed_quality.apply(build_removal_reason, axis=1)
 
-    clean = df.loc[valid_mask].copy()
+    clean = df.loc[quality_mask].copy()
+    clean["_forbidden_term_hits"] = clean.apply(
+        lambda row: forbidden_term_hits(row, taxonomy["forbidden_terms"]), axis=1
+    )
+    forbidden_mask = clean["_forbidden_term_hits"].map(bool)
+    removed_forbidden_terms = clean.loc[forbidden_mask].copy()
+    if len(removed_forbidden_terms):
+        removed_forbidden_terms["forbidden_term_hits"] = removed_forbidden_terms[
+            "_forbidden_term_hits"
+        ].map(lambda hits: json.dumps(hits, ensure_ascii=False))
+        removed_forbidden_terms["removal_reason"] = "termo_proibido"
+    clean = clean.loc[~forbidden_mask].copy()
     clean["_dedupe_key"] = clean["shopId"].map(as_text) + ":" + clean["itemId"].map(as_text)
     clean["_duplicate_count"] = clean.groupby("_dedupe_key")["_dedupe_key"].transform("size")
 
@@ -238,7 +300,23 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
     clean.insert(0, "_quality_rank", range(1, len(clean) + 1))
 
     # Colunas auxiliares finais devem vir no inicio.
-    clean = clean.drop(columns=[c for c in clean.columns if c.startswith("_valid_") or c in {"_price_num", "_commission_num", "_rating_num", "_sales_num", "_discount_num"}], errors="ignore")
+    clean = clean.drop(
+        columns=[
+            c
+            for c in clean.columns
+            if c.startswith("_valid_")
+            or c
+            in {
+                "_price_num",
+                "_commission_num",
+                "_rating_num",
+                "_sales_num",
+                "_discount_num",
+                "_forbidden_term_hits",
+            }
+        ],
+        errors="ignore",
+    )
 
     # Marca duplicatas heuristicas por productName + price. Nao remove.
     name_key = clean["productName"].map(normalize_name)
@@ -255,24 +333,60 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
     clean["_name_price_key"] = np_key
     clean["_name_price_position"] = clean.groupby("_name_price_key").cumcount() + 1
     grouped_mask = clean["_name_price_key"].isin(group_id_map)
-    clean.loc[grouped_mask, "duplicate_name_price_group_id"] = clean.loc[grouped_mask, "_name_price_key"].map(group_id_map)
-    clean.loc[grouped_mask, "duplicate_name_price_group_size"] = group_sizes[grouped_mask].astype(int).astype(str)
-    clean.loc[grouped_mask, "duplicate_name_price_keeper"] = (clean.loc[grouped_mask, "_name_price_position"] == 1).map(lambda x: "true" if x else "false")
+    clean.loc[grouped_mask, "duplicate_name_price_group_id"] = clean.loc[
+        grouped_mask, "_name_price_key"
+    ].map(group_id_map)
+    clean.loc[grouped_mask, "duplicate_name_price_group_size"] = (
+        group_sizes[grouped_mask].astype(int).astype(str)
+    )
+    clean.loc[grouped_mask, "duplicate_name_price_keeper"] = (
+        clean.loc[grouped_mask, "_name_price_position"] == 1
+    ).map(lambda x: "true" if x else "false")
     candidate_mask = grouped_mask & (clean["_name_price_position"] > 1)
     clean.loc[candidate_mask, "duplicate_name_price_tag"] = "candidato_revisao_duplicata_nome_preco"
 
     # Popula subniches.
-    classifications = clean.apply(lambda row: classify_subniches(row["source_hits"], row["productName"], taxonomy), axis=1)
+    classifications = clean.apply(
+        lambda row: classify_subniches(row["source_hits"], row["productName"], taxonomy), axis=1
+    )
     clean["subniches"] = classifications.map(lambda x: json.dumps(x[0], ensure_ascii=False))
     clean["subniche_basis"] = classifications.map(lambda x: x[1])
-    clean["source_keywords_norm"] = classifications.map(lambda x: json.dumps(x[2], ensure_ascii=False))
-    clean["unmapped_source_keywords"] = classifications.map(lambda x: json.dumps(x[3], ensure_ascii=False))
+    clean["source_keywords_norm"] = classifications.map(
+        lambda x: json.dumps(x[2], ensure_ascii=False)
+    )
+    clean["unmapped_source_keywords"] = classifications.map(
+        lambda x: json.dumps(x[3], ensure_ascii=False)
+    )
 
-    duplicates = clean.loc[candidate_mask].drop(columns=["_name_price_key", "_name_price_position"], errors="ignore").copy()
+    duplicates = (
+        clean.loc[candidate_mask]
+        .drop(columns=["_name_price_key", "_name_price_position"], errors="ignore")
+        .copy()
+    )
     clean = clean.drop(columns=["_name_price_key", "_name_price_position"], errors="ignore")
 
-    removed = pd.concat([removed_quality, removed_safe_dups], ignore_index=True, sort=False)
-    removed = removed.drop(columns=[c for c in removed.columns if c.startswith("_valid_") or c in {"_price_num", "_commission_num", "_rating_num", "_sales_num", "_discount_num"}], errors="ignore")
+    removed = pd.concat(
+        [removed_quality, removed_forbidden_terms, removed_safe_dups],
+        ignore_index=True,
+        sort=False,
+    )
+    removed = removed.drop(
+        columns=[
+            c
+            for c in removed.columns
+            if c.startswith("_valid_")
+            or c
+            in {
+                "_price_num",
+                "_commission_num",
+                "_rating_num",
+                "_sales_num",
+                "_discount_num",
+                "_forbidden_term_hits",
+            }
+        ],
+        errors="ignore",
+    )
 
     clean_path = outdir / "shopee_catalogo_limpo_subniches.csv"
     removed_path = outdir / "shopee_catalogo_removidos.csv"
@@ -294,13 +408,16 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
         },
         "original_rows": int(original_rows),
         "removed_quality_rows": int(len(removed_quality)),
+        "removed_forbidden_term_rows": int(len(removed_forbidden_terms)),
         "removed_safe_duplicate_rows": int(len(removed_safe_dups)),
         "clean_rows": int(len(clean)),
         "duplicate_name_price_rule": "productName normalizado lower/trim/espacos + price literal",
         "duplicate_name_price_groups": int(len(duplicate_group_keys)),
         "duplicate_name_price_rows_in_groups": int(grouped_mask.sum()),
         "duplicate_name_price_candidates_tagged": int(candidate_mask.sum()),
-        "subniche_counts": pd.Series([sub for raw in clean["subniches"] for sub in json.loads(raw)]).value_counts().to_dict(),
+        "subniche_counts": pd.Series([sub for raw in clean["subniches"] for sub in json.loads(raw)])
+        .value_counts()
+        .to_dict(),
         "subniche_basis_counts": clean["subniche_basis"].value_counts().to_dict(),
         "quality_filter_counts": {
             "image_invalid": int((~df["_valid_image"]).sum()),
@@ -312,7 +429,9 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
         "taxonomy_file": str(taxonomy_path),
         "taxonomy_version": taxonomy["version"],
         "taxonomy": taxonomy["source_keyword_to_subniche"],
-        "unmapped_source_keywords": sorted({kw for kws in clean["unmapped_source_keywords"].map(json.loads) for kw in kws}),
+        "unmapped_source_keywords": sorted(
+            {kw for kws in clean["unmapped_source_keywords"].map(json.loads) for kw in kws}
+        ),
     }
 
     with open(summary_path, "w", encoding="utf-8") as f:
@@ -322,9 +441,16 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
     checks = {
         "expected_input_rows": (original_rows, expected.get("input_rows")),
         "expected_clean_rows": (len(clean), expected.get("clean_rows")),
-        "expected_duplicate_candidates": (int(candidate_mask.sum()), expected.get("duplicate_candidates")),
+        "expected_duplicate_candidates": (
+            int(candidate_mask.sum()),
+            expected.get("duplicate_candidates"),
+        ),
     }
-    failed = [f"{name}: obtido={got}, esperado={want}" for name, (got, want) in checks.items() if want is not None and got != want]
+    failed = [
+        f"{name}: obtido={got}, esperado={want}"
+        for name, (got, want) in checks.items()
+        if want is not None and got != want
+    ]
     if failed:
         raise SystemExit("Falha nas validacoes de regressao:\n" + "\n".join(failed))
 
@@ -332,10 +458,17 @@ def run(input_path: Path, outdir: Path, taxonomy_path: Path, expected: Dict[str,
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Limpa catalogo Shopee e popula subniches de forma deterministica.")
+    parser = argparse.ArgumentParser(
+        description="Limpa catalogo Shopee e popula subniches de forma deterministica."
+    )
     parser.add_argument("--input", required=True, type=Path, help="Caminho do CSV de entrada.")
     parser.add_argument("--outdir", required=True, type=Path, help="Diretorio de saida.")
-    parser.add_argument("--taxonomy-file", required=True, type=Path, help="Arquivo JSON base da taxonomia de subnichos.")
+    parser.add_argument(
+        "--taxonomy-file",
+        required=True,
+        type=Path,
+        help="Arquivo JSON base da taxonomia de subnichos.",
+    )
     parser.add_argument("--expected-input-rows", type=int, default=None)
     parser.add_argument("--expected-clean-rows", type=int, default=None)
     parser.add_argument("--expected-duplicate-candidates", type=int, default=None)

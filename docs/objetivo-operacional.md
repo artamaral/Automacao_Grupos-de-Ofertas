@@ -1,11 +1,31 @@
 # Objetivo e modelo operacional
 
+> **Status: referencia de contexto.**
+>
+> Para execucao do MVP atual, seguir
+> [`docs/decisao-mvp-supabase-n8n.md`](decisao-mvp-supabase-n8n.md). Este
+> documento preserva visao ampla do produto, mas nao substitui o caminho minimo:
+> Supabase como base, n8n direto no ranking, envio por allowlist e historico no
+> Supabase.
+
 Este documento define o objetivo do projeto e como ele deve ser operado. Ele
 deve ser lido junto com `docs/analise-operacional.md`, que orienta as próximas
 decisões de implementação.
 
-A decisao arquitetural consolidada para `n8n cloud` e Google Planilhas esta em
-[`docs/decisao-n8n-cloud-nativo.md`](decisao-n8n-cloud-nativo.md).
+A decisao arquitetural consolidada para descoberta local, Supabase e Cloud Run
+esta em
+[`docs/decisao-supabase-cloud-run.md`](decisao-supabase-cloud-run.md).
+
+Regra de leitura:
+
+- referencias posteriores a `n8n cloud`, Google Planilhas como fonte de
+  verdade, catalogos no ambiente do `n8n` ou descoberta em nuvem registram a
+  arquitetura anterior;
+- essas referencias nao autorizam novas implementacoes e devem ceder a decisao
+  vigente;
+- descoberta, limpeza e curadoria ficam locais;
+- o fluxo em nuvem comeca na importacao controlada do catalogo curado para o
+  Supabase.
 
 ## Objetivo do projeto
 
@@ -156,20 +176,21 @@ Regra obrigatoria:
 
 Config que pode variar por profile:
 
-- Google Planilha `discovery_profiles`: catalogo curado, contexto e limite;
-- Google Planilha `selection_profiles`: bandas por subnicho e teto de itens sem venda;
-- Google Planilha `group_profiles`: roteamento dos grupos.
+- config local `discovery_profiles`: parametros da descoberta e origem do
+  catalogo curado;
+- regras versionadas de selecao no Supabase: bandas por subnicho e teto de
+  itens sem venda;
+- configuracao controlada de grupos no Supabase: roteamento dos destinos.
 
 Decisao operacional complementar:
 
-- os arquivos de regras devem ter Google Planilhas como formato final de
-  operacao;
-- `toml` e `txt` ficam como referencia transitória enquanto a logica e migrada
-  para o ambiente nativo do `n8n`;
-- a escolha por planilhas busca reduzir atrito de manutencao e facilitar futura
-  automacao de mudancas por script.
-- a trilha `self-hosted/local` deixa de ser destino arquitetural e passa a ser
-  apenas apoio de transicao.
+- descoberta, limpeza e curadoria permanecem locais;
+- o Supabase recebe somente catalogos curados por importacao controlada;
+- ranking, estado, mensagens e historico passam a ter o Supabase como fonte de
+  verdade operacional;
+- Cloud Run executa geracao e disparo, sem executar descoberta;
+- `n8n` e Google Planilhas deixam de ser destino arquitetural e permanecem
+  apenas como legado de transicao.
 
 Contrato comum atual:
 

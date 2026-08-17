@@ -1,0 +1,11 @@
+{
+  "profile": "feminino",
+  "marketplace": "shopee",
+  "limit": 1,
+  "target": "teste-whatsapp",
+  "allowed_targets_csv": "teste-whatsapp",
+  "channel_adapter": "whatsapp",
+  "dry_run": true,
+  "artifact_generated_at": "2026-07-18T00:00:00.000Z",
+  "run_id": "manual-YYYY-MM-DD-001"
+}

@@ -1,101 +1,234 @@
 # Backlog
 
-Este arquivo registra ideias, melhorias, riscos, pendências e evoluções
-possíveis do projeto.
+Este arquivo registra ideias, melhorias, riscos, pendencias e evolucoes
+possiveis do projeto.
 
 Regras:
 
-- backlog não define execução imediata;
-- backlog pode registrar hipóteses ainda não validadas;
-- itens só devem virar implementação quando forem puxados para a priorização
-  operacional do projeto.
+- backlog nao define execucao imediata;
+- backlog pode registrar hipoteses ainda nao validadas;
+- itens so devem virar implementacao quando forem puxados para a priorizacao
+  operacional do projeto;
+- itens concluidos podem permanecer aqui apenas como referencia historica curta,
+  para evitar reabrir decisoes ja validadas;
+- itens explicitamente fora do MVP atual nao devem ser tratados como bloqueio da
+  operacao minima.
 
-## Descoberta, classificação e roteamento
+## Leitura atual do backlog
 
-- Criar uma camada de descoberta ampla por `profile`, sem depender de
-  `subgroup` como entrada principal da automação.
-- Criar uma camada de classificação que atribua `subgroup`, categorias,
-  aderência e sinais de contexto a cada oferta coletada.
+O projeto hoje tem duas frentes distintas:
+
+- operacao minima ja validada em `Supabase -> n8n -> WAHA -> publication_events`;
+- evolucoes de descoberta, refresh, taxonomia, roteamento e score semantico.
+
+Por isso, este backlog foi reorganizado em quatro blocos:
+
+- `Concluido`: o que ja tem implementacao ou validacao operacional relevante;
+- `Fora do MVP atual`: o que continua valido, mas nao bloqueia a operacao minima;
+- `Aberto prioritario`: o que falta fechar para endurecer o caminho principal;
+- `Aberto exploratorio`: hipoteses, melhorias e pesquisa futura.
+
+## Concluido
+
+### MVP Supabase, n8n e WAHA
+
+- Definido o caminho canonico vigente do `feminino`: `Catalogo ativo no
+  Supabase -> cron faz refresh e persiste a fila diaria -> n8n consome
+  offers.v_daily_dispatch_ready -> n8n envia para allowlist -> Supabase registra
+  historico`.
+- Workflow `ofertas-mvp-supabase` versionado e importavel em
+  `n8n/workflows/ofertas-mvp-supabase.json`.
+- Ajustado o workflow MVP do n8n para registrar `delivery_status=confirmed`
+  somente depois de aceite do adapter WAHA.
+- Atualizado o JSON versionado do workflow para substituir os nodes `Set` que
+  importaram com output vazio no n8n 2.32.6 por nodes `Code` equivalentes,
+  preservando os nomes `Set Contexto MVP` e `Simular Envio MVP`.
+- Ajustado `sent_at` no workflow MVP para permanecer `null` quando
+  `dry_run=true`.
+- Validado o bloqueio de destino fora da allowlist antes do canal real.
+- WAHA definido como adapter WhatsApp atual, com operacao self-hosted na VPS e
+  uso apenas como canal de envio, nunca como fonte de verdade.
+- Acoplado o envio real por imagem + legenda via `POST /api/sendImage`.
+- Preparado o schedule automatico controlado do workflow, mantendo
+  `active=false` como estado seguro padrao.
+- Primeira execucao automatica da nova versao do schedule reportada pelo
+  operador em 2026-08-11 as 17:00, encerrando a pendencia de validar o disparo
+  automatico inicial do workflow em producao controlada.
+- Monitoramento Hermes ajustado para detectar o caso de `success sem entrega`,
+  usando `publication_events.confirmed` como prova operacional da rodada. Essa
+  mudanca fecha a lacuna exposta pela execucao `78` de 2026-08-11.
+- Endurecido o bloqueio de freshness na fila diaria com tres travas pequenas e
+  complementares: planner persiste apenas itens `FRESH`, a
+  `v_daily_dispatch_ready` revalida freshness antes do envio, e o claim do n8n
+  so reserva slots aprovados por essa view.
+
+### Fundacao de dados no Supabase
+
+- Modelado e aplicado o schema operacional de catalogo, score e publicacao no
+  Supabase.
+- Criadas as tabelas `catalog_imports`, `catalog_items`,
+  `offer_selection_state`, `publication_events`, `candidate_refresh_policies`,
+  `offer_snapshots` e `offer_refresh_attempts`.
+- Criadas as views `v_offer_ranking_current`, `v_offer_latest_snapshot`,
+  `v_offer_refresh_status` e `v_offer_scoring_current`.
+- Validada a importacao idempotente de catalogos locais para o Supabase.
+- Validado o consumo do n8n pela `v_daily_dispatch_ready`, sem claim direto do
+  ranking.
+- Validada a idempotencia operacional de `publication_events`.
+- Ajustado o timezone padrao do database para `America/Sao_Paulo`.
+- Atualizado o catalogo ativo `feminino/shopee` em 2026-08-11 com relimpeza
+  operacional e reativacao controlada.
+
+### Refresh progressivo de candidatos
+
+- Implantada a primeira versao do refresh progressivo orientado ao ranking para
+  `profile=feminino`.
+- Definido o uso de `productOfferV2(itemId)` como fonte de refresh comercial
+  por snapshot, sem reescrever `catalog_items`.
+- Implantados TTL, fila orientada ao ranking, snapshots historicos e auditoria
+  de tentativas.
+- Validado smoke real de refresh em 2026-08-11.
+- Validado lote real com 500 chamadas, 490 snapshots e top 20 de `feminino`
+  integralmente em `commercial_data_source=snapshot` e `refresh_status=FRESH`.
+- Encadeados refresh, confirmacao opcional de `no_node` e planejamento dos 112
+  slots no mesmo timer/service, sem segundo cron e sem selecao no n8n.
+- Documentado em `2026-08-14` o estado vigente do `feminino` como
+  `v_offer_ranking_current -> daily_dispatch_plan -> v_daily_dispatch_ready ->
+  n8n -> publication_events`, com o fluxo direto `ranking -> n8n` rebaixado a
+  legado.
+- Implementada a projecao reconstruivel `publication_events ->
+  offer_selection_state` para `feminino/shopee`, com cooldown global de dois
+  dias operacionais completos e ativacao sem backfill durante a fila corrente.
+
+## Fora do MVP atual
+
+Os itens abaixo continuam validos como evolucao, mas nao devem ser tratados
+como bloqueio da operacao minima:
+
+- implementar no Cloud Run geracao e disparo de mensagens sem incluir
+  descoberta;
+- manter Cloud Run como executor obrigatorio do fluxo diario;
+- voltar a usar runner HTTP como caminho principal;
+- usar Google Planilhas como fonte principal da rodada operacional;
+- automatizar descoberta ampla como parte obrigatoria do runtime em nuvem;
+- fazer revisao humana item a item antes de provar a operacao minima;
+- endurecer toda a arquitetura final antes de estabilizar o MVP;
+- mover perfis e grupos para banco/interface antes de consolidar as regras
+  minimas atuais;
+- avaliar aprovacao operacional via WhatsApp como interface de decisao humana;
+- modelar camada de "produto equivalente / anuncios concorrentes" antes de
+  consolidar a curadoria base.
+
+## Aberto prioritario
+
+### Operacao do MVP
+
+- PRIORIDADE TOTAL: endurecer a fila Instagram para nao publicar item
+  `refresh_status='STALE'`. A correcao imediata desacoplou a superficie
+  Instagram de `is_ready_for_dispatch` para destravar a operacao com midia
+  valida, mas ainda falta introduzir uma regra propria do canal que bloqueie
+  stale sem herdar indevidamente o cooldown/global readiness do WhatsApp.
+  Caminho esperado: criar prontidao especifica do Instagram com revalidacao
+  recente de midia e trava channel-specific de repost/publicacao.
+
+- Endurecer TLS da credencial Postgres do Supabase no n8n, substituindo
+  `Ignore SSL Issues (Insecure)` por validacao completa da cadeia via CA
+  confiavel quando a UI/container permitir.
+- Executar, depois das `21h` e antes das `07h`, a primeira reconstrucao
+  historica com `scripts/supabase/rebuild_publication_cooldown.py`, validando
+  que o plano seguinte preserva `112` slots e exclui confirmacoes dos dois dias
+  anteriores.
+- Endurecer a operacao da VPS apos a primeira subida do MVP: revisar firewall
+  sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do
+  Traefik, configurar backup externo com teste de restore e remover a stack
+  legada depois do periodo de estabilizacao.
+
+### Shopee operacional
+
+- Confirmar o escopo final da coleta ampla por macro-nicho na Shopee real, sem
+  confundir discovery ampla com o refresh operacional por item.
+- Definir estrategia de paginacao e volume por `profile` para discovery ampla.
+- Definir regra de coleta incremental por nicho quando discovery voltar para a
+  pauta operacional.
+- Validar com mais evidencia quais campos reais da Shopee ajudam de fato na
+  classificacao de subnicho.
+- Confirmar como tratar respostas `no_node` e respostas vazias de
+  `productOfferV2` em cenarios recorrentes, sem inferir indisponibilidade onde
+  ela nao foi provada.
+
+### Catalogo e qualidade semantica
+
+- Revisar com prioridade a taxonomia e a limpeza semantica de `feminino`,
+  porque o estado atual da similaridade esta suprimindo muitos itens que
+  parecem denunciar contaminacao de catalogo, nao apenas duplicidade legitima.
+- Separar nos casos de `similarity_suppressed` do `feminino` o que e:
+  item realmente duplicado, item semanticamente mal classificado e item fora do
+  nicho.
+- Refinar keywords e taxonomia de `auto-e-moto`, reduzindo concentracao em
+  subnichos genericos e volume de `unmapped_source_keywords`.
+- Revisar a qualidade semantica dos subnichos nos catalogos operacionais `4.8+`,
+  porque preenchimento completo de `subniches` nao garante coerencia real.
+- Levantar e corrigir falsos positivos semanticos nos tops por subnicho.
+- Revisar a base de palavras-chave e a logica de classificacao usando como
+  evidencia os artefatos `top10_por_subnicho.csv` e as analises mais recentes de
+  feed/catalogo.
+- Reduzir casos em que um item entra em subnicho tecnicamente preenchido, mas
+  semanticamente fraco, ambiguo ou fora do contexto principal do nicho.
+
+## Aberto exploratorio
+
+### Descoberta, classificacao e roteamento
+
+- Reaproveitar os codigos existentes de descoberta e classificacao semantica
+  quando essa frente sair do backlog, simplificando o fluxo antes de amplia-lo.
+- Manter local a camada de descoberta ampla por `profile`, sem depender de
+  `subgroup` como entrada principal.
+- Criar uma camada de classificacao que atribua `subgroup`, categorias,
+  aderencia e sinais de contexto a cada oferta coletada.
 - Criar uma camada de roteamento que decida para quais grupos uma oferta pode
   seguir.
-- Permitir que uma mesma coleta ampla gere ofertas para múltiplos grupos.
-- Definir estrutura intermediária para representar `offer + score +
+- Permitir que uma mesma coleta ampla gere ofertas para multiplos grupos.
+- Definir estrutura intermediaria para representar `offer + score +
   classification + routing`.
-- Validar os `subgroups` atuais contra retorno real da Shopee antes de tratá-los
-  como contrato rígido.
+- Validar os `subgroups` atuais contra retorno real da Shopee antes de trata-los
+  como contrato rigido.
 - Medir quais queries amplas funcionam melhor por macro-nicho.
-- Medir quais `subgroups` têm cobertura útil e quais geram ruído demais.
-- Adiar regra rígida de classificação e roteamento até haver dados reais
-  suficientes para calibrar decisão com evidência.
-- Adiar ponderação fina de score comercial até observar volume, qualidade e
+- Medir quais `subgroups` tem cobertura util e quais geram ruido demais.
+- Adiar regra rigida de classificacao e roteamento ate haver dados reais
+  suficientes para calibrar decisao com evidencia.
+
+### Score e selecao
+
+- Separar score de qualidade comercial do score de aderencia ao grupo.
+- Criar score especifico para cupom versus score para produto.
+- Adicionar explicacoes claras de por que a oferta foi roteada para cada grupo.
+- Definir score minimo por grupo e por macro-nicho.
+- Tratar conflito quando uma oferta servir para mais de um grupo.
+- Adiar ponderacao fina de score comercial ate observar volume, qualidade e
   estrutura real das ofertas retornadas.
 
-## Shopee real
+### Mensagens e manifestos
 
-- Validar categorias, coleção, marca e demais sinais reais que a API devolver.
-- Confirmar quais campos da Shopee ajudam de fato na classificação de
-  subnicho.
-- Comparar query ampla versus query focada por subgroup.
-- Definir estratégia de paginação e volume por profile.
-- Definir regra de coleta incremental e frequência por nicho.
-- Criar rotina de inspeção da saída real para entender cobertura, ruído e
-  sinais disponíveis antes de endurecer regras de decisão.
-- Refinar keywords e taxonomia de `auto-e-moto` após a primeira limpeza real,
-  porque a rodada atual ainda concentrou muitos itens em subnichos genéricos
-  e deixou volume alto de `unmapped_source_keywords` para revisão posterior.
-- Revisar a qualidade semântica dos subnichos nos catálogos operacionais `4.8+`,
-  porque preenchimento completo de `subniches` não garante coerência real do
-  item com o subnicho atribuído.
-- Levantar e corrigir falsos positivos semânticos nos tops por subnicho,
-  principalmente quando keyword ampla ou genérica puxa item para um grupo
-  plausível no texto, mas incorreto no contexto comercial.
-- Revisar a base de palavras-chave e a lógica de classificação usando como
-  evidência os artefatos `top10_por_subnicho.csv` gerados para
-  `mae-e-bebe`, `auto-e-moto` e `feminino`.
-- Reduzir casos em que um item entra em subnicho tecnicamente preenchido, mas
-  semanticamente fraco, ambíguo ou fora do contexto principal do nicho.
-
-## Scoring e decisão
-
-- Separar score de qualidade comercial do score de aderência ao grupo.
-- Criar score específico para cupom versus score para produto.
-- Adicionar explicações claras de por que a oferta foi roteada para cada grupo.
-- Definir score mínimo por grupo e por macro-nicho.
-- Tratar conflito quando uma oferta servir para mais de um grupo.
-
-## Mensagens
-
-- Gerar mensagens a partir de uma lista de ofertas já selecionadas, em vez de
+- Gerar mensagens a partir de uma lista de ofertas ja selecionadas, em vez de
   acoplar tudo ao harness.
 - Diferenciar mensagem de produto, cupom e mensagem contextual/humanizada.
-- Ajustar variação de copy por grupo e por tipo de oferta.
-- Definir quando vale mensagem única por oferta e quando vale resumo por lote.
-
-## Operação e governança
-
-- Criar catálogo formal de grupos de destino e regras por grupo.
-- Definir manifestos mínimos para auditoria operacional sem excesso de artefato.
-- Planejar evolução do config para suportar perfis ativos/inativos e prioridade.
+- Ajustar variacao de copy por grupo e por tipo de oferta.
+- Definir quando vale mensagem unica por oferta e quando vale resumo por lote.
+- Criar catalogo formal de grupos de destino e regras por grupo.
+- Definir manifestos minimos para auditoria operacional sem excesso de artefato.
+- Planejar evolucao do config para suportar perfis ativos/inativos e prioridade.
 - Decidir quando perfis e grupos saem de arquivo versionado para banco/interface.
-- Definir observabilidade mínima do fluxo operacional.
-- Deixar essa sincronizacao de catalogo mais ergonomica no fluxo operacional do
-  `n8n`, reduzindo dependencia de passos manuais e tratando isso como melhoria
-  operacional ainda em aberto.
-- Avaliar aprovação operacional via WhatsApp, tratando o canal apenas como
-  interface de decisão humana (aprovar/rejeitar/ajustar), com trilha de auditoria,
-  idempotência e reconciliação posterior no fluxo local.
 
-## Pontos em aberto
+## Pontos em aberto sinteticos
 
-- Qual será o escopo da coleta ampla por macro-nicho na Shopee real.
-- Quais campos reais da API serão confiáveis para classificar subnicho.
-- Como endurecer a taxonomia sem perder cobertura, reduzindo falsos positivos
-  semânticos nos subnichos mais amplos.
-- Quais regras devem prevalecer quando keyword, nome do produto e contexto
-  comercial sugerirem subnichos diferentes.
-- Como medir qualidade semântica da classificação de subnicho de forma
-  recorrente sem travar o fluxo operacional.
-- Como representar roteamento para um ou mais grupos sem complicar o fluxo.
-- Como separar classificação determinística de classificação assistida por LLM.
-- Quando cupons entram na mesma esteira dos produtos e quando precisam de regra
-  própria.
+Para consulta rapida, os principais pontos realmente em aberto hoje sao:
+
+- endurecer TLS da conexao n8n -> Supabase;
+- concluir a primeira reconstrucao historica do cooldown fora da janela diaria;
+- melhorar a qualidade semantica dos subnichos, especialmente em
+  `auto-e-moto` e `feminino`;
+- definir claramente o limite entre discovery ampla, refresh operacional e
+  roteamento por grupo;
+- separar score comercial de aderencia semantica;
+- decidir quando cupons entram na mesma esteira dos produtos e quando precisam
+  de regra propria.

@@ -1,5 +1,5 @@
 # Politicas operacionais aplicadas depois do score e antes da copy.
-# Todas as bandas somam 100% e 20 itens por rodada.
+# Perfis legados usam bandas por rodada. Feminino usa planejamento diario persistido.
 
 [[policies]]
 slug = "mae-e-bebe"
@@ -93,85 +93,182 @@ items = 1
 [[policies]]
 slug = "feminino"
 niche = "feminino"
-total_items = 20
+total_items = 8
 max_zero_sales_items = 4
-minimum_daily_runs = 5
+minimum_daily_runs = 14
 cooldown_hours_default = 24
+# O seletor persistido usa dias de calendario; o campo em horas permanece legado.
+publication_cooldown_operational_days = 2
 evidence = "catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv"
+planning_mode = "daily_persisted"
+daily_total_items = 112
+rotation_items_per_day = 16
+schedule_hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+max_items_per_subniche_per_window = 2
+timezone = "America/Sao_Paulo"
 
 [[policies.bands]]
 subniche = "cabelo-tratamento"
-share_percent = 10
-items = 2
-
-[[policies.bands]]
-subniche = "moda-calcas"
-share_percent = 10
-items = 2
-
-[[policies.bands]]
-subniche = "moda-inverno"
-share_percent = 10
-items = 2
-
-[[policies.bands]]
-subniche = "moda-saias-e-shorts"
-share_percent = 10
-items = 2
-
-[[policies.bands]]
-subniche = "moda-partes-de-cima"
-share_percent = 10
-items = 2
-
-[[policies.bands]]
-subniche = "unhas-manicure"
-share_percent = 5
-items = 1
-
-[[policies.bands]]
-subniche = "maquiagem-olhos"
-share_percent = 5
-items = 1
-
-[[policies.bands]]
-subniche = "lingerie-e-intimos"
-share_percent = 5
-items = 1
-
-[[policies.bands]]
-subniche = "moda-vestidos"
-share_percent = 5
-items = 1
-
-[[policies.bands]]
-subniche = "cabelo-ferramentas"
-share_percent = 5
-items = 1
-
-[[policies.bands]]
-subniche = "moda-fitness"
-share_percent = 5
+share_percent = 12.5
 items = 1
 
 [[policies.bands]]
 subniche = "skincare-facial"
-share_percent = 5
+share_percent = 12.5
 items = 1
 
 [[policies.bands]]
-subniche = "maquiagem-labios"
-share_percent = 5
+subniche = "moda-calcas"
+share_percent = 12.5
 items = 1
 
 [[policies.bands]]
-subniche = "moda-social-e-trabalho"
-share_percent = 5
+subniche = "moda-partes-de-cima"
+share_percent = 12.5
 items = 1
 
 [[policies.bands]]
+subniche = "moda-fitness"
+share_percent = 12.5
+items = 1
+
+[[policies.bands]]
+subniche = "moda-vestidos"
+share_percent = 12.5
+items = 1
+
+[[policies.bands]]
+subniche = "lingerie-e-intimos"
+share_percent = 12.5
+items = 1
+
+[[policies.bands]]
+subniche = "maquiagem-olhos"
+share_percent = 12.5
+items = 1
+
+[[policies.fixed_daily_quotas]]
+subniche = "cabelo-tratamento"
+items = 8
+
+[[policies.fixed_daily_quotas]]
+subniche = "skincare-facial"
+items = 7
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-calcas"
+items = 7
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-partes-de-cima"
+items = 7
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-fitness"
+items = 6
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-vestidos"
+items = 6
+
+[[policies.fixed_daily_quotas]]
+subniche = "lingerie-e-intimos"
+items = 5
+
+[[policies.fixed_daily_quotas]]
+subniche = "maquiagem-olhos"
+items = 5
+
+[[policies.fixed_daily_quotas]]
 subniche = "maquiagem-pele"
-share_percent = 5
+items = 5
+
+[[policies.fixed_daily_quotas]]
+subniche = "maquiagem-labios"
+items = 5
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-inverno"
+items = 5
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-saias-e-shorts"
+items = 5
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-plus-size"
+items = 4
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-social-e-trabalho"
+items = 4
+
+[[policies.fixed_daily_quotas]]
+subniche = "cabelo-ferramentas"
+items = 4
+
+[[policies.fixed_daily_quotas]]
+subniche = "unhas-manicure"
+items = 4
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-conjuntos"
+items = 3
+
+[[policies.fixed_daily_quotas]]
+subniche = "bolsas-e-carteiras"
+items = 2
+
+[[policies.fixed_daily_quotas]]
+subniche = "acessorios-femininos"
+items = 2
+
+[[policies.fixed_daily_quotas]]
+subniche = "maquiagem-organizacao"
+items = 2
+
+[[policies.weekly_rotation_quotas]]
+subniche = "moda-geral"
+items = 20
+
+[[policies.weekly_rotation_quotas]]
+subniche = "moda-praia"
+items = 14
+
+[[policies.weekly_rotation_quotas]]
+subniche = "moda-evangelica"
+items = 14
+
+[[policies.weekly_rotation_quotas]]
+subniche = "moda-ofertas-e-basicos"
+items = 14
+
+[[policies.weekly_rotation_quotas]]
+subniche = "maquiagem-pinceis-e-esponjas"
+items = 10
+
+[[policies.weekly_rotation_quotas]]
+subniche = "maquiagem-geral"
+items = 10
+
+[[policies.weekly_rotation_quotas]]
+subniche = "moda-macacoes-e-macaquinhos"
+items = 10
+
+[[policies.weekly_rotation_quotas]]
+subniche = "moda-casual"
+items = 8
+
+[[policies.weekly_rotation_quotas]]
+subniche = "cuidados-depilacao"
+items = 7
+
+[[policies.weekly_rotation_quotas]]
+subniche = "moda-festa"
+items = 4
+
+[[policies.weekly_rotation_quotas]]
+subniche = "feminino-geral"
 items = 1
 
 [[policies]]

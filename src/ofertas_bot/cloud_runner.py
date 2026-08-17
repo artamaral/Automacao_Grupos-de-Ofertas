@@ -16,6 +16,12 @@ from ofertas_bot.storage.json_selection_state_store import (
     JsonSelectionStateStore,
     update_selection_state_last_sent_at,
 )
+from ofertas_bot.storage.supabase_publication_event_store import (
+    PublicationEventStoreError,
+    PublicationEventUpsert,
+    SupabasePublicationEventStore,
+    build_publication_event_store_from_env,
+)
 
 ALLOWED_PROFILES = ("feminino", "mae-e-bebe", "auto-e-moto")
 
@@ -30,6 +36,18 @@ class CloudPathConfig:
     app_dir: Path
     catalogs_dir: Path
     data_dir: Path
+
+
+@dataclass(frozen=True)
+class ConfirmedDeliverySnapshot:
+    target: str
+    manifest_item_number: int
+    channel_adapter: str
+    artifact_generated_at: str
+    artifact_timezone: str
+    manifest_created_at: str | None
+    planned_at: str | None
+    draft: Any
 
 
 def resolve_path_config(
@@ -169,7 +187,11 @@ def build_catalog_sync_plan_window(
         target_catalog_dir = target_catalog_path.parent
         metadata_path = target_catalog_dir / "catalog_sync_metadata.json"
         repo_source_catalog_path = (
-            path_config.app_dir / "catalogs" / "clean" / registry_entry.relative_dir / registry_entry.file_name
+            path_config.app_dir
+            / "catalogs"
+            / "clean"
+            / registry_entry.relative_dir
+            / registry_entry.file_name
         )
 
         results.append(
@@ -669,6 +691,7 @@ def confirm_window_deliveries(
         data_dir=data_dir,
     )
     resolved_sent_at = sent_at.strip() or datetime.now(UTC).replace(microsecond=0).isoformat()
+    publication_event_store = build_publication_event_store_from_env()
 
     grouped_by_profile: dict[str, list[tuple[str, int]]] = {}
     for item in deliveries:
@@ -692,14 +715,17 @@ def confirm_window_deliveries(
         )
 
     confirmed_rows: list[dict[str, Any]] = []
+    total_publication_events = 0
     for current_profile, requested_items in grouped_by_profile.items():
         current_data_dir = profile_data_dir(path_config, current_profile)
         selection_state_path = current_data_dir / "selection_state.json"
         artifact_path = current_data_dir / "dispatch_artifact.json"
-        drafts = _load_confirmed_drafts(
+        snapshots = _load_confirmed_delivery_snapshots(
             artifact_path=artifact_path,
             requested_items=requested_items,
+            default_artifact_generated_at=resolved_sent_at,
         )
+        drafts = tuple(snapshot.draft for snapshot in snapshots)
         store = JsonSelectionStateStore(path=selection_state_path)
         records = store.load()
         updated = update_selection_state_last_sent_at(
@@ -708,20 +734,32 @@ def confirm_window_deliveries(
             last_sent_at=resolved_sent_at,
         )
         store.save(updated)
-        confirmed_rows.extend(
-            {
+        publish_ids: tuple[str, ...] = ()
+        if publication_event_store is not None:
+            publish_ids = _persist_publication_events(
+                publication_event_store=publication_event_store,
+                profile=current_profile,
+                snapshots=snapshots,
+                sent_at=resolved_sent_at,
+            )
+            total_publication_events += len(publish_ids)
+        for index, snapshot in enumerate(snapshots):
+            row = {
                 "profile": current_profile,
-                "target": target_name,
-                "manifest_item_number": manifest_item_number,
+                "target": snapshot.target,
+                "manifest_item_number": snapshot.manifest_item_number,
             }
-            for target_name, manifest_item_number in requested_items
-        )
+            if publish_ids:
+                row["publish_id"] = publish_ids[index]
+            confirmed_rows.append(row)
 
     return {
         "stage": "confirm-window-deliveries",
         "sent_at": resolved_sent_at,
         "profiles_updated": sorted(grouped_by_profile),
         "confirmed_count": len(confirmed_rows),
+        "publication_events_persisted": publication_event_store is not None,
+        "publication_events_count": total_publication_events,
         "confirmed_deliveries": confirmed_rows,
     }
 
@@ -760,23 +798,29 @@ def _load_json_object(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _load_confirmed_drafts(
+def _load_confirmed_delivery_snapshots(
     *,
     artifact_path: Path,
     requested_items: list[tuple[str, int]],
-) -> tuple[Any, ...]:
+    default_artifact_generated_at: str,
+) -> tuple[ConfirmedDeliverySnapshot, ...]:
     artifact = _load_json_object(artifact_path)
+    artifact_generated_at = (
+        str(artifact.get("generated_at", "")).strip() or default_artifact_generated_at
+    )
+    artifact_timezone = str(artifact.get("timezone", "")).strip()
     raw_targets = artifact.get("targets", [])
     if not isinstance(raw_targets, list):
         msg = f"dispatch artifact invalido: {artifact_path}"
         raise CloudRunnerError(msg)
 
     requested_set = set(requested_items)
-    found: dict[tuple[str, int], Any] = {}
+    found: dict[tuple[str, int], ConfirmedDeliverySnapshot] = {}
     for raw_target in raw_targets:
         if not isinstance(raw_target, dict):
             continue
         target_name = str(raw_target.get("target", "")).strip()
+        channel_adapter = str(raw_target.get("adapter_kind", "")).strip().lower()
         raw_messages = raw_target.get("messages", [])
         if not target_name or not isinstance(raw_messages, list):
             continue
@@ -787,13 +831,78 @@ def _load_confirmed_drafts(
             key = (target_name, manifest_item_number)
             if key not in requested_set:
                 continue
-            found[key] = message_draft_from_json(raw_message.get("draft"))
+            found[key] = ConfirmedDeliverySnapshot(
+                target=target_name,
+                manifest_item_number=manifest_item_number,
+                channel_adapter=channel_adapter,
+                artifact_generated_at=artifact_generated_at,
+                artifact_timezone=artifact_timezone,
+                manifest_created_at=_optional_str(raw_message.get("created_at")),
+                planned_at=_optional_str(raw_message.get("planned_at")),
+                draft=message_draft_from_json(raw_message.get("draft")),
+            )
 
     missing = sorted(item for item in requested_set if item not in found)
     if missing:
         msg = f"Entregas confirmadas nao encontradas no dispatch artifact: {missing}"
         raise CloudRunnerError(msg)
     return tuple(found[key] for key in sorted(found))
+
+
+def _persist_publication_events(
+    *,
+    publication_event_store: SupabasePublicationEventStore,
+    profile: str,
+    snapshots: tuple[ConfirmedDeliverySnapshot, ...],
+    sent_at: str,
+) -> tuple[str, ...]:
+    events = tuple(
+        PublicationEventUpsert(
+            profile=profile,
+            marketplace=snapshot.draft.offer.marketplace.value,
+            stable_key=snapshot.draft.offer.stable_key,
+            item_id=snapshot.draft.offer.item_id,
+            target=snapshot.target,
+            channel_adapter=snapshot.channel_adapter or "unknown",
+            manifest_item_number=snapshot.manifest_item_number,
+            artifact_generated_at=snapshot.artifact_generated_at,
+            manifest_created_at=snapshot.manifest_created_at,
+            planned_at=snapshot.planned_at,
+            sent_at=sent_at,
+            offer_title=snapshot.draft.offer.title,
+            offer_url=snapshot.draft.offer.url,
+            offer_price=snapshot.draft.offer.price,
+            message_text=snapshot.draft.text,
+            payload={
+                "source": "cloud_runner.confirm_window_deliveries",
+                "profile": profile,
+                "target": snapshot.target,
+                "channel_adapter": snapshot.channel_adapter or "unknown",
+                "artifact_generated_at": snapshot.artifact_generated_at,
+                "artifact_timezone": snapshot.artifact_timezone,
+                "manifest_created_at": snapshot.manifest_created_at,
+                "planned_at": snapshot.planned_at,
+                "sent_at": sent_at,
+                "manifest_item_number": snapshot.manifest_item_number,
+            },
+        )
+        for snapshot in snapshots
+    )
+    try:
+        return publication_event_store.upsert_confirmed_events(events)
+    except PublicationEventStoreError as error:
+        raise CloudRunnerError(
+            "Nao foi possivel persistir publication_events no Supabase"
+        ) from error
+
+
+def _optional_str(value: object) -> str | None:
+    if value is None:
+        return None
+    clean_value = str(value).strip()
+    if not clean_value:
+        return None
+    return clean_value
 
 
 @contextmanager

@@ -1,5 +1,11 @@
 # Workflow n8n
 
+> **Status: referencia/legado.**
+>
+> O runbook oficial do MVP esta em [`runbook-n8n.md`](runbook-n8n.md), com n8n
+> consultando o Supabase diretamente. As trilhas abaixo registram desenhos
+> anteriores e nao devem orientar a primeira operacao minima.
+
 Este documento registra o estado atual das trilhas de integracao com `n8n`.
 
 Leitura correta da fase:

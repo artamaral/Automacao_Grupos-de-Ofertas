@@ -1,5 +1,9 @@
 # Perfis de descoberta
 
+Leitura complementar:
+
+- [`docs/discovery-shopee-ate-supabase.md`](discovery-shopee-ate-supabase.md) para o fluxo completo de discovery Shopee ate a importacao do catalogo no Supabase.
+
 Os filtros operacionais de coleta devem ficar em arquivo versionado, sem depender
 de banco ou interface administrativa nesta fase.
 

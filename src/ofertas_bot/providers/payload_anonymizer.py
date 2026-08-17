@@ -26,7 +26,10 @@ PUBLIC_IDENTITY_KEYS = {"shopid", "shopname"}
 
 def anonymize_payload(value: Any) -> Any:
     if isinstance(value, dict):
-        return {key: _anonymize_field(key=key, value=item, preserve_public_fields=False) for key, item in value.items()}
+        return {
+            key: _anonymize_field(key=key, value=item, preserve_public_fields=False)
+            for key, item in value.items()
+        }
     if isinstance(value, list):
         return [anonymize_payload(item) for item in value]
     return value
@@ -34,7 +37,10 @@ def anonymize_payload(value: Any) -> Any:
 
 def redact_sensitive_payload(value: Any) -> Any:
     if isinstance(value, dict):
-        return {key: _anonymize_field(key=key, value=item, preserve_public_fields=True) for key, item in value.items()}
+        return {
+            key: _anonymize_field(key=key, value=item, preserve_public_fields=True)
+            for key, item in value.items()
+        }
     if isinstance(value, list):
         return [redact_sensitive_payload(item) for item in value]
     return value

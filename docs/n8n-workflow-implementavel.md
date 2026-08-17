@@ -1,5 +1,11 @@
 # Workflow n8n implementavel
 
+> **Status: referencia/legado.**
+>
+> O MVP atual nao usa Google Drive/Sheets como base do catalogo nem exige n8n
+> nativo completo. A leitura vigente esta em
+> [`decisao-mvp-supabase-n8n.md`](decisao-mvp-supabase-n8n.md).
+
 ## Leitura oficial
 
 O workflow oficial do projeto passa a ser o `n8n-native`.

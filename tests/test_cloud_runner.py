@@ -266,7 +266,7 @@ def test_load_dispatch_window_filters_allowed_targets(tmp_path) -> None:
     assert payload["allowed_targets"] == ["grupo-teste"]
 
 
-def test_confirm_window_deliveries_updates_selection_state(tmp_path) -> None:
+def test_confirm_window_deliveries_updates_selection_state(tmp_path, monkeypatch) -> None:
     data_dir = tmp_path / "data" / "feminino"
     data_dir.mkdir(parents=True)
     offer = Offer(
@@ -309,6 +309,11 @@ def test_confirm_window_deliveries_updates_selection_state(tmp_path) -> None:
         ),
         encoding="utf-8",
     )
+    monkeypatch.setattr(
+        cloud_runner,
+        "build_publication_event_store_from_env",
+        lambda: None,
+    )
 
     payload = cloud_runner.confirm_window_deliveries(
         deliveries=[
@@ -328,6 +333,94 @@ def test_confirm_window_deliveries_updates_selection_state(tmp_path) -> None:
     updated = JsonSelectionStateStore(path=data_dir / "selection_state.json").load()
     assert payload["confirmed_count"] == 1
     assert updated[offer.stable_key].last_sent_at == "2026-06-28T14:00:00+00:00"
+
+
+def test_confirm_window_deliveries_persists_publication_events_when_store_is_enabled(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    data_dir = tmp_path / "data" / "feminino"
+    data_dir.mkdir(parents=True)
+    offer = Offer(
+        marketplace=Marketplace.SHOPEE,
+        title="Produto teste",
+        url="https://example.com/produto",
+        image_url=None,
+        price=10,
+        old_price=20,
+        commission_rate=0.12,
+        sales_count=10,
+        rating=4.9,
+        niche="feminino",
+        item_id=321,
+    )
+    stamped_offer = stamp_selected_offers(
+        [offer],
+        selected_at="2026-06-27T10:00:00+00:00",
+        cooldown_until="2026-06-28T10:00:00+00:00",
+    )[0]
+    records = update_selection_state_from_selected_offers({}, [stamped_offer])
+    JsonSelectionStateStore(path=data_dir / "selection_state.json").save(records)
+
+    draft = MessageDraft(offer=stamped_offer, text="Oferta teste")
+    (data_dir / "dispatch_artifact.json").write_text(
+        json_payload(
+            {
+                "generated_at": "2026-06-28T13:55:00+00:00",
+                "timezone": "America/Sao_Paulo",
+                "targets": [
+                    {
+                        "target": "grupo-teste",
+                        "adapter_kind": "whatsapp",
+                        "messages": [
+                            {
+                                "manifest_item_number": 1,
+                                "created_at": "2026-06-28T13:54:00+00:00",
+                                "planned_at": "2026-06-28T14:00:00+00:00",
+                                "draft": message_draft_to_json(draft),
+                            }
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    captured_events = {}
+
+    class FakeStore:
+        def upsert_confirmed_events(self, events):
+            captured_events["events"] = events
+            return ("publish-1",)
+
+    monkeypatch.setattr(
+        cloud_runner,
+        "build_publication_event_store_from_env",
+        lambda: FakeStore(),
+    )
+
+    payload = cloud_runner.confirm_window_deliveries(
+        deliveries=[
+            {
+                "profile": "feminino",
+                "target": "grupo-teste",
+                "manifest_item_number": 1,
+            }
+        ],
+        root_dir=str(tmp_path),
+        app_dir=str(tmp_path / "app"),
+        catalogs_dir=str(tmp_path / "catalogs"),
+        data_dir=str(tmp_path / "data"),
+        sent_at="2026-06-28T14:00:00+00:00",
+    )
+
+    assert payload["publication_events_persisted"] is True
+    assert payload["publication_events_count"] == 1
+    assert payload["confirmed_deliveries"][0]["publish_id"] == "publish-1"
+    assert captured_events["events"][0].stable_key == offer.stable_key
+    assert captured_events["events"][0].artifact_generated_at == "2026-06-28T13:55:00+00:00"
+    assert captured_events["events"][0].manifest_item_number == 1
 
 
 def json_payload(value: object) -> str:

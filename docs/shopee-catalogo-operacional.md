@@ -1,5 +1,9 @@
 # Catalogo Shopee
 
+Leitura complementar:
+
+- [`docs/discovery-shopee-ate-supabase.md`](discovery-shopee-ate-supabase.md) para a visao etapa por etapa do discovery ate o catalogo no Supabase.
+
 Este documento define como organizar a construcao de catalogo de produtos da
 Shopee para nicho e subnicho, pensando no fluxo futuro com `n8n`.
 
@@ -28,6 +32,54 @@ Decisao operacional atual:
 - por isso, o catalogo deve ser tratado como insumo curado para o fluxo
   `Collector -> Scorer -> Copywriter -> Compliance -> Publisher`, e nao como
   etapa automatica diaria desse mesmo pipeline.
+
+## Limite da etapa atual
+
+Na definicao atual de catalogo, cada linha continua representando um anuncio
+individual da Shopee, identificado por `itemId`.
+
+Isso e suficiente para:
+
+- montar uma base curada por `profile`;
+- classificar nicho e subnicho;
+- filtrar itens claramente fora do escopo;
+- importar snapshots controlados para o Supabase;
+- alimentar o ranking operacional inicial do `n8n`.
+
+Mas isso ainda nao resolve um problema mais profundo observado nas analises
+reais: produtos equivalentes podem aparecer em anuncios diferentes, de lojas
+diferentes, com combinacoes muito distintas de preco, comissao, vendas e
+tracao comercial.
+
+Exemplo pratico ja observado:
+
+- o mesmo produto pode vender mais em uma loja com preco maior;
+- outra loja pode exibir comissao melhor, mas quase nenhuma venda;
+- anuncios da mesma linha podem competir entre si sem que o menor preco seja o
+  vencedor comercial.
+
+Decisao:
+
+- a etapa atual do catalogo nao vai modelar ainda o conceito de "mesmo
+  produto anunciado por lojas diferentes";
+- o catalogo base continua focado em curadoria, cobertura e taxonomia;
+- a comparacao entre anuncios concorrentes do mesmo produto fica adiada para
+  uma etapa posterior de modelagem comercial.
+
+Consequencia pratica:
+
+- nesta fase, nao vamos bloquear a definicao do catalogo por causa dessa
+  competicao entre anuncios;
+- `itemId` continua sendo a chave operacional do refresh e da revalidacao;
+- qualquer logica de "anuncio vencedor por produto", "grupo de equivalencia" ou
+  "troca automatica entre lojas" fica fora do escopo atual.
+
+Quando essa frente voltar:
+
+- criar agrupamento de anuncios equivalentes por produto;
+- comparar lojas concorrentes por vendas, nota, preco, comissao e estabilidade;
+- escolher o anuncio vencedor por evidencias reais de tracao, e nao apenas por
+  menor preco ou maior comissao.
 
 ## Regra de chamada
 
@@ -190,6 +242,9 @@ Regra operacional:
 - quando `negative_terms` ou `exclude_terms` mudarem, o catalogo curado ja salvo
   em `catalogs/clean/<profile>/clean_catalog_rating_4_8_plus.csv` deve ser
   refeito ou re-limpo antes da proxima rodada operacional.
+- no profile `feminino`, `infantil` e `juvenil` sao termos proibidos porque
+  indicam roupas para criancas ou adolescentes, fora do escopo de moda feminina
+  adulta.
 
 ## Do descobrimento ate a copy
 
@@ -283,3 +338,36 @@ Para construcao de catalogo Shopee:
   mantendo `matchId` apenas como referencia registrada no profile;
 - o executor deve produzir sempre artefatos `raw`, `deduplicated` e `clean`,
   orientados a `n8n`.
+
+Para qualidade do catalogo `feminino`:
+
+- ofertas com `infantil` ou `juvenil` nos campos textuais devem ser removidas;
+- a regra vale tanto para novas construcoes locais quanto para relimpeza de
+  snapshots ativos ja publicados no Supabase;
+- a execucao de `2026-08-11` removeu `2.090` linhas do catalogo ativo
+  `feminino/shopee`, ativando o import
+  `d94d30be-576b-41a4-a504-cad83e69cec1` com `25.202` linhas.
+
+Atualizacao de `2026-08-13`:
+
+- `moda-gestante` deixou de existir no dominio `feminino`;
+- os termos proibidos de `feminino` foram ampliados para cobrir
+  `parto`, `gestante`, `bebe/bebê`, `infantil`, `juvenil`, `menino` e
+  `maternidade` com variantes operacionais;
+- a migracao local de linhas do catalogo curado moveu `8.532` candidatas do
+  insumo `feminino` para a relimpeza de `mae-e-bebe`;
+- a relimpeza local gerou `29.365` linhas operacionais em
+  `catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv` e `11.697`
+  linhas operacionais em
+  `catalogs/clean/mae-e-bebe/clean_catalog_rating_4_8_plus.csv`, ambas com
+  `sales > 1` e `ratingStar >= 4.8`;
+- a rodada remota de `2026-08-13T12:44:24-03:00` criou os imports
+  `40ac03c8-acc2-452d-a4a2-7fecc66f9fc2` (`feminino`) e
+  `6c9f60fe-86a0-430f-aae4-51532938a0f8` (`mae-e-bebe`);
+- no Supabase, `offers.catalog_items` passou a registrar
+  `30.362` itens para `feminino` e `11.697` para `mae-e-bebe`;
+- a verificacao pos-import mostrou um gap operacional preexistente: a tabela
+  `offers.candidate_refresh_policies` ainda so possui `feminino`, por isso
+  `offers.v_offer_ranking_current` e `offers.v_offer_refresh_status` continuam
+  expondo apenas esse profile ate que `mae-e-bebe` e `auto-e-moto` recebam
+  politicas remotas equivalentes.

@@ -1,5 +1,10 @@
 # Diagnóstico e execução HTTP real controlada
 
+> **Status: referencia/legado.**
+>
+> Diagnostico de HTTP real e apoio tecnico, nao caminho diario do MVP. A rodada
+> minima nao depende de chamada real a marketplace.
+
 ## Objetivo
 
 Este documento descreve tres modos seguros para preparar uma chamada HTTP real:

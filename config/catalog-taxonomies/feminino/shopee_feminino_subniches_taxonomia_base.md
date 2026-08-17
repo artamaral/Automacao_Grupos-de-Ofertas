@@ -9,6 +9,45 @@ Arquivo oficial para classificação de `subniches` no `catalog_cleaning_harness
 - Se uma palavra-chave não existir no arquivo-base, registrar em `unmapped_source_keywords` e revisar a taxonomia antes da próxima execução.
 - `productName` deve ser usado apenas pelas regras de fallback quando `source_hits` estiver vazio ou genérico.
 
+## Termos proibidos
+
+Remover ofertas do perfil `feminino` quando os campos textuais indicarem itens masculinos, produtos pet, roupas para criancas ou adolescentes, itens de gestacao/maternidade ou sinais claros de mae e bebe:
+
+- `masculino`
+- `masculina`
+- `masculinos`
+- `masculinas`
+- `cueca`
+- `cachorro`
+- `cachorros`
+- `cães`
+- `caes`
+- `canino`
+- `felino`
+- `roupa pet`
+- `para cachorro`
+- `coleira pet`
+- `peitoral pet`
+- `petshop`
+- `parto`
+- `partos`
+- `gestante`
+- `gestacao`
+- `gestação`
+- `bebe`
+- `bebê`
+- `bebes`
+- `bebês`
+- `infantil`
+- `infantis`
+- `juvenil`
+- `juvenis`
+- `menino`
+- `maternidade`
+- `materno`
+- `materna`
+- `maternal`
+
 ## Resumo
 
 - Perfil: `feminino` / `Feminino`
@@ -139,12 +178,6 @@ Arquivo oficial para classificação de `subniches` no `catalog_cleaning_harness
 - `moda`
 - `roupa`
 - `roupas`
-
-### `moda-gestante`
-
-- `moda gestante`
-- `roupa gestante`
-- `vestido gestante`
 
 ### `moda-inverno`
 

@@ -23,7 +23,7 @@ brands = ["maybelline", "ruby rose", "loreal"]
 creators = []
 categories = ["feminino"]
 include_terms = []
-exclude_terms = ["medicamento", "emagrecedor", "produto intimo adulto", "masculino", "masculin", "adulto", "pet", "cachorr", "for men", "for man", "carrocho", "cao", "caes"]
+exclude_terms = ["medicamento", "emagrecedor", "produto intimo adulto", "masculino", "masculin", "adulto", "pet", "cachorr", "for men", "for man", "carrocho", "cao", "caes", "parto", "partos", "gestante", "gestacao", "gestação", "bebe", "bebê", "bebes", "bebês", "juvenil", "juvenis", "infantil", "infantis", "menino", "maternidade", "materno", "materna", "maternal"]
 subgroups = [
   { slug = "maquiagem", label = "Maquiagem", query = "maquiagem base corretivo batom gloss rimel delineador blush", categories = ["Maquiagem"] },
   { slug = "skincare", label = "Skincare", query = "skincare serum facial protetor solar facial hidratante facial limpeza facial mascara facial", categories = ["Cuidados com a Pele"] },

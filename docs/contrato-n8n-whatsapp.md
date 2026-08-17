@@ -1,5 +1,11 @@
 # Contrato n8n e WhatsApp
 
+> **Status: referencia/legado.**
+>
+> Este contrato descreve uma fase anterior do n8n. O contrato operacional do
+> MVP esta em [`docs/runbook-n8n.md`](runbook-n8n.md): n8n consulta Supabase,
+> monta mensagem, valida allowlist, envia e registra em `publication_events`.
+
 Este documento registra o contrato operacional com `n8n`, a decisao de canal
 real inicial e a distribuicao de responsabilidades entre repositorio e
 orquestrador.

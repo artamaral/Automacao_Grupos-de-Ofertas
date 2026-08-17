@@ -1,55 +1,75 @@
-# Arquitetura alvo
+# Arquitetura alvo do MVP
 
 ## Decisao principal
 
-O destino oficial do projeto passa a ser `n8n cloud` com operacao nativa.
+O destino oficial do MVP e Supabase + n8n direto.
 
 Isso significa:
 
-- nada critico deve depender do computador local ligado;
-- nada critico deve depender de `self-hosted` como modelo definitivo;
-- regras, estado e artefatos devem ser legiveis pela automacao;
-- a manutencao operacional deve ser simples para o operador.
+- Supabase guarda o catalogo ativo, ranking, estado minimo e historico;
+- n8n consulta o ranking diretamente no Supabase;
+- n8n monta a mensagem por template simples;
+- n8n executa o envio apenas para destinos em allowlist;
+- n8n registra o resultado no Supabase;
+- Cloud Run fica fora do caminho obrigatorio do MVP.
 
 ## Separacao de responsabilidades
 
 ### Repositorio
 
-- codigo Python
-- testes
-- contratos
-- documentacao
-- fallback de transicao
+- migrations e contrato do Supabase;
+- documentacao canonicamente curta;
+- scripts de apoio para importar catalogos curados;
+- referencias de templates e regras, quando uteis para versionamento.
 
-### Google Planilhas
+### Ambiente local
 
-- descoberta
-- selecao
-- grupos
-- cupons
-- templates
+- descoberta exploratoria;
+- limpeza e curadoria dos catalogos;
+- validacao dos CSVs;
+- importacao controlada do catalogo curado no Supabase.
+
+### Supabase
+
+- `catalog_imports`;
+- `catalog_items`;
+- `offer_selection_state`;
+- `v_offer_ranking_current`;
+- `publication_events`.
 
 ### n8n
 
-- orquestracao
-- execucao operacional
-- leitura de regras
-- leitura de catalogos ativos
-- consolidacao dos artefatos da rodada
-- disparo controlado por canal
+- agendamento ou gatilho manual da rodada;
+- leitura de ofertas elegiveis no Supabase;
+- aplicacao de limite por rodada;
+- montagem de mensagens;
+- bloqueio por allowlist;
+- envio pelo canal configurado;
+- registro do resultado em `publication_events`.
 
-## Camadas legadas
+Hospedagem proposta:
 
-Ainda existem no repositorio, mas nao fazem parte do fluxo oficial:
+- n8n self-hosted em VPS da Hostinger;
+- manutencao pelo VSCode Remote SSH;
+- credenciais configuradas no painel do n8n ou em arquivos locais da VPS fora
+  do Git;
+- workflow exportavel versionado no repositorio.
 
-- `self-hosted/local`
-- `cloud runner` HTTP
-- arquivos locais em `config/`
+## Evolucoes futuras
 
-Regra de leitura:
+As proximas camadas entram somente depois do MVP rodar:
 
-- nao usar essas camadas para desenhar o workflow principal do `n8n`;
-- nao referenciar `C:\...`, `app_dir`, `root_dir` ou URL de runner no contrato
-  operacional oficial;
-- manter essas trilhas apenas como legado tecnico e apoio de debug enquanto a
-  migracao total nao estiver concluida.
+- automatizar coleta e atualizacao do catalogo;
+- revisar e melhorar nichos/subnichos;
+- criar interface de aprovacao ou revisao;
+- mover parte da logica do n8n para Cloud Run, se o workflow ficar pesado;
+- ampliar roteamento por grupo;
+- adicionar metricas de desempenho.
+
+## Regra de leitura
+
+Quando houver conflito, seguir
+[`../decisao-mvp-supabase-n8n.md`](../decisao-mvp-supabase-n8n.md).
+
+Documentos sobre Cloud Run, runner HTTP, n8n antigo, Google Planilhas e JSON
+local sao referencia de transicao, nao arquitetura obrigatoria do MVP.
