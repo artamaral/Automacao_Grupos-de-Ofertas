@@ -4,7 +4,12 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ofertas_bot.generators.common import base_canvas, draw_centered, paste_product_image, short_title
+from ofertas_bot.generators.common import (
+    base_canvas,
+    draw_centered,
+    paste_product_image,
+    short_title,
+)
 from ofertas_bot.product_resolver import ProductData
 
 CAROUSEL_SIZE = (1080, 1350)
