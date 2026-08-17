@@ -16,7 +16,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("url", help="URL completa ou curta de produto da Shopee")
     parser.add_argument("--reels", action="store_true", help="Gera Reel 9:16 e legenda")
     parser.add_argument("--carousel", action="store_true", help="Gera carrossel e legenda")
-    parser.add_argument("--story", action="store_true", help="Gera Story com area para Link Sticker")
+    parser.add_argument(
+        "--story",
+        action="store_true",
+        help="Gera Story com area para Link Sticker",
+    )
     parser.add_argument("--all", action="store_true", help="Gera reels, carousel e story")
     parser.add_argument("--output", type=Path, default=Path("output"), help="Diretorio de saida")
     parser.add_argument("--preview", action="store_true", help="Gera preview.html local")
