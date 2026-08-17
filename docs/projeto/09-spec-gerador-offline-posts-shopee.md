@@ -1,185 +1,204 @@
-# Spec — Gerador Offline de Posts a partir de URL Shopee
+# Spec — Gerador Offline de Posts a partir de URL Afiliada Shopee
 
 ## 1. Objetivo
 
-Criar uma ferramenta local que receba uma URL de produto da Shopee e gere materiais prontos para publicação manual em redes sociais.
+Criar uma ferramenta local que receba **somente uma URL afiliada da Shopee** e gere materiais prontos para publicação manual.
 
-O sistema **não publica automaticamente**. Ele apenas gera os arquivos necessários para upload manual.
+O sistema não publica automaticamente e não depende de banco, catálogo, API autenticada ou credenciais Shopee.
 
-Formatos suportados inicialmente:
+Formatos suportados:
 
 - Reels;
 - Carrossel;
 - Story;
 - todos os formatos em uma única execução.
 
-## 2. Entradas
+## 2. Contrato de isolamento
 
-### 2.1 Entrada obrigatória
-
-URL de produto Shopee, completa ou curta:
+### Entrada de negócio única
 
 ```text
-https://shopee.com.br/...
-https://s.shopee.com.br/...
+URL afiliada Shopee
 ```
 
-### 2.2 Flags de formato
+Exemplo:
+
+```text
+https://s.shopee.com.br/XXXXXXXX
+```
+
+A URL fornecida pelo usuário:
+
+- deve ser preservada como `affiliate_url`;
+- deve ser usada nos posts e em `story/link.txt`;
+- nunca deve ser substituída por um link gerado pelo sistema.
+
+### Dependências externas permitidas
+
+O script pode acessar apenas recursos públicos necessários para resolver a própria URL:
+
+- seguir redirects da URL afiliada;
+- carregar a página pública do produto;
+- baixar imagens públicas;
+- baixar vídeos públicos quando disponíveis.
+
+### Dependências proibidas
+
+Este fluxo não deve usar:
+
+```text
+SHOPEE_PARTNER_ID
+SHOPEE_SECRET_KEY
+SHOPEE_TRACKING_ID
+ShopeeProvider
+productOfferV2 autenticado
+generateShortLink
+Supabase
+Postgres
+SQLite
+Google Sheets
+catálogo local
+fila de ofertas
+storage do projeto
+histórico de publicações
+```
+
+`shop_id` e `item_id` são auxiliares e opcionais. A geração deve funcionar mesmo quando eles não puderem ser extraídos.
+
+## 3. Entradas
+
+### Entrada obrigatória
+
+```text
+URL afiliada Shopee
+```
+
+### Flags
 
 ```text
 --reels
 --carousel
 --story
 --all
+--output <diretorio>
+--preview
 ```
 
 Exemplos:
 
 ```powershell
-python -m ofertas_bot.post_from_url "URL_SHOPEE" --reels
-python -m ofertas_bot.post_from_url "URL_SHOPEE" --carousel
-python -m ofertas_bot.post_from_url "URL_SHOPEE" --story
-python -m ofertas_bot.post_from_url "URL_SHOPEE" --all
+python -m ofertas_bot.post_from_url "URL_AFILIADA" --story
+python -m ofertas_bot.post_from_url "URL_AFILIADA" --carousel
+python -m ofertas_bot.post_from_url "URL_AFILIADA" --reels
+python -m ofertas_bot.post_from_url "URL_AFILIADA" --all --preview
 ```
 
-`--all` equivale a `--reels --carousel --story`.
+## 4. Extração pública de dados
 
-### 2.3 Flags opcionais
+A partir da URL fornecida, o resolver deve seguir redirects e extrair da página pública tudo que estiver disponível e for necessário para copy e mídia.
 
-```text
---output <diretorio>
---preview
-```
-
-## 3. ProductData
-
-A URL deve ser resolvida para um objeto normalizado `ProductData` com, quando disponíveis:
+Campos normalizados:
 
 ```text
-marketplace
-shop_id
-item_id
+affiliate_url       # exatamente a URL fornecida
+resolved_url        # destino final do redirect
 title
+description
 price
 old_price
 discount_pct
-images
-video
-product_url
-affiliate_url
-sales
 rating
+rating_count
+sales
+images[]
+videos[]
+shop_name
+shop_id             # opcional
+item_id             # opcional
 ```
 
-O mesmo `ProductData` deve alimentar todos os formatos para evitar divergências de preço, desconto, título, mídia e URL de afiliado.
+Fontes públicas de extração podem incluir:
 
-## 4. Copy existente do projeto
+- JSON-LD;
+- Open Graph / meta tags;
+- dados estruturados presentes no HTML público.
 
-### 4.1 Fonte de verdade
+O sistema não deve buscar dados ausentes em banco ou API autenticada.
 
-Para **Reels e Carrossel**, esta funcionalidade não deve implementar um novo sistema de geração de copy.
+Quando um campo opcional não estiver disponível, deve permanecer ausente/nulo. Não inventar valores.
 
-As referências oficiais já existentes são:
+`title` e `price` são necessários para produzir a copy atual; se não puderem ser extraídos, o resolver deve falhar com erro explícito.
+
+## 5. ProductData
+
+O mesmo `ProductData` deve alimentar todos os formatos para impedir divergências entre preço, título, mídia e URL.
+
+A URL de afiliado original é a fonte oficial de link do pacote.
+
+Quando `item_id` não existir, o diretório do pacote deve usar uma chave estável derivada da URL, sem consultar nenhuma base.
+
+## 6. Copy existente do projeto
+
+Para **Reels e Carrossel**, não criar um novo sistema de copy.
+
+Referências oficiais:
 
 - [`src/ofertas_bot/agents/copywriter.py`](../../src/ofertas_bot/agents/copywriter.py)
 - [`docs/copy-guidelines.md`](../copy-guidelines.md)
 - [`tests/test_copywriter.py`](../../tests/test_copywriter.py)
-- template Shopee atual: [`config/message_templates/shopee.txt`](../../config/message_templates/shopee.txt)
+- [`config/message_templates/shopee.txt`](../../config/message_templates/shopee.txt)
 
-O gerador offline deve reutilizar a saída do mecanismo de copy existente em vez de duplicar ou reimplementar suas regras.
-
-Os generators não devem criar lógica paralela para:
-
-- formatação de preço;
-- preço anterior;
-- percentual de desconto;
-- disclosure/aviso de anúncio ou afiliado;
-- estrutura da mensagem base.
-
-A documentação atual registra, entre outras regras, a linha de preço:
-
-```text
-Preço: de R$ 89.90 por R$ 49.90 (44% OFF)
-```
-
-quando existe `old_price > price`, e:
-
-```text
-Preço: R$ 49.90
-```
-
-quando não existe preço anterior válido.
-
-Para Shopee, o caminho operacional atual também utiliza o template estático versionado em `config/message_templates/shopee.txt`.
-
-### 4.2 Fluxo da copy
+Fluxo:
 
 ```text
 ProductData
     ↓
-Copywriter / template existente
+Copywriter existente
     ↓
 GeneratedCopy
     ↓
 ReelGenerator / CarouselGenerator
 ```
 
-Qualquer alteração futura nas regras oficiais de copy deve refletir automaticamente no gerador offline.
+Os generators não devem reimplementar regras comerciais de preço, desconto, disclosure ou estrutura de legenda.
 
-### 4.3 Exceção — Story
+### Story
 
-Story possui necessidade específica de texto curto e visual.
+Story pode ter copy visual própria, curta, derivada diretamente do `ProductData`.
 
-O `StoryGenerator` pode gerar textos visuais derivados diretamente do `ProductData`, por exemplo:
+Essa copy visual não substitui o `Copywriter` oficial.
 
-```text
-ACHADINHO 🔥
-
-de R$ 89,90
-por R$ 49,90
-
-44% OFF
-
-👇 COMPRE AQUI 👇
-```
-
-Essa lógica é **copy visual de Story**, não substituição do mecanismo principal de copy.
-
-## 5. Fluxo de processamento
+## 7. Fluxo completo
 
 ```text
-                    ┌→ Copy existente → ReelGenerator
-URL → ProductData ──┼→ Copy existente → CarouselGenerator
-                    └→ StoryGenerator
-```
-
-Fluxo detalhado:
-
-```text
-URL Shopee
-    ↓
-ProductResolver
-    ↓
+URL afiliada Shopee
+        ↓
+redirect público
+        ↓
+página pública Shopee
+        ↓
+ShopeePublicPageResolver
+        ↓
 ProductData
-    ↓
-AffiliateLinkResolver
-    ↓
-Copywriter/template existente
-    ↓
-ReelGenerator / CarouselGenerator
-
-ProductData
-    ↓
-StoryGenerator
-    ↓
-Story Copy + Layout + Affiliate URL
+        ↓
+┌──────────────────────────────────────┐
+│ Copywriter existente                 │
+│   ├→ ReelGenerator                   │
+│   └→ CarouselGenerator               │
+│                                      │
+│ ProductData → StoryGenerator         │
+└──────────────────────────────────────┘
+        ↓
+arquivos locais
 ```
 
-## 6. Saída geral
+Não existe `AffiliateLinkResolver`: o link afiliado já é a entrada.
+
+## 8. Saída
 
 ```text
 output/
-  <produto_id>/
+  <item_id-ou-chave-da-url>/
     metadata.json
 
     reels/
@@ -204,15 +223,16 @@ output/
 
 Somente os formatos solicitados devem ser gerados.
 
-## 7. Reels
+## 9. Reels
 
-### Entrada
+Entrada:
 
 - `ProductData`;
-- `GeneratedCopy` proveniente do mecanismo de copy existente;
-- imagens e/ou vídeo do produto.
+- copy oficial existente;
+- vídeos públicos do produto quando disponíveis;
+- imagens públicas como fallback.
 
-### Saída
+Saída:
 
 ```text
 reel.mp4
@@ -229,66 +249,43 @@ Formato:
 
 Regras:
 
-- `caption.txt` deve ser derivado da copy oficial existente;
-- o `ReelGenerator` não deve criar uma segunda legenda independente;
-- textos sobrepostos ao vídeo podem ser resumos visuais de `ProductData`;
-- priorizar vídeo do produto quando disponível;
-- sem vídeo, permitir composição a partir de imagens estáticas com movimentos/transições.
+- `caption.txt` vem do `Copywriter` existente;
+- priorizar vídeo público do produto quando disponível;
+- sem vídeo, permitir composição usando imagens;
+- texto visual pode resumir dados de `ProductData`.
 
-Estrutura audiovisual sugerida:
+## 10. Carrossel
 
-```text
-0–2s   Hook visual
-2–6s   Produto
-6–10s  Preço
-10–13s Desconto
-13–15s CTA
-```
-
-## 8. Carrossel
-
-### Entrada
+Entrada:
 
 - `ProductData`;
-- `GeneratedCopy` proveniente do mecanismo de copy existente;
-- imagens do produto.
+- copy oficial existente;
+- imagens públicas extraídas da página.
 
-### Saída
+Saída:
 
 ```text
 01.jpg
 02.jpg
-03.jpg
-04.jpg
+...
 caption.txt
 ```
 
 Regras:
 
-- `caption.txt` deve usar a copy oficial existente;
-- os cards podem usar informações resumidas de `ProductData`;
-- o texto visual dos cards não deve duplicar a lógica da legenda.
+- `caption.txt` vem do `Copywriter` existente;
+- cards usam apenas fatos extraídos da página;
+- número de cards pode variar conforme conteúdo disponível.
 
-Estrutura sugerida:
+## 11. Story
 
-```text
-Card 1: Hook + produto
-Card 2: Preço + desconto
-Card 3: Características / benefícios disponíveis
-Card 4: CTA
-```
-
-O número de cards pode variar conforme o conteúdo disponível.
-
-## 9. Story
-
-### Entrada
+Entrada:
 
 - `ProductData`;
-- `affiliate_url`;
-- imagem do produto.
+- `affiliate_url` original;
+- imagem pública do produto.
 
-### Saída
+Saída:
 
 ```text
 story.jpg
@@ -306,87 +303,59 @@ Formato:
 A arte deve conter, quando disponível:
 
 - hook;
-- imagem do produto;
-- preço atual;
+- imagem;
+- preço;
 - preço anterior;
 - desconto;
 - CTA;
-- área reservada para o Link Sticker.
+- área reservada para Link Sticker.
 
-Exemplo conceitual:
+`story/link.txt` deve conter **exatamente a URL afiliada fornecida pelo usuário**.
 
-```text
-┌─────────────────────────┐
-│       ACHADINHO 🔥      │
-│                         │
-│        PRODUTO          │
-│                         │
-│ de R$ 89,90             │
-│ por R$ 49,90            │
-│                         │
-│       44% OFF           │
-│                         │
-│   👇 COMPRE AQUI 👇     │
-│                         │
-│ [ ÁREA LINK STICKER ]   │
-└─────────────────────────┘
-```
+O link clicável é adicionado manualmente pelo usuário através do Link Sticker da plataforma.
 
-### Link clicável
+## 12. Metadata
 
-O link clicável não é incorporado ao JPG ou MP4.
-
-O sistema deve gerar `story/link.txt` contendo apenas a URL de afiliado:
-
-```text
-https://s.shopee.com.br/XXXXXXXX
-```
-
-Na publicação manual do Story, o usuário adiciona essa URL por meio do Link Sticker da plataforma.
-
-`instructions.txt` deve registrar essa instrução operacional.
-
-## 10. Metadata
-
-Gerar `metadata.json` com os dados utilizados para criar os materiais.
+`metadata.json` deve registrar apenas dados obtidos da URL/página e dados de geração.
 
 Exemplo:
 
 ```json
 {
   "marketplace": "shopee",
-  "shop_id": "1252993709",
-  "item_id": "21997761426",
+  "affiliate_url": "https://s.shopee.com.br/xxxx",
+  "resolved_url": "https://shopee.com.br/...",
+  "shop_id": 1252993709,
+  "item_id": 21997761426,
   "title": "Casaco Teddy com Capuz",
+  "description": "...",
   "price": 49.90,
   "old_price": 89.90,
   "discount_pct": 44,
-  "affiliate_url": "https://s.shopee.com.br/xxxx",
+  "rating": 4.8,
+  "rating_count": 1234,
+  "sales": 321,
+  "images": ["https://..."],
+  "videos": ["https://..."],
   "formats": ["reels", "carousel", "story"]
 }
 ```
 
-## 11. Preview local
+## 13. Preview
 
-Com `--preview`, gerar `preview.html`.
+Com `--preview`, gerar `preview.html` local com:
 
-O preview deve permitir:
-
-- visualizar Reel, Carrossel e Story;
+- visualização de Reel, Carrossel e Story;
 - copiar legenda;
-- copiar link;
+- copiar URL afiliada;
 - abrir imagem;
 - abrir vídeo.
 
-Para Reels e Carrossel, a legenda exibida deve vir da mesma fonte oficial de copy usada pelo restante do projeto.
+O preview não publica nem envia dados a serviços externos além dos recursos públicos já usados pelo pacote.
 
-O preview não deve publicar conteúdo nem enviar dados para redes sociais.
+## 14. Recursos necessários
 
-## 12. Recursos necessários
-
-### 12.1 Componentes existentes a reutilizar
-
-Fonte de verdade:
+### Existentes
 
 ```text
 src/ofertas_bot/agents/copywriter.py
@@ -395,172 +364,79 @@ tests/test_copywriter.py
 config/message_templates/shopee.txt
 ```
 
-Não criar um segundo sistema de copy.
+### Processamento de imagem
 
-### 12.2 Integração Shopee
+`Pillow` para resize, crop, composição, overlays, cards, Story e cover.
 
-Necessário mecanismo para:
+### Processamento de vídeo
 
-- resolver URL curta e completa;
-- identificar `shop_id` e `item_id`;
-- obter dados do produto;
-- obter preço e preço anterior;
-- obter imagens;
-- obter vídeo, quando disponível;
-- gerar ou recuperar `affiliate_url`.
+`FFmpeg` pode ser usado como implementação local para gerar MP4/Reels.
 
-### 12.3 Processamento de imagem
+Isso é ferramenta local de processamento e não cria dependência de banco ou serviço externo.
 
-Biblioteca sugerida: `Pillow`.
-
-Responsabilidades:
-
-- resize e crop;
-- composição;
-- textos e overlays;
-- cards;
-- Story;
-- cover.
-
-### 12.4 Processamento de vídeo
-
-Sugestão: `FFmpeg`, opcionalmente `MoviePy`.
-
-Responsabilidades:
-
-- geração de Reels;
-- concatenação;
-- animação de imagens;
-- zoom;
-- transições;
-- text overlays;
-- conversão de formato.
-
-### 12.5 Templates visuais
-
-Estrutura sugerida:
+## 15. Separação de responsabilidades
 
 ```text
-templates/
-  reels/
-  carousel/
-  story/
-```
+ShopeePublicPageResolver
+    → resolve redirect e extrai fatos públicos
 
-Templates devem separar layout, tipografia e posicionamento dos dados do produto.
-
-## 13. Componentes novos sugeridos
-
-```text
-post_from_url.py
-product_resolver.py
-affiliate_link.py
-post_package.py
-
-generators/
-  reel_generator.py
-  carousel_generator.py
-  story_generator.py
-  preview_generator.py
-```
-
-O componente existente de copy mantém sua responsabilidade atual.
-
-## 14. Separação de responsabilidades
-
-```text
-ProductResolver
-    → obtém e normaliza dados
-
-AffiliateLinkResolver
-    → obtém URL de afiliado
-
-Copywriter/template existente
-    → gera copy oficial
+Copywriter existente
+    → gera texto comercial oficial
 
 ReelGenerator
-    → gera mídia para Reel
+    → gera mídia Reel
 
 CarouselGenerator
     → gera cards
 
 StoryGenerator
-    → gera arte específica de Story
+    → gera Story e prepara link.txt
 
 PreviewGenerator
-    → permite inspeção local
+    → inspeção local
 ```
 
-Regra central:
+## 16. Regra fundamental
 
 ```text
-Copy existente = texto comercial oficial
-Generators       = apresentação visual
-```
-
-Generators não devem se tornar novos copywriters.
-
-## 15. Regra fundamental
-
-```text
+ENTRADA ÚNICA = URL AFILIADA
+EXTRAÇÃO = SOMENTE RECURSOS PÚBLICOS DESSA URL
+SAÍDA = SOMENTE ARQUIVOS LOCAIS
 GERAR ≠ PUBLICAR
 ```
 
-O sistema pode consultar Shopee, resolver produto, baixar mídia, obter link de afiliado, usar a copy existente, gerar imagens, vídeos, Story e preview.
-
-O sistema não deve:
-
-- publicar no Instagram;
-- publicar no WhatsApp;
-- publicar no TikTok;
-- operar contas sociais.
-
-A publicação permanece manual.
-
-## 16. MVP
-
-1. URL Shopee;
-2. `ProductResolver`;
-3. `ProductData`;
-4. `affiliate_url`;
-5. integração com o mecanismo de copy existente;
-6. `--story`;
-7. `--carousel`;
-8. `--reels`;
-9. `--all`;
-10. `metadata.json`;
-11. `preview.html`.
-
-Prioridade sugerida:
-
-```text
-ProductResolver
-      ↓
-integração com copy existente
-      ↓
-Story
-      ↓
-Carousel
-      ↓
-Reels
-      ↓
-Preview
-```
+Nenhum componente deste fluxo deve autenticar na Shopee ou consultar qualquer base do restante do projeto.
 
 ## 17. Critérios de aceite
 
+### Isolamento
+
+- nenhuma dependência de `Settings` para credenciais Shopee;
+- nenhum `ShopeeProvider`;
+- nenhum `generateShortLink`;
+- nenhuma consulta autenticada a `productOfferV2`;
+- nenhuma leitura/gravação em Supabase ou outra base;
+- nenhuma consulta a catálogo, histórico ou fila;
+- URL afiliada original preservada sem alteração.
+
+### Extração
+
+- seguir redirect público;
+- extrair título e preço;
+- extrair descrição, rating, contagem de avaliações, vendas, fotos e vídeos quando disponíveis;
+- `shop_id` e `item_id` opcionais;
+- não inventar dados ausentes.
+
 ### Copy
 
-Para o mesmo `ProductData`, a legenda gerada pelo modo offline para Reels ou Carrossel deve usar a mesma fonte de regras e templates oficiais do projeto.
-
-Nenhuma regra comercial existente deve ser reimplementada dentro dos generators.
+Reels e Carrossel devem reutilizar a fonte oficial de copy existente.
 
 ### Story
 
-- gerar arte vertical 9:16;
-- gerar `link.txt` com a URL de afiliado;
-- reservar área visual para o Link Sticker;
-- não tentar incorporar link clicável no arquivo de imagem/vídeo.
+- gerar 9:16;
+- gerar `link.txt` com exatamente a URL de entrada;
+- reservar área para Link Sticker;
+- não tentar incorporar link clicável diretamente no JPG/MP4.
 
 ### Segurança operacional
 
