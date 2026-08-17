@@ -19,6 +19,7 @@ Objetivo:
 6. [`06-proximas-etapas.md`](06-proximas-etapas.md)
 7. [`07-catalogos-operacionais.md`](07-catalogos-operacionais.md)
 8. [`08-spec-distribuicao-editorial-feminino.md`](08-spec-distribuicao-editorial-feminino.md)
+9. [`09-spec-gerador-offline-posts-shopee.md`](09-spec-gerador-offline-posts-shopee.md)
 
 ## Fonte canonica e legado
 
