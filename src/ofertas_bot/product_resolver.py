@@ -95,9 +95,13 @@ class ShopeePublicPageResolver:
             _search_number(html, ("price", "priceMin")),
         )
         if not title:
-            raise ShopeePublicPageError("Nao foi possivel extrair o titulo da pagina publica Shopee.")
+            raise ShopeePublicPageError(
+                "Nao foi possivel extrair o titulo da pagina publica Shopee."
+            )
         if price is None:
-            raise ShopeePublicPageError("Nao foi possivel extrair o preco da pagina publica Shopee.")
+            raise ShopeePublicPageError(
+                "Nao foi possivel extrair o preco da pagina publica Shopee."
+            )
 
         old_price = _first_float(
             meta.get("product:original_price:amount"),
