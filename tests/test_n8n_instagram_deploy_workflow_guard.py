@@ -27,10 +27,10 @@ def test_validate_instagram_workflow_accepts_versioned_json() -> None:
 def test_validate_instagram_workflow_rejects_missing_carousel_branch() -> None:
     workflow = load_instagram_workflow()
     workflow["nodes"] = [
-        node for node in workflow["nodes"] if node["name"] != "Preparar Filhos Carrossel"
+        node for node in workflow["nodes"] if node["name"] != "Normalizar Container Criado"
     ]
 
-    with pytest.raises(guard.InstagramWorkflowGuardError, match="Preparar Filhos Carrossel"):
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="Normalizar Container Criado"):
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
@@ -122,6 +122,16 @@ def test_prepare_carousel_children_node_expands_multiple_images() -> None:
     assert "slice(0, 10)" in js_code
     assert "carousel_image_url" in js_code
     assert "carousel requires between 2 and 10 image urls" in js_code
+
+
+def test_normalize_container_node_accepts_id_or_creation_id() -> None:
+    workflow = load_instagram_workflow()
+    normalize_node = guard.node_by_name(workflow, "Normalizar Container Criado")
+    js_code = normalize_node["parameters"]["jsCode"]
+
+    assert "item.creation_id || item.id" in js_code
+    assert "instagram container creation id ausente" in js_code
+    assert "creation_id: creationId" in js_code
 
 
 def test_validate_instagram_workflow_rejects_process_env_in_code_node() -> None:

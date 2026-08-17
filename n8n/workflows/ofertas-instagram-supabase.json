@@ -323,12 +323,26 @@
       }
     },
     {
+      "id": "normalizar-container-criado",
+      "name": "Normalizar Container Criado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $json;\nconst creationId = String(item.creation_id || item.id || '').trim();\nif (!creationId) {\n  throw new Error('instagram container creation id ausente');\n}\nreturn [{ json: { ...item, creation_id: creationId } }];"
+      },
+      "notes": "Normaliza a resposta da Graph API para garantir creation_id nos passos seguintes."
+    },
+    {
       "id": "checar-status",
       "name": "Checar Status Container",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1020,
+        1140,
         0
       ],
       "parameters": {
@@ -351,7 +365,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1260,
+        1380,
         0
       ],
       "parameters": {
@@ -403,7 +417,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        1500,
+        1620,
         0
       ],
       "parameters": {
@@ -547,7 +561,7 @@
       "main": [
         [
           {
-            "node": "Checar Status Container",
+            "node": "Normalizar Container Criado",
             "type": "main",
             "index": 0
           }
@@ -577,6 +591,17 @@
       ]
     },
     "Criar Container Pai Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Container Criado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Container Criado": {
       "main": [
         [
           {
