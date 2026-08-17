@@ -1,0 +1,33 @@
+name: Offline post generator validation
+
+on:
+  pull_request:
+    paths:
+      - "src/ofertas_bot/product_resolver.py"
+      - "src/ofertas_bot/offline_post_generator.py"
+      - "src/ofertas_bot/post_from_url.py"
+      - "src/ofertas_bot/generators/**"
+      - "tests/test_product_resolver.py"
+      - "tests/test_offline_post_generator.py"
+      - "pyproject.toml"
+
+jobs:
+  validate-offline-post-generator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e ".[dev]"
+      - name: Ruff feature files
+        run: >-
+          python -m ruff check
+          src/ofertas_bot/product_resolver.py
+          src/ofertas_bot/offline_post_generator.py
+          src/ofertas_bot/post_from_url.py
+          src/ofertas_bot/generators
+          tests/test_product_resolver.py
+          tests/test_offline_post_generator.py
+      - name: Pytest feature
+        run: python -m pytest tests/test_product_resolver.py tests/test_offline_post_generator.py -q
