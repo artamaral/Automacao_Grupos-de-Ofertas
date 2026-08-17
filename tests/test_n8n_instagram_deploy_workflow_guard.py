@@ -27,10 +27,10 @@ def test_validate_instagram_workflow_accepts_versioned_json() -> None:
 def test_validate_instagram_workflow_rejects_missing_carousel_branch() -> None:
     workflow = load_instagram_workflow()
     workflow["nodes"] = [
-        node for node in workflow["nodes"] if node["name"] != "Criar Container Pai Carrossel"
+        node for node in workflow["nodes"] if node["name"] != "Montar Payload Pai Carrossel"
     ]
 
-    with pytest.raises(guard.InstagramWorkflowGuardError, match="Criar Container Pai Carrossel"):
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="Montar Payload Pai Carrossel"):
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
@@ -99,6 +99,17 @@ def test_validate_instagram_workflow_requires_http_header_auth_credentials() -> 
 
     with pytest.raises(guard.InstagramWorkflowGuardError, match="httpHeaderAuth"):
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
+
+
+def test_carousel_payload_node_restores_original_context() -> None:
+    workflow = load_instagram_workflow()
+    payload_node = guard.node_by_name(workflow, "Montar Payload Pai Carrossel")
+    js_code = payload_node["parameters"]["jsCode"]
+
+    assert "$('Montar Copy Instagram').first().json" in js_code
+    assert "carousel_child_ids" in js_code
+    assert "instagram_business_account_id" in js_code
+    assert "carousel child creation id ausente" in js_code
 
 
 def test_validate_instagram_workflow_rejects_process_env_in_code_node() -> None:

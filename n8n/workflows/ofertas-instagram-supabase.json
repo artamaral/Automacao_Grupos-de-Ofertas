@@ -253,6 +253,20 @@
       }
     },
     {
+      "id": "montar-payload-pai-carrossel",
+      "name": "Montar Payload Pai Carrossel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        120
+      ],
+      "parameters": {
+        "jsCode": "const original = $('Montar Copy Instagram').first().json;\nconst childResponse = $json;\nconst childId = String(childResponse.id || childResponse.creation_id || '').trim();\nif (!childId) {\n  throw new Error('carousel child creation id ausente');\n}\nreturn [{ json: { ...original, instagram_business_account_id: original.instagram_business_account_id, caption_base: original.caption_base, carousel_child_ids: childId, carousel_child_creation_ids: [childId] } }];"
+      },
+      "notes": "Restaura o contexto original apos criar o item do carrossel e prepara os children para o container pai."
+    },
+    {
       "id": "criar-pai-carrossel",
       "name": "Criar Container Pai Carrossel",
       "type": "n8n-nodes-base.httpRequest",
@@ -515,6 +529,17 @@
       ]
     },
     "Criar Filhos Carrossel": {
+      "main": [
+        [
+          {
+            "node": "Montar Payload Pai Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Payload Pai Carrossel": {
       "main": [
         [
           {
