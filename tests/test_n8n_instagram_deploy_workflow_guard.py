@@ -27,10 +27,10 @@ def test_validate_instagram_workflow_accepts_versioned_json() -> None:
 def test_validate_instagram_workflow_rejects_missing_carousel_branch() -> None:
     workflow = load_instagram_workflow()
     workflow["nodes"] = [
-        node for node in workflow["nodes"] if node["name"] != "Montar Payload Pai Carrossel"
+        node for node in workflow["nodes"] if node["name"] != "Preparar Filhos Carrossel"
     ]
 
-    with pytest.raises(guard.InstagramWorkflowGuardError, match="Montar Payload Pai Carrossel"):
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="Preparar Filhos Carrossel"):
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
@@ -107,9 +107,20 @@ def test_carousel_payload_node_restores_original_context() -> None:
     js_code = payload_node["parameters"]["jsCode"]
 
     assert "$('Montar Copy Instagram').first().json" in js_code
+    assert "$input.all()" in js_code
     assert "carousel_child_ids" in js_code
     assert "instagram_business_account_id" in js_code
-    assert "carousel child creation id ausente" in js_code
+    assert "carousel requires between 2 and 10 child containers" in js_code
+
+
+def test_prepare_carousel_children_node_expands_multiple_images() -> None:
+    workflow = load_instagram_workflow()
+    prepare_node = guard.node_by_name(workflow, "Preparar Filhos Carrossel")
+    js_code = prepare_node["parameters"]["jsCode"]
+
+    assert "slice(0, 10)" in js_code
+    assert "carousel_image_url" in js_code
+    assert "carousel requires between 2 and 10 image urls" in js_code
 
 
 def test_validate_instagram_workflow_rejects_process_env_in_code_node() -> None:

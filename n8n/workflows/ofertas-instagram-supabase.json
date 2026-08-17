@@ -216,6 +216,20 @@
       }
     },
     {
+      "id": "preparar-filhos-carrossel",
+      "name": "Preparar Filhos Carrossel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        120
+      ],
+      "parameters": {
+        "jsCode": "const original = $json;\nconst imageUrls = Array.isArray(original.image_urls) ? original.image_urls.filter(Boolean).slice(0, 10) : [];\nif (imageUrls.length < 2) {\n  throw new Error('carousel requires between 2 and 10 image urls');\n}\nreturn imageUrls.map((imageUrl, index) => ({ json: { ...original, carousel_image_url: imageUrl, carousel_item_index: index + 1, carousel_item_total: imageUrls.length } }));"
+      },
+      "notes": "Expande o contexto do carrossel em ate 10 itens filhos; o Instagram exige no minimo 2 imagens."
+    },
+    {
       "id": "criar-filhos-carrossel",
       "name": "Criar Filhos Carrossel",
       "type": "n8n-nodes-base.httpRequest",
@@ -239,12 +253,12 @@
             },
             {
               "name": "image_url",
-              "value": "={{ ($json.image_urls || [])[0] }}"
+              "value": "={{ $json.carousel_image_url }}"
             }
           ]
         }
       },
-      "notes": "is_carousel_item=true; repetir por ate 10 image_urls no workflow operacional.",
+      "notes": "is_carousel_item=true; executa uma vez por imagem preparada no node anterior.",
       "credentials": {
         "httpHeaderAuth": {
           "id": "instagramGraphHdrAuth1",
@@ -262,7 +276,7 @@
         120
       ],
       "parameters": {
-        "jsCode": "const original = $('Montar Copy Instagram').first().json;\nconst childResponse = $json;\nconst childId = String(childResponse.id || childResponse.creation_id || '').trim();\nif (!childId) {\n  throw new Error('carousel child creation id ausente');\n}\nreturn [{ json: { ...original, instagram_business_account_id: original.instagram_business_account_id, caption_base: original.caption_base, carousel_child_ids: childId, carousel_child_creation_ids: [childId] } }];"
+        "jsCode": "const original = $('Montar Copy Instagram').first().json;\nconst childResponses = $input.all();\nconst childIds = childResponses.map((item) => String(item.json.id || item.json.creation_id || '').trim()).filter(Boolean);\nif (childIds.length < 2 || childIds.length > 10) {\n  throw new Error('carousel requires between 2 and 10 child containers');\n}\nreturn [{ json: { ...original, instagram_business_account_id: original.instagram_business_account_id, caption_base: original.caption_base, carousel_child_ids: childIds.join(','), carousel_child_creation_ids: childIds } }];"
       },
       "notes": "Restaura o contexto original apos criar o item do carrossel e prepara os children para o container pai."
     },
@@ -508,6 +522,17 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Preparar Filhos Carrossel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Filhos Carrossel": {
+      "main": [
         [
           {
             "node": "Criar Filhos Carrossel",
