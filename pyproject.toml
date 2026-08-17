@@ -13,6 +13,7 @@ dependencies = [
   "pydantic>=2.7,<3",
   "pydantic-settings>=2.2,<3",
   "python-dotenv>=1.0,<2",
+  "Pillow>=10,<13",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +40,7 @@ ofertas-review-bundle = "ofertas_bot.local_review_bundle_cli:main"
 ofertas-local-doctor = "ofertas_bot.local_artifacts_doctor_cli:main"
 ofertas-local-flow = "ofertas_bot.local_flow_cli:main"
 ofertas-cloud-runner = "ofertas_bot.cloud_runner_server:main"
+ofertas-post-from-url = "ofertas_bot.post_from_url:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
