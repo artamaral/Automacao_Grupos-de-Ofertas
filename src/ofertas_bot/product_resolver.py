@@ -15,6 +15,7 @@ _SHOPEE_HOSTS = {"shopee.com.br", "www.shopee.com.br", "s.shopee.com.br"}
 _ITEM_PATH_PATTERNS = (
     re.compile(r"-i\.(?P<shop_id>\d+)\.(?P<item_id>\d+)(?:[/?#]|$)"),
     re.compile(r"/product/(?P<shop_id>\d+)/(?P<item_id>\d+)(?:[/?#]|$)"),
+    re.compile(r"/[^/]+/(?P<shop_id>\d+)/(?P<item_id>\d+)(?:[/?#]|$)"),
 )
 _META_TAG_RE = re.compile(r"<meta\b[^>]*>", re.IGNORECASE | re.DOTALL)
 _ATTR_RE = re.compile(
@@ -80,37 +81,34 @@ class ProductData:
 @dataclass
 class ShopeePublicPageResolver:
     page_fetcher: Callable[[str], tuple[str, str]] | None = None
+    browser_fetcher: Callable[[str], tuple[str, str]] | None = None
 
     def resolve(self, affiliate_url: str) -> ProductData:
         supplied_url = _validate_shopee_url(affiliate_url)
         resolved_url, html = (self.page_fetcher or fetch_public_page)(supplied_url)
         _validate_shopee_url(resolved_url)
+
+        title, price = _extract_required_facts(html)
+        if not title or price is None:
+            try:
+                resolved_url, html = (self.browser_fetcher or fetch_rendered_page)(resolved_url)
+            except ShopeePublicPageError:
+                raise
+            _validate_shopee_url(resolved_url)
+            title, price = _extract_required_facts(html)
+
         structured = _extract_structured_product(html)
         meta = _extract_meta(html)
         shop_id, item_id = extract_shopee_product_ids(resolved_url)
 
-        title = _first_text(
-            structured.get("name"),
-            meta.get("og:title"),
-            meta.get("twitter:title"),
-            _extract_title(html),
-            _search_string(html, ("productName", "product_name")),
-        )
-        price = _first_float(
-            _nested(structured, "offers", "price"),
-            _nested(structured, "offers", "lowPrice"),
-            meta.get("product:price:amount"),
-            _search_number(html, ("price", "priceMin")),
-        )
         if not title:
             raise ShopeePublicPageError(
-                "Nao foi possivel extrair o titulo da resposta publica da Shopee. "
-                f"URL final: {resolved_url}. HTML recebido: {len(html)} bytes. "
-                "A pagina pode ter sido entregue como shell JavaScript ou challenge anti-bot."
+                "Nao foi possivel extrair o titulo mesmo apos renderizar a pagina publica da Shopee. "
+                f"URL final: {resolved_url}. HTML recebido: {len(html)} bytes."
             )
         if price is None:
             raise ShopeePublicPageError(
-                "Nao foi possivel extrair o preco da resposta publica da Shopee. "
+                "Nao foi possivel extrair o preco mesmo apos renderizar a pagina publica da Shopee. "
                 f"URL final: {resolved_url}. HTML recebido: {len(html)} bytes."
             )
 
@@ -168,6 +166,25 @@ class ShopeePublicPageResolver:
         )
 
 
+def _extract_required_facts(html: str) -> tuple[str | None, float | None]:
+    structured = _extract_structured_product(html)
+    meta = _extract_meta(html)
+    title = _first_text(
+        structured.get("name"),
+        meta.get("og:title"),
+        meta.get("twitter:title"),
+        _extract_title(html),
+        _search_string(html, ("productName", "product_name", "name")),
+    )
+    price = _first_float(
+        _nested(structured, "offers", "price"),
+        _nested(structured, "offers", "lowPrice"),
+        meta.get("product:price:amount"),
+        _search_number(html, ("price", "priceMin", "price_min")),
+    )
+    return title, price
+
+
 def fetch_public_page(url: str) -> tuple[str, str]:
     request = Request(
         url,
@@ -185,6 +202,50 @@ def fetch_public_page(url: str) -> tuple[str, str]:
     with urlopen(request, timeout=20) as response:  # noqa: S310
         charset = response.headers.get_content_charset() or "utf-8"
         return response.geturl(), response.read().decode(charset, errors="replace")
+
+
+def fetch_rendered_page(url: str) -> tuple[str, str]:
+    try:
+        from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+        from playwright.sync_api import sync_playwright
+    except ImportError as exc:
+        raise ShopeePublicPageError(
+            "A Shopee exige renderizacao JavaScript para esta pagina. Instale Playwright com: "
+            "python -m pip install playwright && python -m playwright install chromium"
+        ) from exc
+
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page(
+                locale="pt-BR",
+                viewport={"width": 1366, "height": 900},
+                user_agent=(
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/124.0.0.0 Safari/537.36"
+                ),
+            )
+            page.goto(url, wait_until="domcontentloaded", timeout=45000)
+            page.wait_for_timeout(5000)
+            rendered_url = page.url
+            rendered_html = page.content()
+            browser.close()
+            return rendered_url, rendered_html
+    except PlaywrightTimeoutError as exc:
+        raise ShopeePublicPageError(
+            "A pagina publica da Shopee nao concluiu a renderizacao dentro do tempo esperado."
+        ) from exc
+    except Exception as exc:
+        message = str(exc)
+        if "Executable doesn't exist" in message:
+            raise ShopeePublicPageError(
+                "Chromium do Playwright nao esta instalado. Rode: "
+                "python -m playwright install chromium"
+            ) from exc
+        raise ShopeePublicPageError(
+            f"Falha ao renderizar a pagina publica da Shopee com Playwright: {message}"
+        ) from exc
 
 
 def extract_shopee_product_ids(url: str) -> tuple[int | None, int | None]:
@@ -300,9 +361,9 @@ def _search_urls(html: str, keys: tuple[str, ...], *, media: str) -> tuple[str, 
             re.IGNORECASE,
         )
         for match in pattern.finditer(html):
-            url = match.group("value").replace("\\/", "/")
-            if any(ext in url.lower() for ext in extensions):
-                found.append(url)
+            media_url = match.group("value").replace("\\/", "/")
+            if any(ext in media_url.lower() for ext in extensions):
+                found.append(media_url)
     return tuple(found)
 
 
