@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from time import time
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
@@ -112,15 +113,27 @@ class ShopeeProductResolver:
             return self.redirect_resolver(url)
         if not self.settings.enable_real_http:
             raise ShopeeUrlError(
-                "Link curto Shopee exige resolução HTTP. Use a URL completa ou habilite ENABLE_REAL_HTTP."
+                "Link curto Shopee exige resolucao HTTP. Use a URL completa ou habilite ENABLE_REAL_HTTP."
             )
         request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urlopen(request, timeout=15) as response:  # noqa: S310 - host validated above
+        with urlopen(request, timeout=15) as response:  # noqa: S310
             return response.geturl()
 
     def _affiliate_url(self, provider: ShopeeProvider, product_url: str) -> str:
         sub_ids = [self.settings.shopee_tracking_id] if self.settings.shopee_tracking_id else []
-        return provider.generate_short_link(origin_url=product_url, sub_ids=sub_ids)
+        public_generator = getattr(provider, "generate_short_link", None)
+        if callable(public_generator):
+            return str(public_generator(origin_url=product_url, sub_ids=sub_ids))
+        gateway = provider._get_graphql_gateway()
+        if gateway.transport is None:
+            raise NotImplementedError(
+                "Shopee GraphQL transport is not configured. Enable real HTTP to generate affiliate links."
+            )
+        return gateway.execute_short_link(
+            origin_url=product_url,
+            sub_ids=sub_ids,
+            timestamp=int(time()),
+        )
 
 
 def extract_shopee_product_ids(url: str) -> tuple[int, int]:
@@ -135,9 +148,8 @@ def extract_shopee_product_ids(url: str) -> tuple[int, int]:
     item_id = _first_int(query, "itemid", "item_id")
     if shop_id is not None and item_id is not None:
         return shop_id, item_id
-
     raise ShopeeUrlError(
-        "Não foi possível identificar shop_id e item_id na URL Shopee. Use uma URL completa do produto."
+        "Nao foi possivel identificar shop_id e item_id na URL Shopee. Use uma URL completa do produto."
     )
 
 
@@ -145,7 +157,7 @@ def _validate_shopee_url(value: str) -> str:
     url = value.strip()
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or parsed.netloc.lower() not in _SHOPEE_HOSTS:
-        raise ShopeeUrlError("A entrada deve ser uma URL válida de shopee.com.br ou s.shopee.com.br.")
+        raise ShopeeUrlError("A entrada deve ser uma URL valida de shopee.com.br ou s.shopee.com.br.")
     return url
 
 
@@ -154,7 +166,7 @@ def _extract_product_node(response: dict[str, object]) -> dict[str, object]:
     connection = data.get("productOfferV2") if isinstance(data, dict) else None
     nodes = connection.get("nodes") if isinstance(connection, dict) else None
     if not isinstance(nodes, list) or not nodes or not isinstance(nodes[0], dict):
-        raise ShopeeProductNotFound("Shopee não retornou o produto solicitado em productOfferV2.")
+        raise ShopeeProductNotFound("Shopee nao retornou o produto solicitado em productOfferV2.")
     return nodes[0]
 
 
