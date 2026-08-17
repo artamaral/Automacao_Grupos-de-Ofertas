@@ -43,7 +43,7 @@ class OfflinePostGenerator:
         preview: bool = False,
     ) -> GeneratedPostPackage:
         selected = normalize_formats(formats)
-        root = Path(output_dir) / str(product.item_id)
+        root = Path(output_dir) / product.package_key
         root.mkdir(parents=True, exist_ok=True)
 
         caption = CopywriterAgent().create_message(
