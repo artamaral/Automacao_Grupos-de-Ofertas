@@ -15,6 +15,13 @@ do Supabase e disparo controlado pelo n8n.
 6. [`../supabase-catalog-schema.md`](../supabase-catalog-schema.md)
 7. [`../supabase-publication-events.md`](../supabase-publication-events.md)
 
+## Specs aprovadas para evolucao
+
+- [`08-spec-distribuicao-editorial-feminino.md`](08-spec-distribuicao-editorial-feminino.md)
+  define a redistribuicao editorial do plano diario do perfil `feminino`.
+- [`09-spec-gerador-offline-posts-shopee.md`](09-spec-gerador-offline-posts-shopee.md)
+  define o gerador local de posts a partir de URL Shopee, sem publicacao automatica.
+
 ## Fonte canonica
 
 A decisao vigente e:
