@@ -121,3 +121,36 @@ def test_scorer_adds_shop_type_confidence_bonus() -> None:
         ["loja star"],
         [],
     ]
+
+
+def test_scorer_commercial_v1_static_regression_sample() -> None:
+    offers = [
+        make_offer(
+            title="Amostra completa",
+            price=60,
+            old_price=100,
+            commission_rate=0.05,
+            sales_count=250,
+            rating=4.8,
+            is_prime_or_free_shipping=True,
+            shop_type_code=2,
+        ),
+        make_offer(
+            title="Amostra oficial",
+            price=75,
+            old_price=100,
+            commission_rate=0.03,
+            sales_count=100,
+            rating=4.5,
+            shop_type_code=1,
+        ),
+        make_offer(title="Amostra neutra", price=95, old_price=100),
+    ]
+
+    scored = ScorerAgent().score(offers)
+
+    assert [(item.offer.title, item.score) for item in scored] == [
+        ("Amostra completa", 50.5),
+        ("Amostra oficial", 36.5),
+        ("Amostra neutra", 0),
+    ]

@@ -106,6 +106,11 @@ rotation_items_per_day = 16
 schedule_hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 max_items_per_subniche_per_window = 2
 timezone = "America/Sao_Paulo"
+excluded_subniches = [
+  "moda-evangelica",
+  "moda-festa",
+  "moda-gestante",
+]
 
 [[policies.bands]]
 subniche = "cabelo-tratamento"
@@ -148,72 +153,72 @@ share_percent = 12.5
 items = 1
 
 [[policies.fixed_daily_quotas]]
-subniche = "cabelo-tratamento"
+subniche = "moda-tops"
+items = 6
+
+[[policies.fixed_daily_quotas]]
+subniche = "moda-bottoms"
 items = 8
 
 [[policies.fixed_daily_quotas]]
-subniche = "skincare-facial"
+subniche = "moda-looks"
 items = 7
 
 [[policies.fixed_daily_quotas]]
-subniche = "moda-calcas"
-items = 7
-
-[[policies.fixed_daily_quotas]]
-subniche = "moda-partes-de-cima"
-items = 7
-
-[[policies.fixed_daily_quotas]]
-subniche = "moda-fitness"
+subniche = "moda-fitness-praia"
 items = 6
 
 [[policies.fixed_daily_quotas]]
-subniche = "moda-vestidos"
+subniche = "moda-especial"
 items = 6
-
-[[policies.fixed_daily_quotas]]
-subniche = "lingerie-e-intimos"
-items = 5
-
-[[policies.fixed_daily_quotas]]
-subniche = "maquiagem-olhos"
-items = 5
 
 [[policies.fixed_daily_quotas]]
 subniche = "maquiagem-pele"
-items = 5
+items = 7
+
+[[policies.fixed_daily_quotas]]
+subniche = "maquiagem-olhos"
+items = 6
 
 [[policies.fixed_daily_quotas]]
 subniche = "maquiagem-labios"
 items = 5
 
 [[policies.fixed_daily_quotas]]
-subniche = "moda-inverno"
-items = 5
+subniche = "maquiagem-pinceis-e-esponjas"
+items = 2
 
 [[policies.fixed_daily_quotas]]
-subniche = "moda-saias-e-shorts"
-items = 5
+subniche = "maquiagem-organizacao"
+items = 1
 
 [[policies.fixed_daily_quotas]]
-subniche = "moda-plus-size"
-items = 4
+subniche = "maquiagem-geral"
+items = 1
 
 [[policies.fixed_daily_quotas]]
-subniche = "moda-social-e-trabalho"
-items = 4
+subniche = "cabelo-tratamento"
+items = 10
 
 [[policies.fixed_daily_quotas]]
 subniche = "cabelo-ferramentas"
-items = 4
+items = 5
+
+[[policies.fixed_daily_quotas]]
+subniche = "skincare-facial"
+items = 11
 
 [[policies.fixed_daily_quotas]]
 subniche = "unhas-manicure"
-items = 4
+items = 5
 
 [[policies.fixed_daily_quotas]]
-subniche = "moda-conjuntos"
-items = 3
+subniche = "cuidados-depilacao"
+items = 1
+
+[[policies.fixed_daily_quotas]]
+subniche = "lingerie-e-intimos"
+items = 5
 
 [[policies.fixed_daily_quotas]]
 subniche = "bolsas-e-carteiras"
@@ -223,53 +228,118 @@ items = 2
 subniche = "acessorios-femininos"
 items = 2
 
-[[policies.fixed_daily_quotas]]
-subniche = "maquiagem-organizacao"
-items = 2
+[[policies.weekly_rotation_quotas]]
+subniche = "rotacao-moda"
+items = 28
 
 [[policies.weekly_rotation_quotas]]
-subniche = "moda-geral"
-items = 20
+subniche = "rotacao-maquiagem"
+items = 28
 
 [[policies.weekly_rotation_quotas]]
-subniche = "moda-praia"
+subniche = "rotacao-cabelo"
 items = 14
 
 [[policies.weekly_rotation_quotas]]
-subniche = "moda-evangelica"
+subniche = "rotacao-skincare"
 items = 14
 
 [[policies.weekly_rotation_quotas]]
-subniche = "moda-ofertas-e-basicos"
-items = 14
-
-[[policies.weekly_rotation_quotas]]
-subniche = "maquiagem-pinceis-e-esponjas"
-items = 10
-
-[[policies.weekly_rotation_quotas]]
-subniche = "maquiagem-geral"
-items = 10
-
-[[policies.weekly_rotation_quotas]]
-subniche = "moda-macacoes-e-macaquinhos"
-items = 10
-
-[[policies.weekly_rotation_quotas]]
-subniche = "moda-casual"
-items = 8
-
-[[policies.weekly_rotation_quotas]]
-subniche = "cuidados-depilacao"
+subniche = "rotacao-lingerie"
 items = 7
 
 [[policies.weekly_rotation_quotas]]
-subniche = "moda-festa"
-items = 4
+subniche = "rotacao-unhas"
+items = 7
 
 [[policies.weekly_rotation_quotas]]
-subniche = "feminino-geral"
-items = 1
+subniche = "rotacao-bolsas-acessorios"
+items = 7
+
+[[policies.weekly_rotation_quotas]]
+subniche = "rotacao-cuidados"
+items = 7
+
+[[policies.publication_groups]]
+group = "moda-tops"
+subniches = ["moda-partes-de-cima"]
+
+[[policies.publication_groups]]
+group = "moda-bottoms"
+subniches = ["moda-calcas", "moda-saias-e-shorts"]
+
+[[policies.publication_groups]]
+group = "moda-looks"
+subniches = ["moda-vestidos", "moda-conjuntos", "moda-macacoes-e-macaquinhos"]
+
+[[policies.publication_groups]]
+group = "moda-fitness-praia"
+subniches = ["moda-fitness", "moda-praia"]
+
+[[policies.publication_groups]]
+group = "moda-especial"
+subniches = [
+  "moda-plus-size",
+  "moda-social-e-trabalho",
+  "moda-casual",
+  "moda-inverno",
+  "moda-ofertas-e-basicos",
+  "moda-geral",
+]
+
+[[policies.publication_groups]]
+group = "rotacao-moda"
+subniches = [
+  "moda-partes-de-cima",
+  "moda-calcas",
+  "moda-saias-e-shorts",
+  "moda-vestidos",
+  "moda-conjuntos",
+  "moda-macacoes-e-macaquinhos",
+  "moda-fitness",
+  "moda-praia",
+  "moda-plus-size",
+  "moda-social-e-trabalho",
+  "moda-casual",
+  "moda-inverno",
+  "moda-ofertas-e-basicos",
+  "moda-geral",
+]
+
+[[policies.publication_groups]]
+group = "rotacao-maquiagem"
+subniches = [
+  "maquiagem-pele",
+  "maquiagem-olhos",
+  "maquiagem-labios",
+  "maquiagem-pinceis-e-esponjas",
+  "maquiagem-organizacao",
+  "maquiagem-geral",
+]
+
+[[policies.publication_groups]]
+group = "rotacao-cabelo"
+subniches = ["cabelo-tratamento", "cabelo-ferramentas"]
+
+[[policies.publication_groups]]
+group = "rotacao-skincare"
+subniches = ["skincare-facial"]
+
+[[policies.publication_groups]]
+group = "rotacao-lingerie"
+subniches = ["lingerie-e-intimos"]
+
+[[policies.publication_groups]]
+group = "rotacao-unhas"
+subniches = ["unhas-manicure"]
+
+[[policies.publication_groups]]
+group = "rotacao-bolsas-acessorios"
+subniches = ["bolsas-e-carteiras", "acessorios-femininos"]
+
+[[policies.publication_groups]]
+group = "rotacao-cuidados"
+subniches = ["cuidados-depilacao"]
 
 [[policies]]
 slug = "auto-e-moto"

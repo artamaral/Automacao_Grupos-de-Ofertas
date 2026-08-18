@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tomllib
 from collections import Counter, defaultdict, deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -35,6 +35,8 @@ class DailyPlanningPolicy:
     max_items_per_subniche_per_window: int
     fixed_daily_quotas: dict[str, int]
     weekly_rotation_quotas: dict[str, int]
+    publication_groups: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    excluded_subniches: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -62,6 +64,11 @@ def load_daily_planning_policy(
         rotation = _quota_map(
             item.get("weekly_rotation_quotas"), "weekly_rotation_quotas"
         )
+        publication_groups = _publication_group_map(item.get("publication_groups"))
+        excluded_subniches = _string_tuple(
+            item.get("excluded_subniches"),
+            "excluded_subniches",
+        )
         policy = DailyPlanningPolicy(
             profile=profile,
             marketplace=marketplace,
@@ -74,6 +81,8 @@ def load_daily_planning_policy(
             ),
             fixed_daily_quotas=fixed,
             weekly_rotation_quotas=rotation,
+            publication_groups=publication_groups,
+            excluded_subniches=excluded_subniches,
         )
         validate_daily_planning_policy(policy)
         return policy
@@ -96,6 +105,11 @@ def validate_daily_planning_policy(policy: DailyPlanningPolicy) -> None:
         raise DispatchPlanningError("fixed and rotation subniches must be disjoint")
     if policy.max_items_per_subniche_per_window <= 0:
         raise DispatchPlanningError("window subniche cap must be positive")
+    for key, subniches in policy.publication_groups.items():
+        if not key or not subniches:
+            raise DispatchPlanningError(f"invalid publication group: {key}")
+        if set(subniches) & set(policy.excluded_subniches):
+            raise DispatchPlanningError(f"publication group includes excluded subniche: {key}")
 
 
 def weekly_rotation_daily_quotas(
@@ -137,6 +151,7 @@ def plan_daily_dispatches(
         item
         for item in candidates
         if item.profile == policy.profile and item.marketplace == policy.marketplace
+        and item.primary_subniche not in policy.excluded_subniches
     ]
     by_subniche: dict[str, deque[DispatchCandidate]] = {}
     for subniche, items in _group_candidates(eligible).items():
@@ -151,20 +166,29 @@ def plan_daily_dispatches(
         ("fixed_daily", policy.fixed_daily_quotas),
         ("weekly_rotation", daily_rotation),
     ):
-        for subniche, quota in quotas.items():
-            chosen = _take_candidates(by_subniche.get(subniche), quota, used_keys)
+        for quota_key, quota in quotas.items():
+            chosen = _take_quota_candidates(
+                by_subniche,
+                policy=policy,
+                quota_key=quota_key,
+                count=quota,
+                used_keys=used_keys,
+            )
             selected.extend(
-                (candidate, bucket, f"{bucket}:{subniche}") for candidate in chosen
+                (candidate, bucket, f"{bucket}:{quota_key}") for candidate in chosen
             )
             unmet[bucket] += quota - len(chosen)
 
     for bucket in ("fixed_daily", "weekly_rotation"):
         if not unmet[bucket]:
             continue
-        pool_subniches = (
-            policy.fixed_daily_quotas
-            if bucket == "fixed_daily"
-            else policy.weekly_rotation_quotas
+        pool_subniches = _quota_subniches(
+            policy,
+            (
+                policy.fixed_daily_quotas
+                if bucket == "fixed_daily"
+                else policy.weekly_rotation_quotas
+            ),
         )
         fallback = _fallback_candidates(by_subniche, pool_subniches, used_keys)
         if len(fallback) < unmet[bucket]:
@@ -373,9 +397,47 @@ def _take_candidates(
     return selected
 
 
+def _take_quota_candidates(
+    queues: dict[str, deque[DispatchCandidate]],
+    *,
+    policy: DailyPlanningPolicy,
+    quota_key: str,
+    count: int,
+    used_keys: set[str],
+) -> list[DispatchCandidate]:
+    candidates = [
+        item
+        for subniche in _resolve_quota_subniches(policy, quota_key)
+        for item in queues.get(subniche, ())
+        if item.stable_key not in used_keys
+    ]
+    candidates.sort(
+        key=lambda item: (
+            -item.commercial_score,
+            -item.sales_count,
+            -(item.rating or Decimal(0)),
+            item.item_id,
+        )
+    )
+    selected = candidates[:count]
+    used_keys.update(candidate.stable_key for candidate in selected)
+    _remove_used_candidates(queues, used_keys)
+    return selected
+
+
+def _remove_used_candidates(
+    queues: dict[str, deque[DispatchCandidate]],
+    used_keys: set[str],
+) -> None:
+    for subniche, queue in list(queues.items()):
+        queues[subniche] = deque(
+            candidate for candidate in queue if candidate.stable_key not in used_keys
+        )
+
+
 def _fallback_candidates(
     queues: dict[str, deque[DispatchCandidate]],
-    allowed_subniches: dict[str, int] | None,
+    allowed_subniches: set[str] | None,
     used_keys: set[str],
 ) -> list[DispatchCandidate]:
     subniches = allowed_subniches if allowed_subniches is not None else queues
@@ -391,6 +453,24 @@ def _fallback_candidates(
     return candidates
 
 
+def _quota_subniches(
+    policy: DailyPlanningPolicy,
+    quotas: dict[str, int],
+) -> set[str]:
+    return {
+        subniche
+        for quota_key in quotas
+        for subniche in _resolve_quota_subniches(policy, quota_key)
+    }
+
+
+def _resolve_quota_subniches(
+    policy: DailyPlanningPolicy,
+    quota_key: str,
+) -> tuple[str, ...]:
+    return policy.publication_groups.get(quota_key, (quota_key,))
+
+
 def _quota_map(raw: object, field: str) -> dict[str, int]:
     if not isinstance(raw, list) or not raw:
         raise DispatchPlanningError(f"{field} must contain quotas")
@@ -404,6 +484,34 @@ def _quota_map(raw: object, field: str) -> dict[str, int]:
             raise DispatchPlanningError(f"invalid quota in {field}: {subniche}")
         quotas[subniche] = count
     return quotas
+
+
+def _publication_group_map(raw: object) -> dict[str, tuple[str, ...]]:
+    if raw is None:
+        return {}
+    if not isinstance(raw, list):
+        raise DispatchPlanningError("publication_groups must contain groups")
+    groups: dict[str, tuple[str, ...]] = {}
+    for item in raw:
+        if not isinstance(item, dict):
+            raise DispatchPlanningError("invalid publication group")
+        group = str(item.get("group", "")).strip()
+        subniches = _string_tuple(item.get("subniches"), f"publication_groups.{group}")
+        if not group or not subniches or group in groups:
+            raise DispatchPlanningError(f"invalid publication group: {group}")
+        groups[group] = subniches
+    return groups
+
+
+def _string_tuple(raw: object, field: str) -> tuple[str, ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise DispatchPlanningError(f"{field} must be a list")
+    values = tuple(str(item).strip() for item in raw)
+    if any(not item for item in values) or len(set(values)) != len(values):
+        raise DispatchPlanningError(f"invalid values in {field}")
+    return values
 
 
 def _stable_offset(value: str) -> int:
