@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from ofertas_bot.candidate_refresh import DiscoveryCandidate, SnapshotInput
 from ofertas_bot.tools.candidate_refresh import run_candidate_refresh
 
 NOW = datetime(2026, 8, 11, 12, tzinfo=UTC)
+OPERATIONAL_DATE = date(2026, 8, 11)
+D0_DATE = date(2026, 8, 17)
 
 
 class FakeProvider:
-    def __init__(self, responses: dict[int, dict[str, object]]) -> None:
+    def __init__(self, responses: dict[int, dict[str, object] | Exception]) -> None:
         self.responses = responses
         self.calls: list[int] = []
 
@@ -27,7 +29,10 @@ class FakeProvider:
         assert page == 1
         assert item_id is not None
         self.calls.append(item_id)
-        return self.responses[item_id]
+        response = self.responses[item_id]
+        if isinstance(response, Exception):
+            raise response
+        return response
 
 
 class FakeStore:
@@ -35,6 +40,7 @@ class FakeStore:
         self.candidates = {item.item_id: item for item in candidates}
         self.snapshots: list[SnapshotInput] = []
         self.failures: list[dict[str, object]] = []
+        self.scoring_requests: list[dict[str, object]] = []
 
     def load_ttl_hours(self, *, profile: str, marketplace: str) -> int:
         return 24
@@ -56,7 +62,11 @@ class FakeStore:
         profile: str,
         marketplace: str,
         item_ids: list[int],
+        operational_date: date,
     ) -> list[object]:
+        self.scoring_requests.append(
+            {"item_ids": list(item_ids), "operational_date": operational_date}
+        )
         return []
 
     def record_success(self, *, profile: str, snapshot: SnapshotInput) -> int:
@@ -122,12 +132,211 @@ def test_explicit_fresh_item_is_cache_hit_without_snapshot(tmp_path: Path) -> No
     store = FakeStore([fresh])
     provider = FakeProvider({1: _response(1)})
 
-    result = _run(tmp_path, store=store, provider=provider, item_ids=[1])
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=OPERATIONAL_DATE,
+    )
 
     assert provider.calls == []
     assert store.snapshots == []
     assert result.report["summary"]["fresh_cache_hits"] == 1
+    assert result.report["summary"]["same_day_cache_hits"] == 1
     assert result.report["summary"]["api_calls_attempted"] == 0
+
+
+def test_same_operational_day_early_snapshot_is_cache_hit(tmp_path: Path) -> None:
+    checked_at = datetime(2026, 8, 17, 3, 1, tzinfo=UTC)
+    fresh = replace(
+        _candidate(1),
+        refresh_status="FRESH",
+        last_checked_at=checked_at,
+        last_attempted_at=checked_at,
+        last_attempt_status="success",
+    )
+    store = FakeStore([fresh])
+    provider = FakeProvider({1: _response(1)})
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == []
+    assert result.report["summary"]["same_day_cache_hits"] == 1
+    assert result.report["operational_date"] == "2026-08-17"
+
+
+def test_same_operational_day_morning_snapshot_is_cache_hit(tmp_path: Path) -> None:
+    checked_at = datetime(2026, 8, 17, 9, 0, tzinfo=UTC)
+    fresh = replace(
+        _candidate(1),
+        refresh_status="FRESH",
+        last_checked_at=checked_at,
+        last_attempted_at=checked_at,
+        last_attempt_status="success",
+    )
+    store = FakeStore([fresh])
+    provider = FakeProvider({1: _response(1)})
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == []
+    assert result.report["summary"]["same_day_cache_hits"] == 1
+
+
+def test_previous_day_late_fresh_snapshot_calls_api(tmp_path: Path) -> None:
+    checked_at = datetime(2026, 8, 17, 2, 59, tzinfo=UTC)
+    fresh = replace(
+        _candidate(1),
+        refresh_status="FRESH",
+        last_checked_at=checked_at,
+        last_attempted_at=checked_at,
+        last_attempt_status="success",
+    )
+    store = FakeStore([fresh])
+    provider = FakeProvider({1: _response(1)})
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == [1]
+    assert result.report["summary"]["old_date_refresh_candidates"] == 1
+    assert result.report["summary"]["api_calls_attempted"] == 1
+
+
+def test_previous_day_morning_fresh_snapshot_calls_api(tmp_path: Path) -> None:
+    checked_at = datetime(2026, 8, 16, 11, 0, tzinfo=UTC)
+    fresh = replace(
+        _candidate(1),
+        refresh_status="FRESH",
+        last_checked_at=checked_at,
+        last_attempted_at=checked_at,
+        last_attempt_status="success",
+    )
+    store = FakeStore([fresh])
+    provider = FakeProvider({1: _response(1)})
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == [1]
+    assert result.report["summary"]["api_calls_attempted"] == 1
+
+
+def test_missing_snapshot_calls_api_for_operational_day(tmp_path: Path) -> None:
+    store = FakeStore([_candidate(1)])
+    provider = FakeProvider({1: _response(1)})
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == [1]
+    assert result.report["summary"]["api_calls_attempted"] == 1
+
+
+def test_failed_d0_refresh_does_not_reuse_previous_day_snapshot_for_scoring(
+    tmp_path: Path,
+) -> None:
+    checked_at = datetime(2026, 8, 16, 11, 0, tzinfo=UTC)
+    fresh = replace(
+        _candidate(1),
+        refresh_status="FRESH",
+        last_checked_at=checked_at,
+        last_attempted_at=checked_at,
+        last_attempt_status="success",
+    )
+    store = FakeStore([fresh])
+    provider = FakeProvider({1: RuntimeError("temporary provider failure")})
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == [1]
+    assert result.report["summary"]["failed_refreshes"] == 1
+    assert result.report["summary"]["scoring_candidates_refreshed_today"] == 0
+    assert store.scoring_requests[-1] == {
+        "item_ids": [1],
+        "operational_date": D0_DATE,
+    }
+
+
+def test_no_node_d0_refresh_does_not_reuse_previous_day_snapshot_for_scoring(
+    tmp_path: Path,
+) -> None:
+    checked_at = datetime(2026, 8, 16, 11, 0, tzinfo=UTC)
+    fresh = replace(
+        _candidate(1),
+        refresh_status="FRESH",
+        last_checked_at=checked_at,
+        last_attempted_at=checked_at,
+        last_attempt_status="success",
+    )
+    store = FakeStore([fresh])
+    provider = FakeProvider(
+        {1: {"data": {"productOfferV2": {"nodes": [], "pageInfo": {"page": 1}}}}}
+    )
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        item_ids=[1],
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == [1]
+    assert result.report["summary"]["no_node_refreshes"] == 1
+    assert result.report["summary"]["scoring_candidates_refreshed_today"] == 0
+
+
+def test_ineligible_candidates_stay_out_of_automatic_refresh_queue(
+    tmp_path: Path,
+) -> None:
+    store = FakeStore([replace(_candidate(1), is_eligible=False)])
+    provider = FakeProvider({1: _response(1)})
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        discovery_limit=1,
+        operational_date=D0_DATE,
+    )
+
+    assert provider.calls == []
+    assert result.report["summary"]["discovery_candidates"] == 0
 
 
 def test_no_node_records_attempt_without_snapshot(tmp_path: Path) -> None:
@@ -188,6 +397,7 @@ def _run(
     max_calls: int = 10,
     item_ids: list[int] | None = None,
     run_id: str = "run",
+    operational_date: date | None = None,
 ):
     return run_candidate_refresh(
         profile="feminino",
@@ -201,6 +411,7 @@ def _run(
         apply=True,
         store=store,
         provider=provider,
+        operational_date=operational_date,
     )
 
 

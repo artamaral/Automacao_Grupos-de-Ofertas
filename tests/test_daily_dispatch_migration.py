@@ -6,6 +6,9 @@ MIGRATION = Path("supabase/migrations/202608130002_daily_dispatch_plan.sql")
 FRESHNESS_MIGRATION = Path(
     "supabase/migrations/202608150001_daily_dispatch_fresh_only.sql"
 )
+OPERATIONAL_FRESHNESS_MIGRATION = Path(
+    "supabase/migrations/202608170001_daily_dispatch_operational_freshness.sql"
+)
 
 
 def test_daily_dispatch_migration_exposes_safe_operational_view() -> None:
@@ -35,6 +38,22 @@ def test_daily_dispatch_freshness_migration_blocks_stale_slots() -> None:
     assert "with (security_invoker = true)" in sql
     assert "ranking.refresh_status = 'fresh'" in sql
     assert "ranking.refresh_status" in sql
+    assert "ranking.last_checked_at" in sql
+    assert "ranking.age_hours" in sql
+    assert "ranking.latest_snapshot_id" in sql
+
+
+def test_daily_dispatch_operational_freshness_requires_planned_date_snapshot() -> None:
+    sql = OPERATIONAL_FRESHNESS_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "create or replace view offers.v_daily_dispatch_ready" in sql
+    assert "with (security_invoker = true)" in sql
+    assert "plan.dispatch_status = 'planned'" in sql
+    assert "ranking.is_eligible" in sql
+    assert "ranking.refresh_status = 'fresh'" in sql
+    assert "ranking.last_checked_at is not null" in sql
+    assert "ranking.last_checked_at at time zone 'america/sao_paulo'" in sql
+    assert "::date = plan.planned_date" in sql
     assert "ranking.last_checked_at" in sql
     assert "ranking.age_hours" in sql
     assert "ranking.latest_snapshot_id" in sql

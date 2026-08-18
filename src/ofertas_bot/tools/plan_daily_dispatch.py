@@ -35,7 +35,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     store = SupabaseDispatchPlanStore.connect_from_env()
     try:
-        candidates = store.load_candidates(profile=args.profile, marketplace=args.marketplace)
+        candidates = store.load_candidates(
+            profile=args.profile,
+            marketplace=args.marketplace,
+            planned_date=args.date,
+        )
         plan = plan_daily_dispatches(candidates, policy=policy, planned_date=args.date)
         if args.apply:
             store.replace_day(

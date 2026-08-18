@@ -7,7 +7,7 @@ from ofertas_bot.daily_dispatch_planner import DispatchCandidate, PlannedDispatc
 from ofertas_bot.storage.supabase_dispatch_plan_store import SupabaseDispatchPlanStore
 
 
-def test_load_candidates_requires_fresh_ranking_rows() -> None:
+def test_load_candidates_requires_fresh_eligible_same_day_ranking_rows() -> None:
     execute_calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeResult:
@@ -21,11 +21,18 @@ def test_load_candidates_requires_fresh_ranking_rows() -> None:
 
     store = SupabaseDispatchPlanStore(FakeConnection())  # type: ignore[arg-type]
 
-    assert store.load_candidates(profile="feminino", marketplace="shopee") == []
+    assert store.load_candidates(
+        profile="feminino",
+        marketplace="shopee",
+        planned_date=date(2026, 8, 17),
+    ) == []
     assert len(execute_calls) == 1
     sql, params = execute_calls[0]
+    assert "and is_eligible" in sql
     assert "refresh_status = 'FRESH'" in sql
-    assert params == ("feminino", "shopee")
+    assert "last_checked_at at time zone 'America/Sao_Paulo'" in sql
+    assert "::date = %s" in sql
+    assert params == ("feminino", "shopee", date(2026, 8, 17))
 
 
 def test_replace_day_uses_cursor_executemany_for_batch_insert() -> None:

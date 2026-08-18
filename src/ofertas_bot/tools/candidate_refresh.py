@@ -7,10 +7,11 @@ import sys
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Protocol
+from zoneinfo import ZoneInfo
 
 from ofertas_bot.agents.scorer import ScorerAgent
 from ofertas_bot.candidate_refresh import (
@@ -33,6 +34,7 @@ from ofertas_bot.storage.supabase_candidate_refresh_store import (
 
 CONFIRMATION = "REFRESH_SHOPEE_CANDIDATES"
 DEFAULT_OUTPUT_BASE_DIR = Path(".data/candidate_refresh")
+OPERATIONAL_TZ = ZoneInfo("America/Sao_Paulo")
 DISCOVERY_FIELDNAMES = (
     "item_id",
     "product_name",
@@ -129,6 +131,7 @@ class CandidateRefreshStore(Protocol):
         profile: str,
         marketplace: str,
         item_ids: Sequence[int],
+        operational_date: date,
     ) -> list[ScoringCandidate]:
         ...
 
@@ -240,9 +243,11 @@ def run_candidate_refresh(
     apply: bool,
     store: CandidateRefreshStore,
     provider: ProductOfferProvider | None,
+    operational_date: date | None = None,
 ) -> CandidateRefreshRunResult:
     started = perf_counter()
     resolved_run_id = run_id or datetime.now(UTC).strftime("%Y-%m-%dT%H-%M-%S-%fZ")
+    resolved_operational_date = operational_date or datetime.now(OPERATIONAL_TZ).date()
     paths = _build_paths(output_base_dir, profile, resolved_run_id)
     paths.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -256,14 +261,21 @@ def run_candidate_refresh(
         marketplace=marketplace,
         item_ids=item_ids,
     )
+    operational_candidates = [
+        _with_operational_refresh_status(
+            candidate,
+            operational_date=resolved_operational_date,
+        )
+        for candidate in all_candidates
+    ]
     if item_ids is not None:
         discovery_candidates = [
             replace(candidate, selection_bucket="explicit_item")
-            for candidate in all_candidates
+            for candidate in operational_candidates
         ]
     else:
         discovery_candidates = select_ranked_refresh_candidates(
-            all_candidates,
+            operational_candidates,
             limit=discovery_limit,
             subniche_weights=policy.subniche_quotas,
         )
@@ -396,6 +408,7 @@ def run_candidate_refresh(
         profile=profile,
         marketplace=marketplace,
         item_ids=discovery_item_ids,
+        operational_date=resolved_operational_date,
     )
     scoring_candidates = select_scoring_candidates(
         fresh_valid_candidates,
@@ -441,7 +454,23 @@ def run_candidate_refresh(
         fieldnames=RANKING_CHANGE_FIELDNAMES,
     )
 
+    technical_by_item = {candidate.item_id: candidate for candidate in all_candidates}
+    technical_status_counts = Counter(
+        technical_by_item[item.item_id].refresh_status
+        for item in discovery_candidates
+        if item.item_id in technical_by_item
+    )
     status_counts = Counter(item.refresh_status for item in discovery_candidates)
+    old_date_refresh_candidates = sum(
+        technical_by_item[item.item_id].refresh_status == "FRESH"
+        and technical_by_item[item.item_id].last_checked_at is not None
+        and not _is_same_operational_date(
+            technical_by_item[item.item_id].last_checked_at,
+            resolved_operational_date,
+        )
+        for item in discovery_candidates
+        if item.item_id in technical_by_item
+    )
     never_attempted = sum(
         item.refresh_status == "MISSING" and item.last_attempted_at is None
         for item in discovery_candidates
@@ -476,6 +505,8 @@ def run_candidate_refresh(
         "run_id": resolved_run_id,
         "mode": "apply" if apply else "dry_run",
         "run_status": run_status,
+        "operational_date": resolved_operational_date.isoformat(),
+        "operational_timezone": "America/Sao_Paulo",
         "ttl_hours": ttl_hours,
         "limits": {
             "discovery": discovery_limit,
@@ -488,8 +519,10 @@ def run_candidate_refresh(
             "missing_candidates": status_counts["MISSING"],
             "missing_never_attempted": never_attempted,
             "stale_candidates": status_counts["STALE"],
-            "fresh_candidates": status_counts["FRESH"],
+            "fresh_candidates": technical_status_counts["FRESH"],
             "fresh_cache_hits": cache_hits,
+            "same_day_cache_hits": cache_hits,
+            "old_date_refresh_candidates": old_date_refresh_candidates,
             "planned_api_calls": sum(
                 row["status"] == "planned_api_call" for row in attempt_rows
             ),
@@ -501,6 +534,7 @@ def run_candidate_refresh(
             "snapshots_inserted": snapshots_inserted,
             "fresh_valid_candidates": len(fresh_valid_candidates),
             "scoring_ready_candidates": len(fresh_valid_candidates),
+            "scoring_candidates_refreshed_today": len(fresh_valid_candidates),
             "candidates_sent_to_scorer": len(scoring_candidates),
             "selected_by_gate": len(selection.scored_offers),
             "cache_calls_saved": cache_hits,
@@ -549,6 +583,29 @@ def _validate_args(args: argparse.Namespace) -> None:
         raise CandidateRefreshError("--item-id must be positive")
     if args.item_id and len(set(args.item_id)) != len(args.item_id):
         raise CandidateRefreshError("--item-id values must be unique")
+
+
+def _with_operational_refresh_status(
+    candidate: DiscoveryCandidate,
+    *,
+    operational_date: date,
+) -> DiscoveryCandidate:
+    if candidate.refresh_status != "FRESH":
+        return candidate
+    if _is_same_operational_date(candidate.last_checked_at, operational_date):
+        return candidate
+    return replace(candidate, refresh_status="STALE")
+
+
+def _is_same_operational_date(
+    timestamp: datetime | None,
+    operational_date: date,
+) -> bool:
+    if timestamp is None:
+        return False
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=UTC)
+    return timestamp.astimezone(OPERATIONAL_TZ).date() == operational_date
 
 
 def _build_paths(base_dir: Path, profile: str, run_id: str) -> CandidateRefreshPaths:

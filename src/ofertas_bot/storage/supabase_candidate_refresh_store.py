@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 import psycopg
@@ -121,6 +121,7 @@ class SupabaseCandidateRefreshStore:
         profile: str,
         marketplace: str,
         item_ids: Sequence[int],
+        operational_date: date,
     ) -> list[ScoringCandidate]:
         if not item_ids:
             return []
@@ -151,8 +152,10 @@ class SupabaseCandidateRefreshStore:
               and marketplace = %s
               and item_id = any(%s)
               and is_scoring_ready
+              and last_checked_at is not null
+              and (last_checked_at at time zone 'America/Sao_Paulo')::date = %s
             """,
-            (profile, marketplace, list(item_ids)),
+            (profile, marketplace, list(item_ids), operational_date),
         ).fetchall()
         by_item = {int(row["item_id"]): _scoring_candidate(row) for row in rows}
         return [by_item[item_id] for item_id in item_ids if item_id in by_item]

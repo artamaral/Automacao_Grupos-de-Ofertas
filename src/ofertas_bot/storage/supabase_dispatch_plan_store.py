@@ -33,7 +33,13 @@ class SupabaseDispatchPlanStore:
     def close(self) -> None:
         self._connection.close()
 
-    def load_candidates(self, *, profile: str, marketplace: str) -> list[DispatchCandidate]:
+    def load_candidates(
+        self,
+        *,
+        profile: str,
+        marketplace: str,
+        planned_date: date,
+    ) -> list[DispatchCandidate]:
         rows = self._connection.execute(
             """
             select
@@ -44,9 +50,11 @@ class SupabaseDispatchPlanStore:
               and marketplace = %s
               and is_eligible
               and refresh_status = 'FRESH'
+              and last_checked_at is not null
+              and (last_checked_at at time zone 'America/Sao_Paulo')::date = %s
             order by commercial_score desc, sales_count desc, rating desc nulls last, item_id
             """,
-            (profile, marketplace),
+            (profile, marketplace, planned_date),
         ).fetchall()
         return [
             DispatchCandidate(
