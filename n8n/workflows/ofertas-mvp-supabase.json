@@ -330,6 +330,549 @@
         3360,
         -120
       ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 9 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "30 14 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * *"
+            }
+          ]
+        }
+      },
+      "id": "static-schedule",
+      "name": "Schedule Mensagens Estaticas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        720
+      ],
+      "notesInFlow": true,
+      "notes": "Horarios diarios das mensagens estaticas. Ajuste somente as regras deste trigger."
+    },
+    {
+      "parameters": {
+        "jsCode": "const zone = 'America/Sao_Paulo';\nconst now = new Date();\nconst dateParts = Object.fromEntries(\n  new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' })\n    .formatToParts(now).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),\n);\nconst dayKey = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;\nconst state = $getWorkflowStaticData('node');\nif (state.static_message_day !== dayKey) { state.static_message_day = dayKey; state.static_message_sequence = 0; }\nstate.static_message_sequence = Number(state.static_message_sequence || 0) + 1;\nconst sequence = state.static_message_sequence;\nconst msgId = `msg_${String(sequence).padStart(3, '0')}`;\nreturn [{ json: {\n  run_id: `${dayKey}-${msgId}-static`, execution_day: dayKey, sequence, msg_id: msgId,\n  root_folder_name: 'ofertas-femininas', profile: 'feminino', marketplace: 'google-drive',\n  target: 'grupo-ofertas-feminino', target_chat_id: '120363412864266334@g.us',\n  allowed_targets: ['grupo-ofertas-feminino'], channel_adapter: 'whatsapp',\n  manifest_item_number: sequence, artifact_generated_at: `${dayKey}T03:00:00.000Z`,\n  manifest_created_at: now.toISOString(), planned_at: now.toISOString(),\n  static_ready: true, delivery_status: 'cancelled', sent_at: null,\n} }];"
+      },
+      "id": "static-resolve-sequence",
+      "name": "Resolver Sequencia Estatica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "name = 'ofertas-femininas' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 2,
+        "filter": {
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "static-drive-search-root",
+      "name": "Buscar Pasta Raiz Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        560,
+        720
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Resolver Sequencia Estatica').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.root_folder_name && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'drive_root_lookup_failed' : matches.length === 0 ? 'drive_root_missing' : 'drive_root_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, root_folder_id: matches[0].json.id, root_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "static-drive-validate-root",
+      "name": "Validar Pasta Raiz Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-root-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-root-ready",
+      "name": "IF Pasta Raiz Disponivel",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "={{ \"name = '\" + $json.msg_id + \"' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}",
+        "limit": 2,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.root_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "static-drive-search-message",
+      "name": "Buscar Pasta msg_XXX",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1400,
+        600
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta Raiz Drive').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.msg_id && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'message_folder_lookup_failed' : matches.length === 0 ? 'message_folder_missing' : 'message_folder_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, message_folder_id: matches[0].json.id, message_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "static-drive-validate-message",
+      "name": "Validar Pasta msg_XXX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-message-folder-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-message-ready",
+      "name": "IF Pasta msg_XXX Disponivel",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "(name = 'copy.txt' or name = 'image.jpg') and trashed = false",
+        "limit": 3,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.message_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "files",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "static-drive-search-files",
+      "name": "Buscar Arquivos msg_XXX",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        480
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta msg_XXX').first().json;\nconst copyMatches = items.filter((item) => item.json?.name === 'copy.txt' && item.json?.mimeType === 'text/plain' && item.json?.id);\nconst imageMatches = items.filter((item) => item.json?.name === 'image.jpg' && item.json?.mimeType === 'image/jpeg' && item.json?.id);\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (lookupError || copyMatches.length !== 1 || imageMatches.length !== 1) {\n  const reason = lookupError ? 'message_files_lookup_failed' : copyMatches.length === 0 ? 'copy_missing_or_invalid' : copyMatches.length > 1 ? 'copy_ambiguous' : imageMatches.length === 0 ? 'image_missing_or_invalid' : 'image_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, copy_file_id: copyMatches[0].json.id, image_file_id: imageMatches[0].json.id, static_ready: true } }];"
+      },
+      "id": "static-drive-validate-files",
+      "name": "Validar Arquivos msg_XXX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-files-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-files-ready",
+      "name": "IF Arquivos Completos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.copy_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "copy_file",
+          "fileName": "copy.txt"
+        }
+      },
+      "id": "static-drive-download-copy",
+      "name": "Baixar copy.txt",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3080,
+        360
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.image_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "image_file",
+          "fileName": "image.jpg"
+        }
+      },
+      "id": "static-drive-download-image",
+      "name": "Baixar image.jpg",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3360,
+        360
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first();\nconst context = item.json;\ntry {\n  const copyBuffer = await this.helpers.getBinaryDataBuffer(0, 'copy_file');\n  const imageBuffer = await this.helpers.getBinaryDataBuffer(0, 'image_file');\n  const messageText = copyBuffer.toString('utf8').trim();\n  if (!messageText) throw new Error('copy_empty');\n  if (!imageBuffer.length) throw new Error('image_empty');\n  return [{ json: { ...context, message_text: messageText, waha_image_base64: imageBuffer.toString('base64'), waha_image_filename: 'image.jpg', static_ready: true } }];\n} catch (error) {\n  const reason = String(error?.message || error || 'binary_download_failed');\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}"
+      },
+      "id": "static-prepare-content",
+      "name": "Preparar Conteudo Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3640,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-content-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-content-ready",
+      "name": "IF Conteudo Estatico Valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst targetAllowed = item.target === 'grupo-ofertas-feminino' && item.target_chat_id === '120363412864266334@g.us' && Array.isArray(item.allowed_targets) && item.allowed_targets.includes(item.target);\nconst shouldSend = targetAllowed && Boolean(item.message_text && item.waha_image_base64);\nreturn { json: { ...item, target_allowed: targetAllowed, waha_should_send: shouldSend, blocked_reason: shouldSend ? null : (targetAllowed ? 'static_payload_missing' : 'blocked_by_allowlist'), delivery_status: 'cancelled', adapter_status: shouldSend ? 'ready_for_real_channel_node' : 'not_sent' } };"
+      },
+      "id": "static-waha-prepare-send",
+      "name": "Preparar Envio WAHA Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-waha-should-send",
+              "leftValue": "={{ $json.waha_should_send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-waha-send",
+      "name": "IF Pode Enviar WAHA Estatico",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendImage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $json.target_chat_id, file: { mimetype: 'image/jpeg', data: $json.waha_image_base64, filename: $json.waha_image_filename || 'image.jpg' }, caption: $json.message_text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "static-waha-send-image",
+      "name": "Enviar WhatsApp WAHA Estatico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4760,
+        120
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wahad508ad814402",
+          "name": "WAHA Header Auth"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Preparar Envio WAHA Estatico').item.json;\nconst response = $json || {};\nconst messageId = response.id?._serialized || response._data?.id?._serialized || response.id?.id || null;\nconst ack = response.ack ?? response._data?.ack ?? null;\nconst accepted = Boolean(messageId || response.fromMe === true || response._data?.fromMe === true);\nreturn { json: { ...original, adapter_status: accepted ? 'sent_to_adapter' : 'adapter_send_failed', adapter_message_id: messageId, adapter_ack: ack, adapter_response_type: response.type || response._data?.type || null, delivery_status: accepted ? 'confirmed' : 'failed', blocked_reason: accepted ? null : 'adapter_send_failed', sent_at: accepted ? new Date().toISOString() : null } };"
+      },
+      "id": "static-waha-normalize-result",
+      "name": "Normalizar Resultado WAHA Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst sqlText = (value) => value === null || value === undefined ? 'null' : `'${String(value).replace(/'/g, \"''\")}'`;\nconst sqlNumber = (value) => value === null || value === undefined || value === '' ? 'null' : String(Number(value));\nconst stableKey = Math.max(0, Number(item.sequence || 0)).toString(16).padStart(64, '0').slice(-64);\nconst offerUrl = item.message_folder_url || item.root_folder_url || 'https://drive.google.com/drive/my-drive';\nconst payload = { run_id: item.run_id, msg_id: item.msg_id, execution_day: item.execution_day, source: 'google_drive_static_message', root_folder_name: item.root_folder_name, root_folder_id: item.root_folder_id || null, message_folder_id: item.message_folder_id || null, copy_file_id: item.copy_file_id || null, image_file_id: item.image_file_id || null, target_allowed: item.target_allowed ?? null, blocked_reason: item.blocked_reason || null, adapter_status: item.adapter_status || null, adapter_message_id: item.adapter_message_id || null, adapter_ack: item.adapter_ack ?? null, adapter_response_type: item.adapter_response_type || null };\nconst sqlJson = `${sqlText(JSON.stringify(payload))}::jsonb`;\nconst query = `insert into offers.publication_events (\n  profile, marketplace, stable_key, item_id, target, channel_adapter, delivery_status,\n  manifest_item_number, artifact_generated_at, manifest_created_at, planned_at, sent_at,\n  offer_title, offer_url, offer_price, message_text, payload\n) values (\n  ${sqlText(item.profile)}, ${sqlText(item.marketplace)}, ${sqlText(stableKey)}, null,\n  ${sqlText(item.target)}, ${sqlText(item.channel_adapter)}, ${sqlText(item.delivery_status || 'cancelled')},\n  ${sqlNumber(item.manifest_item_number)}, ${sqlText(item.artifact_generated_at)}::timestamptz,\n  ${sqlText(item.manifest_created_at)}::timestamptz, ${sqlText(item.planned_at)}::timestamptz,\n  ${sqlText(item.sent_at)}::timestamptz, ${sqlText(item.msg_id)}, ${sqlText(offerUrl)}, null,\n  ${sqlText(item.message_text || `${item.msg_id} nao enviada`)}, ${sqlJson}\n) on conflict (profile, target, manifest_item_number, artifact_generated_at)\ndo update set delivery_status = excluded.delivery_status, sent_at = excluded.sent_at,\n  message_text = excluded.message_text, payload = excluded.payload, updated_at = now()\nreturning publish_id;`;\nreturn { json: { ...item, publication_event_upsert_query: query } };"
+      },
+      "id": "static-build-publication-event",
+      "name": "Montar Upsert Publication Event Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5320,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.publication_event_upsert_query }}",
+        "options": {}
+      },
+      "id": "static-register-publication-event",
+      "name": "Registrar Resultado Supabase Estatico",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        5600,
+        480
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
   "connections": {
@@ -538,7 +1081,262 @@
           }
         ]
       ]
-    }
+    },
+      "Schedule Mensagens Estaticas": {
+        "main": [
+          [
+            {
+              "node": "Resolver Sequencia Estatica",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Resolver Sequencia Estatica": {
+        "main": [
+          [
+            {
+              "node": "Buscar Pasta Raiz Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar Pasta Raiz Drive": {
+        "main": [
+          [
+            {
+              "node": "Validar Pasta Raiz Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validar Pasta Raiz Drive": {
+        "main": [
+          [
+            {
+              "node": "IF Pasta Raiz Disponivel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Pasta Raiz Disponivel": {
+        "main": [
+          [
+            {
+              "node": "Buscar Pasta msg_XXX",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Montar Upsert Publication Event Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar Pasta msg_XXX": {
+        "main": [
+          [
+            {
+              "node": "Validar Pasta msg_XXX",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validar Pasta msg_XXX": {
+        "main": [
+          [
+            {
+              "node": "IF Pasta msg_XXX Disponivel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Pasta msg_XXX Disponivel": {
+        "main": [
+          [
+            {
+              "node": "Buscar Arquivos msg_XXX",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Montar Upsert Publication Event Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar Arquivos msg_XXX": {
+        "main": [
+          [
+            {
+              "node": "Validar Arquivos msg_XXX",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validar Arquivos msg_XXX": {
+        "main": [
+          [
+            {
+              "node": "IF Arquivos Completos",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Arquivos Completos": {
+        "main": [
+          [
+            {
+              "node": "Baixar copy.txt",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Montar Upsert Publication Event Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Baixar copy.txt": {
+        "main": [
+          [
+            {
+              "node": "Baixar image.jpg",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Baixar image.jpg": {
+        "main": [
+          [
+            {
+              "node": "Preparar Conteudo Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar Conteudo Estatico": {
+        "main": [
+          [
+            {
+              "node": "IF Conteudo Estatico Valido",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Conteudo Estatico Valido": {
+        "main": [
+          [
+            {
+              "node": "Preparar Envio WAHA Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Montar Upsert Publication Event Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar Envio WAHA Estatico": {
+        "main": [
+          [
+            {
+              "node": "IF Pode Enviar WAHA Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Pode Enviar WAHA Estatico": {
+        "main": [
+          [
+            {
+              "node": "Enviar WhatsApp WAHA Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Montar Upsert Publication Event Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Enviar WhatsApp WAHA Estatico": {
+        "main": [
+          [
+            {
+              "node": "Normalizar Resultado WAHA Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalizar Resultado WAHA Estatico": {
+        "main": [
+          [
+            {
+              "node": "Montar Upsert Publication Event Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Montar Upsert Publication Event Estatico": {
+        "main": [
+          [
+            {
+              "node": "Registrar Resultado Supabase Estatico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
   },
   "pinData": {},
   "settings": {

@@ -2,6 +2,9 @@
 
 Este runbook descreve apenas o fluxo MVP.
 
+O processo isolado de mensagens estaticas via Google Drive esta documentado em
+[`docs/runbook-n8n-mensagens-estaticas.md`](runbook-n8n-mensagens-estaticas.md).
+
 Fluxos antigos com runner HTTP, self-hosted/local, Cloud Run ou Google
 Planilhas como fonte principal ficam como referencia historica. Eles nao devem
 guiar a primeira operacao minima.

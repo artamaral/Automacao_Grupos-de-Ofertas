@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -68,6 +69,136 @@ EXPECTED_SEND_DELAY_MIN = 45
 EXPECTED_SEND_DELAY_MAX = 90
 EXPECTED_LOOP_NODE = "Loop Ofertas"
 EXPECTED_LOOP_RETURN_NODE = "Registrar Resultado Supabase"
+EXPECTED_STATIC_SCHEDULE_NODE = "Schedule Mensagens Estaticas"
+EXPECTED_STATIC_SCHEDULE_CRONS = (
+    "30 9 * * *",
+    "0 11 * * *",
+    "30 14 * * *",
+    "0 16 * * *",
+)
+EXPECTED_STATIC_ROOT_FOLDER = "ofertas-femininas"
+EXPECTED_STATIC_TARGET = "grupo-ofertas-feminino"
+EXPECTED_STATIC_CHAT_ID = "120363412864266334@g.us"
+EXPECTED_WAHA_CREDENTIAL = {"id": "wahad508ad814402", "name": "WAHA Header Auth"}
+EXPECTED_POSTGRES_CREDENTIAL = {"id": "enHQciqlEESYRjQl", "name": "Postgres account"}
+
+LEGACY_NODE_HASHES = {
+    "1": "15d198952fd47d2837db4c8cd62b6829a62cb5d43fa0eb90dee1ac97c78e2500",
+    "schedule-grupo-real": "586e739d19c4df6a21a2212f8bb3449e807b28cc34a5df9fcaf1ca4c1b2c4432",
+    "schedule-context-grupo-real": (
+        "9eaefb48ea187c08433b4780650689df65bcc38f53ac623fddf2b46c6389d035"
+    ),
+    "4": "b6a3df6df14099beb4467f60ccfaff9837a1173f11093a4b618489fea475507f",
+    "prepare-batch-send": "b1f0ae87bec6f3b9cb50caa79b20fed928ce346ea53e951cef8a67176df4f795",
+    "loop-send-offers": "e3dcdc1635ea655de6971288ffacfbcd866b30f847442b5fa8ee5c95b6022018",
+    "5": "30f3570f5cac4bc7397dc1c1b6c68aa4b6ba41d59e910bb5afd73119d95747e7",
+    "6": "2bdcc37a06cd7a87359619f9e21ea90ec35b50d2863defe2337aa29bdfa873c6",
+    "8": "0dc88cebbdfd3f047769145301f9cc48e38eb802c0e32622f10794433ffd1bb7",
+    "9": "84c95218ef2b80c7d0ce02ded369beb6e7ae40adfc4f1e5d3ffcfe6415626202",
+    "3": "c1b49ff990d8e8c47f5c5787e3c89991c985c242076d432b1d33188f3346a80e",
+    "962ad612-c9bc-46f1-a15a-0e24e25600ac": (
+        "cbb267607daad2a25fcf9bd28b60926b2d99400c8a21e76bde89f5737e27ed38"
+    ),
+    "4dd3e336-768c-47b1-a62e-f2630dcbe663": (
+        "6ddb0f866557d938100cee3b4d8242ff1e812b836a55ca1d725130b3746f258d"
+    ),
+    "waha-prepare-send": "7700145f8ed297db0d96ebad01bfd7ce848c792b6980631f1ad473d3a9367ffd",
+    "waha-if-can-send": "85bbbfc64764f3f951f117c6ecc73ac438033ba8f38304fdf7af130a9c9e8210",
+    "waha-wait-between-sends": "4a4fb26dd38c5a2eba74858e9d9e561dd116d90e30f9f9bdaaa3058d8105b2bf",
+    "waha-send-text": "802adc36bc508061a1093509a6437db43a887fdb52a61a15a3e16a558277dcfe",
+    "waha-normalize-result": "f9e1cbd91ff55520cd7f70096b95be52960ffcbecf258765749ea18384b68c57",
+}
+
+LEGACY_CONNECTION_HASHES = {
+    "Trigger Manual": "03d22e8be82297f2af74c18a0c8fff16bb91e9960042f7488b410e19a18edd59",
+    "Schedule Grupo Real": "8d3bee7eb369619a14b7bbbb18f03ae2f6f268c5af704b1a745de56aead13d86",
+    "Set Contexto Schedule Grupo": (
+        "e76542f6e649ee47dc5b100d37fef928d24ebff7646234d6119a7ee8fb84e399"
+    ),
+    "Consultar Fila Planejada Supabase": (
+        "61a47e706804871a41f4631b08e403d753d2e0a3b1cdb6cdfb7e0b7e135e83a0"
+    ),
+    "Montar Mensagens": "151ad0f6113c9b1713ca00e2cb3fba874172e13cd29f15874121616ac0fa58a7",
+    "Validar Allowlist": "b98f4ad3557219518791cac3aa360058733c58fea10c392cfa5e8279cf025b7b",
+    "Montar Upsert Publication Event": (
+        "507875c1067c38eff767af1545ff60bc8d50393f036f345d07cd82b60153a25f"
+    ),
+    "Validar Contexto": "9fbb8bcb4406e357b779c20ae396065855832ab9eb1b8f467e9bc14eb6b4a3aa",
+    "Simular Envio MVP": "72e4ac3f0119f22dda4ad9b47ff7b1752ecface0ee748f03453c037edf563d0a",
+    "Set Contexto MVP": "e76542f6e649ee47dc5b100d37fef928d24ebff7646234d6119a7ee8fb84e399",
+    "Preparar Envio WAHA": "f225a37c9c8a0306a50ad650dadec494ede2e34fcc6a8b0d26bf1b6f04a4234e",
+    "IF Pode Enviar WAHA": "3d5dbd935337ee2d53be66cb731b88b8fe2f3d8198637d6fd702aa3602410a31",
+    "Enviar WhatsApp WAHA": "1bf60cfdb1428f70b96ab5c78f6a9dc919833e33a5d52b55220b3d01520bbec2",
+    "Normalizar Resultado WAHA": "38bee10ff3a5d9df6033240107fbeb3260a07c151b0630cc5c43b90755c1f8c6",
+    "Preparar Lote de Envio": "4cd132c8bf533b98dcfbbfcfa56febf281696c6184c39822979e8815043646b0",
+    "Loop Ofertas": "c2c1b9edf42c9274aa8d972913890f43bf549ccfdd5d4a471cb57e3db6acb679",
+    "Aguardar Intervalo WAHA": "c2a5325b26f866c19c94b88d18601d19f9c04a4f4eb68bdfbe927a4034dd237d",
+    "Registrar Resultado Supabase": (
+        "4cd132c8bf533b98dcfbbfcfa56febf281696c6184c39822979e8815043646b0"
+    ),
+}
+
+STATIC_NODE_NAMES = {
+    "Schedule Mensagens Estaticas",
+    "Resolver Sequencia Estatica",
+    "Buscar Pasta Raiz Drive",
+    "Validar Pasta Raiz Drive",
+    "IF Pasta Raiz Disponivel",
+    "Buscar Pasta msg_XXX",
+    "Validar Pasta msg_XXX",
+    "IF Pasta msg_XXX Disponivel",
+    "Buscar Arquivos msg_XXX",
+    "Validar Arquivos msg_XXX",
+    "IF Arquivos Completos",
+    "Baixar copy.txt",
+    "Baixar image.jpg",
+    "Preparar Conteudo Estatico",
+    "IF Conteudo Estatico Valido",
+    "Preparar Envio WAHA Estatico",
+    "IF Pode Enviar WAHA Estatico",
+    "Enviar WhatsApp WAHA Estatico",
+    "Normalizar Resultado WAHA Estatico",
+    "Montar Upsert Publication Event Estatico",
+    "Registrar Resultado Supabase Estatico",
+}
+
+STATIC_CONNECTION_TARGETS = {
+    "Schedule Mensagens Estaticas": (("Resolver Sequencia Estatica",),),
+    "Resolver Sequencia Estatica": (("Buscar Pasta Raiz Drive",),),
+    "Buscar Pasta Raiz Drive": (("Validar Pasta Raiz Drive",),),
+    "Validar Pasta Raiz Drive": (("IF Pasta Raiz Disponivel",),),
+    "IF Pasta Raiz Disponivel": (
+        ("Buscar Pasta msg_XXX",),
+        ("Montar Upsert Publication Event Estatico",),
+    ),
+    "Buscar Pasta msg_XXX": (("Validar Pasta msg_XXX",),),
+    "Validar Pasta msg_XXX": (("IF Pasta msg_XXX Disponivel",),),
+    "IF Pasta msg_XXX Disponivel": (
+        ("Buscar Arquivos msg_XXX",),
+        ("Montar Upsert Publication Event Estatico",),
+    ),
+    "Buscar Arquivos msg_XXX": (("Validar Arquivos msg_XXX",),),
+    "Validar Arquivos msg_XXX": (("IF Arquivos Completos",),),
+    "IF Arquivos Completos": (
+        ("Baixar copy.txt",),
+        ("Montar Upsert Publication Event Estatico",),
+    ),
+    "Baixar copy.txt": (("Baixar image.jpg",),),
+    "Baixar image.jpg": (("Preparar Conteudo Estatico",),),
+    "Preparar Conteudo Estatico": (("IF Conteudo Estatico Valido",),),
+    "IF Conteudo Estatico Valido": (
+        ("Preparar Envio WAHA Estatico",),
+        ("Montar Upsert Publication Event Estatico",),
+    ),
+    "Preparar Envio WAHA Estatico": (("IF Pode Enviar WAHA Estatico",),),
+    "IF Pode Enviar WAHA Estatico": (
+        ("Enviar WhatsApp WAHA Estatico",),
+        ("Montar Upsert Publication Event Estatico",),
+    ),
+    "Enviar WhatsApp WAHA Estatico": (("Normalizar Resultado WAHA Estatico",),),
+    "Normalizar Resultado WAHA Estatico": (("Montar Upsert Publication Event Estatico",),),
+    "Montar Upsert Publication Event Estatico": (("Registrar Resultado Supabase Estatico",),),
+}
 
 
 class WorkflowGuardError(RuntimeError):
@@ -161,6 +292,181 @@ def node_by_name(workflow: dict[str, Any], name: str) -> dict[str, Any] | None:
     return None
 
 
+def canonical_hash(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def validate_legacy_immutable(workflow: dict[str, Any], errors: list[str]) -> None:
+    nodes = workflow.get("nodes")
+    connections = workflow.get("connections")
+    if not isinstance(nodes, list) or not isinstance(connections, dict):
+        return
+
+    nodes_by_id = {
+        node.get("id"): node
+        for node in nodes
+        if isinstance(node, dict) and isinstance(node.get("id"), str)
+    }
+    for node_id, expected_hash in LEGACY_NODE_HASHES.items():
+        node = nodes_by_id.get(node_id)
+        if node is None:
+            errors.append(f"legacy node missing: {node_id}")
+        elif canonical_hash(node) != expected_hash:
+            errors.append(f"legacy node modified: {node.get('name', node_id)}")
+
+    for source, expected_hash in LEGACY_CONNECTION_HASHES.items():
+        connection = connections.get(source)
+        if connection is None:
+            errors.append(f"legacy connection source missing: {source}")
+        elif canonical_hash(connection) != expected_hash:
+            errors.append(f"legacy connections modified: {source}")
+
+
+def connection_targets(connection: Any) -> tuple[tuple[str, ...], ...]:
+    if not isinstance(connection, dict):
+        return ()
+    outputs = connection.get("main")
+    if not isinstance(outputs, list):
+        return ()
+    return tuple(
+        tuple(edge.get("node", "") for edge in output if isinstance(edge, dict))
+        for output in outputs
+        if isinstance(output, list)
+    )
+
+
+def validate_static_messages(workflow: dict[str, Any], errors: list[str]) -> None:
+    nodes = workflow.get("nodes")
+    connections = workflow.get("connections")
+    if not isinstance(nodes, list) or not isinstance(connections, dict):
+        return
+
+    if workflow.get("active") is not False:
+        errors.append("versioned workflow active must be false")
+
+    static_nodes = [
+        node
+        for node in nodes
+        if isinstance(node, dict) and str(node.get("id", "")).startswith("static-")
+    ]
+    static_names = {str(node.get("name", "")) for node in static_nodes}
+    if static_names != STATIC_NODE_NAMES:
+        missing = sorted(STATIC_NODE_NAMES - static_names)
+        unexpected = sorted(static_names - STATIC_NODE_NAMES)
+        errors.append(f"static node set mismatch: missing={missing}, unexpected={unexpected}")
+    if len(nodes) != len(LEGACY_NODE_HASHES) + len(STATIC_NODE_NAMES):
+        errors.append("workflow must contain exactly 18 legacy and 21 static nodes")
+
+    schedule_nodes = [
+        node
+        for node in nodes
+        if isinstance(node, dict) and node.get("type") == "n8n-nodes-base.scheduleTrigger"
+    ]
+    static_schedule = node_by_name(workflow, EXPECTED_STATIC_SCHEDULE_NODE)
+    if len(schedule_nodes) != 2 or static_schedule is None:
+        errors.append("workflow must contain exactly one static Schedule Trigger")
+    else:
+        intervals = static_schedule.get("parameters", {}).get("rule", {}).get("interval", [])
+        expressions = tuple(
+            interval.get("expression")
+            for interval in intervals
+            if isinstance(interval, dict) and interval.get("field") == "cronExpression"
+        )
+        if expressions != EXPECTED_STATIC_SCHEDULE_CRONS:
+            errors.append("static schedule must contain the four approved cron rules")
+
+    resolver = node_by_name(workflow, "Resolver Sequencia Estatica")
+    resolver_code = str((resolver or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in (
+        "$getWorkflowStaticData('node')",
+        "static_message_day",
+        "static_message_sequence",
+        "padStart(3, '0')",
+        f"root_folder_name: '{EXPECTED_STATIC_ROOT_FOLDER}'",
+        "marketplace: 'google-drive'",
+        f"target: '{EXPECTED_STATIC_TARGET}'",
+        f"target_chat_id: '{EXPECTED_STATIC_CHAT_ID}'",
+    ):
+        if expected not in resolver_code:
+            errors.append(f"static sequence resolver missing {expected}")
+
+    google_node_names = (
+        "Buscar Pasta Raiz Drive",
+        "Buscar Pasta msg_XXX",
+        "Buscar Arquivos msg_XXX",
+        "Baixar copy.txt",
+        "Baixar image.jpg",
+    )
+    google_nodes = [node_by_name(workflow, name) for name in google_node_names]
+    for name, node in zip(google_node_names, google_nodes, strict=True):
+        if node is None or node.get("type") != "n8n-nodes-base.googleDrive":
+            errors.append(f"missing Google Drive node: {name}")
+            continue
+        if node.get("typeVersion") != 3:
+            errors.append(f"Google Drive node must use typeVersion 3: {name}")
+        if node.get("credentials"):
+            errors.append(f"Google Drive credential must not be versioned: {name}")
+        if node.get("parameters", {}).get("authentication") != "oAuth2":
+            errors.append(f"Google Drive node must use OAuth2: {name}")
+
+    file_validator = node_by_name(workflow, "Validar Arquivos msg_XXX")
+    file_validator_code = str((file_validator or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in ("copy.txt", "image.jpg", "text/plain", "image/jpeg"):
+        if expected not in file_validator_code:
+            errors.append(f"static file validation missing {expected}")
+
+    content_node = node_by_name(workflow, "Preparar Conteudo Estatico")
+    content_code = str((content_node or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in ("getBinaryDataBuffer", "copy_file", "image_file", "toString('base64')"):
+        if expected not in content_code:
+            errors.append(f"static content preparation missing {expected}")
+
+    waha_node = node_by_name(workflow, "Enviar WhatsApp WAHA Estatico")
+    waha_parameters = (waha_node or {}).get("parameters", {})
+    if waha_parameters.get("url") != "http://waha:3000/api/sendImage":
+        errors.append("static WAHA node must reuse /api/sendImage")
+    waha_body = str(waha_parameters.get("jsonBody", ""))
+    for expected in ("session: 'default'", "data: $json.waha_image_base64"):
+        if expected not in waha_body:
+            errors.append(f"static WAHA payload missing {expected}")
+    if (waha_node or {}).get("credentials", {}).get("httpHeaderAuth") != EXPECTED_WAHA_CREDENTIAL:
+        errors.append("static WAHA node must reuse WAHA Header Auth")
+
+    register_node = node_by_name(workflow, "Registrar Resultado Supabase Estatico")
+    if (register_node or {}).get("credentials", {}).get("postgres") != EXPECTED_POSTGRES_CREDENTIAL:
+        errors.append("static register node must reuse Postgres account")
+
+    upsert_node = node_by_name(workflow, "Montar Upsert Publication Event Estatico")
+    upsert_code = str((upsert_node or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in (
+        "offers.publication_events",
+        "delivery_status || 'cancelled'",
+        "on conflict (profile, target, manifest_item_number, artifact_generated_at)",
+        "source: 'google_drive_static_message'",
+    ):
+        if expected not in upsert_code:
+            errors.append(f"static publication upsert missing {expected}")
+
+    for source, expected_targets in STATIC_CONNECTION_TARGETS.items():
+        actual_targets = connection_targets(connections.get(source))
+        if actual_targets != expected_targets:
+            errors.append(f"static connections modified: {source}")
+
+    unexpected_static_sources = {
+        source
+        for source in connections
+        if source in STATIC_NODE_NAMES and source not in STATIC_CONNECTION_TARGETS
+    }
+    if unexpected_static_sources:
+        errors.append(f"unexpected static connection sources: {sorted(unexpected_static_sources)}")
+
+
 def validate_schedule(workflow: dict[str, Any], errors: list[str]) -> None:
     schedule_node = node_by_name(workflow, EXPECTED_SCHEDULE_NODE)
     if schedule_node is None:
@@ -168,20 +474,14 @@ def validate_schedule(workflow: dict[str, Any], errors: list[str]) -> None:
         return
     if schedule_node.get("type") != "n8n-nodes-base.scheduleTrigger":
         errors.append(f"{EXPECTED_SCHEDULE_NODE} must be scheduleTrigger")
-    intervals = (
-        schedule_node.get("parameters", {})
-        .get("rule", {})
-        .get("interval", [])
-    )
+    intervals = schedule_node.get("parameters", {}).get("rule", {}).get("interval", [])
     cron_expressions = [
         item.get("expression")
         for item in intervals
         if isinstance(item, dict) and item.get("field") == "cronExpression"
     ]
     if EXPECTED_SCHEDULE_CRON not in cron_expressions:
-        errors.append(
-            f"{EXPECTED_SCHEDULE_NODE} cron must include {EXPECTED_SCHEDULE_CRON}"
-        )
+        errors.append(f"{EXPECTED_SCHEDULE_NODE} cron must include {EXPECTED_SCHEDULE_CRON}")
 
     schedule_context = node_by_name(workflow, EXPECTED_SCHEDULE_CONTEXT_NODE)
     if schedule_context is None:
@@ -199,9 +499,7 @@ def validate_schedule(workflow: dict[str, Any], errors: list[str]) -> None:
             "schedule-grupo-real",
         ):
             if expected_text not in context_code:
-                errors.append(
-                    f"{EXPECTED_SCHEDULE_CONTEXT_NODE} missing {expected_text}"
-                )
+                errors.append(f"{EXPECTED_SCHEDULE_CONTEXT_NODE} missing {expected_text}")
 
     connections = workflow.get("connections")
     if isinstance(connections, dict):
@@ -237,9 +535,7 @@ def validate_send_loop(workflow: dict[str, Any], errors: list[str]) -> None:
         for connection in loop_output
         if isinstance(connection, dict)
     ):
-        errors.append(
-            f"{EXPECTED_LOOP_NODE} loop output must connect to Montar Mensagens"
-        )
+        errors.append(f"{EXPECTED_LOOP_NODE} loop output must connect to Montar Mensagens")
 
     return_main = connections.get(EXPECTED_LOOP_RETURN_NODE, {}).get("main", [])
     return_output = return_main[0] if return_main else []
@@ -248,9 +544,7 @@ def validate_send_loop(workflow: dict[str, Any], errors: list[str]) -> None:
         for connection in return_output
         if isinstance(connection, dict)
     ):
-        errors.append(
-            f"{EXPECTED_LOOP_RETURN_NODE} must connect back to {EXPECTED_LOOP_NODE}"
-        )
+        errors.append(f"{EXPECTED_LOOP_RETURN_NODE} must connect back to {EXPECTED_LOOP_NODE}")
 
 
 def validate_daily_plan_claim(workflow: dict[str, Any], errors: list[str]) -> None:
@@ -304,6 +598,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
     if EXPECTED_TEMPLATE_TEXT not in text:
         errors.append(f"missing template text: {EXPECTED_TEMPLATE_TEXT}")
 
+    validate_legacy_immutable(workflow, errors)
+    validate_static_messages(workflow, errors)
     validate_schedule(workflow, errors)
     validate_send_loop(workflow, errors)
     validate_daily_plan_claim(workflow, errors)
@@ -413,9 +709,7 @@ def run_update(sql: str, config: DeployConfig) -> None:
     )
     if completed.returncode != 0:
         raise WorkflowGuardError(
-            "failed to update n8n workflow:\n"
-            f"stdout={completed.stdout}\n"
-            f"stderr={completed.stderr}"
+            f"failed to update n8n workflow:\nstdout={completed.stdout}\nstderr={completed.stderr}"
         )
 
 

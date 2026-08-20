@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -15,6 +16,8 @@ assert SPEC.loader is not None
 sys.modules[SPEC.name] = guard
 SPEC.loader.exec_module(guard)
 
+WORKFLOW_PATH = Path(__file__).resolve().parents[1] / "n8n/workflows/ofertas-mvp-supabase.json"
+
 
 def workflow_payload(
     *,
@@ -23,94 +26,25 @@ def workflow_payload(
     schedule_cron: str = "0 8-21 * * *",
     schedule_context: str | None = None,
 ) -> dict[str, object]:
-    schedule_context = schedule_context or (
-        "return [{ json: { dry_run: false, limit: 8, "
-        "target: 'grupo-ofertas-feminino', "
-        "target_chat_id: '120363412864266334@g.us', "
-        "allowed_targets_csv: 'grupo-ofertas-feminino', "
-        "send_delay_seconds_min: 45, send_delay_seconds_max: 90, "
-        "run_id: 'schedule-grupo-real' } }];"
-    )
-    message_layout = guard.EXPECTED_MESSAGE_LAYOUT.replace(
-        guard.EXPECTED_TEMPLATE_CODE_TEXT,
-        template_text,
-    )
-    return {
-        "id": "OfertasMvpSupab1",
-        "nodes": [
-            {
-                "name": "Schedule Grupo Real",
-                "type": "n8n-nodes-base.scheduleTrigger",
-                "parameters": {
-                    "rule": {
-                        "interval": [
-                            {"field": "cronExpression", "expression": schedule_cron}
-                        ]
-                    }
-                },
-            },
-            {
-                "name": "Set Contexto Schedule Grupo",
-                "type": "n8n-nodes-base.code",
-                "parameters": {"jsCode": schedule_context},
-            },
-            {
-                "name": "Montar Mensagens",
-                "parameters": {
-                    "jsCode": f"const copy = `{message_layout}`;"
-                },
-            },
-            {
-                "name": "Validar Contexto",
-                "parameters": {
-                    "jsCode": (
-                        "select from offers.daily_dispatch_plan plan "
-                        "join offers.v_daily_dispatch_ready ready using (dispatch_plan_id) "
-                        "where ready.is_ready_for_dispatch "
-                        "for update of plan skip locked; "
-                        "update dispatch_status = 'claimed', claim_token = token; "
-                        "select null::uuid as dispatch_plan_id "
-                        "from offers.v_daily_dispatch_ready; "
-                        "const result = dryRun ? previewQuery : claimQuery;"
-                    )
-                },
-            },
-            {
-                "name": "Enviar WhatsApp WAHA",
-                "parameters": {"url": url},
-            },
-            {
-                "name": "Loop Ofertas",
-                "type": "n8n-nodes-base.splitInBatches",
-                "parameters": {"batchSize": 1},
-            },
-            {
-                "name": "Registrar Resultado Supabase",
-                "type": "n8n-nodes-base.postgres",
-                "parameters": {},
-            },
-        ],
-        "connections": {
-            "Schedule Grupo Real": {
-                "main": [
-                    [{"node": "Set Contexto Schedule Grupo", "type": "main", "index": 0}]
-                ]
-            },
-            "Set Contexto Schedule Grupo": {
-                "main": [[{"node": "Validar Contexto", "type": "main", "index": 0}]]
-            },
-            "Loop Ofertas": {
-                "main": [
-                    [],
-                    [{"node": "Montar Mensagens", "type": "main", "index": 0}],
-                ]
-            },
-            "Registrar Resultado Supabase": {
-                "main": [[{"node": "Loop Ofertas", "type": "main", "index": 0}]]
-            },
-        },
-        "settings": {"timezone": "America/Sao_Paulo"},
-    }
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    legacy_waha = guard.node_by_name(workflow, "Enviar WhatsApp WAHA")
+    legacy_schedule = guard.node_by_name(workflow, "Schedule Grupo Real")
+    legacy_context = guard.node_by_name(workflow, "Set Contexto Schedule Grupo")
+    legacy_message = guard.node_by_name(workflow, "Montar Mensagens")
+    assert legacy_waha is not None
+    assert legacy_schedule is not None
+    assert legacy_context is not None
+    assert legacy_message is not None
+
+    legacy_waha["parameters"]["url"] = url
+    legacy_schedule["parameters"]["rule"]["interval"][0]["expression"] = schedule_cron
+    if schedule_context is not None:
+        legacy_context["parameters"]["jsCode"] = schedule_context
+    if template_text != guard.EXPECTED_TEMPLATE_CODE_TEXT:
+        legacy_message["parameters"]["jsCode"] = legacy_message["parameters"]["jsCode"].replace(
+            guard.EXPECTED_TEMPLATE_CODE_TEXT, template_text
+        )
+    return workflow
 
 
 def test_validate_versioned_workflow_accepts_send_image_template() -> None:
@@ -119,10 +53,12 @@ def test_validate_versioned_workflow_accepts_send_image_template() -> None:
 
 def test_validate_versioned_workflow_rejects_claim_without_ready_filter() -> None:
     workflow = workflow_payload()
-    context_code = workflow["nodes"][3]["parameters"]["jsCode"]
-    workflow["nodes"][3]["parameters"]["jsCode"] = context_code.replace(
-        "where ready.is_ready_for_dispatch ",
-        "",
+    context_node = guard.node_by_name(workflow, "Validar Contexto")
+    assert context_node is not None
+    context_code = context_node["parameters"]["jsCode"]
+    context_node["parameters"]["jsCode"] = context_code.replace(
+        "ready.is_ready_for_dispatch",
+        "ready.is_not_ready_for_dispatch",
     )
 
     with pytest.raises(guard.WorkflowGuardError, match="ready.is_ready_for_dispatch"):
@@ -163,9 +99,9 @@ def test_validate_versioned_workflow_rejects_safe_schedule_context() -> None:
 
 def test_validate_versioned_workflow_rejects_missing_emoji_escape() -> None:
     workflow = workflow_payload()
-    workflow["nodes"][2]["parameters"]["jsCode"] = (
-        "const copy = 'Resgate o cupom desta p\\u{00E1}gina';"
-    )
+    message_node = guard.node_by_name(workflow, "Montar Mensagens")
+    assert message_node is not None
+    message_node["parameters"]["jsCode"] = "const copy = 'Resgate o cupom desta p\\u{00E1}gina';"
 
     with pytest.raises(guard.WorkflowGuardError, match="missing emoji escape"):
         guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
@@ -173,8 +109,10 @@ def test_validate_versioned_workflow_rejects_missing_emoji_escape() -> None:
 
 def test_validate_versioned_workflow_rejects_non_compact_copy_layout() -> None:
     workflow = workflow_payload()
-    message_code = workflow["nodes"][2]["parameters"]["jsCode"]
-    workflow["nodes"][2]["parameters"]["jsCode"] = message_code.replace(
+    message_node = guard.node_by_name(workflow, "Montar Mensagens")
+    assert message_node is not None
+    message_code = message_node["parameters"]["jsCode"]
+    message_node["parameters"]["jsCode"] = message_code.replace(
         "${formatMoney(offer.price)}\n",
         "${formatMoney(offer.price)}\n\n",
     )
@@ -198,6 +136,86 @@ def test_validate_versioned_workflow_rejects_missing_loop_return() -> None:
     workflow["connections"]["Registrar Resultado Supabase"]["main"] = []
 
     with pytest.raises(guard.WorkflowGuardError, match="must connect back"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_modified_legacy_node() -> None:
+    workflow = workflow_payload()
+    legacy_node = guard.node_by_name(workflow, "Trigger Manual")
+    assert legacy_node is not None
+    legacy_node["notesInFlow"] = True
+
+    with pytest.raises(guard.WorkflowGuardError, match="legacy node modified"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_cross_flow_connection() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["Schedule Mensagens Estaticas"]["main"][0].append(
+        {"node": "Validar Contexto", "type": "main", "index": 0}
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="static connections modified"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_second_static_trigger() -> None:
+    workflow = workflow_payload()
+    workflow["nodes"].append(
+        {
+            "id": "static-extra-schedule",
+            "name": "Schedule Mensagens Estaticas Extra",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [0, 960],
+            "parameters": {"rule": {"interval": []}},
+        }
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="exactly one static Schedule"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_missing_file_route_to_waha() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["IF Arquivos Completos"]["main"][1][0]["node"] = (
+        "Enviar WhatsApp WAHA Estatico"
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="static connections modified"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_changed_static_group_id() -> None:
+    workflow = workflow_payload()
+    resolver = guard.node_by_name(workflow, "Resolver Sequencia Estatica")
+    assert resolver is not None
+    resolver["parameters"]["jsCode"] = resolver["parameters"]["jsCode"].replace(
+        guard.EXPECTED_STATIC_CHAT_ID,
+        "120000000000000000@g.us",
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="target_chat_id"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_google_credential_in_json() -> None:
+    workflow = workflow_payload()
+    drive_node = guard.node_by_name(workflow, "Buscar Pasta Raiz Drive")
+    assert drive_node is not None
+    drive_node["credentials"] = {
+        "googleDriveOAuth2Api": {"id": "invented", "name": "do-not-version"}
+    }
+
+    with pytest.raises(guard.WorkflowGuardError, match="must not be versioned"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_active_json() -> None:
+    workflow = workflow_payload()
+    workflow["active"] = True
+
+    with pytest.raises(guard.WorkflowGuardError, match="active must be false"):
         guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
