@@ -154,11 +154,11 @@ items = 1
 
 [[policies.fixed_daily_quotas]]
 subniche = "moda-tops"
-items = 6
+items = 7
 
 [[policies.fixed_daily_quotas]]
 subniche = "moda-bottoms"
-items = 8
+items = 10
 
 [[policies.fixed_daily_quotas]]
 subniche = "moda-looks"
@@ -174,15 +174,15 @@ items = 6
 
 [[policies.fixed_daily_quotas]]
 subniche = "maquiagem-pele"
-items = 7
-
-[[policies.fixed_daily_quotas]]
-subniche = "maquiagem-olhos"
 items = 6
 
 [[policies.fixed_daily_quotas]]
-subniche = "maquiagem-labios"
+subniche = "maquiagem-olhos"
 items = 5
+
+[[policies.fixed_daily_quotas]]
+subniche = "maquiagem-labios"
+items = 4
 
 [[policies.fixed_daily_quotas]]
 subniche = "maquiagem-pinceis-e-esponjas"
@@ -198,7 +198,7 @@ items = 1
 
 [[policies.fixed_daily_quotas]]
 subniche = "cabelo-tratamento"
-items = 10
+items = 8
 
 [[policies.fixed_daily_quotas]]
 subniche = "cabelo-ferramentas"
@@ -206,7 +206,7 @@ items = 5
 
 [[policies.fixed_daily_quotas]]
 subniche = "skincare-facial"
-items = 11
+items = 9
 
 [[policies.fixed_daily_quotas]]
 subniche = "unhas-manicure"
@@ -222,11 +222,11 @@ items = 5
 
 [[policies.fixed_daily_quotas]]
 subniche = "bolsas-e-carteiras"
-items = 2
+items = 4
 
 [[policies.fixed_daily_quotas]]
 subniche = "acessorios-femininos"
-items = 2
+items = 4
 
 [[policies.weekly_rotation_quotas]]
 subniche = "rotacao-moda"
