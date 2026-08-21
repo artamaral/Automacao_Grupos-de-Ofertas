@@ -104,6 +104,113 @@ Portanto, para o desenho operacional vigente, a alteracao de `profile` para
 `erro-nicho` garante que esses itens nao sejam mais considerados pelo fluxo de
 refresh, ranking e montagem da fila do profile `feminino`.
 
+## Limpezas adicionais em 2026-08-21
+
+### Auditoria pelo snapshot mais recente
+
+A auditoria inicial dos `2.285` itens usou o `product_name` persistido em
+`offers.catalog_items`. Foi identificado que o fluxo operacional pode usar o
+`product_name` mais recente de `offers.offer_snapshots`, que pode divergir do
+nome cadastral original para o mesmo `item_id`.
+
+Por isso foi executada uma nova verificacao dos `negative_terms` contra o
+snapshot mais recente de cada item ainda no profile `feminino`.
+
+Foram encontrados `11` itens. Quatro deles tinham somente o termo `adulto` e
+foram mantidos no profile `feminino`, por serem produtos femininos validos no
+contexto observado.
+
+Os outros `7` itens foram movidos para `erro-nicho`:
+
+```text
+18197643923
+20997632799
+23292865377
+23299150359
+23493236809
+42075927843
+58200460933
+```
+
+A validacao apos o `UPDATE` confirmou:
+
+```text
+moved_to_erro_nicho = 7
+still_feminino = 0
+```
+
+### Limpeza manual por descricao
+
+Na sequencia, foram localizados no catalogo e no snapshot atual itens que nao
+pertencem ao universo de publicacao dos profiles operacionais atuais. Foram
+movidos explicitamente para `erro-nicho` os seguintes `21` `item_id`:
+
+```text
+13111824947
+19808697032
+20997924526
+22294564575
+22299196951
+22398027085
+22994507281
+23099427373
+23193203772
+23198346659
+23598472024
+23997887366
+28644078356
+43074113593
+44757996163
+47756408151
+48951679594
+51956451693
+58208389522
+58254357436
+58254584392
+```
+
+Esse conjunto inclui:
+
+- meia tematica de pe de frango/galinha/galo;
+- escudo decorativo do Santa Cruz;
+- conjuntos infantis de 1 a 16 anos;
+- gelatinas capilares com denominacao `Kids`;
+- camisetas Brasil/unissex identificadas na revisao;
+- trofeus e objetos decorativos de kimono/jiu-jitsu/judo/karate;
+- saia metalizada de Carnaval identificada na revisao manual.
+
+Um dos `21` itens estava em `mae-e-bebe`; os demais estavam em `feminino`. A
+operacao foi feita por lista fechada de `item_id`, sem matching dinamico no
+momento do `UPDATE`.
+
+A validacao apos essa limpeza confirmou:
+
+```text
+target_item_ids = 21
+in_erro_nicho = 21
+still_other_profile = 0
+missing_from_catalog = 0
+```
+
+### Estado consolidado apos as limpezas
+
+Consulta direta ao Supabase em `2026-08-21` confirmou:
+
+| Profile | Linhas | `item_id` unicos |
+| --- | ---: | ---: |
+| `erro-nicho` | 2.313 | 2.313 |
+| `feminino` | 28.050 | 28.050 |
+| `mae-e-bebe` | 11.696 | 11.696 |
+
+O total de `2.313` em `erro-nicho` corresponde a:
+
+```text
+2.285 da primeira auditoria
++ 7 da auditoria por snapshot
++ 21 da limpeza manual
+= 2.313 item_id unicos
+```
+
 ## Uso futuro
 
 `erro-nicho` deve ser tratado como profile de quarentena, nao como novo nicho de
