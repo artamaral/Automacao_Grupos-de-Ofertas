@@ -1,5 +1,38 @@
 # Decisoes Tecnicas
 
+## 2026-08-21 - Skill local para mensagens estaticas do grupo feminino
+
+Decisao:
+
+- instalar localmente a skill `grupo-ofertas-femininas-msg-estaticas-v2` em
+  `C:\Users\arthu\.codex\skills\grupo-ofertas-femininas-msg-estaticas-v2`;
+- ativar a skill quando o usuario chamar explicitamente
+  `grupo-ofertas-femininas-msg-estaticas-v2` ou usar o prefixo
+  `/ofertas-femininas`;
+- usar a skill para preparar pastas `msg_XXX` com os nomes fixos `copy.txt` e
+  `image.jpg`;
+- manter a pasta oficial do Google Drive como destino operacional do fluxo:
+  `ofertas-femininas`;
+- quando o Google Drive nao estiver acessivel em uma etapa pontual, permitir
+  gravacao temporaria local apenas como fallback operacional solicitado pelo
+  usuario.
+
+Motivo:
+
+- reduzir erro manual na preparacao das mensagens estaticas consumidas pelo
+  n8n;
+- preservar o contrato fixo do workflow, que espera `copy.txt` e `image.jpg`;
+- separar a preparacao dos arquivos do envio WhatsApp, que continua sob
+  responsabilidade do n8n.
+
+Limites:
+
+- a skill nao envia WhatsApp;
+- a skill nao modifica o workflow n8n;
+- a URL normal do produto e usada apenas para extracao e validacao;
+- a URL afiliada e a unica URL permitida na copy final;
+- nao sobrescrever pastas `msg_XXX` existentes sem autorizacao explicita.
+
 ## 2026-08-15 - Instagram Shopee usa midia resolvida no Supabase
 
 Decisao:

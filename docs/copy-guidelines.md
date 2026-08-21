@@ -126,3 +126,38 @@ Antes de comprar, consulte sempre a página de cupons, podem existir descontos a
 Link do grupo:
 [inserir link allowlisted do WhatsApp]
 ```
+
+## Lembrete manual de cupons Shopee
+
+Mensagem avulsa para lembrar as participantes do grupo feminino de resgatar
+cupons antes de finalizar compras. Usar quando a operacao quiser reforcar a
+pagina de cupons, sem substituir a copy individual das ofertas.
+
+Link oficial informado para cupons:
+
+```text
+https://s.shopee.com.br/6q04mQAUkK
+```
+
+Texto pronto:
+
+```text
+🧡 Meninas, lembrete rápido!
+
+Antes de finalizar suas comprinhas, não esqueçam de resgatar os cupons disponíveis no app 🛍️✨
+
+Eles podem ajudar a garantir desconto extra, frete grátis ou aquela economia boa no pedido 💸🔥
+
+🎟️ Pegue seus cupons aqui:
+https://s.shopee.com.br/6q04mQAUkK
+
+Depois é só ativar o cupom antes de pagar e aproveitar as ofertas do dia 🧡
+```
+
+Regras de uso:
+
+- usar somente o link oficial de cupons informado acima;
+- nao misturar este lembrete com uma oferta especifica quando o n8n estiver
+  consumindo `copy.txt` + `image.jpg`;
+- se for enviado pelo fluxo de mensagens estaticas, preparar uma pasta
+  `msg_XXX` propria com `copy.txt` e `image.jpg`.
