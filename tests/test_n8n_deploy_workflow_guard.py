@@ -211,6 +211,109 @@ def test_validate_versioned_workflow_rejects_google_credential_in_json() -> None
         guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
+def test_validate_versioned_workflow_rejects_one_shot_removed_1_to_1_step() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["Baixar image.jpg Pontual"]["main"] = [
+        [{"node": "Montar Upsert Publication Event Pontual", "type": "main", "index": 0}]
+    ]
+
+    with pytest.raises(guard.WorkflowGuardError, match="one-shot connections modified"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_one_shot_pending_root_change() -> None:
+    workflow = workflow_payload()
+    resolver = guard.node_by_name(workflow, "Resolver Sequencia Pontual")
+    assert resolver is not None
+    resolver["parameters"]["jsCode"] = resolver["parameters"]["jsCode"].replace(
+        guard.EXPECTED_ONE_SHOT_ROOT_FOLDER,
+        "ofertas-femininas",
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="ofertas-femininas-pendentes"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_one_shot_archive_root_change() -> None:
+    workflow = workflow_payload()
+    archive_root = guard.node_by_name(workflow, "Buscar Pasta Enviados Drive Pontual")
+    assert archive_root is not None
+    archive_root["parameters"]["queryString"] = archive_root["parameters"][
+        "queryString"
+    ].replace(guard.EXPECTED_ONE_SHOT_ARCHIVE_ROOT_FOLDER, "ofertas-femininas")
+
+    with pytest.raises(guard.WorkflowGuardError, match="ofertas-femininas-enviados"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_one_shot_move_before_supabase() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["Registrar Resultado Supabase Pontual"]["main"] = [
+        [{"node": "Mover Pasta msg_XXX Pontual", "type": "main", "index": 0}]
+    ]
+
+    with pytest.raises(guard.WorkflowGuardError, match="one-shot connections modified"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_one_shot_cancelled_route_to_waha() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["IF Arquivos Completos Pontual"]["main"][1][0]["node"] = (
+        "Enviar WhatsApp WAHA Pontual"
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="one-shot connections modified"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_changed_one_shot_group_id() -> None:
+    workflow = workflow_payload()
+    resolver = guard.node_by_name(workflow, "Resolver Sequencia Pontual")
+    assert resolver is not None
+    resolver["parameters"]["jsCode"] = resolver["parameters"]["jsCode"].replace(
+        guard.EXPECTED_STATIC_CHAT_ID,
+        "120000000000000000@g.us",
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="target_chat_id"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_changed_one_shot_waha_session() -> None:
+    workflow = workflow_payload()
+    waha_node = guard.node_by_name(workflow, "Enviar WhatsApp WAHA Pontual")
+    assert waha_node is not None
+    waha_node["parameters"]["jsonBody"] = waha_node["parameters"]["jsonBody"].replace(
+        "session: 'default'",
+        "session: 'parallel'",
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="WAHA payload"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_changed_one_shot_waha_endpoint() -> None:
+    workflow = workflow_payload()
+    waha_node = guard.node_by_name(workflow, "Enviar WhatsApp WAHA Pontual")
+    assert waha_node is not None
+    waha_node["parameters"]["url"] = "http://waha:3000/api/sendText"
+
+    with pytest.raises(guard.WorkflowGuardError, match="one-shot WAHA node"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_one_shot_google_credential_in_json() -> None:
+    workflow = workflow_payload()
+    drive_node = guard.node_by_name(workflow, "Buscar Pasta Enviados Drive Pontual")
+    assert drive_node is not None
+    drive_node["credentials"] = {
+        "googleDriveOAuth2Api": {"id": "invented", "name": "do-not-version"}
+    }
+
+    with pytest.raises(guard.WorkflowGuardError, match="must not be versioned"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
 def test_validate_versioned_workflow_rejects_active_json() -> None:
     workflow = workflow_payload()
     workflow["active"] = True

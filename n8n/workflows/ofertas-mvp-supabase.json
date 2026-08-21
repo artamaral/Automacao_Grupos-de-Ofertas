@@ -873,6 +873,917 @@
           "name": "Postgres account"
         }
       }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 9 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "30 14 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * *"
+            }
+          ]
+        }
+      },
+      "id": "one-shot-schedule",
+      "name": "Schedule Mensagens Pontuais",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1800
+      ],
+      "notesInFlow": true,
+      "notes": "Horarios diarios das mensagens estaticas. Ajuste somente as regras deste trigger."
+    },
+    {
+      "parameters": {
+        "jsCode": "const zone = 'America/Sao_Paulo';\nconst now = new Date();\nconst dateParts = Object.fromEntries(\n  new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' })\n    .formatToParts(now).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),\n);\nconst dayKey = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;\nconst state = $getWorkflowStaticData('node');\nif (state.one_shot_message_day !== dayKey) { state.one_shot_message_day = dayKey; state.one_shot_message_sequence = 0; }\nstate.one_shot_message_sequence = Number(state.one_shot_message_sequence || 0) + 1;\nconst sequence = state.one_shot_message_sequence;\nconst msgId = `msg_${String(sequence).padStart(3, '0')}`;\nreturn [{ json: {\n  run_id: `${dayKey}-${msgId}-one-shot`, execution_day: dayKey, sequence, msg_id: msgId,\n  root_folder_name: 'ofertas-femininas-pendentes', archive_root_folder_name: 'ofertas-femininas-enviados', message_flow_type: 'static_one_shot', profile: 'feminino', marketplace: 'google-drive',\n  target: 'grupo-ofertas-feminino', target_chat_id: '120363412864266334@g.us',\n  allowed_targets: ['grupo-ofertas-feminino'], channel_adapter: 'whatsapp',\n  manifest_item_number: sequence, artifact_generated_at: `${dayKey}T03:00:00.000Z`,\n  manifest_created_at: now.toISOString(), planned_at: now.toISOString(),\n  static_ready: true, delivery_status: 'cancelled', sent_at: null,\n} }];"
+      },
+      "id": "one-shot-resolve-sequence",
+      "name": "Resolver Sequencia Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "name = 'ofertas-femininas-pendentes' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 2,
+        "filter": {
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-pending-root",
+      "name": "Buscar Pasta Pendentes Drive Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        560,
+        1800
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Resolver Sequencia Pontual').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.root_folder_name && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'drive_root_lookup_failed' : matches.length === 0 ? 'drive_root_missing' : 'drive_root_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, root_folder_id: matches[0].json.id, root_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "one-shot-drive-validate-pending-root",
+      "name": "Validar Pasta Pendentes Drive Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-root-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-pending-root-ready",
+      "name": "IF Pasta Pendentes Disponivel Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "={{ \"name = '\" + $json.msg_id + \"' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}",
+        "limit": 2,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.root_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-message",
+      "name": "Buscar Pasta msg_XXX Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1400,
+        1680
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta Pendentes Drive Pontual').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.msg_id && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'message_folder_lookup_failed' : matches.length === 0 ? 'message_folder_missing' : 'message_folder_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, message_folder_id: matches[0].json.id, message_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "one-shot-drive-validate-message",
+      "name": "Validar Pasta msg_XXX Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-message-folder-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-message-ready",
+      "name": "IF Pasta msg_XXX Disponivel Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "(name = 'copy.txt' or name = 'image.jpg') and trashed = false",
+        "limit": 3,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.message_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "files",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-files",
+      "name": "Buscar Arquivos msg_XXX Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        1560
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta msg_XXX Pontual').first().json;\nconst copyMatches = items.filter((item) => item.json?.name === 'copy.txt' && item.json?.mimeType === 'text/plain' && item.json?.id);\nconst imageMatches = items.filter((item) => item.json?.name === 'image.jpg' && item.json?.mimeType === 'image/jpeg' && item.json?.id);\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (lookupError || copyMatches.length !== 1 || imageMatches.length !== 1) {\n  const reason = lookupError ? 'message_files_lookup_failed' : copyMatches.length === 0 ? 'copy_missing_or_invalid' : copyMatches.length > 1 ? 'copy_ambiguous' : imageMatches.length === 0 ? 'image_missing_or_invalid' : 'image_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, copy_file_id: copyMatches[0].json.id, image_file_id: imageMatches[0].json.id, static_ready: true } }];"
+      },
+      "id": "one-shot-drive-validate-files",
+      "name": "Validar Arquivos msg_XXX Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-files-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-files-ready",
+      "name": "IF Arquivos Completos Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.copy_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "copy_file",
+          "fileName": "copy.txt"
+        }
+      },
+      "id": "one-shot-drive-download-copy",
+      "name": "Baixar copy.txt Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3080,
+        1440
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.image_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "image_file",
+          "fileName": "image.jpg"
+        }
+      },
+      "id": "one-shot-drive-download-image",
+      "name": "Baixar image.jpg Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3360,
+        1440
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first();\nconst context = item.json;\ntry {\n  const copyBuffer = await this.helpers.getBinaryDataBuffer(0, 'copy_file');\n  const imageBuffer = await this.helpers.getBinaryDataBuffer(0, 'image_file');\n  const messageText = copyBuffer.toString('utf8').trim();\n  if (!messageText) throw new Error('copy_empty');\n  if (!imageBuffer.length) throw new Error('image_empty');\n  return [{ json: { ...context, message_text: messageText, waha_image_base64: imageBuffer.toString('base64'), waha_image_filename: 'image.jpg', static_ready: true } }];\n} catch (error) {\n  const reason = String(error?.message || error || 'binary_download_failed');\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}"
+      },
+      "id": "one-shot-prepare-content",
+      "name": "Preparar Conteudo Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3640,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-content-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-content-ready",
+      "name": "IF Conteudo Pontual Valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst targetAllowed = item.target === 'grupo-ofertas-feminino' && item.target_chat_id === '120363412864266334@g.us' && Array.isArray(item.allowed_targets) && item.allowed_targets.includes(item.target);\nconst shouldSend = targetAllowed && Boolean(item.message_text && item.waha_image_base64);\nreturn { json: { ...item, target_allowed: targetAllowed, waha_should_send: shouldSend, blocked_reason: shouldSend ? null : (targetAllowed ? 'static_payload_missing' : 'blocked_by_allowlist'), delivery_status: 'cancelled', adapter_status: shouldSend ? 'ready_for_real_channel_node' : 'not_sent' } };"
+      },
+      "id": "one-shot-waha-prepare-send",
+      "name": "Preparar Envio WAHA Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4200,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-waha-should-send",
+              "leftValue": "={{ $json.waha_should_send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-waha-send",
+      "name": "IF Pode Enviar WAHA Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendImage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $json.target_chat_id, file: { mimetype: 'image/jpeg', data: $json.waha_image_base64, filename: $json.waha_image_filename || 'image.jpg' }, caption: $json.message_text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "one-shot-waha-send-image",
+      "name": "Enviar WhatsApp WAHA Pontual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4760,
+        1200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wahad508ad814402",
+          "name": "WAHA Header Auth"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Preparar Envio WAHA Pontual').item.json;\nconst response = $json || {};\nconst messageId = response.id?._serialized || response._data?.id?._serialized || response.id?.id || null;\nconst ack = response.ack ?? response._data?.ack ?? null;\nconst accepted = Boolean(messageId || response.fromMe === true || response._data?.fromMe === true);\nreturn { json: { ...original, adapter_status: accepted ? 'sent_to_adapter' : 'adapter_send_failed', adapter_message_id: messageId, adapter_ack: ack, adapter_response_type: response.type || response._data?.type || null, delivery_status: accepted ? 'confirmed' : 'failed', blocked_reason: accepted ? null : 'adapter_send_failed', sent_at: accepted ? new Date().toISOString() : null } };"
+      },
+      "id": "one-shot-waha-normalize-result",
+      "name": "Normalizar Resultado WAHA Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst sqlText = (value) => value === null || value === undefined ? 'null' : `'${String(value).replace(/'/g, \"''\")}'`;\nconst sqlNumber = (value) => value === null || value === undefined || value === '' ? 'null' : String(Number(value));\nconst stableKey = Math.max(0, Number(item.sequence || 0)).toString(16).padStart(64, '0').slice(-64);\nconst offerUrl = item.message_folder_url || item.root_folder_url || 'https://drive.google.com/drive/my-drive';\nconst payload = { run_id: item.run_id, msg_id: item.msg_id, execution_day: item.execution_day, source: 'google_drive_static_one_shot', message_flow_type: item.message_flow_type || 'static_one_shot', root_folder_name: item.root_folder_name, archive_root_folder_name: item.archive_root_folder_name || 'ofertas-femininas-enviados', root_folder_id: item.root_folder_id || null, message_folder_id: item.message_folder_id || null, copy_file_id: item.copy_file_id || null, image_file_id: item.image_file_id || null, target_allowed: item.target_allowed ?? null, blocked_reason: item.blocked_reason || null, adapter_status: item.adapter_status || null, adapter_message_id: item.adapter_message_id || null, adapter_ack: item.adapter_ack ?? null, adapter_response_type: item.adapter_response_type || null, archive_status: item.archive_status || 'not_applicable', archive_folder_id: item.archive_folder_id || null, archive_parent_id: item.archive_parent_id || null, archive_error: item.archive_error || null };\nconst sqlJson = `${sqlText(JSON.stringify(payload))}::jsonb`;\nconst query = `insert into offers.publication_events (\n  profile, marketplace, stable_key, item_id, target, channel_adapter, delivery_status,\n  manifest_item_number, artifact_generated_at, manifest_created_at, planned_at, sent_at,\n  offer_title, offer_url, offer_price, message_text, payload\n) values (\n  ${sqlText(item.profile)}, ${sqlText(item.marketplace)}, ${sqlText(stableKey)}, null,\n  ${sqlText(item.target)}, ${sqlText(item.channel_adapter)}, ${sqlText(item.delivery_status || 'cancelled')},\n  ${sqlNumber(item.manifest_item_number)}, ${sqlText(item.artifact_generated_at)}::timestamptz,\n  ${sqlText(item.manifest_created_at)}::timestamptz, ${sqlText(item.planned_at)}::timestamptz,\n  ${sqlText(item.sent_at)}::timestamptz, ${sqlText(item.msg_id)}, ${sqlText(offerUrl)}, null,\n  ${sqlText(item.message_text || `${item.msg_id} nao enviada`)}, ${sqlJson}\n) on conflict (profile, target, manifest_item_number, artifact_generated_at)\ndo update set delivery_status = excluded.delivery_status, sent_at = excluded.sent_at,\n  message_text = excluded.message_text, payload = excluded.payload, updated_at = now()\nreturning publish_id;`;\nreturn { json: { ...item, publication_event_upsert_query: query } };"
+      },
+      "id": "one-shot-build-publication-event",
+      "name": "Montar Upsert Publication Event Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5320,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.publication_event_upsert_query }}",
+        "options": {}
+      },
+      "id": "one-shot-register-publication-event",
+      "name": "Registrar Resultado Supabase Pontual",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        5600,
+        1560
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Montar Upsert Publication Event Pontual').first().json;\nconst result = $json || {};\nconst publishId = result.publish_id || result[0]?.publish_id || null;\nconst shouldMove = source.delivery_status === 'confirmed' && Boolean(source.message_folder_id);\nreturn { json: { ...source, publish_id: publishId, archive_should_move: shouldMove, archive_status: shouldMove ? null : 'not_applicable', archive_error: shouldMove ? null : (source.delivery_status === 'confirmed' ? 'message_folder_id_missing' : `delivery_status_${source.delivery_status || 'unknown'}`) } };"
+      },
+      "id": "one-shot-prepare-archive",
+      "name": "Preparar Arquivamento Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5880,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "one-shot-should-archive",
+              "leftValue": "={{ $json.archive_should_move }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-should-archive",
+      "name": "IF Deve Arquivar Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6160,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "name = 'ofertas-femininas-enviados' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 2,
+        "filter": {
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-archive-root",
+      "name": "Buscar Pasta Enviados Drive Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        6440,
+        1440
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Preparar Arquivamento Pontual').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.archive_root_folder_name && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'archive_root_lookup_failed' : matches.length === 0 ? 'archive_root_missing' : 'archive_root_ambiguous';\n  return [{ json: { ...context, archive_ready: false, archive_status: 'move_failed', archive_error: reason } }];\n}\nreturn [{ json: { ...context, archive_root_folder_id: matches[0].json.id, archive_root_folder_url: matches[0].json.webViewLink || null, archive_ready: true } }];"
+      },
+      "id": "one-shot-drive-validate-archive-root",
+      "name": "Validar Pasta Enviados Drive Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6720,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "one-shot-archive-root-ready",
+              "leftValue": "={{ $json.archive_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-archive-root-ready",
+      "name": "IF Pasta Enviados Disponivel Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7000,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "={{ \"name = '\" + $json.execution_day + \"' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}",
+        "limit": 2,
+        "filter": {
+          "whatToSearch": "folders",
+          "includeTrashed": false,
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.archive_root_folder_id }}",
+            "mode": "id"
+          }
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-archive-day",
+      "name": "Buscar Pasta Dia Enviados Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        7280,
+        1320
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Validar Pasta Enviados Drive Pontual').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.execution_day && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (lookupError || matches.length > 1) {\n  const reason = lookupError ? 'archive_day_lookup_failed' : 'archive_day_ambiguous';\n  return [{ json: { ...context, archive_day_ready: false, archive_day_should_create: false, archive_status: 'move_failed', archive_error: reason } }];\n}\nif (matches.length === 0) {\n  return [{ json: { ...context, archive_day_ready: false, archive_day_should_create: true, archive_status: null, archive_error: null } }];\n}\nreturn [{ json: { ...context, archive_day_ready: true, archive_day_should_create: false, archive_parent_id: matches[0].json.id, archive_parent_url: matches[0].json.webViewLink || null } }];"
+      },
+      "id": "one-shot-drive-validate-archive-day",
+      "name": "Validar Pasta Dia Enviados Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7560,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "one-shot-archive-day-ready",
+              "leftValue": "={{ $json.archive_day_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-archive-day-ready",
+      "name": "IF Pasta Dia Enviados Pronta Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7840,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "one-shot-create-archive-day",
+              "leftValue": "={{ $json.archive_day_should_create }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-create-archive-day",
+      "name": "IF Criar Pasta Dia Enviados Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8120,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "folder",
+        "operation": "create",
+        "name": "={{ $json.execution_day }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.archive_root_folder_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "one-shot-drive-create-archive-day",
+      "name": "Criar Pasta Dia Enviados Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8400,
+        1440
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Validar Pasta Dia Enviados Pontual').first().json;\nconst response = $json || {};\nconst error = response.error || null;\nif (error || !response.id) {\n  return { json: { ...context, archive_status: 'move_failed', archive_error: error || 'archive_day_create_failed', archive_parent_id: null } };\n}\nreturn { json: { ...context, archive_parent_id: response.id, archive_parent_url: response.webViewLink || null, archive_day_ready: true } };"
+      },
+      "id": "one-shot-drive-normalize-created-archive-day",
+      "name": "Normalizar Pasta Dia Criada Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8680,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.message_folder_id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.archive_parent_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "one-shot-drive-move-message-folder",
+      "name": "Mover Pasta msg_XXX Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8960,
+        1320
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "let context = null;\ntry {\n  const createdContext = $('Normalizar Pasta Dia Criada Pontual').first().json;\n  if (createdContext?.archive_parent_id) context = createdContext;\n} catch (error) {}\nif (!context) context = $('Validar Pasta Dia Enviados Pontual').first().json;\nconst response = $json || {};\nconst error = response.error || null;\nif (error || !response.id) {\n  return { json: { ...context, archive_status: 'move_failed', archive_error: error || 'message_folder_move_failed', archive_folder_id: null } };\n}\nreturn { json: { ...context, archive_status: 'moved', archive_error: null, archive_folder_id: response.id || context.message_folder_id, archive_parent_id: context.archive_parent_id } };"
+      },
+      "id": "one-shot-normalize-archive-result",
+      "name": "Normalizar Arquivamento Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9240,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nconst sqlText = (value) => value === null || value === undefined ? 'null' : `'${String(value).replace(/'/g, \"''\")}'`;\nconst sqlJson = (value) => `${sqlText(JSON.stringify(value))}::jsonb`;\nconst archivePayload = {\n  archive_status: item.archive_status || 'not_applicable',\n  archive_folder_id: item.archive_folder_id || null,\n  archive_parent_id: item.archive_parent_id || null,\n  archive_root_folder_id: item.archive_root_folder_id || null,\n  archive_error: item.archive_error || null,\n};\nconst publishId = item.publish_id || null;\nconst query = publishId ? `update offers.publication_events\nset payload = coalesce(payload, '{}'::jsonb) || ${sqlJson(archivePayload)},\n    updated_at = now()\nwhere publish_id = ${sqlText(publishId)}::uuid\nreturning publish_id;` : 'select null::uuid as publish_id;';\nreturn { json: { ...item, archive_update_query: query } };"
+      },
+      "id": "one-shot-build-archive-update",
+      "name": "Montar Update Arquivamento Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9520,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.archive_update_query }}",
+        "options": {}
+      },
+      "id": "one-shot-update-archive-payload",
+      "name": "Atualizar Payload Arquivamento Pontual",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        9800,
+        1560
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      }
     }
   ],
   "connections": {
@@ -1082,261 +1993,709 @@
         ]
       ]
     },
-      "Schedule Mensagens Estaticas": {
-        "main": [
-          [
-            {
-              "node": "Resolver Sequencia Estatica",
-              "type": "main",
-              "index": 0
-            }
-          ]
+    "Schedule Mensagens Estaticas": {
+      "main": [
+        [
+          {
+            "node": "Resolver Sequencia Estatica",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Resolver Sequencia Estatica": {
-        "main": [
-          [
-            {
-              "node": "Buscar Pasta Raiz Drive",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Resolver Sequencia Estatica": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta Raiz Drive",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Buscar Pasta Raiz Drive": {
-        "main": [
-          [
-            {
-              "node": "Validar Pasta Raiz Drive",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Buscar Pasta Raiz Drive": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta Raiz Drive",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Validar Pasta Raiz Drive": {
-        "main": [
-          [
-            {
-              "node": "IF Pasta Raiz Disponivel",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Validar Pasta Raiz Drive": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta Raiz Disponivel",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "IF Pasta Raiz Disponivel": {
-        "main": [
-          [
-            {
-              "node": "Buscar Pasta msg_XXX",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Montar Upsert Publication Event Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "IF Pasta Raiz Disponivel": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta msg_XXX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Buscar Pasta msg_XXX": {
-        "main": [
-          [
-            {
-              "node": "Validar Pasta msg_XXX",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Buscar Pasta msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta msg_XXX",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Validar Pasta msg_XXX": {
-        "main": [
-          [
-            {
-              "node": "IF Pasta msg_XXX Disponivel",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Validar Pasta msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta msg_XXX Disponivel",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "IF Pasta msg_XXX Disponivel": {
-        "main": [
-          [
-            {
-              "node": "Buscar Arquivos msg_XXX",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Montar Upsert Publication Event Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "IF Pasta msg_XXX Disponivel": {
+      "main": [
+        [
+          {
+            "node": "Buscar Arquivos msg_XXX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Buscar Arquivos msg_XXX": {
-        "main": [
-          [
-            {
-              "node": "Validar Arquivos msg_XXX",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Buscar Arquivos msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "Validar Arquivos msg_XXX",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Validar Arquivos msg_XXX": {
-        "main": [
-          [
-            {
-              "node": "IF Arquivos Completos",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Validar Arquivos msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "IF Arquivos Completos",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "IF Arquivos Completos": {
-        "main": [
-          [
-            {
-              "node": "Baixar copy.txt",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Montar Upsert Publication Event Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "IF Arquivos Completos": {
+      "main": [
+        [
+          {
+            "node": "Baixar copy.txt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Baixar copy.txt": {
-        "main": [
-          [
-            {
-              "node": "Baixar image.jpg",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Baixar copy.txt": {
+      "main": [
+        [
+          {
+            "node": "Baixar image.jpg",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Baixar image.jpg": {
-        "main": [
-          [
-            {
-              "node": "Preparar Conteudo Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Baixar image.jpg": {
+      "main": [
+        [
+          {
+            "node": "Preparar Conteudo Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Preparar Conteudo Estatico": {
-        "main": [
-          [
-            {
-              "node": "IF Conteudo Estatico Valido",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Preparar Conteudo Estatico": {
+      "main": [
+        [
+          {
+            "node": "IF Conteudo Estatico Valido",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "IF Conteudo Estatico Valido": {
-        "main": [
-          [
-            {
-              "node": "Preparar Envio WAHA Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Montar Upsert Publication Event Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "IF Conteudo Estatico Valido": {
+      "main": [
+        [
+          {
+            "node": "Preparar Envio WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Preparar Envio WAHA Estatico": {
-        "main": [
-          [
-            {
-              "node": "IF Pode Enviar WAHA Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Preparar Envio WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "IF Pode Enviar WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "IF Pode Enviar WAHA Estatico": {
-        "main": [
-          [
-            {
-              "node": "Enviar WhatsApp WAHA Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ],
-          [
-            {
-              "node": "Montar Upsert Publication Event Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "IF Pode Enviar WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Enviar WhatsApp WAHA Estatico": {
-        "main": [
-          [
-            {
-              "node": "Normalizar Resultado WAHA Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Enviar WhatsApp WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Resultado WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Normalizar Resultado WAHA Estatico": {
-        "main": [
-          [
-            {
-              "node": "Montar Upsert Publication Event Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Normalizar Resultado WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "Montar Upsert Publication Event Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      },
-      "Montar Upsert Publication Event Estatico": {
-        "main": [
-          [
-            {
-              "node": "Registrar Resultado Supabase Estatico",
-              "type": "main",
-              "index": 0
-            }
-          ]
+      ]
+    },
+    "Montar Upsert Publication Event Estatico": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase Estatico",
+            "type": "main",
+            "index": 0
+          }
         ]
-      }
+      ]
+    },
+    "Schedule Mensagens Pontuais": {
+      "main": [
+        [
+          {
+            "node": "Resolver Sequencia Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver Sequencia Pontual": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta Pendentes Drive Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pasta Pendentes Drive Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta Pendentes Drive Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta Pendentes Drive Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta Pendentes Disponivel Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta Pendentes Disponivel Pontual": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pasta msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta msg_XXX Disponivel Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta msg_XXX Disponivel Pontual": {
+      "main": [
+        [
+          {
+            "node": "Buscar Arquivos msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Arquivos msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Arquivos msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Arquivos msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Arquivos Completos Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Arquivos Completos Pontual": {
+      "main": [
+        [
+          {
+            "node": "Baixar copy.txt Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar copy.txt Pontual": {
+      "main": [
+        [
+          {
+            "node": "Baixar image.jpg Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar image.jpg Pontual": {
+      "main": [
+        [
+          {
+            "node": "Preparar Conteudo Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Conteudo Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Conteudo Pontual Valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Conteudo Pontual Valido": {
+      "main": [
+        [
+          {
+            "node": "Preparar Envio WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Envio WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pode Enviar WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pode Enviar WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Upsert Publication Event Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Resultado WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Resultado WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "Montar Upsert Publication Event Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Upsert Publication Event Pontual": {
+      "main": [
+        [
+          {
+            "node": "Registrar Resultado Supabase Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Resultado Supabase Pontual": {
+      "main": [
+        [
+          {
+            "node": "Preparar Arquivamento Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Arquivamento Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Deve Arquivar Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Deve Arquivar Pontual": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta Enviados Drive Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Update Arquivamento Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pasta Enviados Drive Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta Enviados Drive Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta Enviados Drive Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta Enviados Disponivel Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta Enviados Disponivel Pontual": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta Dia Enviados Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Update Arquivamento Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pasta Dia Enviados Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta Dia Enviados Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta Dia Enviados Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta Dia Enviados Pronta Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta Dia Enviados Pronta Pontual": {
+      "main": [
+        [
+          {
+            "node": "Mover Pasta msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Criar Pasta Dia Enviados Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Criar Pasta Dia Enviados Pontual": {
+      "main": [
+        [
+          {
+            "node": "Criar Pasta Dia Enviados Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Update Arquivamento Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Pasta Dia Enviados Pontual": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Pasta Dia Criada Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Pasta Dia Criada Pontual": {
+      "main": [
+        [
+          {
+            "node": "Mover Pasta msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mover Pasta msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Arquivamento Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Arquivamento Pontual": {
+      "main": [
+        [
+          {
+            "node": "Montar Update Arquivamento Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Update Arquivamento Pontual": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Payload Arquivamento Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "pinData": {},
   "settings": {

@@ -77,6 +77,9 @@ EXPECTED_STATIC_SCHEDULE_CRONS = (
     "0 16 * * *",
 )
 EXPECTED_STATIC_ROOT_FOLDER = "ofertas-femininas"
+EXPECTED_ONE_SHOT_SCHEDULE_NODE = "Schedule Mensagens Pontuais"
+EXPECTED_ONE_SHOT_ROOT_FOLDER = "ofertas-femininas-pendentes"
+EXPECTED_ONE_SHOT_ARCHIVE_ROOT_FOLDER = "ofertas-femininas-enviados"
 EXPECTED_STATIC_TARGET = "grupo-ofertas-feminino"
 EXPECTED_STATIC_CHAT_ID = "120363412864266334@g.us"
 EXPECTED_WAHA_CREDENTIAL = {"id": "wahad508ad814402", "name": "WAHA Header Auth"}
@@ -198,6 +201,110 @@ STATIC_CONNECTION_TARGETS = {
     "Enviar WhatsApp WAHA Estatico": (("Normalizar Resultado WAHA Estatico",),),
     "Normalizar Resultado WAHA Estatico": (("Montar Upsert Publication Event Estatico",),),
     "Montar Upsert Publication Event Estatico": (("Registrar Resultado Supabase Estatico",),),
+}
+
+ONE_SHOT_NODE_NAMES = {
+    "Schedule Mensagens Pontuais",
+    "Resolver Sequencia Pontual",
+    "Buscar Pasta Pendentes Drive Pontual",
+    "Validar Pasta Pendentes Drive Pontual",
+    "IF Pasta Pendentes Disponivel Pontual",
+    "Buscar Pasta msg_XXX Pontual",
+    "Validar Pasta msg_XXX Pontual",
+    "IF Pasta msg_XXX Disponivel Pontual",
+    "Buscar Arquivos msg_XXX Pontual",
+    "Validar Arquivos msg_XXX Pontual",
+    "IF Arquivos Completos Pontual",
+    "Baixar copy.txt Pontual",
+    "Baixar image.jpg Pontual",
+    "Preparar Conteudo Pontual",
+    "IF Conteudo Pontual Valido",
+    "Preparar Envio WAHA Pontual",
+    "IF Pode Enviar WAHA Pontual",
+    "Enviar WhatsApp WAHA Pontual",
+    "Normalizar Resultado WAHA Pontual",
+    "Montar Upsert Publication Event Pontual",
+    "Registrar Resultado Supabase Pontual",
+    "Preparar Arquivamento Pontual",
+    "IF Deve Arquivar Pontual",
+    "Buscar Pasta Enviados Drive Pontual",
+    "Validar Pasta Enviados Drive Pontual",
+    "IF Pasta Enviados Disponivel Pontual",
+    "Buscar Pasta Dia Enviados Pontual",
+    "Validar Pasta Dia Enviados Pontual",
+    "IF Pasta Dia Enviados Pronta Pontual",
+    "IF Criar Pasta Dia Enviados Pontual",
+    "Criar Pasta Dia Enviados Pontual",
+    "Normalizar Pasta Dia Criada Pontual",
+    "Mover Pasta msg_XXX Pontual",
+    "Normalizar Arquivamento Pontual",
+    "Montar Update Arquivamento Pontual",
+    "Atualizar Payload Arquivamento Pontual",
+}
+
+ONE_SHOT_CONNECTION_TARGETS = {
+    "Schedule Mensagens Pontuais": (("Resolver Sequencia Pontual",),),
+    "Resolver Sequencia Pontual": (("Buscar Pasta Pendentes Drive Pontual",),),
+    "Buscar Pasta Pendentes Drive Pontual": (("Validar Pasta Pendentes Drive Pontual",),),
+    "Validar Pasta Pendentes Drive Pontual": (("IF Pasta Pendentes Disponivel Pontual",),),
+    "IF Pasta Pendentes Disponivel Pontual": (
+        ("Buscar Pasta msg_XXX Pontual",),
+        ("Montar Upsert Publication Event Pontual",),
+    ),
+    "Buscar Pasta msg_XXX Pontual": (("Validar Pasta msg_XXX Pontual",),),
+    "Validar Pasta msg_XXX Pontual": (("IF Pasta msg_XXX Disponivel Pontual",),),
+    "IF Pasta msg_XXX Disponivel Pontual": (
+        ("Buscar Arquivos msg_XXX Pontual",),
+        ("Montar Upsert Publication Event Pontual",),
+    ),
+    "Buscar Arquivos msg_XXX Pontual": (("Validar Arquivos msg_XXX Pontual",),),
+    "Validar Arquivos msg_XXX Pontual": (("IF Arquivos Completos Pontual",),),
+    "IF Arquivos Completos Pontual": (
+        ("Baixar copy.txt Pontual",),
+        ("Montar Upsert Publication Event Pontual",),
+    ),
+    "Baixar copy.txt Pontual": (("Baixar image.jpg Pontual",),),
+    "Baixar image.jpg Pontual": (("Preparar Conteudo Pontual",),),
+    "Preparar Conteudo Pontual": (("IF Conteudo Pontual Valido",),),
+    "IF Conteudo Pontual Valido": (
+        ("Preparar Envio WAHA Pontual",),
+        ("Montar Upsert Publication Event Pontual",),
+    ),
+    "Preparar Envio WAHA Pontual": (("IF Pode Enviar WAHA Pontual",),),
+    "IF Pode Enviar WAHA Pontual": (
+        ("Enviar WhatsApp WAHA Pontual",),
+        ("Montar Upsert Publication Event Pontual",),
+    ),
+    "Enviar WhatsApp WAHA Pontual": (("Normalizar Resultado WAHA Pontual",),),
+    "Normalizar Resultado WAHA Pontual": (("Montar Upsert Publication Event Pontual",),),
+    "Montar Upsert Publication Event Pontual": (("Registrar Resultado Supabase Pontual",),),
+    "Registrar Resultado Supabase Pontual": (("Preparar Arquivamento Pontual",),),
+    "Preparar Arquivamento Pontual": (("IF Deve Arquivar Pontual",),),
+    "IF Deve Arquivar Pontual": (
+        ("Buscar Pasta Enviados Drive Pontual",),
+        ("Montar Update Arquivamento Pontual",),
+    ),
+    "Buscar Pasta Enviados Drive Pontual": (("Validar Pasta Enviados Drive Pontual",),),
+    "Validar Pasta Enviados Drive Pontual": (("IF Pasta Enviados Disponivel Pontual",),),
+    "IF Pasta Enviados Disponivel Pontual": (
+        ("Buscar Pasta Dia Enviados Pontual",),
+        ("Montar Update Arquivamento Pontual",),
+    ),
+    "Buscar Pasta Dia Enviados Pontual": (("Validar Pasta Dia Enviados Pontual",),),
+    "Validar Pasta Dia Enviados Pontual": (("IF Pasta Dia Enviados Pronta Pontual",),),
+    "IF Pasta Dia Enviados Pronta Pontual": (
+        ("Mover Pasta msg_XXX Pontual",),
+        ("IF Criar Pasta Dia Enviados Pontual",),
+    ),
+    "IF Criar Pasta Dia Enviados Pontual": (
+        ("Criar Pasta Dia Enviados Pontual",),
+        ("Montar Update Arquivamento Pontual",),
+    ),
+    "Criar Pasta Dia Enviados Pontual": (("Normalizar Pasta Dia Criada Pontual",),),
+    "Normalizar Pasta Dia Criada Pontual": (("Mover Pasta msg_XXX Pontual",),),
+    "Mover Pasta msg_XXX Pontual": (("Normalizar Arquivamento Pontual",),),
+    "Normalizar Arquivamento Pontual": (("Montar Update Arquivamento Pontual",),),
+    "Montar Update Arquivamento Pontual": (("Atualizar Payload Arquivamento Pontual",),),
 }
 
 
@@ -360,16 +467,21 @@ def validate_static_messages(workflow: dict[str, Any], errors: list[str]) -> Non
         missing = sorted(STATIC_NODE_NAMES - static_names)
         unexpected = sorted(static_names - STATIC_NODE_NAMES)
         errors.append(f"static node set mismatch: missing={missing}, unexpected={unexpected}")
-    if len(nodes) != len(LEGACY_NODE_HASHES) + len(STATIC_NODE_NAMES):
-        errors.append("workflow must contain exactly 18 legacy and 21 static nodes")
+    if len(nodes) != len(LEGACY_NODE_HASHES) + len(STATIC_NODE_NAMES) + len(
+        ONE_SHOT_NODE_NAMES
+    ):
+        errors.append("workflow must contain exactly 18 legacy, 21 static, and 36 one-shot nodes")
 
     schedule_nodes = [
         node
         for node in nodes
         if isinstance(node, dict) and node.get("type") == "n8n-nodes-base.scheduleTrigger"
     ]
+    static_schedule_nodes = [
+        node for node in schedule_nodes if str(node.get("id", "")).startswith("static-")
+    ]
     static_schedule = node_by_name(workflow, EXPECTED_STATIC_SCHEDULE_NODE)
-    if len(schedule_nodes) != 2 or static_schedule is None:
+    if len(static_schedule_nodes) != 1 or static_schedule is None:
         errors.append("workflow must contain exactly one static Schedule Trigger")
     else:
         intervals = static_schedule.get("parameters", {}).get("rule", {}).get("interval", [])
@@ -465,6 +577,198 @@ def validate_static_messages(workflow: dict[str, Any], errors: list[str]) -> Non
     }
     if unexpected_static_sources:
         errors.append(f"unexpected static connection sources: {sorted(unexpected_static_sources)}")
+
+
+def validate_one_shot_messages(workflow: dict[str, Any], errors: list[str]) -> None:
+    nodes = workflow.get("nodes")
+    connections = workflow.get("connections")
+    if not isinstance(nodes, list) or not isinstance(connections, dict):
+        return
+
+    one_shot_nodes = [
+        node
+        for node in nodes
+        if isinstance(node, dict) and str(node.get("id", "")).startswith("one-shot-")
+    ]
+    one_shot_names = {str(node.get("name", "")) for node in one_shot_nodes}
+    if one_shot_names != ONE_SHOT_NODE_NAMES:
+        missing = sorted(ONE_SHOT_NODE_NAMES - one_shot_names)
+        unexpected = sorted(one_shot_names - ONE_SHOT_NODE_NAMES)
+        errors.append(f"one-shot node set mismatch: missing={missing}, unexpected={unexpected}")
+
+    schedule_nodes = [
+        node
+        for node in nodes
+        if isinstance(node, dict) and node.get("type") == "n8n-nodes-base.scheduleTrigger"
+    ]
+    one_shot_schedule = node_by_name(workflow, EXPECTED_ONE_SHOT_SCHEDULE_NODE)
+    if len(schedule_nodes) != 3 or one_shot_schedule is None:
+        errors.append("workflow must contain exactly one one-shot Schedule Trigger")
+    else:
+        intervals = one_shot_schedule.get("parameters", {}).get("rule", {}).get("interval", [])
+        expressions = tuple(
+            interval.get("expression")
+            for interval in intervals
+            if isinstance(interval, dict) and interval.get("field") == "cronExpression"
+        )
+        if expressions != EXPECTED_STATIC_SCHEDULE_CRONS:
+            errors.append("one-shot schedule must contain the four approved cron rules")
+
+    resolver = node_by_name(workflow, "Resolver Sequencia Pontual")
+    resolver_code = str((resolver or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in (
+        "$getWorkflowStaticData('node')",
+        "one_shot_message_day",
+        "one_shot_message_sequence",
+        "padStart(3, '0')",
+        f"root_folder_name: '{EXPECTED_ONE_SHOT_ROOT_FOLDER}'",
+        f"archive_root_folder_name: '{EXPECTED_ONE_SHOT_ARCHIVE_ROOT_FOLDER}'",
+        "message_flow_type: 'static_one_shot'",
+        "marketplace: 'google-drive'",
+        f"target: '{EXPECTED_STATIC_TARGET}'",
+        f"target_chat_id: '{EXPECTED_STATIC_CHAT_ID}'",
+    ):
+        if expected not in resolver_code:
+            errors.append(f"one-shot sequence resolver missing {expected}")
+
+    google_node_names = (
+        "Buscar Pasta Pendentes Drive Pontual",
+        "Buscar Pasta msg_XXX Pontual",
+        "Buscar Arquivos msg_XXX Pontual",
+        "Baixar copy.txt Pontual",
+        "Baixar image.jpg Pontual",
+        "Buscar Pasta Enviados Drive Pontual",
+        "Buscar Pasta Dia Enviados Pontual",
+        "Criar Pasta Dia Enviados Pontual",
+        "Mover Pasta msg_XXX Pontual",
+    )
+    for name in google_node_names:
+        node = node_by_name(workflow, name)
+        if node is None or node.get("type") != "n8n-nodes-base.googleDrive":
+            errors.append(f"missing one-shot Google Drive node: {name}")
+            continue
+        if node.get("typeVersion") != 3:
+            errors.append(f"one-shot Google Drive node must use typeVersion 3: {name}")
+        if node.get("credentials"):
+            errors.append(f"one-shot Google Drive credential must not be versioned: {name}")
+        if node.get("parameters", {}).get("authentication") != "oAuth2":
+            errors.append(f"one-shot Google Drive node must use OAuth2: {name}")
+
+    pending_root = node_by_name(workflow, "Buscar Pasta Pendentes Drive Pontual")
+    if EXPECTED_ONE_SHOT_ROOT_FOLDER not in str(
+        (pending_root or {}).get("parameters", {}).get("queryString", "")
+    ):
+        errors.append("one-shot pending root search must use ofertas-femininas-pendentes")
+
+    archive_root = node_by_name(workflow, "Buscar Pasta Enviados Drive Pontual")
+    if EXPECTED_ONE_SHOT_ARCHIVE_ROOT_FOLDER not in str(
+        (archive_root or {}).get("parameters", {}).get("queryString", "")
+    ):
+        errors.append("one-shot archive root search must use ofertas-femininas-enviados")
+
+    create_day = node_by_name(workflow, "Criar Pasta Dia Enviados Pontual")
+    create_params = (create_day or {}).get("parameters", {})
+    if (
+        create_params.get("resource") != "folder"
+        or create_params.get("operation") != "create"
+        or str(create_params.get("name")) != "={{ $json.execution_day }}"
+        or str(create_params.get("folderId", {}).get("value"))
+        != "={{ $json.archive_root_folder_id }}"
+    ):
+        errors.append("one-shot archive day folder must be created under archive root")
+
+    move_node = node_by_name(workflow, "Mover Pasta msg_XXX Pontual")
+    move_params = (move_node or {}).get("parameters", {})
+    if (
+        move_params.get("resource") != "file"
+        or move_params.get("operation") != "move"
+        or str(move_params.get("fileId", {}).get("value")) != "={{ $json.message_folder_id }}"
+        or str(move_params.get("folderId", {}).get("value")) != "={{ $json.archive_parent_id }}"
+    ):
+        errors.append("one-shot move node must move msg_XXX folder to archive day folder")
+
+    file_validator = node_by_name(workflow, "Validar Arquivos msg_XXX Pontual")
+    file_validator_code = str((file_validator or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in ("copy.txt", "image.jpg", "text/plain", "image/jpeg"):
+        if expected not in file_validator_code:
+            errors.append(f"one-shot file validation missing {expected}")
+
+    content_node = node_by_name(workflow, "Preparar Conteudo Pontual")
+    content_code = str((content_node or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in ("getBinaryDataBuffer", "copy_file", "image_file", "toString('base64')"):
+        if expected not in content_code:
+            errors.append(f"one-shot content preparation missing {expected}")
+
+    prepare_archive = node_by_name(workflow, "Preparar Arquivamento Pontual")
+    prepare_archive_code = str((prepare_archive or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in (
+        "$('Montar Upsert Publication Event Pontual').first().json",
+        "source.delivery_status === 'confirmed'",
+        "archive_should_move",
+    ):
+        if expected not in prepare_archive_code:
+            errors.append(f"one-shot archive preparation missing {expected}")
+
+    waha_node = node_by_name(workflow, "Enviar WhatsApp WAHA Pontual")
+    waha_parameters = (waha_node or {}).get("parameters", {})
+    if waha_parameters.get("url") != "http://waha:3000/api/sendImage":
+        errors.append("one-shot WAHA node must reuse /api/sendImage")
+    waha_body = str(waha_parameters.get("jsonBody", ""))
+    for expected in ("session: 'default'", "data: $json.waha_image_base64"):
+        if expected not in waha_body:
+            errors.append(f"one-shot WAHA payload missing {expected}")
+    if (waha_node or {}).get("credentials", {}).get("httpHeaderAuth") != EXPECTED_WAHA_CREDENTIAL:
+        errors.append("one-shot WAHA node must reuse WAHA Header Auth")
+
+    for name in (
+        "Registrar Resultado Supabase Pontual",
+        "Atualizar Payload Arquivamento Pontual",
+    ):
+        node = node_by_name(workflow, name)
+        if (node or {}).get("credentials", {}).get("postgres") != EXPECTED_POSTGRES_CREDENTIAL:
+            errors.append(f"one-shot Postgres node must reuse Postgres account: {name}")
+
+    upsert_node = node_by_name(workflow, "Montar Upsert Publication Event Pontual")
+    upsert_code = str((upsert_node or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in (
+        "offers.publication_events",
+        "delivery_status || 'cancelled'",
+        "on conflict (profile, target, manifest_item_number, artifact_generated_at)",
+        "source: 'google_drive_static_one_shot'",
+        "message_flow_type",
+        "archive_status",
+    ):
+        if expected not in upsert_code:
+            errors.append(f"one-shot publication upsert missing {expected}")
+
+    archive_update = node_by_name(workflow, "Montar Update Arquivamento Pontual")
+    archive_update_code = str((archive_update or {}).get("parameters", {}).get("jsCode", ""))
+    for expected in (
+        "update offers.publication_events",
+        "coalesce(payload, '{}'::jsonb)",
+        "archive_status",
+        "archive_folder_id",
+        "archive_parent_id",
+        "archive_error",
+        "where publish_id",
+    ):
+        if expected not in archive_update_code:
+            errors.append(f"one-shot archive update missing {expected}")
+
+    for source, expected_targets in ONE_SHOT_CONNECTION_TARGETS.items():
+        actual_targets = connection_targets(connections.get(source))
+        if actual_targets != expected_targets:
+            errors.append(f"one-shot connections modified: {source}")
+
+    unexpected_one_shot_sources = {
+        source
+        for source in connections
+        if source in ONE_SHOT_NODE_NAMES and source not in ONE_SHOT_CONNECTION_TARGETS
+    }
+    if unexpected_one_shot_sources:
+        errors.append(
+            f"unexpected one-shot connection sources: {sorted(unexpected_one_shot_sources)}"
+        )
 
 
 def validate_schedule(workflow: dict[str, Any], errors: list[str]) -> None:
@@ -600,6 +904,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
 
     validate_legacy_immutable(workflow, errors)
     validate_static_messages(workflow, errors)
+    validate_one_shot_messages(workflow, errors)
     validate_schedule(workflow, errors)
     validate_send_loop(workflow, errors)
     validate_daily_plan_claim(workflow, errors)
