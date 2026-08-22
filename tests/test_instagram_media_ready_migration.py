@@ -12,28 +12,31 @@ QUEUE_MIGRATION = Path(
 READINESS_MIGRATION = Path(
     "supabase/migrations/202608160004_instagram_ready_decoupled_from_base_readiness.sql"
 )
+REELS_CAROUSEL_MIGRATION = Path(
+    "supabase/migrations/202608220001_instagram_reels_carousel.sql"
+)
 
 
 def test_instagram_media_ready_view_joins_daily_plan_and_media_assets() -> None:
-    sql = READINESS_MIGRATION.read_text(encoding="utf-8").lower()
+    sql = REELS_CAROUSEL_MIGRATION.read_text(encoding="utf-8").lower()
 
     assert "create or replace view offers.v_instagram_dispatch_ready" in sql
     assert "with (security_invoker = true)" in sql
     assert "from offers.daily_dispatch_plan plan" in sql
     assert "join offers.v_offer_ranking_current ranking" in sql
     assert "join offers.offer_media_assets media" in sql
-    assert "plan.dispatch_status = 'planned'" in sql
+    assert "plan.dispatch_status = 'planned'" not in sql
     assert "media.status = 'valid'" in sql
     assert "ready.is_ready_for_dispatch" not in sql
 
 
 def test_instagram_media_ready_view_exposes_reels_and_carousel_formats() -> None:
-    sql = READINESS_MIGRATION.read_text(encoding="utf-8").lower()
+    sql = REELS_CAROUSEL_MIGRATION.read_text(encoding="utf-8").lower()
 
     assert "'reels'::text as instagram_format" in sql
     assert "where media.video_url is not null" in sql
     assert "'carousel'::text as instagram_format" in sql
-    assert "where jsonb_array_length(media.image_urls) > 0" in sql
+    assert "where jsonb_array_length(media.image_urls) >= 4" in sql
     assert "plan.planned_date" in sql
     assert "plan.planned_hour" in sql
     assert "plan.slot_sequence" in sql
@@ -41,11 +44,20 @@ def test_instagram_media_ready_view_exposes_reels_and_carousel_formats() -> None
 
 
 def test_instagram_media_ready_view_exposes_ranking_observability_without_blocking() -> None:
-    sql = READINESS_MIGRATION.read_text(encoding="utf-8").lower()
+    sql = REELS_CAROUSEL_MIGRATION.read_text(encoding="utf-8").lower()
 
     assert "ranking.refresh_status" in sql
     assert "ranking.is_eligible" in sql
     assert "ranking.ineligibility_reasons" in sql
+
+
+def test_instagram_event_idempotency_is_isolated_from_dispatch_plan_status() -> None:
+    sql = REELS_CAROUSEL_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "publication_events_instagram_source_format_idx" in sql
+    assert "channel_adapter in ('instagram_reels', 'instagram_carousel')" in sql
+    assert "payload ->> 'source_dispatch_plan_id'" in sql
+    assert "payload ->> 'dry_run' = 'false'" in sql
 
 
 def test_instagram_media_ready_caption_includes_offer_link() -> None:

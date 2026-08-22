@@ -68,7 +68,7 @@ def test_validate_instagram_workflow_requires_dry_run_gate_before_http_nodes() -
         ]
     ]
 
-    with pytest.raises(guard.InstagramWorkflowGuardError, match="Dry Run Instagram"):
+    with pytest.raises(guard.InstagramWorkflowGuardError, match="Criar Container Reels"):
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
@@ -78,7 +78,6 @@ def test_instagram_claim_query_preserves_dry_run_context() -> None:
     query = claim_node["parameters"]["query"]
 
     assert "nullif" in query
-    assert "context.dry_run" in query
     assert "ctx.dry_run" in query
     assert "ctx.instagram_business_account_id" in query
     assert (
@@ -88,8 +87,13 @@ def test_instagram_claim_query_preserves_dry_run_context() -> None:
     assert "ctx.whatsapp_group_url" in query
     assert "nullif('{{ $json.whatsapp_group_url || \"\" }}', '')::text as whatsapp_group_url" in query
     assert "case when ctx.dry_run then 'cancelled'" in query
-    assert "ready.planned_date <= (now() at time zone 'america/sao_paulo')::date" in query.lower()
-    assert "order by ready.planned_date, ready.daily_sequence, ready.instagram_format desc" in query
+    assert "ready.planned_date = (now() at time zone 'america/sao_paulo')::date" in query.lower()
+    assert "planned_date <=" not in query.lower()
+    assert "reels_confirmed" in query
+    assert "carousel_confirmed" in query
+    assert "ready.instagram_format = expected.instagram_format" in query
+    assert "update offers.daily_dispatch_plan" not in query.lower()
+    assert "and ready.instagram_format = candidate.instagram_format" in query
 
 
 def test_validate_instagram_workflow_requires_http_header_auth_credentials() -> None:
@@ -111,7 +115,7 @@ def test_carousel_payload_node_restores_original_context() -> None:
     assert "$input.all()" in js_code
     assert "carousel_child_ids" in js_code
     assert "instagram_business_account_id" in js_code
-    assert "carousel requires between 2 and 10 child containers" in js_code
+    assert "carousel requires between 4 and 10 child containers" in js_code
 
 
 def test_prepare_carousel_children_node_expands_multiple_images() -> None:
@@ -121,7 +125,7 @@ def test_prepare_carousel_children_node_expands_multiple_images() -> None:
 
     assert "slice(0, 10)" in js_code
     assert "carousel_image_url" in js_code
-    assert "carousel requires between 2 and 10 image urls" in js_code
+    assert "carousel requires between 4 and 10 image urls" in js_code
 
 
 def test_normalize_container_node_accepts_id_or_creation_id() -> None:
@@ -180,8 +184,24 @@ def test_instagram_publication_event_keeps_dry_run_out_of_dispatch_trigger() -> 
     register_node = guard.node_by_name(workflow, "Registrar Resultado Supabase")
     query = register_node["parameters"]["query"]
 
-    assert "case when {{ $json.dry_run ? 'true' : 'false' }} then null" in query
+    assert "null::uuid" in query
     assert "source_dispatch_plan_id" in query
+    assert "on conflict (channel_adapter, ((payload ->> 'source_dispatch_plan_id')))" in query
+
+
+def test_instagram_selection_alternates_only_confirmed_publications() -> None:
+    workflow = load_instagram_workflow()
+    query = guard.node_by_name(workflow, "Claim Item Instagram")["parameters"]["query"]
+
+    assert "delivery_status = 'confirmed'" in query
+    assert "channel_adapter in ('instagram_reels', 'instagram_carousel')" in query
+    assert "reels_confirmed = carousel_confirmed and reels_confirmed < 3 then 'reels'" in query
+    expected_carousel_rule = (
+        "reels_confirmed = carousel_confirmed + 1 and carousel_confirmed < 3 then 'carousel'"
+    )
+    assert expected_carousel_rule in query
+    assert "else null" in query
+    assert "event.payload ->> 'source_dispatch_plan_id'" in query
 
 
 def test_validate_pin_data_requires_allowlisted_instagram_target() -> None:

@@ -244,8 +244,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         for target in output
         if isinstance(target, dict)
     }
-    if revalidation_targets != {"Dry Run Instagram?"}:
-        errors.append("Revalidar Midia must only connect to Dry Run Instagram?")
+    if revalidation_targets != {"Criar Container Reels"}:
+        errors.append("Revalidar Midia must only connect to Criar Container Reels")
 
     copy_outputs = connections.get("Montar Copy Instagram", {}).get("main", [])
     copy_targets = {
@@ -255,8 +255,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         for target in output
         if isinstance(target, dict)
     }
-    if copy_targets != {"Revalidar Midia"}:
-        errors.append("Montar Copy Instagram must only connect to Revalidar Midia")
+    if copy_targets != {"Dry Run Instagram?"}:
+        errors.append("Montar Copy Instagram must only connect to Dry Run Instagram?")
 
     status_outputs = connections.get("Checar Status Container", {}).get("main", [])
     status_targets = {
@@ -374,7 +374,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "ctx.whatsapp_group_url",
         "whatsapp_group_url",
         "source_dispatch_plan_id",
-        "case when {{ $json.dry_run ? 'true' : 'false' }} then null",
+        "null::uuid",
         "offers.offer_media_assets",
         "status = 'stale'",
         "media_revalidation_failed",
@@ -391,8 +391,11 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "Entre no grupo do WhatsApp",
         "Copie o link da oferta",
         "graph.instagram.com",
-        "carousel requires between 2 and 10 image urls",
-        "carousel requires between 2 and 10 child containers",
+        "carousel requires between 4 and 10 image urls",
+        "carousel requires between 4 and 10 child containers",
+        "reels_confirmed",
+        "carousel_confirmed",
+        "ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date",
         "carousel_image_url",
         "carousel_child_ids",
         "instagram container creation id ausente",
