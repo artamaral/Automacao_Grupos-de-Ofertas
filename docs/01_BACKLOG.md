@@ -131,6 +131,22 @@ como bloqueio da operacao minima:
   Caminho esperado: criar prontidao especifica do Instagram com revalidacao
   recente de midia e trava channel-specific de repost/publicacao.
 
+- Desacoplar o resolvedor em lote `resolve_instagram_media_batch` da prontidao
+  operacional do WhatsApp. Hoje `SupabaseOfferMediaAssetStore.load_dispatch_candidates`
+  consulta `offers.v_daily_dispatch_ready` e exige `ready.is_ready_for_dispatch`,
+  embora a regra vigente do Instagram use o `offers.daily_dispatch_plan` do dia
+  como universo e nao dependa de `dispatch_status`/cooldown do WhatsApp. Evidencia
+  de `2026-08-22`: havia `112` itens no plano diario, `96` ja confirmados pelo
+  WhatsApp e somente `16` ainda prontos nessa view; executado nesse momento, o
+  resolvedor processou exatamente `16` itens (`15` validos, `14` com video,
+  `1` somente imagem e `1` falha). Caminho esperado: ler diretamente os itens
+  do `daily_dispatch_plan` de `planned_date=hoje`, obter `product_link` pela
+  fonte comercial/ranking necessaria, manter `--only-missing` baseado em
+  `offer_media_assets` e nao usar `is_ready_for_dispatch` como filtro. Criterio
+  de aceite: executar o resolvedor depois de atividade do WhatsApp deve manter
+  visivel todo o universo Instagram do plano do dia ainda sem midia resolvida,
+  em vez de limitar o lote aos itens restantes do WhatsApp.
+
 - Endurecer TLS da credencial Postgres do Supabase no n8n, substituindo
   `Ignore SSL Issues (Insecure)` por validacao completa da cadeia via CA
   confiavel quando a UI/container permitir.
@@ -223,6 +239,8 @@ como bloqueio da operacao minima:
 
 Para consulta rapida, os principais pontos realmente em aberto hoje sao:
 
+- desacoplar `resolve_instagram_media_batch` de `v_daily_dispatch_ready` e da
+  prontidao/cooldown do WhatsApp;
 - endurecer TLS da conexao n8n -> Supabase;
 - concluir a primeira reconstrucao historica do cooldown fora da janela diaria;
 - melhorar a qualidade semantica dos subnichos, especialmente em
