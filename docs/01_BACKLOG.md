@@ -152,7 +152,7 @@ como bloqueio da operacao minima:
   confiavel quando a UI/container permitir.
 - Executar, depois das `21h` e antes das `07h`, a primeira reconstrucao
   historica com `scripts/supabase/rebuild_publication_cooldown.py`, validando
-  que o plano seguinte preserva `112` slots e exclui confirmacoes dos dois dias
+  que o plano seguinte preserva `112` slots e exclui confirmacoes dos tres dias
   anteriores.
 - Endurecer a operacao da VPS apos a primeira subida do MVP: revisar firewall
   sem bloquear SSH ou servicos Hostinger, fixar e atualizar a versao do

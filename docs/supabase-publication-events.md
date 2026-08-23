@@ -100,7 +100,7 @@ observado em `2026-08-14`, `publication_events` cumpre estes papeis reais:
 
 No caminho atual, `publication_events` permanece autoritativo e um trigger
 projeta confirmacoes de `feminino/shopee` em `offer_selection_state`. A projecao
-define `cooldown_until` para bloquear os dois dias operacionais seguintes,
+define `cooldown_until` para bloquear os tres dias operacionais seguintes,
 independentemente de `target` e `channel_adapter`.
 
 Retries e correcoes nao incrementam contadores de forma cega: o estado e

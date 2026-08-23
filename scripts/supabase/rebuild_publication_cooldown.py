@@ -9,7 +9,7 @@ import psycopg
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
 
-CONFIRMATION = "REBUILD_PUBLICATION_COOLDOWN_2D"
+CONFIRMATION = "REBUILD_PUBLICATION_COOLDOWN_3D"
 PROFILE = "feminino"
 MARKETPLACE = "shopee"
 TIMEZONE = ZoneInfo("America/Sao_Paulo")
@@ -83,7 +83,7 @@ def mismatch_count(connection: psycopg.Connection[dict[str, object]]) -> int:
             count(*)::integer as selection_count,
             max(sent_at) as last_sent_at,
             (
-              ((max(sent_at) at time zone 'America/Sao_Paulo')::date + 3)::timestamp
+              ((max(sent_at) at time zone 'America/Sao_Paulo')::date + 4)::timestamp
               at time zone 'America/Sao_Paulo'
             ) as cooldown_until
           from offers.publication_events

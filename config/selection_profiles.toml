@@ -98,7 +98,7 @@ max_zero_sales_items = 4
 minimum_daily_runs = 14
 cooldown_hours_default = 24
 # O seletor persistido usa dias de calendario; o campo em horas permanece legado.
-publication_cooldown_operational_days = 2
+publication_cooldown_operational_days = 3
 evidence = "catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv"
 planning_mode = "daily_persisted"
 daily_total_items = 112

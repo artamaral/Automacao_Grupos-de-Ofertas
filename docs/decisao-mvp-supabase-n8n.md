@@ -38,7 +38,7 @@ Estado observado como padrao vigente em `2026-08-15`:
 - `offers.publication_events` e a fonte historica da verdade para envios;
 - confirmacoes novas de `feminino/shopee` sao projetadas em
   `offers.offer_selection_state` por trigger;
-- `cooldown_until` retira o item dos dois proximos dias operacionais, de forma
+- `cooldown_until` retira o item dos tres proximos dias operacionais, de forma
   global para o perfil e independente de destino/canal;
 - a reconstrucao historica permanece separada da migration e so pode rodar
   entre `21h` e `07h`, preservando a fila materializada em andamento;
@@ -71,9 +71,9 @@ flowchart TD
     M --> N[publication_events registra o resultado]
     N --> O[Trigger consome o slot daquele dia]
     N --> P[Trigger reconcilia offer_selection_state]
-    P --> Q[cooldown_until: meia-noite BRT de D mais 3]
-    Q --> R[Item inelegivel nos dois proximos dias]
-    R --> S[Item volta ao ranking no terceiro dia]
+    P --> Q[cooldown_until: meia-noite BRT de D mais 4]
+    Q --> R[Item inelegivel nos tres proximos dias]
+    R --> S[Item volta ao ranking no quarto dia]
     S --> H
 ```
 
@@ -98,8 +98,8 @@ recentemente. Uma confirmacao com `sent_at` preenche `last_sent_at`,
 planejador.
 
 A regra usa dias de calendario em `America/Sao_Paulo`, nao uma janela movel de
-48 horas. Um item publicado no dia `14` fica fora dos planos dos dias `15` e
-`16` e retorna no dia `17`; seu `cooldown_until` sera `17 00:00 BRT`.
+72 horas. Um item publicado no dia `14` fica fora dos planos dos dias `15`,
+`16` e `17` e retorna no dia `18`; seu `cooldown_until` sera `18 00:00 BRT`.
 
 Leitura real do banco em `2026-08-14`, sem escrita:
 
@@ -287,7 +287,7 @@ registro do MVP inicial.
 - O workflow deve bloquear destino ausente da allowlist.
 - O texto deve conter disclosure de afiliado.
 - O registro em `publication_events` deve ser idempotente.
-- O anti-repost temporal e global para `feminino/shopee` e usa dois dias
+- O anti-repost temporal e global para `feminino/shopee` e usa tres dias
   operacionais completos.
 
 ## Melhorias fora do MVP
