@@ -215,6 +215,9 @@ def _collect_product_offer_pages(
         request_params = dict(params)
         request_params["limit"] = page_size
         request_params["page"] = page
+        request_params["sort_type"] = 5
+        request_params["is_ams_offer"] = True
+        request_params["is_key_seller"] = True
         try:
             response = provider.fetch_product_offer_raw_response(**request_params)
         except ShopeeGraphqlPayloadError as error:
