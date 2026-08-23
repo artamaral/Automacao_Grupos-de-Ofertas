@@ -23,6 +23,9 @@ DEFAULT_COMPOSE_FILE = Path("/opt/automacao_grupo_compras/n8n/docker-compose.yml
 DEFAULT_WORKFLOW_ID = "OfertasInstagramSupab1"
 EXPECTED_WORKFLOW_TIMEZONE = "America/Sao_Paulo"
 EXPECTED_TARGET = "oferta.femininas"
+EXPECTED_SCHEDULE_CRON = "0 10,12,14,16,18,20 * * *"
+EXPECTED_SCHEDULE_NODE = "Schedule Instagram Controlado"
+EXPECTED_SCHEDULE_CONTEXT_NODE = "Set Contexto Schedule Instagram"
 DEFAULT_WHATSAPP_GROUP_URL = "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
 DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID = "__configure_instagram_business_account_id__"
 EXPECTED_HTTP_HEADER_CREDENTIAL_ID = "instagramGraphHdrAuth1"
@@ -41,6 +44,9 @@ class DeployConfig:
     compose_file: Path
     pin_data: dict[str, Any] | None
     dry_run: bool
+    mode: str = "safe"
+    instagram_business_account_id: str | None = None
+    whatsapp_group_url: str = DEFAULT_WHATSAPP_GROUP_URL
 
 
 def build_pin_data(
@@ -85,7 +91,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--mode",
-        choices=("safe", "instagram-real-test", "preserve-pindata"),
+        choices=(
+            "safe",
+            "instagram-real-test",
+            "instagram-production",
+            "preserve-pindata",
+        ),
         default="safe",
     )
     return parser.parse_args(argv)
@@ -104,32 +115,52 @@ def read_operational_env(compose_env: Path) -> dict[str, str]:
     return values
 
 
+def read_real_instagram_settings(compose_env: Path, mode: str) -> tuple[str, str]:
+    env_values = read_operational_env(compose_env)
+    instagram_business_account_id = env_values.get(
+        "INSTAGRAM_BUSINESS_ACCOUNT_ID", ""
+    ).strip()
+    whatsapp_group_url = (
+        env_values.get("INSTAGRAM_WHATSAPP_GROUP_URL", "").strip()
+        or DEFAULT_WHATSAPP_GROUP_URL
+    )
+    if not instagram_business_account_id:
+        raise InstagramWorkflowGuardError(
+            f"INSTAGRAM_BUSINESS_ACCOUNT_ID ausente no compose env para {mode}"
+        )
+    if whatsapp_group_url != DEFAULT_WHATSAPP_GROUP_URL:
+        raise InstagramWorkflowGuardError(
+            "INSTAGRAM_WHATSAPP_GROUP_URL deve corresponder ao grupo publico versionado"
+        )
+    return instagram_business_account_id, whatsapp_group_url
+
+
 def config_from_args(args: argparse.Namespace) -> DeployConfig:
     compose_env = args.compose_env
     pin_data: dict[str, Any] | None
+    instagram_business_account_id: str | None = None
+    whatsapp_group_url = DEFAULT_WHATSAPP_GROUP_URL
+
     if args.mode == "safe":
         pin_data = SAFE_PINDATA
-    elif args.mode == "instagram-real-test":
-        env_values = read_operational_env(compose_env)
-        instagram_business_account_id = env_values.get(
-            "INSTAGRAM_BUSINESS_ACCOUNT_ID", ""
-        ).strip()
-        whatsapp_group_url = (
-            env_values.get("INSTAGRAM_WHATSAPP_GROUP_URL", "").strip()
-            or DEFAULT_WHATSAPP_GROUP_URL
+    elif args.mode in {"instagram-real-test", "instagram-production"}:
+        instagram_business_account_id, whatsapp_group_url = read_real_instagram_settings(
+            compose_env, args.mode
         )
-        if not instagram_business_account_id:
-            raise InstagramWorkflowGuardError(
-                "INSTAGRAM_BUSINESS_ACCOUNT_ID ausente no compose env para instagram-real-test"
-            )
+        run_id = (
+            "instagram-real-test"
+            if args.mode == "instagram-real-test"
+            else "instagram-production-manual"
+        )
         pin_data = build_pin_data(
             dry_run=False,
-            run_id="instagram-real-test",
+            run_id=run_id,
             instagram_business_account_id=instagram_business_account_id,
             whatsapp_group_url=whatsapp_group_url,
         )
     else:
         pin_data = None
+
     return DeployConfig(
         workflow_json=args.workflow_json,
         workflow_id=args.workflow_id,
@@ -137,6 +168,9 @@ def config_from_args(args: argparse.Namespace) -> DeployConfig:
         compose_file=args.compose_file,
         pin_data=pin_data,
         dry_run=args.dry_run,
+        mode=args.mode,
+        instagram_business_account_id=instagram_business_account_id,
+        whatsapp_group_url=whatsapp_group_url,
     )
 
 
@@ -175,6 +209,77 @@ def _targets(connections: dict[str, Any], name: str) -> list[set[str | None]]:
     ]
 
 
+def _schedule_cron(workflow: dict[str, Any]) -> str:
+    node = node_by_name(workflow, EXPECTED_SCHEDULE_NODE)
+    if not isinstance(node, dict):
+        return ""
+    intervals = node.get("parameters", {}).get("rule", {}).get("interval", [])
+    if not isinstance(intervals, list):
+        return ""
+    for interval in intervals:
+        if isinstance(interval, dict) and interval.get("field") == "cronExpression":
+            return str(interval.get("expression") or "")
+    return ""
+
+
+def _schedule_context_code(workflow: dict[str, Any]) -> str:
+    node = node_by_name(workflow, EXPECTED_SCHEDULE_CONTEXT_NODE)
+    if not isinstance(node, dict):
+        return ""
+    return str(node.get("parameters", {}).get("jsCode", ""))
+
+
+def build_production_schedule_context(
+    *, instagram_business_account_id: str, whatsapp_group_url: str
+) -> str:
+    if not instagram_business_account_id.strip():
+        raise InstagramWorkflowGuardError(
+            "instagram business account id obrigatorio para schedule de producao"
+        )
+    if whatsapp_group_url != DEFAULT_WHATSAPP_GROUP_URL:
+        raise InstagramWorkflowGuardError(
+            "whatsapp group url deve corresponder ao grupo publico versionado"
+        )
+    return (
+        "return [{ json: { "
+        "dry_run: false, "
+        "profile: 'feminino', "
+        "marketplace: 'shopee', "
+        "target: 'oferta.femininas', "
+        "allowed_targets_csv: 'oferta.femininas', "
+        "limit: 1, "
+        "run_id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-instagram-schedule', "
+        "instagram_account_email: 'grupodeofertas.mktdigital.fem@gmail.com', "
+        "instagram_username: 'oferta.femininas', "
+        f"instagram_business_account_id: '{instagram_business_account_id}', "
+        f"whatsapp_group_url: '{whatsapp_group_url}' "
+        "} }];"
+    )
+
+
+def prepare_workflow_for_deploy(
+    workflow: dict[str, Any], config: DeployConfig
+) -> dict[str, Any]:
+    prepared = json.loads(json.dumps(workflow, ensure_ascii=False))
+    if config.mode != "instagram-production":
+        return prepared
+
+    if not config.instagram_business_account_id:
+        raise InstagramWorkflowGuardError(
+            "instagram-production requer INSTAGRAM_BUSINESS_ACCOUNT_ID"
+        )
+    schedule_node = node_by_name(prepared, EXPECTED_SCHEDULE_CONTEXT_NODE)
+    if not isinstance(schedule_node, dict):
+        raise InstagramWorkflowGuardError(
+            f"missing node: {EXPECTED_SCHEDULE_CONTEXT_NODE}"
+        )
+    schedule_node.setdefault("parameters", {})["jsCode"] = build_production_schedule_context(
+        instagram_business_account_id=config.instagram_business_account_id,
+        whatsapp_group_url=config.whatsapp_group_url,
+    )
+    return prepared
+
+
 def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> None:
     errors: list[str] = []
     if workflow.get("id") != workflow_id:
@@ -190,6 +295,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
 
     required_nodes = (
         "Trigger Manual",
+        EXPECTED_SCHEDULE_NODE,
+        EXPECTED_SCHEDULE_CONTEXT_NODE,
         "Validar Contexto Instagram",
         "Claim Item Instagram",
         "Montar Copy Instagram",
@@ -216,6 +323,26 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
     for node_name in required_nodes:
         if node_by_name(workflow, node_name) is None:
             errors.append(f"missing node: {node_name}")
+
+    cron = _schedule_cron(workflow)
+    if cron != EXPECTED_SCHEDULE_CRON:
+        errors.append(
+            f"Instagram schedule cron must be {EXPECTED_SCHEDULE_CRON}, got {cron or '<missing>'}"
+        )
+
+    schedule_code = _schedule_context_code(workflow)
+    for required_schedule_text in (
+        "dry_run: true",
+        "run_id: 'instagram-schedule-safe'",
+        DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID,
+        DEFAULT_WHATSAPP_GROUP_URL,
+    ):
+        if required_schedule_text not in schedule_code:
+            errors.append(
+                f"versioned schedule must remain safe; missing {required_schedule_text}"
+            )
+    if "dry_run: false" in schedule_code:
+        errors.append("versioned schedule must not enable real publication")
 
     for node in workflow.get("nodes") or []:
         if not isinstance(node, dict) or node.get("type") != "n8n-nodes-base.postgres":
@@ -247,6 +374,10 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
             errors.append(f"httpHeaderAuth name mismatch: {node_name}")
 
     connections = workflow.get("connections") if isinstance(workflow.get("connections"), dict) else {}
+    if _targets(connections, EXPECTED_SCHEDULE_NODE) != [{EXPECTED_SCHEDULE_CONTEXT_NODE}]:
+        errors.append("Schedule Instagram Controlado must connect to Set Contexto Schedule Instagram")
+    if _targets(connections, EXPECTED_SCHEDULE_CONTEXT_NODE) != [{"Validar Contexto Instagram"}]:
+        errors.append("Set Contexto Schedule Instagram must connect to Validar Contexto Instagram")
     if _targets(connections, "Revalidar Midia") != [{"Criar Container Reels"}]:
         errors.append("Revalidar Midia must only connect to Criar Container Reels")
     if _targets(connections, "Montar Copy Instagram") != [{"Dry Run Instagram?"}]:
@@ -385,6 +516,42 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         raise InstagramWorkflowGuardError("; ".join(errors))
 
 
+def validate_deploy_workflow(workflow: dict[str, Any], config: DeployConfig) -> None:
+    if _schedule_cron(workflow) != EXPECTED_SCHEDULE_CRON:
+        raise InstagramWorkflowGuardError("deployed workflow schedule cron mismatch")
+
+    schedule_code = _schedule_context_code(workflow)
+    if config.mode == "instagram-production":
+        required = (
+            "dry_run: false",
+            "'-instagram-schedule'",
+            config.instagram_business_account_id or "",
+            config.whatsapp_group_url,
+        )
+        for text in required:
+            if not text or text not in schedule_code:
+                raise InstagramWorkflowGuardError(
+                    f"instagram-production schedule context missing: {text or 'business account id'}"
+                )
+        if DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID in schedule_code:
+            raise InstagramWorkflowGuardError(
+                "instagram-production schedule still contains business account placeholder"
+            )
+        if "dry_run: true" in schedule_code:
+            raise InstagramWorkflowGuardError(
+                "instagram-production schedule must use dry_run=false"
+            )
+    else:
+        if "dry_run: true" not in schedule_code:
+            raise InstagramWorkflowGuardError(
+                "non-production deploy must preserve safe schedule dry_run=true"
+            )
+        if DEFAULT_INSTAGRAM_BUSINESS_ACCOUNT_ID not in schedule_code:
+            raise InstagramWorkflowGuardError(
+                "non-production deploy must preserve schedule business account placeholder"
+            )
+
+
 def validate_pin_data(pin_data: dict[str, Any] | None) -> None:
     if pin_data is None:
         return
@@ -476,8 +643,12 @@ def build_status_query(workflow_id: str) -> str:
         "'id', id, "
         "'active', active, "
         "'versionId', \"versionId\", "
+        "'activeVersionId', \"activeVersionId\", "
         "'versionCounter', \"versionCounter\", "
         "'updatedAt', \"updatedAt\", "
+        "'has_expected_schedule_cron', position('0 10,12,14,16,18,20 * * *' in nodes::text) > 0, "
+        "'schedule_dry_run_false', position('dry_run: false' in nodes::text) > 0, "
+        "'schedule_has_placeholder', position('__configure_instagram_business_account_id__' in nodes::text) > 0, "
         "'has_daily_plan_claim', position('offers.daily_dispatch_plan' in nodes::text) > 0, "
         "'has_expensive_ranking_claim', position('offers.v_offer_ranking_current' in nodes::text) > 0 or position('offers.v_instagram_dispatch_ready' in nodes::text) > 0, "
         "'has_publish_context_restore', position('Restaurar Contexto Resultado Publicacao' in nodes::text) > 0, "
@@ -509,7 +680,12 @@ def run_update(sql: str, config: DeployConfig) -> None:
 
 def fetch_status(config: DeployConfig) -> dict[str, Any]:
     completed = subprocess.run(
-        compose_psql_command(ComposeConfig(config.compose_env, config.compose_file), "-At", "-c", build_status_query(config.workflow_id)),
+        compose_psql_command(
+            ComposeConfig(config.compose_env, config.compose_file),
+            "-At",
+            "-c",
+            build_status_query(config.workflow_id),
+        ),
         text=True,
         encoding="utf-8",
         check=False,
@@ -530,10 +706,24 @@ def fetch_status(config: DeployConfig) -> dict[str, Any]:
     return status
 
 
-def validate_deployed_status(status: dict[str, Any], pin_data: dict[str, Any] | None) -> None:
+def validate_deployed_status(
+    status: dict[str, Any], pin_data: dict[str, Any] | None, *, production: bool = False
+) -> None:
     errors: list[str] = []
     if status.get("active") is not False:
-        errors.append("active must be false")
+        errors.append("active must be false until the deployed draft is explicitly published")
+    if status.get("has_expected_schedule_cron") is not True:
+        errors.append("six-slot Instagram schedule cron must be present")
+    if production:
+        if status.get("schedule_dry_run_false") is not True:
+            errors.append("production schedule must use dry_run=false")
+        if status.get("schedule_has_placeholder") is not False:
+            errors.append("production schedule must not contain business account placeholder")
+    else:
+        if status.get("schedule_dry_run_false") is not False:
+            errors.append("non-production schedule must remain dry-run")
+        if status.get("schedule_has_placeholder") is not True:
+            errors.append("non-production schedule must retain business account placeholder")
     if status.get("has_daily_plan_claim") is not True:
         errors.append("daily plan claim must be present")
     if status.get("has_expensive_ranking_claim") is not False:
@@ -552,43 +742,61 @@ def validate_deployed_status(status: dict[str, Any], pin_data: dict[str, Any] | 
         raise InstagramWorkflowGuardError("; ".join(errors))
 
 
-def print_summary(status: dict[str, Any] | None, pin_data: dict[str, Any] | None) -> None:
+def print_summary(status: dict[str, Any] | None, config: DeployConfig) -> None:
     pin_mode = "preserve"
-    if pin_data == SAFE_PINDATA:
+    if config.pin_data == SAFE_PINDATA:
         pin_mode = "safe"
-    elif (
-        isinstance(pin_data, dict)
-        and pin_data.get("Trigger Manual")
-        and pin_data["Trigger Manual"][0].get("json", {}).get("run_id") == "instagram-real-test"
-        and pin_data["Trigger Manual"][0].get("json", {}).get("dry_run") is False
-    ):
+    elif config.mode == "instagram-real-test":
         pin_mode = "instagram-real-test"
+    elif config.mode == "instagram-production":
+        pin_mode = "instagram-production"
+
     if status is None:
         print("INFO | dry_run=true; no changes applied")
+        print(f"INFO | mode={config.mode}")
         print(f"INFO | pinData mode={pin_mode}")
+        print(f"INFO | schedule_cron={EXPECTED_SCHEDULE_CRON}")
+        print(
+            "INFO | schedule_publication="
+            + ("real" if config.mode == "instagram-production" else "safe")
+        )
         print("INFO | instagram workflow=ok")
         print("INFO | active=false")
         return
+
     print(f"INFO | workflow_id={status.get('id')}")
     print(f"INFO | versionId={status.get('versionId')}")
+    print(f"INFO | activeVersionId={status.get('activeVersionId')}")
     print(f"INFO | versionCounter={status.get('versionCounter')}")
     print(f"INFO | active={str(status.get('active')).lower()}")
+    print(f"INFO | mode={config.mode}")
     print(f"INFO | pinData={pin_mode}")
+    print(f"INFO | schedule_cron={EXPECTED_SCHEDULE_CRON}")
+    print(
+        "INFO | schedule_publication="
+        + ("real" if config.mode == "instagram-production" else "safe")
+    )
 
 
 def run(config: DeployConfig) -> int:
-    workflow = load_workflow(config.workflow_json)
-    validate_versioned_workflow(workflow, config.workflow_id)
+    versioned_workflow = load_workflow(config.workflow_json)
+    validate_versioned_workflow(versioned_workflow, config.workflow_id)
+    workflow = prepare_workflow_for_deploy(versioned_workflow, config)
+    validate_deploy_workflow(workflow, config)
     validate_pin_data(config.pin_data)
     sql = build_update_sql(workflow, config.workflow_id, config.pin_data)
     if config.dry_run:
-        print_summary(None, config.pin_data)
+        print_summary(None, config)
         print(f"INFO | sql_bytes={len(sql.encode('utf-8'))}")
         return 0
     run_update(sql, config)
     status = fetch_status(config)
-    validate_deployed_status(status, config.pin_data)
-    print_summary(status, config.pin_data)
+    validate_deployed_status(
+        status,
+        config.pin_data,
+        production=config.mode == "instagram-production",
+    )
+    print_summary(status, config)
     return 0
 
 
