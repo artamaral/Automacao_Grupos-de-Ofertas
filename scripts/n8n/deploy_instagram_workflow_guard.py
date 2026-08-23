@@ -111,7 +111,9 @@ def config_from_args(args: argparse.Namespace) -> DeployConfig:
         pin_data = SAFE_PINDATA
     elif args.mode == "instagram-real-test":
         env_values = read_operational_env(compose_env)
-        instagram_business_account_id = env_values.get("INSTAGRAM_BUSINESS_ACCOUNT_ID", "").strip()
+        instagram_business_account_id = env_values.get(
+            "INSTAGRAM_BUSINESS_ACCOUNT_ID", ""
+        ).strip()
         whatsapp_group_url = (
             env_values.get("INSTAGRAM_WHATSAPP_GROUP_URL", "").strip()
             or DEFAULT_WHATSAPP_GROUP_URL
@@ -164,6 +166,15 @@ def node_by_name(workflow: dict[str, Any], name: str) -> dict[str, Any] | None:
     return None
 
 
+def _targets(connections: dict[str, Any], name: str) -> list[set[str | None]]:
+    outputs = connections.get(name, {}).get("main", [])
+    return [
+        {target.get("node") for target in output if isinstance(target, dict)}
+        for output in outputs
+        if isinstance(output, list)
+    ]
+
+
 def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> None:
     errors: list[str] = []
     if workflow.get("id") != workflow_id:
@@ -177,7 +188,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
     if workflow.get("settings", {}).get("timezone") != EXPECTED_WORKFLOW_TIMEZONE:
         errors.append(f"workflow timezone must be {EXPECTED_WORKFLOW_TIMEZONE}")
 
-    for node_name in (
+    required_nodes = (
         "Trigger Manual",
         "Validar Contexto Instagram",
         "Claim Item Instagram",
@@ -198,20 +209,22 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "Aguardar Container Instagram",
         "Falhar Container Nao Pronto",
         "Publicar Container",
+        "Restaurar Contexto Resultado Publicacao",
         "Marcar Midia Expirada",
         "Registrar Resultado Supabase",
-    ):
+    )
+    for node_name in required_nodes:
         if node_by_name(workflow, node_name) is None:
             errors.append(f"missing node: {node_name}")
 
     for node in workflow.get("nodes") or []:
         if not isinstance(node, dict) or node.get("type") != "n8n-nodes-base.postgres":
             continue
-        postgres_credentials = node.get("credentials", {}).get("postgres")
-        if not isinstance(postgres_credentials, dict):
+        credentials = node.get("credentials", {}).get("postgres")
+        if not isinstance(credentials, dict):
             errors.append(f"missing postgres credentials: {node.get('name')}")
             continue
-        if not postgres_credentials.get("id") or not postgres_credentials.get("name"):
+        if not credentials.get("id") or not credentials.get("name"):
             errors.append(f"incomplete postgres credentials: {node.get('name')}")
 
     for node_name in (
@@ -233,65 +246,21 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         if credentials.get("name") != EXPECTED_HTTP_HEADER_CREDENTIAL_NAME:
             errors.append(f"httpHeaderAuth name mismatch: {node_name}")
 
-    connections = (
-        workflow.get("connections") if isinstance(workflow.get("connections"), dict) else {}
-    )
-    revalidation_outputs = connections.get("Revalidar Midia", {}).get("main", [])
-    revalidation_targets = {
-        target.get("node")
-        for output in revalidation_outputs
-        if isinstance(output, list)
-        for target in output
-        if isinstance(target, dict)
-    }
-    if revalidation_targets != {"Criar Container Reels"}:
+    connections = workflow.get("connections") if isinstance(workflow.get("connections"), dict) else {}
+    if _targets(connections, "Revalidar Midia") != [{"Criar Container Reels"}]:
         errors.append("Revalidar Midia must only connect to Criar Container Reels")
-
-    copy_outputs = connections.get("Montar Copy Instagram", {}).get("main", [])
-    copy_targets = {
-        target.get("node")
-        for output in copy_outputs
-        if isinstance(output, list)
-        for target in output
-        if isinstance(target, dict)
-    }
-    if copy_targets != {"Dry Run Instagram?"}:
+    if _targets(connections, "Montar Copy Instagram") != [{"Dry Run Instagram?"}]:
         errors.append("Montar Copy Instagram must only connect to Dry Run Instagram?")
-
-    status_outputs = connections.get("Checar Status Container", {}).get("main", [])
-    status_targets = {
-        target.get("node")
-        for output in status_outputs
-        if isinstance(output, list)
-        for target in output
-        if isinstance(target, dict)
-    }
-    if status_targets != {"Restaurar Contexto Publicacao"}:
-        errors.append(
-            "Checar Status Container must only connect to Restaurar Contexto Publicacao"
-        )
-
-    restore_outputs = connections.get("Restaurar Contexto Publicacao", {}).get("main", [])
-    restore_targets = {
-        target.get("node")
-        for output in restore_outputs
-        if isinstance(output, list)
-        for target in output
-        if isinstance(target, dict)
-    }
-    if restore_targets != {"Container Pronto?"}:
+    if _targets(connections, "Checar Status Container") != [{"Restaurar Contexto Publicacao"}]:
+        errors.append("Checar Status Container must only connect to Restaurar Contexto Publicacao")
+    if _targets(connections, "Restaurar Contexto Publicacao") != [{"Container Pronto?"}]:
         errors.append("Restaurar Contexto Publicacao must only connect to Container Pronto?")
+    if _targets(connections, "Publicar Container") != [{"Restaurar Contexto Resultado Publicacao"}]:
+        errors.append("Publicar Container must only connect to Restaurar Contexto Resultado Publicacao")
+    if _targets(connections, "Restaurar Contexto Resultado Publicacao") != [{"Registrar Resultado Supabase"}]:
+        errors.append("Restaurar Contexto Resultado Publicacao must only connect to Registrar Resultado Supabase")
 
-    ready_outputs = connections.get("Container Pronto?", {}).get("main", [])
-    ready_targets = [
-        {
-            target.get("node")
-            for target in output
-            if isinstance(target, dict)
-        }
-        for output in ready_outputs
-        if isinstance(output, list)
-    ]
+    ready_targets = _targets(connections, "Container Pronto?")
     if len(ready_targets) < 2:
         errors.append("Container Pronto? must have true and false branches")
     else:
@@ -300,16 +269,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         if "Pode Repetir Poll Container?" not in ready_targets[1]:
             errors.append("Container Pronto? false branch must evaluate poll retry")
 
-    retry_outputs = connections.get("Pode Repetir Poll Container?", {}).get("main", [])
-    retry_targets = [
-        {
-            target.get("node")
-            for target in output
-            if isinstance(target, dict)
-        }
-        for output in retry_outputs
-        if isinstance(output, list)
-    ]
+    retry_targets = _targets(connections, "Pode Repetir Poll Container?")
     if len(retry_targets) < 2:
         errors.append("Pode Repetir Poll Container? must have true and false branches")
     else:
@@ -318,40 +278,12 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         if "Falhar Container Nao Pronto" not in retry_targets[1]:
             errors.append("Pode Repetir Poll Container? false branch must register failure")
 
-    wait_outputs = connections.get("Aguardar Container Instagram", {}).get("main", [])
-    wait_targets = {
-        target.get("node")
-        for output in wait_outputs
-        if isinstance(output, list)
-        for target in output
-        if isinstance(target, dict)
-    }
-    if wait_targets != {"Checar Status Container"}:
+    if _targets(connections, "Aguardar Container Instagram") != [{"Checar Status Container"}]:
         errors.append("Aguardar Container Instagram must only connect to Checar Status Container")
+    if _targets(connections, "Falhar Container Nao Pronto") != [{"Registrar Resultado Supabase"}]:
+        errors.append("Falhar Container Nao Pronto must only connect to Registrar Resultado Supabase")
 
-    failed_container_outputs = connections.get("Falhar Container Nao Pronto", {}).get("main", [])
-    failed_container_targets = {
-        target.get("node")
-        for output in failed_container_outputs
-        if isinstance(output, list)
-        for target in output
-        if isinstance(target, dict)
-    }
-    if failed_container_targets != {"Registrar Resultado Supabase"}:
-        errors.append(
-            "Falhar Container Nao Pronto must only connect to Registrar Resultado Supabase"
-        )
-
-    dry_run_outputs = connections.get("Dry Run Instagram?", {}).get("main", [])
-    dry_run_targets = [
-        {
-            target.get("node")
-            for target in output
-            if isinstance(target, dict)
-        }
-        for output in dry_run_outputs
-        if isinstance(output, list)
-    ]
+    dry_run_targets = _targets(connections, "Dry Run Instagram?")
     if len(dry_run_targets) < 2:
         errors.append("Dry Run Instagram? must have true and false branches")
     else:
@@ -360,22 +292,44 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         if "Roteador Formato" not in dry_run_targets[1]:
             errors.append("dry-run false branch must route to Instagram format")
 
-    text = workflow_text(workflow)
+    claim_node = node_by_name(workflow, "Claim Item Instagram")
+    claim_query = ""
+    if isinstance(claim_node, dict):
+        claim_query = str(claim_node.get("parameters", {}).get("query", ""))
+
     for required_text in (
-        "offers.v_instagram_dispatch_ready",
         "offers.daily_dispatch_plan",
+        "offers.offer_media_assets",
+        "offers.catalog_items",
+        "offers.offer_snapshots",
         "for update of plan skip locked",
-        "ready.instagram_format",
-        "nullif",
-        "context.dry_run",
+        "expected.instagram_format",
+        "plan.planned_date = (now() at time zone 'America/Sao_Paulo')::date",
+        "media.video_url is not null",
+        "jsonb_array_length(media.image_urls) >= 4",
+        "event.payload ->> 'source_dispatch_plan_id'",
+        "event.payload ->> 'dry_run' = 'false'",
         "ctx.dry_run",
-        "instagram_business_account_id",
         "ctx.instagram_business_account_id",
         "ctx.whatsapp_group_url",
-        "whatsapp_group_url",
+    ):
+        if required_text not in claim_query:
+            errors.append(f"missing claim contract text: {required_text}")
+
+    for forbidden_claim_text in (
+        "offers.v_instagram_dispatch_ready",
+        "offers.v_offer_ranking_current",
+        "dispatch_status = 'planned'",
+        "is_ready_for_dispatch",
+    ):
+        if forbidden_claim_text in claim_query:
+            errors.append(f"forbidden expensive/cross-channel claim text: {forbidden_claim_text}")
+
+    text = workflow_text(workflow)
+    for required_text in (
+        "nullif",
         "source_dispatch_plan_id",
         "null::uuid",
-        "offers.offer_media_assets",
         "status = 'stale'",
         "media_revalidation_failed",
         "insert into offers.publication_events",
@@ -395,7 +349,6 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "carousel requires between 4 and 10 child containers",
         "reels_confirmed",
         "carousel_confirmed",
-        "ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date",
         "carousel_image_url",
         "carousel_child_ids",
         "instagram container creation id ausente",
@@ -409,9 +362,13 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "media_type=CAROUSEL",
         "is_carousel_item=true",
         "/media_publish",
+        "instagram media publish id ausente",
+        "instagram_media_id",
+        "published_media_id",
     ):
         if required_text not in text:
             errors.append(f"missing workflow contract text: {required_text}")
+
     for forbidden_text in (
         "/api/sendImage",
         "/api/sendText",
@@ -448,11 +405,7 @@ def validate_pin_data(pin_data: dict[str, Any] | None) -> None:
         raise InstagramWorkflowGuardError("pinData whatsapp_group_url must match public MVP URL")
 
 
-def build_update_sql(
-    workflow: dict[str, Any],
-    workflow_id: str,
-    pin_data: dict[str, Any] | None,
-) -> str:
+def build_update_sql(workflow: dict[str, Any], workflow_id: str, pin_data: dict[str, Any] | None) -> str:
     required_fields = ("nodes", "connections")
     missing = [field for field in required_fields if field not in workflow]
     if missing:
@@ -468,18 +421,7 @@ def build_update_sql(
     ]
     if pin_data is not None:
         assignments.insert(3, f'"pinData" = {dollar_quote(compact_json(pin_data))}::json')
-    insert_columns = [
-        "id",
-        "name",
-        "active",
-        "nodes",
-        "connections",
-        "settings",
-        '"pinData"',
-        '"versionId"',
-        '"versionCounter"',
-        '"nodeGroups"',
-    ]
+    insert_columns = ["id", "name", "active", "nodes", "connections", "settings", '"pinData"', '"versionId"', '"versionCounter"', '"nodeGroups"']
     insert_values = [
         sql_literal(workflow_id),
         sql_literal(str(workflow.get("name") or workflow_id)),
@@ -487,11 +429,7 @@ def build_update_sql(
         f"{dollar_quote(compact_json(workflow['nodes']))}::json",
         f"{dollar_quote(compact_json(workflow['connections']))}::json",
         f"{dollar_quote(compact_json(workflow.get('settings', {})))}::json",
-        (
-            f"{dollar_quote(compact_json(pin_data))}::json"
-            if pin_data is not None
-            else f"{dollar_quote(compact_json(workflow.get('pinData', {})))}::json"
-        ),
+        f"{dollar_quote(compact_json(pin_data))}::json" if pin_data is not None else f"{dollar_quote(compact_json(workflow.get('pinData', {})))}::json",
         "gen_random_uuid()::text",
         "1",
         "'[]'::json",
@@ -509,7 +447,7 @@ def build_update_sql(
         "), shared_project as (\n"
         '  select shared."projectId"\n'
         "  from shared_workflow shared\n"
-        "  order by shared.\"updatedAt\" desc\n"
+        '  order by shared."updatedAt" desc\n'
         "  limit 1\n"
         "), inserted_share as (\n"
         '  insert into shared_workflow ("workflowId", "projectId", role)\n'
@@ -525,9 +463,7 @@ def build_update_sql(
         ")\n"
         "select\n"
         '  upserted."versionId", upserted.id,\n'
-        "  coalesce((select history.authors from workflow_history history "
-        'where history."workflowId" = upserted.id order by history."createdAt" desc limit 1), '
-        "'system'),\n"
+        "  coalesce((select history.authors from workflow_history history where history.\"workflowId\" = upserted.id order by history.\"createdAt\" desc limit 1), 'system'),\n"
         '  upserted."updatedAt", upserted."updatedAt", upserted.nodes,\n'
         "  upserted.connections, upserted.name, false, null, '[]'::json\n"
         "from upserted_workflow upserted;"
@@ -542,17 +478,14 @@ def build_status_query(workflow_id: str) -> str:
         "'versionId', \"versionId\", "
         "'versionCounter', \"versionCounter\", "
         "'updatedAt', \"updatedAt\", "
-        "'has_instagram_ready_view', "
-        "position('offers.v_instagram_dispatch_ready' in nodes::text) > 0, "
+        "'has_daily_plan_claim', position('offers.daily_dispatch_plan' in nodes::text) > 0, "
+        "'has_expensive_ranking_claim', position('offers.v_offer_ranking_current' in nodes::text) > 0 or position('offers.v_instagram_dispatch_ready' in nodes::text) > 0, "
+        "'has_publish_context_restore', position('Restaurar Contexto Resultado Publicacao' in nodes::text) > 0, "
         "'has_media_publish', position('/media_publish' in nodes::text) > 0, "
         "'has_waha', position('WAHA' in nodes::text) > 0, "
-        "'history_exists', exists (select 1 from workflow_history history "
-        'where history."workflowId" = workflow_entity.id '
-        'and history."versionId" = workflow_entity."versionId"'
-        "), "
+        "'history_exists', exists (select 1 from workflow_history history where history.\"workflowId\" = workflow_entity.id and history.\"versionId\" = workflow_entity.\"versionId\"), "
         "'pinData', \"pinData\""
-        ")::text "
-        "from workflow_entity "
+        ")::text from workflow_entity "
         f"where id = {sql_literal(workflow_id)};"
     )
 
@@ -576,12 +509,7 @@ def run_update(sql: str, config: DeployConfig) -> None:
 
 def fetch_status(config: DeployConfig) -> dict[str, Any]:
     completed = subprocess.run(
-        compose_psql_command(
-            ComposeConfig(config.compose_env, config.compose_file),
-            "-At",
-            "-c",
-            build_status_query(config.workflow_id),
-        ),
+        compose_psql_command(ComposeConfig(config.compose_env, config.compose_file), "-At", "-c", build_status_query(config.workflow_id)),
         text=True,
         encoding="utf-8",
         check=False,
@@ -606,8 +534,12 @@ def validate_deployed_status(status: dict[str, Any], pin_data: dict[str, Any] | 
     errors: list[str] = []
     if status.get("active") is not False:
         errors.append("active must be false")
-    if status.get("has_instagram_ready_view") is not True:
-        errors.append("instagram ready view must be present")
+    if status.get("has_daily_plan_claim") is not True:
+        errors.append("daily plan claim must be present")
+    if status.get("has_expensive_ranking_claim") is not False:
+        errors.append("expensive ranking view must be absent from claim")
+    if status.get("has_publish_context_restore") is not True:
+        errors.append("publish context restore must be present")
     if status.get("has_media_publish") is not True:
         errors.append("media_publish must be present")
     if status.get("has_waha") is not False:
