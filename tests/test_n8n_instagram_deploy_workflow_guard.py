@@ -189,7 +189,10 @@ def test_container_polling_nodes_exist_with_expected_contract() -> None:
     wait_node = guard.node_by_name(workflow, "Aguardar Container Instagram")
     fail_node = guard.node_by_name(workflow, "Falhar Container Nao Pronto")
     assert ready_node["parameters"]["conditions"]["conditions"][0]["rightValue"] == "FINISHED"
-    assert retry_node["parameters"]["conditions"]["conditions"][0]["rightValue"] == 5
+    retry_condition = retry_node["parameters"]["conditions"]["conditions"][0]
+    assert retry_condition["leftValue"] == "={{ Number($json.poll_attempt || 0) }}"
+    assert retry_condition["rightValue"] == 6
+    assert retry_condition["operator"] == {"type": "number", "operation": "lt"}
     assert wait_node["parameters"]["resume"] == "timeInterval"
     assert wait_node["parameters"]["amount"] == 60
     assert wait_node["parameters"]["unit"] == "seconds"
@@ -223,6 +226,8 @@ def test_instagram_selection_alternates_only_confirmed_publications() -> None:
     assert "reels_confirmed = carousel_confirmed and reels_confirmed < 3 then 'reels'" in query
     assert "reels_confirmed = carousel_confirmed + 1 and carousel_confirmed < 3 then 'carousel'" in query
     assert "else null" in query
+    assert "event.channel_adapter in ('instagram_reels', 'instagram_carousel')" in query
+    assert "event.channel_adapter = case expected.instagram_format" not in query
     assert "event.payload ->> 'source_dispatch_plan_id'" in query
     assert "event.payload ->> 'dry_run' = 'false'" in query
 
