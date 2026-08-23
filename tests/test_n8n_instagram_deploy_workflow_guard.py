@@ -189,9 +189,9 @@ def test_container_polling_nodes_exist_with_expected_contract() -> None:
     wait_node = guard.node_by_name(workflow, "Aguardar Container Instagram")
     fail_node = guard.node_by_name(workflow, "Falhar Container Nao Pronto")
     assert ready_node["parameters"]["conditions"]["conditions"][0]["rightValue"] == "FINISHED"
-    assert retry_node["parameters"]["conditions"]["conditions"][0]["rightValue"] == 6
+    assert retry_node["parameters"]["conditions"]["conditions"][0]["rightValue"] == 5
     assert wait_node["parameters"]["resume"] == "timeInterval"
-    assert wait_node["parameters"]["amount"] == 20
+    assert wait_node["parameters"]["amount"] == 60
     assert wait_node["parameters"]["unit"] == "seconds"
     assert "container_not_ready_timeout" in fail_node["parameters"]["jsCode"]
     assert "delivery_status: 'failed'" in fail_node["parameters"]["jsCode"]
