@@ -1,8 +1,8 @@
 [Unit]
-Description=Resolve Instagram media daily at 08:00 BRT
+Description=Resolve Instagram media daily at 07:30 BRT
 
 [Timer]
-OnCalendar=*-*-* 08:00:00 America/Sao_Paulo
+OnCalendar=*-*-* 07:30:00 America/Sao_Paulo
 Persistent=true
 RandomizedDelaySec=0
 Unit=instagram-media-resolver.service
