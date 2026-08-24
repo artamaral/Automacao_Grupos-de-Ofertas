@@ -1,0 +1,262 @@
+{
+  "template_id": "ofertas-femininas-feed-v1",
+  "template_version": "1.2",
+  "measured_template": {
+    "width": 1122,
+    "height": 1402,
+    "aspect_ratio": "561:701"
+  },
+  "format": {
+    "platform": "instagram",
+    "type": "feed",
+    "width": 1080,
+    "height": 1350,
+    "aspect_ratio": "4:5",
+    "output_format": "png"
+  },
+  "fields": {
+    "brand_name": {"type": "text", "value": "Ofertas Femininas", "editable": false},
+    "title_main": {"type": "text", "required": true, "max_lines": 3, "max_chars": 55},
+    "title_sub": {"type": "text", "required": false, "max_lines": 1, "max_chars": 25},
+    "benefit_1": {"type": "text", "required": false, "max_lines": 1, "max_chars": 32},
+    "benefit_2": {"type": "text", "required": false, "max_lines": 1, "max_chars": 32},
+    "benefit_3": {"type": "text", "required": false, "max_lines": 1, "max_chars": 32},
+    "benefit_4": {"type": "text", "required": false, "max_lines": 1, "max_chars": 32},
+    "marketplace": {"type": "text", "required": true, "allowed_values": ["Shopee", "Amazon"]},
+    "price_full": {"type": "text", "required": true, "pattern": "^R\\$ [0-9]+\\.[0-9]{2}$"},
+    "rating": {"type": "text", "required": false, "pattern": "^[0-5](\\.[0-9])?$"},
+    "cta_text": {"type": "text", "required": true, "default": "Link na legenda", "max_chars": 25},
+    "product_image": {"type": "image", "required": true, "source": "product_image_url"},
+    "product_image_url": {"type": "url", "required": true},
+    "offer_url": {"type": "url", "required": true, "render_on_design": false},
+    "affiliate_disclosure": {"type": "text", "value": "#ad", "editable": false},
+    "availability_notice": {"type": "text", "value": "Preço e disponibilidade podem mudar.", "editable": false}
+  },
+  "geometry": {
+    "coordinate_space": {"reference_canvas_width": 1080, "reference_canvas_height": 1350, "origin": "top_left", "units": "px"},
+    "fixed_elements": {
+      "brand_badge": {"x": 62, "y": 50, "width": 188, "height": 186},
+      "brand_name_group": {"x": 270, "y": 58, "width": 310, "height": 162},
+      "brand_name_line_1": {"x": 270, "y": 58, "width": 310, "height": 66, "text": "Ofertas", "text_align": "center"},
+      "brand_name_line_2": {"x": 270, "y": 126, "width": 310, "height": 84, "text": "Femininas", "text_align": "center"},
+      "brand_divider": {"x": 249, "y": 202, "width": 292, "height": 34},
+      "title_divider": {"x": 83, "y": 624, "width": 354, "height": 34},
+      "price_card": {"x": 62, "y": 945, "width": 375, "height": 271},
+      "price_divider": {"x": 83, "y": 1029, "width": 333, "height": 18},
+      "rating_badge": {"x": 166, "y": 1130, "width": 167, "height": 69},
+      "cta_button": {"x": 62, "y": 1198, "width": 375, "height": 85},
+      "cta_icon": {"x": 104, "y": 1215, "width": 63, "height": 51},
+      "product_backdrop_circle": {"x": 498, "y": 439, "width": 562, "height": 574},
+      "pedestal": {"x": 456, "y": 995, "width": 624, "height": 204},
+      "bottom_blob_dots": {"x": 602, "y": 1046, "width": 478, "height": 304},
+      "vase": {"x": 830, "y": 725, "width": 229, "height": 322},
+      "flowers": {"x": 830, "y": 202, "width": 250, "height": 557},
+      "glass_orb": {"x": 872, "y": 945, "width": 126, "height": 119},
+      "leaf_lineart": {"x": 809, "y": 1046, "width": 251, "height": 304}
+    },
+    "variable_elements": {
+      "title_main": {"x": 84, "y": 274, "width": 348, "height": 272, "text_align": "left", "vertical_align": "top"},
+      "title_sub": {"x": 86, "y": 536, "width": 216, "height": 81, "text_align": "left", "vertical_align": "top"},
+      "benefit_icon_1": {"x": 83, "y": 657, "width": 63, "height": 69},
+      "benefit_1": {"x": 161, "y": 679, "width": 228, "height": 29},
+      "benefit_icon_2": {"x": 83, "y": 725, "width": 63, "height": 69},
+      "benefit_2": {"x": 161, "y": 749, "width": 291, "height": 28},
+      "benefit_icon_3": {"x": 83, "y": 793, "width": 63, "height": 85},
+      "benefit_3": {"x": 161, "y": 820, "width": 276, "height": 28},
+      "benefit_icon_4": {"x": 83, "y": 861, "width": 63, "height": 85},
+      "benefit_4": {"x": 161, "y": 890, "width": 262, "height": 28},
+      "marketplace_icon": {"x": 166, "y": 962, "width": 62, "height": 69},
+      "marketplace": {"x": 224, "y": 984, "width": 108, "height": 38},
+      "price_full": {"x": 121, "y": 1045, "width": 258, "height": 86, "single_field": true},
+      "rating_star": {"x": 186, "y": 1130, "width": 63, "height": 51},
+      "rating": {"x": 250, "y": 1141, "width": 49, "height": 40},
+      "cta_text": {"x": 174, "y": 1228, "width": 211, "height": 36},
+      "availability_notice": {"x": 78, "y": 1297, "width": 353, "height": 24},
+      "affiliate_disclosure": {"x": 978, "y": 1287, "width": 52, "height": 35},
+      "product_image": {"x": 540, "y": 236, "width": 354, "height": 811, "fit": "contain", "remove_background": true, "anchor": "bottom_center", "preserve_aspect_ratio": true}
+    }
+  },
+  "styles": {
+    "color_palette": {
+      "background": "#F6EFE9",
+      "primary_text": "#7D2F3B",
+      "secondary_text": "#3F3A38",
+      "accent": "#D97C61",
+      "accent_soft": "#EBC0B2",
+      "card_background": "#F7E9E0",
+      "button_background": "#DB7A5D",
+      "button_text": "#FFFFFF",
+      "marketplace_accent": "#F36F21"
+    },
+    "typography": {
+      "brand_name_line_1": {"role": "display_serif", "size": 58, "line_height": 1.0},
+      "brand_name_line_2": {"role": "display_serif", "size": 66, "line_height": 1.0},
+      "title_main": {"role": "display_serif", "size": 66, "line_height": 0.95},
+      "title_sub": {"role": "display_serif", "size": 44, "line_height": 1.0},
+      "benefits": {"role": "sans_serif", "size": 26, "line_height": 1.15},
+      "marketplace": {"role": "sans_serif", "size": 24, "line_height": 1.0},
+      "price_full": {"role": "display_serif", "size": 50, "line_height": 1.0},
+      "rating": {"role": "display_serif", "size": 26, "line_height": 1.0},
+      "cta_text": {"role": "sans_serif", "size": 24, "line_height": 1.0},
+      "availability_notice": {"role": "sans_serif", "size": 14, "line_height": 1.0},
+      "affiliate_disclosure": {"role": "sans_serif", "size": 18, "line_height": 1.0}
+    }
+  },
+  "render_order": [
+    {"layer": 10, "element": "background"},
+    {"layer": 20, "element": "product_backdrop_circle"},
+    {"layer": 30, "element": "bottom_blob_dots"},
+    {"layer": 40, "element": "flowers"},
+    {"layer": 50, "element": "vase"},
+    {"layer": 60, "element": "pedestal"},
+    {"layer": 70, "element": "glass_orb"},
+    {"layer": 80, "element": "leaf_lineart"},
+    {"layer": 90, "element": "product_image"},
+    {"layer": 100, "element": "brand_badge"},
+    {"layer": 110, "element": "brand_name_line_1"},
+    {"layer": 120, "element": "brand_name_line_2"},
+    {"layer": 130, "element": "brand_divider"},
+    {"layer": 140, "element": "title_main"},
+    {"layer": 150, "element": "title_sub"},
+    {"layer": 160, "element": "title_divider"},
+    {"layer": 170, "element": "benefit_icon_1"},
+    {"layer": 171, "element": "benefit_1"},
+    {"layer": 180, "element": "benefit_icon_2"},
+    {"layer": 181, "element": "benefit_2"},
+    {"layer": 190, "element": "benefit_icon_3"},
+    {"layer": 191, "element": "benefit_3"},
+    {"layer": 200, "element": "benefit_icon_4"},
+    {"layer": 201, "element": "benefit_4"},
+    {"layer": 210, "element": "price_card"},
+    {"layer": 220, "element": "marketplace_icon"},
+    {"layer": 221, "element": "marketplace"},
+    {"layer": 230, "element": "price_divider"},
+    {"layer": 240, "element": "price_full"},
+    {"layer": 250, "element": "rating_badge"},
+    {"layer": 251, "element": "rating_star"},
+    {"layer": 252, "element": "rating"},
+    {"layer": 260, "element": "cta_button"},
+    {"layer": 261, "element": "cta_icon"},
+    {"layer": 262, "element": "cta_text"},
+    {"layer": 270, "element": "availability_notice"},
+    {"layer": 280, "element": "affiliate_disclosure"}
+  ],
+  "icon_mapping": {
+    "marketplace": {
+      "Shopee": {"asset_key": "marketplace_shopee"},
+      "Amazon": {"asset_key": "marketplace_amazon"}
+    },
+    "benefits": {
+      "hydration": {"asset_key": "benefit_droplet"},
+      "brightness": {"asset_key": "benefit_sparkle"},
+      "texture": {"asset_key": "benefit_waves"},
+      "skin": {"asset_key": "benefit_face"},
+      "hair": {"asset_key": "benefit_hair"},
+      "fashion": {"asset_key": "benefit_fashion"},
+      "generic": {"asset_key": "benefit_sparkle"}
+    }
+  },
+  "content_generation": {
+    "title_main": {
+      "source_priority": ["product_name_short", "product_name"],
+      "allow_rewrite": true,
+      "goal": "short_product_type_or_main_descriptor",
+      "max_words": 7
+    },
+    "title_sub": {
+      "source_priority": ["brand", "product_line", "product_name"],
+      "allow_rewrite": true,
+      "goal": "brand_or_short_distinguishing_name",
+      "max_words": 3
+    },
+    "benefits": {
+      "max_items": 4,
+      "source_priority": ["verified_product_attributes", "verified_product_description", "verified_product_title"],
+      "allow_inference": false,
+      "allow_hallucination": false,
+      "max_words_per_benefit": 5
+    },
+    "price": {"source": "price", "format": "R$ {value:.2f}"},
+    "rating": {"source": "rating", "format": "{value:.1f}"}
+  },
+  "product_image_pipeline": {
+    "image_source_priority": ["image_urls[0]", "image_urls[1]", "image_urls[2]"],
+    "download": {"required": true, "timeout_seconds": 20},
+    "background_removal": {"enabled": true, "output_format": "png", "transparent_background": true},
+    "crop": {"mode": "content_bounds", "transparent_padding_px": 12},
+    "placement": {"fit": "contain", "anchor": "bottom_center", "preserve_aspect_ratio": true, "max_width": 354, "max_height": 811}
+  },
+  "fallback_rules": {
+    "title_main": {
+      "if_overflow": ["reduce_font_size_until_min", "shorten_text", "truncate_last_resort"],
+      "min_font_size": 48,
+      "never_exceed_max_lines": true
+    },
+    "title_sub": {
+      "if_missing": "hide_element",
+      "if_overflow": ["reduce_font_size_until_min", "shorten_text"],
+      "min_font_size": 32
+    },
+    "benefits": {
+      "if_missing": "hide_unused_row",
+      "if_unverified": "do_not_render",
+      "minimum_required": 0,
+      "maximum_rendered": 4
+    },
+    "rating": {"if_missing": {"hide": ["rating", "rating_star", "rating_badge"]}},
+    "marketplace": {"if_unknown": "fail_render"},
+    "price": {"if_missing": "fail_render", "if_invalid_format": "fail_render"},
+    "product_image": {
+      "if_primary_image_fails": "try_next_image_url",
+      "if_all_images_fail": "fail_render",
+      "if_background_removal_fails": "use_original_only_if_background_is_visually_clean"
+    }
+  },
+  "validation": {
+    "pre_render": [
+      "template_id_exists",
+      "product_image_url_exists",
+      "price_full_matches_pattern",
+      "marketplace_is_allowed",
+      "title_main_is_not_empty",
+      "offer_url_is_valid",
+      "benefits_are_verified_or_empty"
+    ],
+    "post_render": [
+      "canvas_is_1080x1350",
+      "product_inside_product_zone",
+      "no_text_overflow",
+      "brand_header_has_no_overlap",
+      "brand_header_is_horizontally_aligned",
+      "price_is_single_visual_unit",
+      "price_has_no_internal_decimal_whitespace",
+      "required_fixed_elements_are_present",
+      "no_long_offer_url_is_visible",
+      "no_unverified_product_claims_are_visible"
+    ]
+  },
+  "rules": {
+    "layout_locked": true,
+    "colors_locked": true,
+    "fonts_locked": true,
+    "font_sizes_locked": true,
+    "element_positions_locked": true,
+    "decorative_elements_locked": true,
+    "allow_extra_text": false,
+    "allow_long_url_on_design": false,
+    "allow_english_marketplace_phrases": false,
+    "price_decimal_separator": ".",
+    "price_currency": "R$",
+    "price_currency_and_value_same_font_family": true,
+    "price_currency_in_same_field": true,
+    "max_benefits": 4,
+    "public_language": "pt-BR",
+    "product_image_background_must_be_removed": true,
+    "product_image_must_not_exceed_bounds": true,
+    "product_image_must_preserve_aspect_ratio": true,
+    "brand_header_overlap_allowed": false,
+    "brand_header_horizontal_offset_allowed": false,
+    "unverified_product_claims_allowed": false,
+    "render_must_be_deterministic": true
+  }
+}
