@@ -101,6 +101,66 @@ Se houver desconto calculado, o percentual deve aparecer ao final entre parênte
 Preço: R$ 49.90 (20% OFF)
 ```
 
+### Regra tipográfica para preço em criativos
+
+Nos criativos visuais de Instagram, Story, Carrossel ou vídeo, o preço deve permanecer como uma unidade única.
+
+Correto:
+
+```text
+R$ 45.50
+```
+
+Incorreto:
+
+```text
+R$ 45. 50
+```
+
+Regras obrigatórias:
+
+- usar ponto como separador decimal;
+- não inserir espaço entre o ponto e os centavos;
+- usar duas casas decimais quando houver centavos;
+- os centavos podem ter corpo tipográfico menor que a parte inteira;
+- mesmo com corpo menor, os centavos continuam visualmente unidos ao preço.
+
+## Regra de idioma e marketplace
+
+A comunicação pública deve usar português sempre que houver forma natural e simples em português.
+
+Para marketplaces, usar o nome da plataforma sem construções híbridas desnecessárias.
+
+Correto:
+
+```text
+Shopee
+Amazon
+Oferta na Shopee
+Disponível na Amazon
+```
+
+Não usar:
+
+```text
+on Shopee
+on Amazon
+Shop now
+Best deal
+```
+
+Essa regra vale para:
+
+- legenda;
+- texto sobre imagem;
+- texto sobre vídeo;
+- capa;
+- Story;
+- Carrossel;
+- chamada para ação.
+
+Termos técnicos internos, nomes de campos, APIs e identificadores de código podem permanecer em inglês quando fizerem parte da implementação.
+
 ## Transparência de afiliado
 
 Toda mensagem deve conter aviso claro de afiliado, por exemplo:
@@ -161,3 +221,21 @@ Regras de uso:
   consumindo `copy.txt` + `image.jpg`;
 - se for enviado pelo fluxo de mensagens estaticas, preparar uma pasta
   `msg_XXX` propria com `copy.txt` e `image.jpg`.
+
+## Identidade visual dos criativos femininos
+
+Os criativos do perfil feminino devem seguir:
+
+```text
+docs/spec-identidade-visual-ofertas-femininas.md
+```
+
+A spec visual define:
+
+- papel da ilustração principal da marca;
+- versão reduzida para assinatura;
+- paleta visual;
+- hierarquia de informação;
+- estrutura de Reels, Carrossel e Stories;
+- dados estruturados necessários à automação;
+- regras de preço e idioma em mídia.
