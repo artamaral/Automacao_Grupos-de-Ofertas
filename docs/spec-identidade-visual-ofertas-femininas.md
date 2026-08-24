@@ -2,9 +2,15 @@
 
 ## Status
 
-Spec aprovada.
+Spec aprovada e atualizada para **padrão visual operacional v1**.
 
-Esta spec define a identidade visual e a padronização dos criativos do perfil feminino, com prioridade para Instagram Reels, Carrossel e Stories. Ela deve ser usada como referência por qualquer implementação que gere imagens, vídeos, capas, telas de abertura, telas finais ou textos sobrepostos em mídia.
+Esta spec define a identidade visual e a padronização dos criativos do perfil `Ofertas Femininas`, com prioridade para Instagram Post, Reels, Carrossel e Stories. Ela deve ser usada como referência por qualquer implementação que gere imagens, vídeos, capas, telas de abertura, telas finais ou textos sobrepostos em mídia.
+
+A execução prática no Canva deve seguir também:
+
+```text
+docs/manual-template-ofertas-femininas-canva.md
+```
 
 ## 1. Objetivo
 
@@ -19,11 +25,11 @@ A marca deve transmitir:
 - curadoria;
 - sofisticação acessível.
 
-A identidade não deve competir visualmente com o produto anunciado. O produto continua sendo o elemento principal dos criativos comerciais.
+A identidade não deve competir visualmente com o produto anunciado. **O produto é sempre o elemento principal dos criativos comerciais.**
 
 ## 2. Papel da ilustração da marca
 
-A ilustração completa deve ser tratada como **imagem principal da identidade**, e não como um logotipo técnico para todos os tamanhos.
+A ilustração completa é a imagem principal da identidade, e não um logotipo técnico para todos os tamanhos.
 
 Uso recomendado da ilustração completa:
 
@@ -37,9 +43,21 @@ Uso recomendado da ilustração completa:
 - tela final de chamada para ação;
 - material de campanha da marca.
 
-Evitar usar a ilustração completa em tamanho muito pequeno, pois os detalhes perdem legibilidade.
+Em posts comerciais de produto, a ilustração deve aparecer de forma reduzida ou parcial, ou ser substituída pela assinatura textual:
 
-## 3. Marca reduzida
+```text
+Ofertas Femininas
+```
+
+Nunca usar textos genéricos como:
+
+```text
+minha marca
+marca
+logo aqui
+```
+
+## 3. Marca reduzida e assinatura
 
 Para espaços pequenos deve existir uma versão reduzida derivada da identidade principal.
 
@@ -52,221 +70,327 @@ Uso da versão reduzida:
 - capas de Destaques;
 - miniaturas.
 
-A versão reduzida pode usar:
-
-- uma personagem representativa; ou
-- uma composição simplificada das quatro personagens.
-
-A implementação futura da versão reduzida deve manter a mesma linguagem visual da ilustração principal.
-
-## 4. Paleta visual
-
-A paleta deve ser derivada da própria ilustração da marca.
-
-Famílias de cor prioritárias:
-
-- bege claro;
-- rosé;
-- pêssego;
-- terracota;
-- vinho;
-- preto.
-
-Não é obrigatório usar todas as cores no mesmo criativo.
-
-A regra principal é preservar contraste suficiente para leitura em celular e manter aparência limpa e elegante.
-
-## 5. Princípios visuais
-
-Todo criativo deve seguir estes princípios:
-
-- produto como foco principal;
-- pouco texto por cena;
-- hierarquia clara;
-- preço legível imediatamente;
-- avaliação e desconto como informação secundária;
-- identidade da marca presente, mas sem encobrir o produto;
-- fundos limpos;
-- evitar excesso de elementos decorativos;
-- evitar texto longo sobre imagem ou vídeo;
-- manter consistência entre Reels, Carrossel e Stories.
-
-## 6. Estrutura visual padrão para Reels
-
-O Reels deve utilizar uma estrutura em blocos reutilizáveis.
-
-### Cena 1 — abertura
-
-Objetivo: reconhecer a marca e gerar interesse.
-
-Conteúdo possível:
+A assinatura textual padrão é:
 
 ```text
-Achadinho do dia
+Ofertas Femininas
 ```
 
-ou uma chamada curta equivalente adequada ao subnicho.
+Em criativos comerciais, quando a ilustração reduzida prejudicar a leitura ou competir com o produto, preferir a assinatura textual.
 
-A ilustração da marca pode aparecer integralmente ou como elemento parcial.
+## 4. Formatos base
 
-### Cena 2 — produto
+### 4.1 Instagram Post
 
-O produto ocupa a maior área visual.
+```text
+1080 × 1350 px
+proporção 4:5
+```
 
-Campos permitidos sobre a mídia:
+Este é o formato mestre do template estático.
+
+### 4.2 Story e Reels vertical
+
+```text
+1080 × 1920 px
+proporção 9:16
+```
+
+A estrutura visual deve ser adaptada mantendo as mesmas zonas, hierarquia, cores e tipografia.
+
+## 5. Grade do template mestre 4:5
+
+O template padrão de 1080 × 1350 deve usar:
+
+```text
+margem externa: 64 px
+espaço mínimo entre blocos: 20 px
+espaço preferencial entre blocos principais: 28–40 px
+```
+
+A composição é dividida conceitualmente em duas colunas:
+
+```text
+coluna esquerda: aproximadamente 42%
+coluna direita: aproximadamente 58%
+```
+
+Uso:
+
+- coluna esquerda: identidade, nome do produto, informações comerciais, benefícios somente quando confirmados, preço e chamada para ação;
+- coluna direita: produto principal e decoração secundária.
+
+A grade é uma referência operacional. Ajustes pequenos são permitidos para acomodar produtos muito largos ou muito altos, sem alterar a hierarquia visual.
+
+## 6. Zonas fixas do template 4:5
+
+### Zona A — identidade
+
+Local:
+
+```text
+superior esquerda
+```
+
+Conteúdo:
+
+```text
+Ofertas Femininas
+```
+
+Opcionalmente acompanhada da marca reduzida.
+
+Regras:
+
+- não ocupar mais de aproximadamente 18% da altura;
+- não competir com o produto;
+- manter espaço claro antes do nome do produto.
+
+### Zona B — nome curto do produto
+
+Local:
+
+```text
+coluna esquerda, área superior/média
+```
+
+Conteúdo:
 
 ```text
 {{product_name_short}}
+```
+
+Regras:
+
+- alinhamento preferencial à esquerda;
+- 2 a 4 linhas;
+- evitar título comercial completo;
+- preservar espaçamento entre linhas;
+- nunca encostar no bloco de preço.
+
+### Zona C — informações complementares
+
+Local:
+
+```text
+abaixo do nome do produto
+```
+
+Podem aparecer somente quando os dados forem reais e confirmados:
+
+```text
+benefícios objetivos
+desconto
+característica do produto
+quantidade/tamanho
+```
+
+Regras:
+
+- máximo de 4 linhas ou itens;
+- sem parágrafos;
+- não inventar benefícios, composição, peso, volume ou efeito do produto;
+- bloco vazio deve ser removido. **Não deixar faixa, cartão ou bloco colorido sem conteúdo.**
+
+### Zona D — produto principal
+
+Local:
+
+```text
+lado direito central
+```
+
+Regras:
+
+- foco visual principal;
+- ocupar aproximadamente 40% a 52% da largura útil;
+- deve ser maior e mais importante que elementos decorativos;
+- não cobrir textos;
+- não ser coberto pela marca ou por preços;
+- usar imagem real do produto quando disponível.
+
+### Zona E — cartão comercial
+
+Local:
+
+```text
+inferior esquerdo
+```
+
+Ordem fixa:
+
+```text
 {{marketplace}}
-```
-
-O nome deve ser reduzido para leitura rápida. O título comercial completo não deve ocupar a tela.
-
-Para o marketplace, usar somente o nome da plataforma.
-
-Exemplo correto:
-
-```text
-Shopee
-```
-
-Não usar construções em inglês como:
-
-```text
-on Shopee
-```
-
-### Cena 3 — oferta
-
-Prioridade visual:
-
-```text
 R$ {{price}}
-{{discount}}
 ⭐ {{rating}}
 ```
 
 Exemplo:
 
 ```text
-R$ 45.50
-⭐ 5.0
+Shopee
+R$ 35.48
+⭐ 4.9
 ```
 
-O preço deve ser uma unidade visual única e nunca pode conter espaço interno entre reais e centavos.
+O cartão deve manter dimensões e hierarquia visual consistentes entre ofertas.
 
-Correto:
+### Zona F — chamada para ação
+
+Local:
 
 ```text
-45.50
-R$ 45.50
+abaixo do cartão comercial
 ```
 
-Incorreto:
-
-```text
-45. 50
-R$ 45. 50
-```
-
-A parte decimal pode ser visualmente menor que a parte inteira, desde que continue pertencendo ao mesmo preço e não seja separada por espaço.
-
-Exemplo visual permitido:
-
-```text
-45.50
-```
-
-com `50` em corpo tipográfico menor.
-
-### Cena 4 — chamada para ação
-
-Texto curto.
-
-Exemplos:
+Texto padrão:
 
 ```text
 Link na legenda
 ```
 
-```text
-Entre no grupo de ofertas
-```
+Outras chamadas somente quando definidas pela operação.
 
-A URL longa do produto não deve ser sobreposta ao vídeo ou imagem.
+Nunca exibir a URL longa como texto dominante na arte.
 
-### Cena 5 — assinatura
+### Zona G — rodapé
 
-Pode incluir:
-
-- versão reduzida da marca;
-- `#ad` ou aviso equivalente;
-- aviso curto de preço e disponibilidade;
-- chamada para o grupo.
-
-## 7. Estrutura padrão para Carrossel
-
-A identidade visual deve se manter estável entre as páginas.
-
-Estrutura sugerida:
+Conteúdo permitido:
 
 ```text
-Página 1 — capa + produto + gancho
-Página 2 — produto / detalhe
-Página 3 — produto / benefício visual
-Página 4 — preço + avaliação + desconto
-Página final — chamada para ação + marca
+Preço e disponibilidade podem mudar.
+#ad
 ```
 
-Quando houver mais imagens do produto, elas podem ocupar páginas intermediárias.
+Regras:
 
-Não repetir todo o texto comercial em todas as páginas.
+- texto discreto;
+- leitura possível em celular;
+- não competir com preço ou produto.
 
-## 8. Estrutura padrão para Stories
+## 7. Paleta oficial v1
 
-Stories devem privilegiar ação rápida.
+A paleta operacional deriva da ilustração aprovada e deve ser usada como referência no Canva.
 
-Estrutura mínima:
+| Função | Cor | HEX v1 |
+|---|---|---|
+| Fundo principal | creme quente | `#F7EFE6` |
+| Fundo secundário | bege rosado | `#F1DDD2` |
+| Rosé | rosé suave | `#DFA39A` |
+| Pêssego | pêssego | `#E8A07E` |
+| Terracota | destaque | `#C96F55` |
+| Vinho | texto/destaque forte | `#7A2F3A` |
+| Marrom escuro | texto funcional | `#4B3835` |
+| Preto suave | contraste máximo | `#262120` |
+
+Regras:
+
+- não é obrigatório usar todas as cores;
+- fundo deve permanecer claro na maioria dos posts de oferta;
+- vinho e terracota são cores de destaque, não fundos extensos sem função;
+- qualquer bloco colorido precisa ter função visual ou conteúdo;
+- preservar contraste suficiente para leitura em celular.
+
+## 8. Tipografia oficial v1
+
+O sistema usa duas famílias tipográficas.
+
+### 8.1 Títulos e identidade
+
+Fonte preferencial:
 
 ```text
-produto
-preço
-marketplace
-chamada para ação
-marca
+Playfair Display
 ```
 
-Quando a plataforma permitir ligação clicável, o Story pode usar o link de oferta como destino do elemento interativo.
-
-Não exibir URL extensa como texto principal se houver recurso clicável disponível.
-
-## 9. Campos padronizados para automação
-
-Todo gerador de criativo deve trabalhar, quando disponíveis, com os seguintes campos estruturados:
+Fallback permitido no Canva quando necessário:
 
 ```text
-headline
-product_name
-product_name_short
-price
-old_price
-discount_percent
-rating
-marketplace
-offer_url
-whatsapp_url
-primary_subniche
-affiliate_disclosure
-product_image_urls
-product_video_url
-brand_asset
+Cormorant Garamond
+Libre Baskerville
 ```
 
-A posição visual dos campos deve permanecer estável entre produtos. O conteúdo muda; o sistema visual não deve ser redesenhado a cada oferta.
+Uso:
 
-## 10. Regra de preço
+- `Ofertas Femininas`;
+- nome curto do produto;
+- preço, quando o template aprovado usar serifada.
 
-Formato textual padrão nos criativos:
+### 8.2 Texto funcional
+
+Fonte preferencial:
+
+```text
+Montserrat
+```
+
+Fallback permitido:
+
+```text
+DM Sans
+Inter
+Lato
+```
+
+Uso:
+
+- marketplace;
+- avaliação;
+- benefícios;
+- chamada para ação;
+- aviso legal;
+- textos auxiliares.
+
+Não misturar mais de duas famílias no mesmo criativo.
+
+## 9. Escala tipográfica 1080 × 1350
+
+Referência operacional:
+
+| Elemento | Tamanho recomendado |
+|---|---:|
+| `Ofertas Femininas` | 54–68 px |
+| Nome principal do produto | 72–96 px |
+| Subnome/marca do produto | 52–64 px |
+| Benefícios/informações | 24–30 px |
+| Marketplace | 24–30 px |
+| Preço | 70–90 px |
+| Avaliação | 28–36 px |
+| Chamada para ação | 28–34 px |
+| Aviso de rodapé | 18–22 px |
+
+A escala pode ser reduzida proporcionalmente para nomes maiores, sem quebrar a hierarquia.
+
+## 10. Espaçamento tipográfico e entre blocos
+
+### 10.1 Entre linhas
+
+O texto nunca deve parecer comprimido.
+
+Referência:
+
+```text
+títulos: line-height 0.95–1.10
+texto funcional: line-height 1.15–1.35
+```
+
+### 10.2 Entre blocos
+
+Referência para post 4:5:
+
+```text
+identidade → nome do produto: 32 px ou mais
+nome do produto → informações complementares: 28 px ou mais
+informações → cartão comercial: 28 px ou mais
+cartão comercial → chamada para ação: 20–28 px
+chamada para ação → rodapé: 20 px ou mais
+```
+
+Não empilhar textos sem respiro apenas para preencher espaço.
+
+## 11. Regra rígida do preço
+
+Formato textual padrão:
 
 ```text
 R$ 45.50
@@ -277,30 +401,43 @@ Regras obrigatórias:
 - duas casas decimais quando houver centavos;
 - separador decimal `.`;
 - nenhum espaço entre ponto e centavos;
-- permitido usar corpo menor nos centavos;
-- não alterar o valor numérico recebido da fonte sem regra comercial explícita.
+- preço em uma única linha sempre que possível;
+- `R$`, parte inteira e centavos devem usar **a mesma família tipográfica**;
+- não criar diferença de fonte entre `R$` e o valor;
+- se houver diferença de tamanho, ela deve ser intencional e limitada.
 
-Exemplo com preço anterior:
-
-```text
-De R$ 89.90
-Por R$ 45.50
-```
-
-ou, quando o espaço for restrito:
+Padrão recomendado quando houver hierarquia:
 
 ```text
-R$ 45.50
-44% OFF
+R$: 80% do tamanho do número
+parte inteira: 100%
+centavos: 80–85%
 ```
 
-## 11. Regra de marketplace e idioma
+Todos com o mesmo peso visual e a mesma família.
+
+Para máxima consistência do template mestre, é permitido usar tudo no mesmo tamanho:
+
+```text
+R$ 35.48
+```
+
+Correto:
+
+```text
+R$ 35.48
+```
+
+Incorreto:
+
+```text
+R$ 35. 48
+R$35.48   [quando o template exigir espaço após R$]
+```
+
+## 12. Regra de marketplace e idioma
 
 A linguagem pública dos criativos deve ser em português.
-
-Não utilizar expressões híbridas desnecessárias em inglês.
-
-Exemplos:
 
 Correto:
 
@@ -320,25 +457,80 @@ Shop now
 Best deal
 ```
 
-Termos técnicos internos, nomes de campos, APIs ou identificadores de código podem permanecer em inglês quando forem parte da implementação.
+No cartão comercial, usar preferencialmente apenas:
 
-## 12. Texto sobre a mídia versus legenda
+```text
+Shopee
+Amazon
+```
 
-A tela deve conter somente informação de leitura rápida.
+## 13. Elementos decorativos
 
-### Sobre a mídia
+Permitidos:
+
+- círculo suave atrás do produto;
+- folhas lineares;
+- pontos decorativos leves;
+- pedestal;
+- vaso ou objeto neutro de apoio quando não competir com o item;
+- divisores finos.
+
+Regras:
+
+- decoração é sempre secundária;
+- máximo recomendado de 2 a 3 elementos decorativos relevantes;
+- não usar elemento apenas para preencher espaço;
+- não criar bloco vinho, rosé ou terracota vazio;
+- não alterar ou inventar a embalagem real do produto quando houver imagem oficial disponível.
+
+## 14. Conteúdo real versus conteúdo ilustrativo
+
+Criativos de oferta devem usar dados reais da fonte operacional.
+
+Podem ser exibidos:
+
+```text
+product_name_short
+marketplace
+price
+rating
+discount_percent
+características confirmadas
+peso/volume confirmados
+```
+
+Não inventar:
+
+- benefícios;
+- ingredientes;
+- peso;
+- volume;
+- porcentagem;
+- desconto;
+- selo;
+- avaliação;
+- claims de saúde ou beleza;
+- texto de embalagem que não exista na mídia real.
+
+Se uma informação não estiver disponível, remover o bloco correspondente.
+
+## 15. Texto sobre a mídia versus legenda
+
+### Na arte
 
 Priorizar:
 
 ```text
-gancho curto
+Ofertas Femininas
 nome curto do produto
-preço
-desconto
-avaliação
 marketplace
+preço
+avaliação
+desconto confirmado
 chamada para ação
 ```
+
+Benefícios somente quando confirmados.
 
 ### Na legenda
 
@@ -353,95 +545,166 @@ Manter:
 - aviso de preço e disponibilidade;
 - hashtags aplicáveis.
 
-A legenda não precisa repetir exatamente a diagramação da tela.
+## 16. Estrutura padrão para Reels
 
-## 13. Uso da marca em vídeos
+O Reels deve preservar a mesma identidade em formato 9:16.
 
-A marca pode aparecer em três níveis:
-
-### Abertura
-
-Ilustração principal por curto período para identificação da marca.
-
-### Durante o conteúdo
-
-Versão reduzida ou marca d'água discreta, sem cobrir produto, preço ou informações importantes.
-
-### Encerramento
-
-Ilustração principal ou versão reduzida com chamada para ação.
-
-Não manter a ilustração completa grande durante todo o vídeo.
-
-## 14. Uso da marca em imagens
-
-Em posts estáticos e Carrossel:
-
-- produto é o primeiro foco;
-- marca reduzida pode ficar em canto fixo;
-- ilustração completa pode ser usada na capa ou página final;
-- evitar cobrir detalhes do produto;
-- preservar margem segura para interfaces do Instagram.
-
-## 15. Sistema de identidade
-
-A identidade deve ser tratada em três níveis:
+Estrutura:
 
 ```text
-1. marca reduzida
-2. ilustração principal
-3. templates reutilizáveis
+Cena 1 — identidade / abertura curta
+Cena 2 — produto
+Cena 3 — preço + avaliação + marketplace
+Cena 4 — chamada para ação
+Cena 5 — assinatura / aviso
 ```
 
-### Marca reduzida
+Não é obrigatório exibir texto no topo em todas as cenas. Se o produto e o título já forem suficientes, priorizar espaço e respiro visual.
 
-Uso em pequenas áreas e assinatura.
+A ilustração principal não deve permanecer grande durante todo o vídeo.
 
-### Ilustração principal
+## 17. Estrutura padrão para Carrossel
 
-Uso institucional, abertura, encerramento e capas.
+```text
+Página 1 — capa + produto + identidade
+Página 2 — produto/detalhe
+Página 3 — informação confirmada ou detalhe visual
+Página 4 — preço + avaliação + marketplace
+Página final — chamada para ação + Ofertas Femininas
+```
 
-### Templates reutilizáveis
+Quando não houver informação suficiente para uma página intermediária, reduzir a quantidade de páginas. Não criar conteúdo artificial para completar páginas.
 
-Uso diário em Reels, Stories, Carrossel e ofertas.
+## 18. Estrutura padrão para Stories
 
-## 16. Ativo canônico da marca
+Estrutura mínima:
 
-A imagem fornecida pela proprietária é a referência visual aprovada desta spec.
+```text
+produto
+preço
+marketplace
+chamada para ação
+Ofertas Femininas
+```
 
-Antes de automatizar a geração de criativos em produção, armazenar uma cópia canônica no projeto, preferencialmente em caminho equivalente a:
+Quando houver ligação clicável, usar a URL da oferta como destino do elemento interativo, sem exibir a URL longa como texto dominante.
+
+## 19. Campos padronizados para automação
+
+Todo gerador de criativo deve trabalhar, quando disponíveis, com:
+
+```text
+headline
+product_name
+product_name_short
+price
+old_price
+discount_percent
+rating
+marketplace
+offer_url
+whatsapp_url
+primary_subniche
+affiliate_disclosure
+product_image_urls
+product_video_url
+brand_asset
+confirmed_features
+size_or_volume
+```
+
+A posição visual dos campos permanece estável entre produtos. O conteúdo muda; o sistema visual não deve ser redesenhado a cada oferta.
+
+## 20. Elementos fixos versus variáveis
+
+### Fixos
+
+```text
+formato
+grade
+margens
+posição dos blocos
+paleta
+tipografia
+estilo do cartão comercial
+estilo da chamada para ação
+posição do rodapé
+assinatura Ofertas Femininas
+```
+
+### Variáveis
+
+```text
+imagem do produto
+nome do produto
+marketplace
+preço
+avaliação
+desconto
+informações confirmadas
+```
+
+## 21. Ativo canônico da marca
+
+A imagem fornecida pela proprietária é a referência visual aprovada.
+
+Armazenamento recomendado:
 
 ```text
 assets/brand/ofertas-femininas/marca-principal.png
-```
-
-Também deve ser criada posteriormente uma versão reduzida, por exemplo:
-
-```text
 assets/brand/ofertas-femininas/marca-reduzida.png
 ```
 
-Não substituir a ilustração por imagem gerada ou por outra marca sem aprovação explícita.
+Não substituir a ilustração por imagem gerada ou outra marca sem aprovação explícita.
 
-## 17. Critérios de aceite
+## 22. Template mestre no Canva
+
+Deve existir um template mestre de Instagram Post 4:5 no Canva, construído a partir desta spec.
+
+O template deve conter:
+
+- fundo e paleta definidos;
+- Zona A a Zona G posicionadas;
+- caixas de texto pré-formatadas;
+- cartão comercial fixo;
+- chamada para ação fixa;
+- rodapé fixo;
+- área principal reservada ao produto;
+- assinatura `Ofertas Femininas`;
+- elementos decorativos secundários bloqueados quando possível.
+
+Campos variáveis devem ser claramente identificados no template.
+
+O manual operacional é:
+
+```text
+docs/manual-template-ofertas-femininas-canva.md
+```
+
+## 23. Critérios de aceite
 
 Um template visual atende esta spec quando:
 
 - [ ] usa a identidade derivada da ilustração aprovada;
+- [ ] usa formato 1080 × 1350 para o template mestre de post;
+- [ ] mantém margem externa de referência de 64 px;
 - [ ] mantém o produto como foco principal;
-- [ ] exibe preço sem espaço interno, por exemplo `R$ 45.50`;
-- [ ] pode usar centavos em corpo menor sem separá-los do preço;
+- [ ] usa `Ofertas Femininas` como assinatura;
+- [ ] não utiliza `minha marca` ou equivalentes;
+- [ ] não mantém bloco colorido vazio;
+- [ ] não inventa benefícios, peso, volume ou características;
+- [ ] exibe preço no padrão `R$ 45.50`;
+- [ ] usa a mesma família tipográfica em `R$` e no valor;
+- [ ] respeita espaçamento entre linhas e blocos;
 - [ ] usa `Shopee`, e não `on Shopee`;
-- [ ] mantém textos públicos prioritariamente em português;
-- [ ] não coloca URL longa como texto dominante sobre mídia;
+- [ ] mantém textos públicos em português;
+- [ ] não coloca URL longa como texto dominante;
 - [ ] permite reutilização com campos estruturados;
-- [ ] mantém posição e hierarquia visual consistentes entre produtos;
-- [ ] inclui assinatura visual da marca sem obstruir o produto;
-- [ ] contempla abertura, conteúdo e encerramento de Reels;
-- [ ] contempla capa, conteúdo e página final de Carrossel;
-- [ ] permite Story com chamada para ação e link clicável quando disponível.
+- [ ] mantém posição e hierarquia visual consistentes;
+- [ ] usa decoração apenas como elemento secundário;
+- [ ] contempla Reels, Carrossel e Story com a mesma identidade.
 
-## 18. Fora de escopo
+## 24. Fora de escopo
 
 Esta spec não define:
 
