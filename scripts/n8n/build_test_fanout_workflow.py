@@ -75,7 +75,7 @@ return destinations.map((destination, destinationIndex) => ({
     target_chat_id: destination.target_chat_id,
     fanout_run_id: fanoutRunId,
     destination_index: destinationIndex + 1,
-    destination_count: source.destinations.length,
+    destination_count: destinations.length,
   },
 }));"""
 

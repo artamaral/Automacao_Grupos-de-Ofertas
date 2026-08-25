@@ -64,6 +64,8 @@ def test_clone_expansion_restores_fanout_configuration_after_drive_nodes() -> No
         code = node(workflow, name)["parameters"]["jsCode"]
         assert "$('Configurar Destinos Fanout Teste').first().json" in code
         assert "fanoutConfiguration.real_send_enabled" in code
+        assert "destination_count: destinations.length" in code
+        assert "destination_count: source.destinations.length" not in code
 
 
 @pytest.mark.parametrize("forbidden", guard.FORBIDDEN_VALUES)
