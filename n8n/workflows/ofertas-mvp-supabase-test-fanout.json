@@ -1549,17 +1549,6 @@
         ]
       ]
     },
-    "Validar Allowlist": {
-      "main": [
-        [
-          {
-            "node": "Simular Envio MVP",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Validar Contexto": {
       "main": [
         [

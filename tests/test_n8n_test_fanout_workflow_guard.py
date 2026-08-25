@@ -70,6 +70,14 @@ def test_clone_contract_rejects_claim_query() -> None:
         guard.validate_workflow(workflow)
 
 
+def test_clone_contract_rejects_stale_connection_source() -> None:
+    workflow = workflow_payload()
+    workflow["connections"]["Validar Allowlist"] = {"main": [[]]}
+
+    with pytest.raises(guard.WorkflowGuardError, match="connection source"):
+        guard.validate_workflow(workflow)
+
+
 def test_clone_contract_rejects_missing_channel_destination() -> None:
     workflow = workflow_payload()
     config = node(workflow, "Configurar Destinos Fanout Teste")

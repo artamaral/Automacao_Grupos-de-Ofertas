@@ -82,6 +82,9 @@ def connection_targets(workflow: dict[str, Any], source: str, output: int = 0) -
 def validate_workflow(workflow: dict[str, Any], workflow_id: str = DEFAULT_WORKFLOW_ID) -> None:
     errors: list[str] = []
     text = workflow_text(workflow)
+    node_names = {
+        str(node.get("name")) for node in workflow.get("nodes", []) if isinstance(node, dict)
+    }
     if workflow.get("id") != workflow_id:
         errors.append("workflow id mismatch")
     if workflow.get("active") is not False:
@@ -137,6 +140,15 @@ def validate_workflow(workflow: dict[str, Any], workflow_id: str = DEFAULT_WORKF
             errors.append(f"fan-out connection missing from {source}")
     if "Loop Ofertas" not in connection_targets(workflow, "Loop Destinos Recorrente"):
         errors.append("recurring destination loop must return to offer loop")
+    for source, connection in workflow.get("connections", {}).items():
+        if source not in node_names:
+            errors.append(f"connection source does not reference a node: {source}")
+        for branch in connection.get("main", []) if isinstance(connection, dict) else []:
+            for target in branch:
+                if isinstance(target, dict) and target.get("node") not in node_names:
+                    errors.append(
+                        f"connection target does not reference a node: {target.get('node')}"
+                    )
     if node_by_name(workflow, "Registrar Resultado Supabase") is not None:
         errors.append("recurring ledger node must be absent")
     if node_by_name(workflow, "Registrar Resultado Supabase Estatico") is not None:

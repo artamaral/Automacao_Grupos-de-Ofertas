@@ -321,6 +321,7 @@ def build() -> dict[str, Any]:
     expand_recurring = node_by_name(workflow, "Validar Allowlist")
     expand_recurring["name"] = "Expandir Destinos Recorrente"
     expand_recurring["parameters"]["jsCode"] = EXPAND_DESTINATIONS_CODE
+    workflow["connections"].pop("Validar Allowlist", None)
     set_connection(workflow, "Montar Mensagens", [["Expandir Destinos Recorrente"]])
     set_connection(workflow, "Expandir Destinos Recorrente", [["Loop Destinos Recorrente"]])
     set_connection(
