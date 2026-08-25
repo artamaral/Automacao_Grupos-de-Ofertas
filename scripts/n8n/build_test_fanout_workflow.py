@@ -57,11 +57,19 @@ return [{ json: { ...item, dry_run: false, dispatch_plan_id: null, ranking_query
 
 
 EXPAND_DESTINATIONS_CODE = """const source = $json;
-if (!Array.isArray(source.destinations) || source.destinations.length === 0) throw new Error('destinations obrigatorio');
+const fanoutConfiguration = $('Configurar Destinos Fanout Teste').first().json;
+const destinations = Array.isArray(source.destinations) && source.destinations.length > 0
+  ? source.destinations
+  : fanoutConfiguration.destinations;
+if (!Array.isArray(destinations) || destinations.length === 0) throw new Error('destinations obrigatorio');
 const fanoutRunId = `${source.run_id || source.execution_day || new Date().toISOString()}-${source.source_flow}`;
-return source.destinations.map((destination, destinationIndex) => ({
+return destinations.map((destination, destinationIndex) => ({
   json: {
     ...source,
+    destinations,
+    allowed_targets: fanoutConfiguration.allowed_targets,
+    validation_source_preview: fanoutConfiguration.validation_source_preview,
+    real_send_enabled: fanoutConfiguration.real_send_enabled,
     ...destination,
     target: destination.target,
     target_chat_id: destination.target_chat_id,

@@ -54,6 +54,18 @@ def test_clone_reads_operational_destinations_from_n8n_variables() -> None:
     assert "$env" not in code
 
 
+def test_clone_expansion_restores_fanout_configuration_after_drive_nodes() -> None:
+    workflow = workflow_payload()
+    for name in (
+        "Expandir Destinos Recorrente",
+        "Expandir Destinos Estatico",
+        "Expandir Destinos Pontual",
+    ):
+        code = node(workflow, name)["parameters"]["jsCode"]
+        assert "$('Configurar Destinos Fanout Teste').first().json" in code
+        assert "fanoutConfiguration.real_send_enabled" in code
+
+
 @pytest.mark.parametrize("forbidden", guard.FORBIDDEN_VALUES)
 def test_clone_contract_rejects_production_reference(forbidden: str) -> None:
     workflow = workflow_payload()
