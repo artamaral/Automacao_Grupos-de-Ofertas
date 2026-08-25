@@ -367,6 +367,7 @@ def build() -> dict[str, Any]:
     expand_recurring = node_by_name(workflow, "Validar Allowlist")
     expand_recurring["name"] = "Expandir Destinos Recorrente"
     expand_recurring["parameters"]["jsCode"] = EXPAND_DESTINATIONS_CODE
+    expand_recurring["parameters"]["mode"] = "runOnceForAllItems"
     workflow["connections"].pop("Validar Allowlist", None)
     set_connection(workflow, "Montar Mensagens", [["Expandir Destinos Recorrente"]])
     set_connection(workflow, "Expandir Destinos Recorrente", [["Loop Destinos Recorrente"]])
@@ -405,6 +406,12 @@ def build() -> dict[str, Any]:
     )
     set_connection(workflow, "Aguardar Intervalo WAHA Pontual", [["Enviar WhatsApp WAHA Pontual"]])
     set_connection(workflow, "Normalizar Resultado WAHA Pontual", [["Loop Destinos Pontual"]])
+
+    for name in (
+        "Expandir Destinos Estatico",
+        "Expandir Destinos Pontual",
+    ):
+        node_by_name(workflow, name)["parameters"]["mode"] = "runOnceForAllItems"
 
     serialized = json.dumps(workflow, ensure_ascii=False)
     for forbidden in FORBIDDEN_PRODUCTION_VALUES:

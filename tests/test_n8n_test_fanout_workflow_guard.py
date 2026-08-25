@@ -74,7 +74,9 @@ def test_clone_expansion_restores_fanout_configuration_after_drive_nodes() -> No
         "Expandir Destinos Estatico",
         "Expandir Destinos Pontual",
     ):
-        code = node(workflow, name)["parameters"]["jsCode"]
+        expansion = node(workflow, name)
+        code = expansion["parameters"]["jsCode"]
+        assert expansion["parameters"]["mode"] == "runOnceForAllItems"
         assert "$('Configurar Destinos Fanout Teste').first().json" in code
         assert "fanoutConfiguration.real_send_enabled" in code
         assert "destination_count: destinations.length" in code

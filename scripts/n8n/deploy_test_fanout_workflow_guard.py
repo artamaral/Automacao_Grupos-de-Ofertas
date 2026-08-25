@@ -109,8 +109,11 @@ def validate_workflow(workflow: dict[str, Any], workflow_id: str = DEFAULT_WORKF
             if expected not in text:
                 errors.append(f"destination contract missing {expected}")
     for flow, expansion in FLOW_EXPANSIONS.items():
-        if node_by_name(workflow, expansion) is None:
+        node = node_by_name(workflow, expansion)
+        if node is None:
             errors.append(f"missing fan-out expansion for {flow}")
+        elif node.get("parameters", {}).get("mode") != "runOnceForAllItems":
+            errors.append(f"fan-out expansion must run once for all items: {flow}")
     for loop_name in (
         "Loop Destinos Recorrente",
         "Loop Destinos Estatico",
