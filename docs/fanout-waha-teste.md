@@ -74,3 +74,41 @@ slot e deduplique o cooldown por `fanout_run_id`.
 Depois desse rollout, a auditoria por destino sera feita em
 `offers.publication_events` por `fanout_run_id` e `target`; o `payload` deve
 conter `target_chat_id`, `destination_kind`, `source_flow` e a resposta WAHA.
+
+### Checklist obrigatoria baseada na validacao do clone
+
+O rollout para `OfertasMvpSupab1` deve replicar os seguintes pontos. Eles sao
+requisitos, nao melhorias opcionais:
+
+- manter `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`; os destinos operacionais devem
+  ser lidos por `$vars`, nunca por `$env`, e IDs de producao nao podem entrar
+  no JSON versionado;
+- configurar `destinations[]` uma vez por execucao e restaurar essa
+  configuracao nos expansores. Os nos de Google Drive e Supabase podem
+  substituir o item de entrada e remover campos do contexto;
+- executar cada `Expandir Destinos` em `runOnceForAllItems`. O expansor retorna
+  um item por destino, portanto nao pode usar `runOnceForEachItem`;
+- preservar o loop sequencial e o pacing para cada destino nos tres fluxos;
+- preparar `/api/sendImage` com `image_url -> waha_image_url` e filename. O
+  workflow nao deve exigir `waha_image_base64`, pois esse campo nao faz parte
+  do contrato dos fluxos atuais;
+- no preparador WAHA de producao, aceitar explicitamente `@newsletter` alem
+  de `@g.us` e chats individuais. A validacao de `destination_kind` deve
+  impedir sufixos trocados antes do envio;
+- registrar resultado por destino, inclusive falhas, com `fanout_run_id`,
+  `target`, `target_chat_id`, `destination_kind`, `source_flow`, resposta WAHA
+  e identificador da mensagem;
+- deixar somente o destino canonico como `is_dispatch_owner=true`. Apenas ele
+  pode consumir o slot da fila e projetar cooldown; os demais eventos permanecem
+  auditaveis, mas nao duplicam esses efeitos;
+- manter a consulta recorrente de producao estrita na hora corrente e com o
+  claim controlado. O modo manual `next_ready_today` foi criado apenas para o
+  clone e nao pertence ao workflow real;
+- aplicar workflow e migracao como inativos, revisar credenciais e destinos no
+  painel e autorizar ativacao separadamente;
+- apos qualquer validacao real do clone, voltar
+  `N8N_TEST_FANOUT_REAL_SEND_ENABLED` para `false`.
+
+O aceite do rollout exige evidencia em tres superficies: resposta normalizada
+do WAHA, observacao dos destinos e eventos por destino no Supabase. Sucesso da
+execucao n8n, isoladamente, nao comprova entrega.
