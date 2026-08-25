@@ -37,6 +37,7 @@ return [{ json: { ...$json, destinations: configured, allowed_targets: configure
 RECURRING_CONTEXT_CODE = """const item = $json;
 if (item.validation_source_preview !== true || item.real_send_enabled !== true) throw new Error('clone exige preview e habilitacao explicita de envio');
 const sqlText = (value) => `'${String(value).replace(/'/g, "''")}'`;
+const recurringPreviewMode = sqlText(item.recurring_preview_mode || 'current_slot');
 const query = `select
   null::uuid as dispatch_plan_id,
   ready.profile, ready.marketplace, ready.stable_key, ready.item_id,
@@ -50,8 +51,14 @@ where ready.is_ready_for_dispatch
   and ready.profile = ${sqlText(item.profile)}
   and ready.marketplace = ${sqlText(item.marketplace)}
   and ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date
-  and ready.planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer
-order by ready.slot_sequence
+  and (
+    (coalesce(${recurringPreviewMode}, 'current_slot') = 'current_slot'
+      and ready.planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer)
+    or
+    (${recurringPreviewMode} = 'next_ready_today'
+      and ready.planned_hour >= extract(hour from now() at time zone 'America/Sao_Paulo')::integer)
+  )
+order by ready.planned_hour, ready.slot_sequence
 limit ${Number(item.limit || 1)};`;
 return [{ json: { ...item, dry_run: false, dispatch_plan_id: null, ranking_query: query } }];"""
 
@@ -92,10 +99,10 @@ const accepted = Boolean(messageId || response.fromMe === true || response._data
 return { json: { ...original, adapter_status: accepted ? 'sent_to_adapter' : 'adapter_send_failed', adapter_message_id: messageId, adapter_ack: response.ack ?? response._data?.ack ?? null, adapter_response_type: response.type || response._data?.type || null, delivery_status: accepted ? 'confirmed' : 'failed', blocked_reason: accepted ? null : 'adapter_send_failed', sent_at: accepted ? new Date().toISOString() : null } };"""
 
 
-SCHEDULE_CONTEXT_CODE = """return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-${Date.now()}`, source_flow: 'recorrente_supabase' } }];"""
+SCHEDULE_CONTEXT_CODE = """return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-${Date.now()}`, source_flow: 'recorrente_supabase', recurring_preview_mode: 'current_slot' } }];"""
 
 
-MANUAL_CONTEXT_CODE = """return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-manual-${Date.now()}`, source_flow: 'recorrente_supabase' } }];"""
+MANUAL_CONTEXT_CODE = """return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-manual-${Date.now()}`, source_flow: 'recorrente_supabase', recurring_preview_mode: 'next_ready_today' } }];"""
 
 
 def node_by_id(workflow: dict[str, Any], node_id: str) -> dict[str, Any]:

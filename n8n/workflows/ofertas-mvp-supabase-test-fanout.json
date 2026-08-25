@@ -45,7 +45,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-${Date.now()}`, source_flow: 'recorrente_supabase' } }];"
+        "jsCode": "return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-${Date.now()}`, source_flow: 'recorrente_supabase', recurring_preview_mode: 'current_slot' } }];"
       },
       "id": "schedule-context-grupo-real",
       "name": "Set Contexto Schedule Grupo",
@@ -135,7 +135,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $json;\nif (item.validation_source_preview !== true || item.real_send_enabled !== true) throw new Error('clone exige preview e habilitacao explicita de envio');\nconst sqlText = (value) => `'${String(value).replace(/'/g, \"''\")}'`;\nconst query = `select\n  null::uuid as dispatch_plan_id,\n  ready.profile, ready.marketplace, ready.stable_key, ready.item_id,\n  ready.product_name, ready.offer_link, ready.image_url, ready.price,\n  ready.reference_price, ready.rating, ready.sales_count, ready.primary_subniche,\n  ready.commercial_score, ready.score_reasons, ready.rank_profile, ready.rank_subniche,\n  ready.selection_bucket, ready.selection_reason, ready.planned_date, ready.planned_hour,\n  ready.slot_sequence, ready.daily_sequence, ready.planned_at\nfrom offers.v_daily_dispatch_ready ready\nwhere ready.is_ready_for_dispatch\n  and ready.profile = ${sqlText(item.profile)}\n  and ready.marketplace = ${sqlText(item.marketplace)}\n  and ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date\n  and ready.planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer\norder by ready.slot_sequence\nlimit ${Number(item.limit || 1)};`;\nreturn [{ json: { ...item, dry_run: false, dispatch_plan_id: null, ranking_query: query } }];"
+        "jsCode": "const item = $json;\nif (item.validation_source_preview !== true || item.real_send_enabled !== true) throw new Error('clone exige preview e habilitacao explicita de envio');\nconst sqlText = (value) => `'${String(value).replace(/'/g, \"''\")}'`;\nconst recurringPreviewMode = sqlText(item.recurring_preview_mode || 'current_slot');\nconst query = `select\n  null::uuid as dispatch_plan_id,\n  ready.profile, ready.marketplace, ready.stable_key, ready.item_id,\n  ready.product_name, ready.offer_link, ready.image_url, ready.price,\n  ready.reference_price, ready.rating, ready.sales_count, ready.primary_subniche,\n  ready.commercial_score, ready.score_reasons, ready.rank_profile, ready.rank_subniche,\n  ready.selection_bucket, ready.selection_reason, ready.planned_date, ready.planned_hour,\n  ready.slot_sequence, ready.daily_sequence, ready.planned_at\nfrom offers.v_daily_dispatch_ready ready\nwhere ready.is_ready_for_dispatch\n  and ready.profile = ${sqlText(item.profile)}\n  and ready.marketplace = ${sqlText(item.marketplace)}\n  and ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date\n  and (\n    (coalesce(${recurringPreviewMode}, 'current_slot') = 'current_slot'\n      and ready.planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer)\n    or\n    (${recurringPreviewMode} = 'next_ready_today'\n      and ready.planned_hour >= extract(hour from now() at time zone 'America/Sao_Paulo')::integer)\n  )\norder by ready.planned_hour, ready.slot_sequence\nlimit ${Number(item.limit || 1)};`;\nreturn [{ json: { ...item, dry_run: false, dispatch_plan_id: null, ranking_query: query } }];"
       },
       "id": "3",
       "name": "Validar Contexto",
@@ -161,7 +161,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-manual-${Date.now()}`, source_flow: 'recorrente_supabase' } }];"
+        "jsCode": "return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-manual-${Date.now()}`, source_flow: 'recorrente_supabase', recurring_preview_mode: 'next_ready_today' } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

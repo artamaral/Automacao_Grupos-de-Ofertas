@@ -54,6 +54,19 @@ def test_clone_reads_operational_destinations_from_n8n_variables() -> None:
     assert "$env" not in code
 
 
+def test_manual_recurring_preview_uses_next_ready_slot_without_changing_schedule_contract() -> None:
+    workflow = workflow_payload()
+    manual_context = node(workflow, "Set Contexto MVP")["parameters"]["jsCode"]
+    schedule_context = node(workflow, "Set Contexto Schedule Grupo")["parameters"]["jsCode"]
+    recurring_context = node(workflow, "Validar Contexto")["parameters"]["jsCode"]
+
+    assert "recurring_preview_mode: 'next_ready_today'" in manual_context
+    assert "recurring_preview_mode: 'current_slot'" in schedule_context
+    assert "ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date" in recurring_context
+    assert "ready.planned_hour >= extract(hour from now() at time zone 'America/Sao_Paulo')::integer" in recurring_context
+    assert "dispatch_status = 'claimed'" not in recurring_context
+
+
 def test_clone_expansion_restores_fanout_configuration_after_drive_nodes() -> None:
     workflow = workflow_payload()
     for name in (

@@ -27,6 +27,11 @@ O JSON versionado mantem apenas os nomes logicos `grupo-teste-fanout` e
   pontuais usam, respectivamente, `Trigger Manual Estatico Fanout Teste` e
   `Trigger Manual Pontual Fanout Teste`; execute somente o gatilho do fluxo
   que esta sendo validado.
+- No recorrente, o gatilho manual consulta a primeira janela pronta a partir
+  da hora atual (`next_ready_today`), para nao disputar corrida com o cron de
+  producao. O gatilho agendado do clone continua consultando somente a hora
+  corrente (`current_slot`). Ambos sao apenas previsualizacao: nao fazem claim
+  nem alteram a fila diaria.
 - Cada destino passa por loop sequencial e `/api/sendImage`.
 - O recorrente consulta somente uma previa e nunca claima a fila diaria.
 - O clone nao grava nem atualiza `offers.publication_events`.
