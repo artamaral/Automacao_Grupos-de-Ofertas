@@ -1,0 +1,108 @@
+from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+GUARD_PATH = ROOT / "scripts/n8n/deploy_test_fanout_workflow_guard.py"
+BUILDER_PATH = ROOT / "scripts/n8n/build_test_fanout_workflow.py"
+WORKFLOW_PATH = ROOT / "n8n/workflows/ofertas-mvp-supabase-test-fanout.json"
+
+
+def load_module(name: str, path: Path):
+    sys.path.insert(0, str(path.parent))
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+guard = load_module("deploy_test_fanout_workflow_guard", GUARD_PATH)
+builder = load_module("build_test_fanout_workflow", BUILDER_PATH)
+
+
+def workflow_payload() -> dict[str, object]:
+    return json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+
+
+def node(workflow: dict[str, object], name: str) -> dict[str, object]:
+    result = guard.node_by_name(workflow, name)
+    assert result is not None
+    return result
+
+
+def test_generated_clone_matches_versioned_workflow() -> None:
+    assert builder.build() == workflow_payload()
+
+
+def test_clone_contract_accepts_isolated_fanout() -> None:
+    guard.validate_workflow(workflow_payload())
+
+
+@pytest.mark.parametrize("forbidden", guard.FORBIDDEN_VALUES)
+def test_clone_contract_rejects_production_reference(forbidden: str) -> None:
+    workflow = workflow_payload()
+    workflow["meta"]["description"] = forbidden
+
+    with pytest.raises(guard.WorkflowGuardError, match="forbidden production value"):
+        guard.validate_workflow(workflow)
+
+
+def test_clone_contract_rejects_ledger_registration() -> None:
+    workflow = workflow_payload()
+    workflow["meta"]["description"] = "offers.publication_events"
+
+    with pytest.raises(guard.WorkflowGuardError, match="publication_events"):
+        guard.validate_workflow(workflow)
+
+
+def test_clone_contract_rejects_claim_query() -> None:
+    workflow = workflow_payload()
+    node(workflow, "Validar Contexto")["parameters"]["jsCode"] += "\ndispatch_status = 'claimed'"
+
+    with pytest.raises(guard.WorkflowGuardError, match="claimed"):
+        guard.validate_workflow(workflow)
+
+
+def test_clone_contract_rejects_missing_channel_destination() -> None:
+    workflow = workflow_payload()
+    config = node(workflow, "Configurar Destinos Fanout Teste")
+    config["parameters"]["jsCode"] = config["parameters"]["jsCode"].replace(
+        "canal-teste-fanout", "canal-removido"
+    )
+
+    with pytest.raises(guard.WorkflowGuardError, match="canal-teste-fanout"):
+        guard.validate_workflow(workflow)
+
+
+def test_clone_has_sequential_loop_and_wait_for_each_flow() -> None:
+    workflow = workflow_payload()
+    expected = {
+        "Loop Destinos Recorrente": "Aguardar Intervalo WAHA",
+        "Loop Destinos Estatico": "Aguardar Intervalo WAHA Estatico",
+        "Loop Destinos Pontual": "Aguardar Intervalo WAHA Pontual",
+    }
+    for loop_name, wait_name in expected.items():
+        assert node(workflow, loop_name)["type"] == "n8n-nodes-base.splitInBatches"
+        assert node(workflow, wait_name)["type"] == "n8n-nodes-base.wait"
+    assert "Loop Ofertas" in guard.connection_targets(workflow, "Loop Destinos Recorrente")
+
+
+def test_clone_has_no_ledger_or_archive_nodes() -> None:
+    workflow = workflow_payload()
+    names = {item["name"] for item in workflow["nodes"]}
+    assert (
+        not {
+            "Registrar Resultado Supabase",
+            "Registrar Resultado Supabase Estatico",
+            "Registrar Resultado Supabase Pontual",
+        }
+        & names
+    )
+    assert "Mover Pasta msg_XXX Pontual" not in names

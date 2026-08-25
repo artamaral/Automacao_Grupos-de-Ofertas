@@ -1,0 +1,2292 @@
+{
+  "id": "OfertasMvpSupab1-TestFanout",
+  "name": "ofertas-mvp-supabase-test-fanout",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Clone isolado: consulta a previa da fila e valida envio WAHA para destinos de teste."
+  },
+  "active": false,
+  "tags": [],
+  "triggerCount": 0,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Trigger Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8-21 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-grupo-real",
+      "name": "Schedule Recorrente Fanout Teste",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        240
+      ],
+      "notesInFlow": true,
+      "notes": "Executa a validacao recorrente do fan-out sem claimar a fila."
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-${Date.now()}`, source_flow: 'recorrente_supabase' } }];"
+      },
+      "id": "schedule-context-grupo-real",
+      "name": "Set Contexto Schedule Grupo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        240
+      ],
+      "notesInFlow": true,
+      "notes": "Contexto fixo do schedule automatico para envio real ao grupo allowlisted."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.ranking_query }}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "Consultar Fila Planejada Supabase",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        800,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "enHQciqlEESYRjQl",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, index) => ({\n  json: {\n    ...item.json,\n    manifest_item_number: item.json.manifest_item_number ?? item.json.daily_sequence ?? index + 1,\n    send_sequence_number: item.json.send_sequence_number ?? item.json.slot_sequence ?? index + 1,\n  },\n}));"
+      },
+      "id": "prepare-batch-send",
+      "name": "Preparar Lote de Envio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "loop-send-offers",
+      "name": "Loop Ofertas",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('Validar Contexto').first().json;\nconst formatMoney = (value) => {\n  if (value === null || value === undefined || value === '') return 'nao informado';\n  const numberValue = Number(value);\n  if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`;\n  return String(value);\n};\nconst formatMarketplace = (value) => {\n  const normalized = String(value || '').trim().toLowerCase();\n  if (normalized === 'shopee') return 'Shopee';\n  return String(value || 'Marketplace').trim();\n};\nconst discountPercent = (price, referencePrice) => {\n  const current = Number(price);\n  const reference = Number(referencePrice);\n  if (!Number.isFinite(current) || !Number.isFinite(reference) || reference <= current || reference <= 0) return 0;\n  return Math.round(((reference - current) / reference) * 100);\n};\nconst formatRating = (value) => {\n  const rating = Number(value);\n  if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ',');\n  return 'nao informada';\n};\nreturn items.map((item, index) => {\n  const offer = item.json;\n  const discount = discountPercent(offer.price, offer.reference_price);\n  const messageText = `\\u{1F525} ${offer.product_name}\n\n\\u{1F4B5} ${formatMoney(offer.price)}\n\\u{1F3F7}\\u{FE0F} ${discount}% OFF\n\\u{2B50} Avalia\\u{00E7}\\u{00E3}o: ${formatRating(offer.rating)}/5\n\\u{2705} Link do produto:\n${offer.offer_link}\n\n\\u{1F3EA} Loja: ${formatMarketplace(offer.marketplace)}\n\\u{1F39F}\\u{FE0F} Resgate o cupom desta p\\u{00E1}gina:\n${context.coupon_url}\n(an\\u{00FA}ncio)`;\n  return {\n    json: {\n      ...context,\n      ...offer,\n      coupon_url: context.coupon_url,\n      discount_percent: discount,\n      manifest_item_number: offer.manifest_item_number ?? index + 1,\n      send_sequence_number: offer.send_sequence_number ?? offer.manifest_item_number ?? index + 1,\n      message_text: messageText,\n      manifest_created_at: new Date().toISOString(),\n    }\n  };\n});"
+      },
+      "id": "5",
+      "name": "Montar Mensagens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const source = $json;\nif (!Array.isArray(source.destinations) || source.destinations.length === 0) throw new Error('destinations obrigatorio');\nconst fanoutRunId = `${source.run_id || source.execution_day || new Date().toISOString()}-${source.source_flow}`;\nreturn source.destinations.map((destination, destinationIndex) => ({\n  json: {\n    ...source,\n    ...destination,\n    target: destination.target,\n    target_chat_id: destination.target_chat_id,\n    fanout_run_id: fanoutRunId,\n    destination_index: destinationIndex + 1,\n    destination_count: source.destinations.length,\n  },\n}));"
+      },
+      "id": "6",
+      "name": "Expandir Destinos Recorrente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nif (item.validation_source_preview !== true || item.real_send_enabled !== true) throw new Error('clone exige preview e habilitacao explicita de envio');\nconst sqlText = (value) => `'${String(value).replace(/'/g, \"''\")}'`;\nconst query = `select\n  null::uuid as dispatch_plan_id,\n  ready.profile, ready.marketplace, ready.stable_key, ready.item_id,\n  ready.product_name, ready.offer_link, ready.image_url, ready.price,\n  ready.reference_price, ready.rating, ready.sales_count, ready.primary_subniche,\n  ready.commercial_score, ready.score_reasons, ready.rank_profile, ready.rank_subniche,\n  ready.selection_bucket, ready.selection_reason, ready.planned_date, ready.planned_hour,\n  ready.slot_sequence, ready.daily_sequence, ready.planned_at\nfrom offers.v_daily_dispatch_ready ready\nwhere ready.is_ready_for_dispatch\n  and ready.profile = ${sqlText(item.profile)}\n  and ready.marketplace = ${sqlText(item.marketplace)}\n  and ready.planned_date = (now() at time zone 'America/Sao_Paulo')::date\n  and ready.planned_hour = extract(hour from now() at time zone 'America/Sao_Paulo')::integer\norder by ready.slot_sequence\nlimit ${Number(item.limit || 1)};`;\nreturn [{ json: { ...item, dry_run: false, dispatch_plan_id: null, ranking_query: query } }];"
+      },
+      "id": "3",
+      "name": "Validar Contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\n\n  return {\n    json: {\n      ...item,\n      send_result:\n        item.target_allowed && !item.dry_run\n          ? 'ready_for_real_channel_node'\n          : item.target_allowed\n            ? 'dry_run_not_sent'\n            : 'blocked_by_allowlist',\n      sent_at: item.dry_run ? null : new Date().toISOString(),\n    },\n  };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        0
+      ],
+      "id": "962ad612-c9bc-46f1-a15a-0e24e25600ac",
+      "name": "Simular Envio MVP"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { profile: 'feminino', marketplace: 'shopee', limit: 1, run_id: `test-fanout-manual-${Date.now()}`, source_flow: 'recorrente_supabase' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        0
+      ],
+      "id": "4dd3e336-768c-47b1-a62e-f2630dcbe663",
+      "name": "Set Contexto MVP"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst canSend = item.real_send_enabled === true && Boolean(item.message_text && item.target_chat_id && item.waha_image_base64);\nreturn { json: { ...item, target_allowed: true, waha_should_send: canSend, blocked_reason: canSend ? null : 'test_send_not_enabled_or_payload_missing', delivery_status: 'cancelled', adapter_status: canSend ? 'ready_for_real_channel_node' : 'not_sent' } };"
+      },
+      "id": "waha-prepare-send",
+      "name": "Preparar Envio WAHA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "waha-should-send",
+              "leftValue": "={{ $json.waha_should_send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "waha-if-can-send",
+      "name": "IF Pode Enviar WAHA",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ Number($json.waha_send_delay_seconds || 0) }}",
+        "unit": "seconds"
+      },
+      "id": "waha-wait-between-sends",
+      "name": "Aguardar Intervalo WAHA",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2800,
+        -120
+      ],
+      "webhookId": "9df5d67d-8b5d-4f88-aad8-e94994bcd9a0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendImage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $json.waha_chat_id, file: { mimetype: 'image/jpeg', url: $json.waha_image_url, filename: $json.waha_image_filename || 'oferta.jpg' }, caption: $json.message_text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wahad508ad814402",
+          "name": "WAHA Header Auth"
+        }
+      },
+      "continueOnFail": true,
+      "id": "waha-send-text",
+      "name": "Enviar WhatsApp WAHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Preparar Envio WAHA').item.json;\nconst response = $json || {};\nconst messageId = response.id?._serialized || response._data?.id?._serialized || response.id?.id || null;\nconst accepted = Boolean(messageId || response.fromMe === true || response._data?.fromMe === true);\nreturn { json: { ...original, adapter_status: accepted ? 'sent_to_adapter' : 'adapter_send_failed', adapter_message_id: messageId, adapter_ack: response.ack ?? response._data?.ack ?? null, adapter_response_type: response.type || response._data?.type || null, delivery_status: accepted ? 'confirmed' : 'failed', blocked_reason: accepted ? null : 'adapter_send_failed', sent_at: accepted ? new Date().toISOString() : null } };"
+      },
+      "id": "waha-normalize-result",
+      "name": "Normalizar Resultado WAHA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 9 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "30 17 * * *"
+            }
+          ]
+        }
+      },
+      "id": "static-schedule",
+      "name": "Schedule Mensagens Estaticas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        720
+      ],
+      "notesInFlow": true,
+      "notes": "Horarios diarios das mensagens estaticas. Ajuste somente as regras deste trigger."
+    },
+    {
+      "parameters": {
+        "jsCode": "const zone = 'America/Sao_Paulo';\nconst now = new Date();\nconst dateParts = Object.fromEntries(\n  new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' })\n    .formatToParts(now).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),\n);\nconst dayKey = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;\nconst state = $getWorkflowStaticData('node');\nif (state.static_message_day !== dayKey) { state.static_message_day = dayKey; state.static_message_sequence = 0; }\nstate.static_message_sequence = Number(state.static_message_sequence || 0) + 1;\nconst sequence = state.static_message_sequence;\nconst msgId = `msg_${String(sequence).padStart(3, '0')}`;\nreturn [{ json: {\n  run_id: `${dayKey}-${msgId}-static`, execution_day: dayKey, sequence, msg_id: msgId,\n  root_folder_name: 'ofertas-femininas', profile: 'feminino', marketplace: 'google-drive',\n  source_flow: 'mensagens_estaticas',\n  manifest_item_number: sequence, artifact_generated_at: `${dayKey}T03:00:00.000Z`,\n  manifest_created_at: now.toISOString(), planned_at: now.toISOString(),\n  static_ready: true, delivery_status: 'cancelled', sent_at: null,\n} }];"
+      },
+      "id": "static-resolve-sequence",
+      "name": "Resolver Sequencia Estatica",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "name = 'ofertas-femininas' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 2,
+        "filter": {
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "static-drive-search-root",
+      "name": "Buscar Pasta Raiz Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        560,
+        720
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Resolver Sequencia Estatica').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.root_folder_name && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'drive_root_lookup_failed' : matches.length === 0 ? 'drive_root_missing' : 'drive_root_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, root_folder_id: matches[0].json.id, root_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "static-drive-validate-root",
+      "name": "Validar Pasta Raiz Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-root-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-root-ready",
+      "name": "IF Pasta Raiz Disponivel",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "={{ \"name = '\" + $json.msg_id + \"' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}",
+        "limit": 2,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.root_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "static-drive-search-message",
+      "name": "Buscar Pasta msg_XXX",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1400,
+        600
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta Raiz Drive').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.msg_id && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'message_folder_lookup_failed' : matches.length === 0 ? 'message_folder_missing' : 'message_folder_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, message_folder_id: matches[0].json.id, message_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "static-drive-validate-message",
+      "name": "Validar Pasta msg_XXX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-message-folder-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-message-ready",
+      "name": "IF Pasta msg_XXX Disponivel",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "(name = 'copy.txt' or name = 'image.jpg') and trashed = false",
+        "limit": 3,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.message_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "files",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "static-drive-search-files",
+      "name": "Buscar Arquivos msg_XXX",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        480
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta msg_XXX').first().json;\nconst copyMatches = items.filter((item) => item.json?.name === 'copy.txt' && item.json?.mimeType === 'text/plain' && item.json?.id);\nconst imageMatches = items.filter((item) => item.json?.name === 'image.jpg' && item.json?.mimeType === 'image/jpeg' && item.json?.id);\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (lookupError || copyMatches.length !== 1 || imageMatches.length !== 1) {\n  const reason = lookupError ? 'message_files_lookup_failed' : copyMatches.length === 0 ? 'copy_missing_or_invalid' : copyMatches.length > 1 ? 'copy_ambiguous' : imageMatches.length === 0 ? 'image_missing_or_invalid' : 'image_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, copy_file_id: copyMatches[0].json.id, image_file_id: imageMatches[0].json.id, static_ready: true } }];"
+      },
+      "id": "static-drive-validate-files",
+      "name": "Validar Arquivos msg_XXX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-files-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-files-ready",
+      "name": "IF Arquivos Completos",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.copy_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "copy_file",
+          "fileName": "copy.txt"
+        }
+      },
+      "id": "static-drive-download-copy",
+      "name": "Baixar copy.txt",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3080,
+        360
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.image_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "image_file",
+          "fileName": "image.jpg"
+        }
+      },
+      "id": "static-drive-download-image",
+      "name": "Baixar image.jpg",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3360,
+        360
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first();\nconst context = item.json;\ntry {\n  const copyBuffer = await this.helpers.getBinaryDataBuffer(0, 'copy_file');\n  const imageBuffer = await this.helpers.getBinaryDataBuffer(0, 'image_file');\n  const messageText = copyBuffer.toString('utf8').trim();\n  if (!messageText) throw new Error('copy_empty');\n  if (!imageBuffer.length) throw new Error('image_empty');\n  return [{ json: { ...context, message_text: messageText, waha_image_base64: imageBuffer.toString('base64'), waha_image_filename: 'image.jpg', static_ready: true } }];\n} catch (error) {\n  const reason = String(error?.message || error || 'binary_download_failed');\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}"
+      },
+      "id": "static-prepare-content",
+      "name": "Preparar Conteudo Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3640,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-content-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-content-ready",
+      "name": "IF Conteudo Estatico Valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst canSend = item.real_send_enabled === true && Boolean(item.message_text && item.target_chat_id && item.waha_image_base64);\nreturn { json: { ...item, target_allowed: true, waha_should_send: canSend, blocked_reason: canSend ? null : 'test_send_not_enabled_or_payload_missing', delivery_status: 'cancelled', adapter_status: canSend ? 'ready_for_real_channel_node' : 'not_sent' } };"
+      },
+      "id": "static-waha-prepare-send",
+      "name": "Preparar Envio WAHA Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-waha-should-send",
+              "leftValue": "={{ $json.waha_should_send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "static-if-waha-send",
+      "name": "IF Pode Enviar WAHA Estatico",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendImage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $json.target_chat_id, file: { mimetype: 'image/jpeg', data: $json.waha_image_base64, filename: $json.waha_image_filename || 'image.jpg' }, caption: $json.message_text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "static-waha-send-image",
+      "name": "Enviar WhatsApp WAHA Estatico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4760,
+        120
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wahad508ad814402",
+          "name": "WAHA Header Auth"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Preparar Envio WAHA Estatico').item.json;\nconst response = $json || {};\nconst messageId = response.id?._serialized || response._data?.id?._serialized || response.id?.id || null;\nconst accepted = Boolean(messageId || response.fromMe === true || response._data?.fromMe === true);\nreturn { json: { ...original, adapter_status: accepted ? 'sent_to_adapter' : 'adapter_send_failed', adapter_message_id: messageId, adapter_ack: response.ack ?? response._data?.ack ?? null, adapter_response_type: response.type || response._data?.type || null, delivery_status: accepted ? 'confirmed' : 'failed', blocked_reason: accepted ? null : 'adapter_send_failed', sent_at: accepted ? new Date().toISOString() : null } };"
+      },
+      "id": "static-waha-normalize-result",
+      "name": "Normalizar Resultado WAHA Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "45 17 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "46 17 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "47 17 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "48 17 * * *"
+            }
+          ]
+        }
+      },
+      "id": "one-shot-schedule",
+      "name": "Schedule Mensagens Pontuais",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1800
+      ],
+      "notesInFlow": true,
+      "notes": "Horarios diarios das mensagens pontuais. Ajuste somente as regras deste trigger."
+    },
+    {
+      "parameters": {
+        "jsCode": "const zone = 'America/Sao_Paulo';\nconst now = new Date();\nconst dateParts = Object.fromEntries(\n  new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' })\n    .formatToParts(now).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]),\n);\nconst dayKey = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;\nconst state = $getWorkflowStaticData('node');\nif (state.one_shot_message_day !== dayKey) { state.one_shot_message_day = dayKey; state.one_shot_message_sequence = 0; }\nstate.one_shot_message_sequence = Number(state.one_shot_message_sequence || 0) + 1;\nconst sequence = state.one_shot_message_sequence;\nconst msgId = `msg_${String(sequence).padStart(3, '0')}`;\nreturn [{ json: {\n  run_id: `${dayKey}-${msgId}-one-shot`, execution_day: dayKey, sequence, msg_id: msgId,\n  root_folder_name: 'ofertas-femininas-pendentes', archive_root_folder_name: 'ofertas-femininas-enviados', message_flow_type: 'static_one_shot', profile: 'feminino', marketplace: 'google-drive',\n  source_flow: 'mensagens_pontuais',\n  manifest_item_number: sequence, artifact_generated_at: `${dayKey}T03:00:00.000Z`,\n  manifest_created_at: now.toISOString(), planned_at: now.toISOString(),\n  static_ready: true, delivery_status: 'cancelled', sent_at: null,\n} }];"
+      },
+      "id": "one-shot-resolve-sequence",
+      "name": "Resolver Sequencia Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "name = 'ofertas-femininas-pendentes' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 2,
+        "filter": {
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-pending-root",
+      "name": "Buscar Pasta Pendentes Drive Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        560,
+        1800
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Resolver Sequencia Pontual').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.root_folder_name && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'drive_root_lookup_failed' : matches.length === 0 ? 'drive_root_missing' : 'drive_root_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, root_folder_id: matches[0].json.id, root_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "one-shot-drive-validate-pending-root",
+      "name": "Validar Pasta Pendentes Drive Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-root-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-pending-root-ready",
+      "name": "IF Pasta Pendentes Disponivel Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "={{ \"name = '\" + $json.msg_id + \"' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}",
+        "limit": 2,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.root_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "folders",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-message",
+      "name": "Buscar Pasta msg_XXX Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1400,
+        1680
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta Pendentes Drive Pontual').first().json;\nconst matches = items.filter((item) => item.json?.id && item.json?.name === context.msg_id && item.json?.mimeType === 'application/vnd.google-apps.folder');\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (matches.length !== 1) {\n  const reason = lookupError ? 'message_folder_lookup_failed' : matches.length === 0 ? 'message_folder_missing' : 'message_folder_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, message_folder_id: matches[0].json.id, message_folder_url: matches[0].json.webViewLink || null, static_ready: true } }];"
+      },
+      "id": "one-shot-drive-validate-message",
+      "name": "Validar Pasta msg_XXX Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-message-folder-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-message-ready",
+      "name": "IF Pasta msg_XXX Disponivel Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1960,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "fileFolder",
+        "operation": "search",
+        "searchMethod": "query",
+        "returnAll": false,
+        "queryString": "(name = 'copy.txt' or name = 'image.jpg') and trashed = false",
+        "limit": 3,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.message_folder_id }}",
+            "mode": "id"
+          },
+          "whatToSearch": "files",
+          "includeTrashed": false
+        },
+        "options": {
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "webViewLink"
+          ]
+        }
+      },
+      "id": "one-shot-drive-search-files",
+      "name": "Buscar Arquivos msg_XXX Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        1560
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const context = $('Validar Pasta msg_XXX Pontual').first().json;\nconst copyMatches = items.filter((item) => item.json?.name === 'copy.txt' && item.json?.mimeType === 'text/plain' && item.json?.id);\nconst imageMatches = items.filter((item) => item.json?.name === 'image.jpg' && item.json?.mimeType === 'image/jpeg' && item.json?.id);\nconst lookupError = items.find((item) => item.json?.error)?.json?.error || null;\nif (lookupError || copyMatches.length !== 1 || imageMatches.length !== 1) {\n  const reason = lookupError ? 'message_files_lookup_failed' : copyMatches.length === 0 ? 'copy_missing_or_invalid' : copyMatches.length > 1 ? 'copy_ambiguous' : imageMatches.length === 0 ? 'image_missing_or_invalid' : 'image_ambiguous';\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}\nreturn [{ json: { ...context, copy_file_id: copyMatches[0].json.id, image_file_id: imageMatches[0].json.id, static_ready: true } }];"
+      },
+      "id": "one-shot-drive-validate-files",
+      "name": "Validar Arquivos msg_XXX Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2520,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-files-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-files-ready",
+      "name": "IF Arquivos Completos Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.copy_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "copy_file",
+          "fileName": "copy.txt"
+        }
+      },
+      "id": "one-shot-drive-download-copy",
+      "name": "Baixar copy.txt Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3080,
+        1440
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "file",
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.image_file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "binaryPropertyName": "image_file",
+          "fileName": "image.jpg"
+        }
+      },
+      "id": "one-shot-drive-download-image",
+      "name": "Baixar image.jpg Pontual",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3360,
+        1440
+      ],
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first();\nconst context = item.json;\ntry {\n  const copyBuffer = await this.helpers.getBinaryDataBuffer(0, 'copy_file');\n  const imageBuffer = await this.helpers.getBinaryDataBuffer(0, 'image_file');\n  const messageText = copyBuffer.toString('utf8').trim();\n  if (!messageText) throw new Error('copy_empty');\n  if (!imageBuffer.length) throw new Error('image_empty');\n  return [{ json: { ...context, message_text: messageText, waha_image_base64: imageBuffer.toString('base64'), waha_image_filename: 'image.jpg', static_ready: true } }];\n} catch (error) {\n  const reason = String(error?.message || error || 'binary_download_failed');\n  return [{ json: { ...context, static_ready: false, blocked_reason: reason, message_text: `${context.msg_id} nao enviada: ${reason}` } }];\n}"
+      },
+      "id": "one-shot-prepare-content",
+      "name": "Preparar Conteudo Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3640,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-content-ready",
+              "leftValue": "={{ $json.static_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-content-ready",
+      "name": "IF Conteudo Pontual Valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $json;\nconst canSend = item.real_send_enabled === true && Boolean(item.message_text && item.target_chat_id && item.waha_image_base64);\nreturn { json: { ...item, target_allowed: true, waha_should_send: canSend, blocked_reason: canSend ? null : 'test_send_not_enabled_or_payload_missing', delivery_status: 'cancelled', adapter_status: canSend ? 'ready_for_real_channel_node' : 'not_sent' } };"
+      },
+      "id": "one-shot-waha-prepare-send",
+      "name": "Preparar Envio WAHA Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4200,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "static-waha-should-send",
+              "leftValue": "={{ $json.waha_should_send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "one-shot-if-waha-send",
+      "name": "IF Pode Enviar WAHA Pontual",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        1320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendImage",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ session: 'default', chatId: $json.target_chat_id, file: { mimetype: 'image/jpeg', data: $json.waha_image_base64, filename: $json.waha_image_filename || 'image.jpg' }, caption: $json.message_text }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "one-shot-waha-send-image",
+      "name": "Enviar WhatsApp WAHA Pontual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4760,
+        1200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wahad508ad814402",
+          "name": "WAHA Header Auth"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Preparar Envio WAHA Pontual').item.json;\nconst response = $json || {};\nconst messageId = response.id?._serialized || response._data?.id?._serialized || response.id?.id || null;\nconst accepted = Boolean(messageId || response.fromMe === true || response._data?.fromMe === true);\nreturn { json: { ...original, adapter_status: accepted ? 'sent_to_adapter' : 'adapter_send_failed', adapter_message_id: messageId, adapter_ack: response.ack ?? response._data?.ack ?? null, adapter_response_type: response.type || response._data?.type || null, delivery_status: accepted ? 'confirmed' : 'failed', blocked_reason: accepted ? null : 'adapter_send_failed', sent_at: accepted ? new Date().toISOString() : null } };"
+      },
+      "id": "one-shot-waha-normalize-result",
+      "name": "Normalizar Resultado WAHA Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5040,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const destinations = [\n  { target: 'grupo-teste-fanout', chat_id_env: 'N8N_TEST_FANOUT_GROUP_CHAT_ID', destination_kind: 'group', channel_adapter: 'whatsapp', active: true },\n  { target: 'canal-teste-fanout', chat_id_env: 'N8N_TEST_FANOUT_CHANNEL_CHAT_ID', destination_kind: 'channel', channel_adapter: 'whatsapp', active: true },\n];\nconst configured = destinations.filter((destination) => destination.active === true).map((destination) => ({\n  ...destination,\n  target_chat_id: String($env[destination.chat_id_env] || '').trim(),\n}));\nif (configured.length !== 2) throw new Error('fanout de teste exige exatamente dois destinos ativos');\nconst targetNames = new Set();\nfor (const destination of configured) {\n  if (!/^[a-z0-9][a-z0-9_-]{1,80}$/i.test(destination.target) || targetNames.has(destination.target)) throw new Error('target de teste invalido ou duplicado');\n  targetNames.add(destination.target);\n  if (destination.channel_adapter !== 'whatsapp') throw new Error('adapter de teste invalido');\n  const expectedSuffix = destination.destination_kind === 'group' ? /@g\\.us$/ : /@newsletter$/;\n  if (!expectedSuffix.test(destination.target_chat_id)) throw new Error(`chat id invalido para ${destination.destination_kind}`);\n}\nreturn [{ json: { ...$json, destinations: configured, allowed_targets: configured.map((destination) => destination.target), validation_source_preview: true, real_send_enabled: String($env.N8N_TEST_FANOUT_REAL_SEND_ENABLED || '').toLowerCase() === 'true', send_delay_seconds_min: 45, send_delay_seconds_max: 90 } }];"
+      },
+      "id": "test-fanout-config",
+      "name": "Configurar Destinos Fanout Teste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.source_flow }}",
+              "rightValue": "recorrente_supabase",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "test-fanout-route-recurring",
+      "name": "IF Fluxo Recorrente Fanout",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.source_flow }}",
+              "rightValue": "mensagens_estaticas",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "test-fanout-route-static",
+      "name": "IF Fluxo Estatico Fanout",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.source_flow }}",
+              "rightValue": "mensagens_pontuais",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "test-fanout-route-one-shot",
+      "name": "IF Fluxo Pontual Fanout",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "test-fanout-loop-recurring",
+      "name": "Loop Destinos Recorrente",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1540,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json;\nif (!Array.isArray(source.destinations) || source.destinations.length === 0) throw new Error('destinations obrigatorio');\nconst fanoutRunId = `${source.run_id || source.execution_day || new Date().toISOString()}-${source.source_flow}`;\nreturn source.destinations.map((destination, destinationIndex) => ({\n  json: {\n    ...source,\n    ...destination,\n    target: destination.target,\n    target_chat_id: destination.target_chat_id,\n    fanout_run_id: fanoutRunId,\n    destination_index: destinationIndex + 1,\n    destination_count: source.destinations.length,\n  },\n}));"
+      },
+      "id": "test-fanout-expand-static",
+      "name": "Expandir Destinos Estatico",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "test-fanout-loop-static",
+      "name": "Loop Destinos Estatico",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1820,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.max(1, Number($json.send_delay_seconds_min || 45)) }}",
+        "unit": "seconds"
+      },
+      "id": "test-fanout-wait-static",
+      "name": "Aguardar Intervalo WAHA Estatico",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2260,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $json;\nif (!Array.isArray(source.destinations) || source.destinations.length === 0) throw new Error('destinations obrigatorio');\nconst fanoutRunId = `${source.run_id || source.execution_day || new Date().toISOString()}-${source.source_flow}`;\nreturn source.destinations.map((destination, destinationIndex) => ({\n  json: {\n    ...source,\n    ...destination,\n    target: destination.target,\n    target_chat_id: destination.target_chat_id,\n    fanout_run_id: fanoutRunId,\n    destination_index: destinationIndex + 1,\n    destination_count: source.destinations.length,\n  },\n}));"
+      },
+      "id": "test-fanout-expand-one-shot",
+      "name": "Expandir Destinos Pontual",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "test-fanout-loop-one-shot",
+      "name": "Loop Destinos Pontual",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1820,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.max(1, Number($json.send_delay_seconds_min || 45)) }}",
+        "unit": "seconds"
+      },
+      "id": "test-fanout-wait-one-shot",
+      "name": "Aguardar Intervalo WAHA Pontual",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2260,
+        960
+      ]
+    }
+  ],
+  "connections": {
+    "Trigger Manual": {
+      "main": [
+        [
+          {
+            "node": "Set Contexto MVP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto Schedule Grupo": {
+      "main": [
+        [
+          {
+            "node": "Configurar Destinos Fanout Teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar Fila Planejada Supabase": {
+      "main": [
+        [
+          {
+            "node": "Preparar Lote de Envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Mensagens": {
+      "main": [
+        [
+          {
+            "node": "Expandir Destinos Recorrente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Allowlist": {
+      "main": [
+        [
+          {
+            "node": "Simular Envio MVP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Contexto": {
+      "main": [
+        [
+          {
+            "node": "Consultar Fila Planejada Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simular Envio MVP": {
+      "main": [
+        [
+          {
+            "node": "Preparar Envio WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Contexto MVP": {
+      "main": [
+        [
+          {
+            "node": "Configurar Destinos Fanout Teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Envio WAHA": {
+      "main": [
+        [
+          {
+            "node": "IF Pode Enviar WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pode Enviar WAHA": {
+      "main": [
+        [
+          {
+            "node": "Aguardar Intervalo WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Destinos Recorrente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp WAHA": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Resultado WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Resultado WAHA": {
+      "main": [
+        [
+          {
+            "node": "Loop Destinos Recorrente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Lote de Envio": {
+      "main": [
+        [
+          {
+            "node": "Loop Ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Ofertas": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Montar Mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar Intervalo WAHA": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Mensagens Estaticas": {
+      "main": [
+        [
+          {
+            "node": "Resolver Sequencia Estatica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver Sequencia Estatica": {
+      "main": [
+        [
+          {
+            "node": "Configurar Destinos Fanout Teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pasta Raiz Drive": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta Raiz Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta Raiz Drive": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta Raiz Disponivel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta Raiz Disponivel": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta msg_XXX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Buscar Pasta msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta msg_XXX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta msg_XXX Disponivel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta msg_XXX Disponivel": {
+      "main": [
+        [
+          {
+            "node": "Buscar Arquivos msg_XXX",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Buscar Arquivos msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "Validar Arquivos msg_XXX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Arquivos msg_XXX": {
+      "main": [
+        [
+          {
+            "node": "IF Arquivos Completos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Arquivos Completos": {
+      "main": [
+        [
+          {
+            "node": "Baixar copy.txt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Baixar copy.txt": {
+      "main": [
+        [
+          {
+            "node": "Baixar image.jpg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar image.jpg": {
+      "main": [
+        [
+          {
+            "node": "Preparar Conteudo Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Conteudo Estatico": {
+      "main": [
+        [
+          {
+            "node": "IF Conteudo Estatico Valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Conteudo Estatico Valido": {
+      "main": [
+        [
+          {
+            "node": "Expandir Destinos Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Preparar Envio WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "IF Pode Enviar WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pode Enviar WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "Aguardar Intervalo WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Destinos Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Resultado WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Resultado WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "Loop Destinos Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Mensagens Pontuais": {
+      "main": [
+        [
+          {
+            "node": "Resolver Sequencia Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver Sequencia Pontual": {
+      "main": [
+        [
+          {
+            "node": "Configurar Destinos Fanout Teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pasta Pendentes Drive Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta Pendentes Drive Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta Pendentes Drive Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta Pendentes Disponivel Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta Pendentes Disponivel Pontual": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Buscar Pasta msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Pasta msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Pasta msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pasta msg_XXX Disponivel Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pasta msg_XXX Disponivel Pontual": {
+      "main": [
+        [
+          {
+            "node": "Buscar Arquivos msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Buscar Arquivos msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "Validar Arquivos msg_XXX Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Arquivos msg_XXX Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Arquivos Completos Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Arquivos Completos Pontual": {
+      "main": [
+        [
+          {
+            "node": "Baixar copy.txt Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Baixar copy.txt Pontual": {
+      "main": [
+        [
+          {
+            "node": "Baixar image.jpg Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar image.jpg Pontual": {
+      "main": [
+        [
+          {
+            "node": "Preparar Conteudo Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Conteudo Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Conteudo Pontual Valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Conteudo Pontual Valido": {
+      "main": [
+        [
+          {
+            "node": "Expandir Destinos Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Preparar Envio WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "IF Pode Enviar WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Pode Enviar WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "Aguardar Intervalo WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Destinos Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Resultado WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Resultado WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "Loop Destinos Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Recorrente Fanout Teste": {
+      "main": [
+        [
+          {
+            "node": "Set Contexto Schedule Grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurar Destinos Fanout Teste": {
+      "main": [
+        [
+          {
+            "node": "IF Fluxo Recorrente Fanout",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Fluxo Estatico Fanout",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Fluxo Pontual Fanout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Fluxo Recorrente Fanout": {
+      "main": [
+        [
+          {
+            "node": "Validar Contexto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "IF Fluxo Estatico Fanout": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta Raiz Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "IF Fluxo Pontual Fanout": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pasta Pendentes Drive Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Expandir Destinos Recorrente": {
+      "main": [
+        [
+          {
+            "node": "Loop Destinos Recorrente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Destinos Recorrente": {
+      "main": [
+        [
+          {
+            "node": "Loop Ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Simular Envio MVP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expandir Destinos Estatico": {
+      "main": [
+        [
+          {
+            "node": "Loop Destinos Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Destinos Estatico": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Preparar Envio WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar Intervalo WAHA Estatico": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp WAHA Estatico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expandir Destinos Pontual": {
+      "main": [
+        [
+          {
+            "node": "Loop Destinos Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Destinos Pontual": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Preparar Envio WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar Intervalo WAHA Pontual": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp WAHA Pontual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "staticData": null
+}
