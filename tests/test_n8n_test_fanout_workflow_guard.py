@@ -122,3 +122,4 @@ def test_guard_update_sql_creates_workflow_history() -> None:
     assert "insert into workflow_history" in sql
     assert '"workflowId"' in sql
     assert "active = false" in sql
+    assert ")\ninsert into workflow_history" in sql

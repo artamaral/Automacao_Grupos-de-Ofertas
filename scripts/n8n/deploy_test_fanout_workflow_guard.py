@@ -185,7 +185,7 @@ def build_update_sql(workflow: dict[str, Any], workflow_id: str) -> str:
         '      "updatedAt" = now()\n'
         f"  where id = {sql_literal(workflow_id)}\n"
         '  returning id, "versionId", name, nodes, connections, "updatedAt"\n'
-        "),\n"
+        ")\n"
         "insert into workflow_history (\n"
         '  "versionId", "workflowId", authors, "createdAt", "updatedAt",\n'
         '  nodes, connections, name, autosaved, description, "nodeGroups"\n'
