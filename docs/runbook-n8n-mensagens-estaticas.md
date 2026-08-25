@@ -32,14 +32,12 @@ atual como `cancelled`, sem chamar o WAHA e sem causar falha global.
 
 ## Horarios e sequenciamento
 
-O Schedule Trigger possui quatro regras no timezone `America/Sao_Paulo`:
+O Schedule Trigger possui duas regras no timezone `America/Sao_Paulo`:
 
 | Ordem | Horario | Cron |
 | --- | --- | --- |
 | 1 | 09:30 | `30 9 * * *` |
-| 2 | 11:00 | `0 11 * * *` |
-| 3 | 14:30 | `30 14 * * *` |
-| 4 | 16:00 | `0 16 * * *` |
+| 2 | 17:30 | `30 17 * * *` |
 
 O node `Resolver Sequencia Estatica` usa
 `$getWorkflowStaticData('node')`. A primeira execucao publicada de cada dia
@@ -292,7 +290,7 @@ isoladamente, nao bastam.
 
 - grupo oficial restaurado;
 - regra temporaria removida;
-- quatro horarios oficiais presentes;
+- horarios oficiais presentes;
 - cinco credenciais Drive associadas;
 - workflow ativo e saudavel;
 - registro `confirmed` conferido;

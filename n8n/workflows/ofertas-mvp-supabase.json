@@ -341,15 +341,7 @@
             },
             {
               "field": "cronExpression",
-              "expression": "0 11 * * *"
-            },
-            {
-              "field": "cronExpression",
-              "expression": "30 14 * * *"
-            },
-            {
-              "field": "cronExpression",
-              "expression": "0 16 * * *"
+              "expression": "30 17 * * *"
             }
           ]
         }
@@ -880,19 +872,19 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "30 9 * * *"
+              "expression": "45 17 * * *"
             },
             {
               "field": "cronExpression",
-              "expression": "0 11 * * *"
+              "expression": "46 17 * * *"
             },
             {
               "field": "cronExpression",
-              "expression": "30 14 * * *"
+              "expression": "47 17 * * *"
             },
             {
               "field": "cronExpression",
-              "expression": "0 16 * * *"
+              "expression": "48 17 * * *"
             }
           ]
         }
@@ -906,7 +898,7 @@
         1800
       ],
       "notesInFlow": true,
-      "notes": "Horarios diarios das mensagens estaticas. Ajuste somente as regras deste trigger."
+      "notes": "Horarios diarios das mensagens pontuais. Ajuste somente as regras deste trigger."
     },
     {
       "parameters": {

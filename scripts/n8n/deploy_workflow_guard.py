@@ -72,12 +72,16 @@ EXPECTED_LOOP_RETURN_NODE = "Registrar Resultado Supabase"
 EXPECTED_STATIC_SCHEDULE_NODE = "Schedule Mensagens Estaticas"
 EXPECTED_STATIC_SCHEDULE_CRONS = (
     "30 9 * * *",
-    "0 11 * * *",
-    "30 14 * * *",
-    "0 16 * * *",
+    "30 17 * * *",
 )
 EXPECTED_STATIC_ROOT_FOLDER = "ofertas-femininas"
 EXPECTED_ONE_SHOT_SCHEDULE_NODE = "Schedule Mensagens Pontuais"
+EXPECTED_ONE_SHOT_SCHEDULE_CRONS = (
+    "45 17 * * *",
+    "46 17 * * *",
+    "47 17 * * *",
+    "48 17 * * *",
+)
 EXPECTED_ONE_SHOT_ROOT_FOLDER = "ofertas-femininas-pendentes"
 EXPECTED_ONE_SHOT_ARCHIVE_ROOT_FOLDER = "ofertas-femininas-enviados"
 EXPECTED_STATIC_TARGET = "grupo-ofertas-feminino"
@@ -491,7 +495,7 @@ def validate_static_messages(workflow: dict[str, Any], errors: list[str]) -> Non
             if isinstance(interval, dict) and interval.get("field") == "cronExpression"
         )
         if expressions != EXPECTED_STATIC_SCHEDULE_CRONS:
-            errors.append("static schedule must contain the four approved cron rules")
+            errors.append("static schedule must contain the approved cron rules")
 
     resolver = node_by_name(workflow, "Resolver Sequencia Estatica")
     resolver_code = str((resolver or {}).get("parameters", {}).get("jsCode", ""))
@@ -611,8 +615,8 @@ def validate_one_shot_messages(workflow: dict[str, Any], errors: list[str]) -> N
             for interval in intervals
             if isinstance(interval, dict) and interval.get("field") == "cronExpression"
         )
-        if expressions != EXPECTED_STATIC_SCHEDULE_CRONS:
-            errors.append("one-shot schedule must contain the four approved cron rules")
+        if expressions != EXPECTED_ONE_SHOT_SCHEDULE_CRONS:
+            errors.append("one-shot schedule must contain the approved cron rules")
 
     resolver = node_by_name(workflow, "Resolver Sequencia Pontual")
     resolver_code = str((resolver or {}).get("parameters", {}).get("jsCode", ""))

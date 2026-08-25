@@ -176,6 +176,21 @@ def test_validate_versioned_workflow_rejects_second_static_trigger() -> None:
         guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
+def test_validate_versioned_workflow_rejects_changed_static_schedule_crons() -> None:
+    workflow = workflow_payload()
+    schedule = guard.node_by_name(workflow, "Schedule Mensagens Estaticas")
+    assert schedule is not None
+    schedule["parameters"]["rule"]["interval"] = [
+        {"field": "cronExpression", "expression": "30 9 * * *"},
+        {"field": "cronExpression", "expression": "0 11 * * *"},
+        {"field": "cronExpression", "expression": "30 14 * * *"},
+        {"field": "cronExpression", "expression": "0 16 * * *"},
+    ]
+
+    with pytest.raises(guard.WorkflowGuardError, match="static schedule"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
 def test_validate_versioned_workflow_rejects_missing_file_route_to_waha() -> None:
     workflow = workflow_payload()
     workflow["connections"]["IF Arquivos Completos"]["main"][1][0]["node"] = (
@@ -263,6 +278,19 @@ def test_validate_versioned_workflow_rejects_one_shot_cancelled_route_to_waha() 
     )
 
     with pytest.raises(guard.WorkflowGuardError, match="one-shot connections modified"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_changed_one_shot_schedule_crons() -> None:
+    workflow = workflow_payload()
+    schedule = guard.node_by_name(workflow, "Schedule Mensagens Pontuais")
+    assert schedule is not None
+    schedule["parameters"]["rule"]["interval"] = [
+        {"field": "cronExpression", "expression": "30 9 * * *"},
+        {"field": "cronExpression", "expression": "30 17 * * *"},
+    ]
+
+    with pytest.raises(guard.WorkflowGuardError, match="one-shot schedule"):
         guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
