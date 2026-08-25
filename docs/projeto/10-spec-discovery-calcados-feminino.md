@@ -1,81 +1,229 @@
-# 10 — Spec de Discovery Cirúrgico de Calçados Feminino
+# 10 - Spec de Discovery Cirurgico de Calcados Feminino
 
 ## Status
 
-Proposta pronta para implementação.
+Proposta revisada, pronta para implementacao.
 
 ## Objetivo
 
-Adicionar uma capacidade **isolada, cirúrgica e exclusivamente aditiva** para descobrir produtos de calçados femininos na Shopee, sem alterar qualquer comportamento, regra, configuração ou fluxo já existente.
+Adicionar uma capacidade **isolada, cirurgica e aditiva** para rodar discovery de calcados dentro do profile operacional `feminino`, sem criar um profile tecnico paralelo.
 
-A mudança deve permitir executar discovery somente para calçados, reaproveitando o mecanismo atual de coleta por `keyword_terms`.
+A nova capacidade deve permitir executar o builder atual com um escopo declarativo:
 
-## Princípio obrigatório: regressão zero
+```bash
+shopee-catalog-builder --profile feminino --discovery-scope <scope>
+```
 
-Tudo que já existe deve permanecer intacto.
+Nesta entrega, o primeiro novo escopo implementado e:
 
-Esta implementação **não pode alterar**:
+```bash
+shopee-catalog-builder --profile feminino --discovery-scope calcado
+```
 
-- o profile `feminino` existente;
+Quando `--discovery-scope calcado` for usado:
+
+- o profile operacional continua sendo `feminino`;
+- a coleta usa somente as keywords aprovadas de calcados;
+- a saida permanece compativel com importacao posterior como `profile=feminino`;
+- nenhum item deve nascer como profile operacional `feminino-calcados`.
+
+Quando a flag nao for usada, o comportamento atual de `--profile feminino` deve permanecer exatamente igual.
+
+## Principio obrigatorio: regressao zero
+
+Tudo que ja existe deve permanecer intacto.
+
+Esta implementacao **nao pode alterar**:
+
 - as `keyword_terms` atuais do profile `feminino`;
 - os subnichos atuais do profile `feminino`;
 - discovery dos demais nichos;
-- `shopee_catalog_builder`;
+- provider Shopee;
 - algoritmo de coleta;
-- paginação;
-- deduplicação;
+- paginacao;
+- deduplicacao;
 - filtros negativos existentes;
-- classificação atual de itens já existentes;
+- classificacao atual de itens ja existentes;
 - score comercial;
 - cooldown;
 - fallback;
-- seleção editorial;
-- regras de rotação;
-- horários;
-- quantidade de mensagens já existentes;
-- publicação;
+- selecao editorial;
+- regras de rotacao;
+- horarios;
+- publicacao;
 - Supabase;
 - n8n;
 - WhatsApp;
 - WAHA;
 - contratos downstream.
 
-A implementação deve ser declarativa sempre que possível. Não fazer refatorações oportunistas, limpeza de código, reorganização de profiles ou qualquer mudança não necessária para criar o novo caminho de discovery.
+A mudanca deve ser declarativa sempre que possivel. Nao fazer refatoracoes oportunistas, limpeza de codigo, reorganizacao de profiles ou qualquer mudanca nao necessaria para suportar `--discovery-scope calcado`.
 
-## Contexto técnico confirmado
+## Contexto tecnico confirmado
 
-O builder atual recebe um `--profile`, carrega suas `keyword_terms` e executa uma coleta `productOfferV2(keyword=...)` para cada termo configurado.
+O builder atual recebe `--profile`, carrega `config/shopee_catalog_profiles.toml` e executa uma coleta `productOfferV2(keyword=...)` para cada termo configurado em `keyword_terms`.
 
-O CLI atual já possui o comportamento necessário para executar um profile composto apenas por keywords de calçados. Portanto, esta spec **não prevê alteração no CLI nem no código compartilhado do builder**.
+O problema de criar um profile tecnico `feminino-calcados` e que a saida nasce com `catalog_profile_slug=feminino-calcados`, o que exige normalizacao/remendo antes de importar para o catalogo operacional `feminino`.
 
-O profile `feminino` atual não contém keywords específicas de calçados. O arquivo de taxonomia feminina também não contém atualmente os novos subnichos de calçados.
+Como a necessidade real e descobrir calcados **para o profile feminino**, a identidade operacional deve continuar sendo:
+
+```text
+profile = feminino
+marketplace = shopee
+```
+
+Portanto, a feature correta e um escopo de discovery dentro do profile existente, nao um novo profile.
 
 ## Nova capacidade permitida
 
-Criar um novo profile técnico de discovery:
+Adicionar uma flag opcional ao builder:
 
 ```text
-feminino-calcados
+--discovery-scope <scope>
 ```
 
-Esse profile existe exclusivamente para coleta de candidatos de calçados.
+Regras:
 
-Ele:
+- a flag so deve restringir as fontes de coleta;
+- a flag deve aceitar qualquer subnicho permitido pela taxonomia do profile carregado, alem de agregadores explicitamente declarados;
+- a flag nao muda `profile.slug`;
+- a flag nao muda `catalog_profile_slug` na saida;
+- a flag nao cria novo destino operacional;
+- a flag nao cria novo grupo;
+- a flag nao cria nova regra editorial;
+- a flag nao altera filtros, dedup, score, fallback, cooldown ou publicacao.
 
-- não representa novo nicho comercial;
-- não cria novo grupo de WhatsApp;
-- não cria novo fluxo de publicação;
-- não altera o profile `feminino`;
-- não substitui o profile `feminino`;
-- não deve ser usado como destino operacional final;
-- deve gerar saída isolada por profile;
-- deve poder ser executado sem disparar as keywords atuais do profile `feminino`.
+Se a flag nao for informada, `shopee-catalog-builder --profile feminino` deve usar as `keyword_terms` atuais do profile `feminino`, sem diferenca de comportamento.
+
+## Generalizacao obrigatoria para grupos macro
+
+A implementacao da flag nao deve ser hardcoded para calcados.
+
+O contrato esperado e generico:
+
+```bash
+shopee-catalog-builder --profile <profile> --discovery-scope <scope>
+```
+
+Onde:
+
+- `<profile>` e o profile operacional existente, por exemplo `feminino`;
+- `<scope>` deve ser um grupo macro declarado em `subniches` do profile carregado;
+- cada grupo macro existente em `profile.subniches[].slug` deve ficar automaticamente habilitado como valor valido da flag;
+- quando um novo grupo macro for adicionado a `profile.subniches`, ele deve ficar automaticamente habilitado para uso na flag;
+- as keywords do scope devem vir de `profile.subniches[].keyword_terms`;
+- grupos macro podem apontar para um ou mais subnichos editoriais permitidos na taxonomia por meio de `target_subniches`;
+- a execucao focada usa somente as `keyword_terms` do escopo escolhido;
+- a saida continua mantendo a identidade operacional do profile original.
+
+Portanto, o mesmo mecanismo deve permitir imediatamente algo como:
+
+```bash
+shopee-catalog-builder --profile feminino --discovery-scope moda
+shopee-catalog-builder --profile feminino --discovery-scope cabelo
+shopee-catalog-builder --profile feminino --discovery-scope calcado
+```
+
+desde que esses slugs existam em `subniches` do profile `feminino`.
+
+Nesta entrega, o grupo macro `calcado` tambem deve existir para permitir uma unica rodada focada em toda a familia de calcados, sem exigir rodadas separadas para `calcados-sandalia`, `calcados-sapatilha`, `calcados-chinelo`, `calcados-rasteirinha` e `calcados-mocassim`.
+
+Se um usuario informar um escopo que nao exista em `profile.subniches[].slug`, o builder deve falhar de forma explicita, antes de chamar o provider.
+
+## Fonte canonica dos scopes permitidos
+
+A flag deve ser amarrada aos grupos macro ja declarados no profile, para impedir scopes soltos e para evitar chamadas excessivamente fragmentadas por subnicho editorial fino.
+
+Para `feminino`, a fonte canonica dos scopes permitidos e:
+
+```text
+config/shopee_catalog_profiles.toml
+```
+
+Campo obrigatorio:
+
+```text
+profiles[].subniches[].slug
+```
+
+Exemplos de scopes validos esperados:
+
+```text
+moda
+cabelo
+calcado
+maquiagem
+skincare
+unhas
+acessorios
+```
+
+Os subnichos editoriais finos da taxonomia continuam existindo, mas nao devem ser a interface principal da flag. Portanto, comandos como estes nao devem ser o caminho recomendado:
+
+```bash
+shopee-catalog-builder --profile feminino --discovery-scope moda-vestidos
+shopee-catalog-builder --profile feminino --discovery-scope cabelo-tratamento
+```
+
+Esses slugs finos podem continuar sendo usados pela classificacao/limpeza/editorial, mas a descoberta operacional focada deve acontecer pelo grupo macro.
+
+## Validacao contra a taxonomia editorial
+
+Para `feminino`, a fonte canonica de subnichos permitidos e:
+
+```text
+config/catalog-taxonomies/feminino/shopee_feminino_subniches_taxonomia_base.json
+```
+
+Campo obrigatorio:
+
+```text
+allowed_subniches
+```
+
+Regras:
+
+- `allowed_subniches` nao define diretamente os valores da flag;
+- `allowed_subniches` deve ser usado para validar `target_subniches` de cada grupo macro quando o grupo declarar esse campo;
+- todo item em `target_subniches` deve existir em `allowed_subniches`;
+- se qualquer `target_subniche` nao existir na taxonomia vigente, o builder deve falhar antes de chamar o provider;
+- a validacao deve acontecer no carregamento/planejamento da execucao, nao depois da coleta;
+- nao criar uma segunda lista manual de subnichos editoriais atuais dentro do discovery.
+
+Exemplo de grupo macro existente:
+
+```bash
+shopee-catalog-builder --profile feminino --discovery-scope cabelo
+```
+
+Nesse caso, `cabelo` precisa existir em `profile.subniches[].slug`, e as keywords devem vir do proprio bloco `subniches` do profile.
+
+Para o novo grupo macro de calcados, declarar:
+
+```toml
+{ slug = "calcado",
+name = "Calcados Femininos"
+target_subniches = [
+  "calcados-sandalia",
+  "calcados-sapatilha",
+  "calcados-chinelo",
+  "calcados-rasteirinha",
+  "calcados-mocassim",
+]
+keyword_terms = [...]
+}
+```
+
+Assim, a capacidade atende o caso operacional correto:
+
+- discovery focado em grupos macro, para reduzir quantidade de chamadas;
+- classificacao e planejamento continuam trabalhando com subnichos editoriais finos.
 
 ## Keywords de discovery
 
 Usar somente termos simples, sem obrigar a palavra `feminino` na query.
 
-Conjunto aprovado:
+Conjunto aprovado para o escopo `calcado`:
 
 ```text
 sandalia
@@ -93,11 +241,11 @@ birken
 
 ### Justificativa
 
-A adição de `feminino` às queries, como `chinelo feminino`, reduz o recall e pode deixar de recuperar produtos válidos cujo título contenha apenas `chinelo`, `slide`, `papete` etc.
+A adicao de `feminino` as queries, como `chinelo feminino`, reduz o recall e pode deixar de recuperar produtos validos cujo titulo contenha apenas `chinelo`, `slide`, `papete` etc.
 
-O discovery deve privilegiar recall e deixar a contenção de resultados inadequados para as mesmas travas negativas já usadas no universo feminino.
+O discovery deve privilegiar recall e deixar a contencao de resultados inadequados para as mesmas travas negativas ja usadas no universo feminino.
 
-## Validação com amostra real
+## Validacao com amostra real
 
 Foi analisado o arquivo:
 
@@ -105,9 +253,9 @@ Foi analisado o arquivo:
 BatchProductLinks20260825161442-ad1b1e5c698c47b49c14c5de292bd968.csv
 ```
 
-A amostra contém **67 itens**.
+A amostra contem **67 itens**.
 
-Aplicando correspondência textual normalizada sobre `Item Name`, o conjunto aprovado de 11 termos simples cobriu:
+Aplicando correspondencia textual normalizada sobre `Item Name`, o conjunto aprovado de 11 termos simples cobriu:
 
 ```text
 67 / 67 itens = 100% da amostra
@@ -115,7 +263,7 @@ Aplicando correspondência textual normalizada sobre `Item Name`, o conjunto apr
 
 Cobertura observada por termo na amostra:
 
-| Keyword | Itens com correspondência |
+| Keyword | Itens com correspondencia |
 |---|---:|
 | `sandalia` | 32 |
 | `sapatilha` | 13 |
@@ -129,15 +277,15 @@ Cobertura observada por termo na amostra:
 | `mocassim` | 2 |
 | `loafer` | 2 |
 
-Há sobreposição entre keywords; isso é esperado e deve continuar sendo tratado pela deduplicação já existente.
+Ha sobreposicao entre keywords; isso e esperado e deve continuar sendo tratado pela deduplicacao ja existente.
 
-A cobertura de 100% vale para esta amostra e **não deve ser interpretada como garantia universal de cobertura de todo o catálogo da Shopee**.
+A cobertura de 100% vale para esta amostra e **nao deve ser interpretada como garantia universal de cobertura de todo o catalogo da Shopee**.
 
-## Feminino sem forçar `feminino` na keyword
+## Feminino sem forcar `feminino` na keyword
 
-Não adicionar `feminino` às queries de discovery apenas para reforçar o gênero.
+Nao adicionar `feminino` as queries de discovery apenas para reforcar o genero.
 
-O novo profile técnico deve aplicar as mesmas travas negativas relevantes já existentes no profile feminino para rejeitar resultados claramente inadequados, incluindo termos como:
+O escopo `calcado` deve continuar usando as travas negativas vigentes do profile `feminino`, incluindo termos como:
 
 ```text
 masculino
@@ -146,19 +294,13 @@ for men
 for man
 ```
 
-além das demais exclusões já existentes e aplicáveis.
+alem das demais exclusoes ja existentes e aplicaveis.
 
-### Regra de segurança da implementação
+Nao modificar os `negative_terms` do profile `feminino` nesta entrega.
 
-Não modificar os `negative_terms` do profile `feminino`.
+## Relacao entre keywords e subnichos
 
-Para o novo profile `feminino-calcados`, deve-se **reproduzir declarativamente** o conjunto vigente de travas relevantes do feminino, ou reutilizá-lo apenas se isso já for suportado pela configuração atual sem mudança de código compartilhado.
-
-Se reutilização exigir refatoração do loader, herança nova ou alteração de código compartilhado, não fazer. Nesse caso, duplicar declarativamente os termos no novo profile é preferível porque preserva o caráter cirúrgico da mudança.
-
-## Relação entre keywords e subnichos
-
-Keyword de discovery não é equivalente a subnicho editorial.
+Keyword de discovery nao e equivalente a subnicho editorial.
 
 Termos como:
 
@@ -171,7 +313,7 @@ birken
 
 podem ser usados para descobrir produtos sem criar subnichos com esses nomes.
 
-Os subnichos finais aprovados para a expansão de calçados continuam sendo:
+Os subnichos finais aprovados para a expansao de calcados continuam sendo:
 
 ```text
 calcados-sandalia
@@ -181,147 +323,160 @@ calcados-rasteirinha
 calcados-mocassim
 ```
 
-Esta spec, porém, cobre **somente o discovery isolado**. A classificação definitiva e a expansão da taxonomia devem seguir a spec/etapa específica de taxonomia e planejamento, sem serem antecipadas por esta implementação.
+Esta spec cobre somente a selecao focada de keywords durante o discovery. Ela nao cria subnichos novos alem dos ja aprovados na etapa de taxonomia/planejamento.
 
-## Arquivo preferencial de alteração
+## Configuracao esperada
 
-A modificação deve ficar, preferencialmente, restrita a:
+Adicionar a configuracao declarativa do grupo macro dentro do bloco existente `slug = "feminino"` em:
 
 ```text
 config/shopee_catalog_profiles.toml
 ```
 
-Adicionar um novo bloco `[[profiles]]` com `slug = "feminino-calcados"`.
-
-Não modificar o bloco existente:
-
-```text
-slug = "feminino"
-```
-
-## Estrutura esperada do novo profile
-
-A forma exata deve respeitar o contrato atual de `config/shopee_catalog_profiles.toml`.
-
-Exemplo conceitual:
+Formato recomendado:
 
 ```toml
-[[profiles]]
-slug = "feminino-calcados"
-name = "Feminino - Calçados"
-keyword_terms = [
-  "sandalia",
-  "sapatilha",
-  "chinelo",
-  "rasteirinha",
-  "rasteira",
-  "mocassim",
-  "loafer",
-  "papete",
-  "tamanco",
-  "slide",
-  "birken",
+subniches = [
+  # manter os grupos macro existentes intactos
+  { slug = "calcado", name = "Calcados Femininos", target_subniches = ["calcados-sandalia", "calcados-sapatilha", "calcados-chinelo", "calcados-rasteirinha", "calcados-mocassim"], keyword_terms = ["sandalia", "sapatilha", "chinelo", "rasteirinha", "rasteira", "mocassim", "loafer", "papete", "tamanco", "slide", "birken"], negative_terms = ["masculino", "masculina", "masculinos", "masculinas", "masculin", "for men", "for man"] },
 ]
-
-negative_terms = [
-  # copiar apenas conforme contrato vigente do feminino;
-  # não alterar o profile feminino.
-]
-
-shop_ids = []
-shop_names = []
 ```
 
-Se o schema exigir outros campos obrigatórios, preenchê-los seguindo exatamente o padrão já existente, sem introduzir novas abstrações.
+Regras:
 
-## Execução esperada
+- nao alterar a lista atual de `keyword_terms` do profile `feminino`;
+- nao criar `[[profiles]] slug = "feminino-calcados"`;
+- nao criar heranca/refatoracao de `negative_terms`;
+- nao modificar profiles de outros nichos;
+- nao criar `discovery_scopes` separado se `subniches` ja representa os grupos macro do profile;
+- o suporte no loader/CLI deve ser generico para qualquer `profile.subniches[].slug`;
+- o loader/CLI deve validar `target_subniches` contra `allowed_subniches` da taxonomia do profile quando o campo existir.
 
-O novo discovery deve poder ser executado pelo CLI existente:
+## Execucao esperada
+
+Discovery completo atual:
 
 ```bash
-shopee-catalog-builder --profile feminino-calcados
+shopee-catalog-builder --profile feminino
 ```
 
-Não adicionar flags como:
+Discovery focado em calcados:
+
+```bash
+shopee-catalog-builder --profile feminino --discovery-scope calcado
+```
+
+Nao criar flags como:
 
 ```text
---only-keywords
---subniche
+--feminino-calcados
 --calcados
+--only-keywords
 ```
 
-Não criar novo CLI, novo collector, novo provider ou novo método de acesso à Shopee.
+Nao criar novo CLI, novo collector, novo provider ou novo metodo de acesso a Shopee.
 
-## Isolamento de saída
+## Identidade operacional e importacao
 
-A rodada deve usar o isolamento já existente por slug do profile, resultando em algo equivalente a:
+O escopo `calcado` e apenas um filtro de discovery.
+
+Mesmo quando `--discovery-scope calcado` for usado, a saida deve continuar representando:
 
 ```text
-.data/shopee_catalog/feminino-calcados/<run-id>/
+catalog_profile_slug = feminino
+catalog_profile_name = Feminino
 ```
 
-A execução não deve sobrescrever nem modificar:
+Qualquer importacao futura para Supabase deve usar:
 
 ```text
-.data/shopee_catalog/feminino/
+profile = feminino
+marketplace = shopee
 ```
 
-nem artefatos de outros profiles.
+E nunca:
+
+```text
+profile = feminino-calcados
+```
+
+Esta spec nao executa a importacao remota. Ela apenas garante que o artefato gerado pelo discovery focado ja nasce com a identidade correta para importacao controlada posterior como `feminino`.
+
+## Isolamento de saida
+
+A rodada focada deve ter isolamento proprio para nao sobrescrever uma rodada completa do profile.
+
+Formato recomendado:
+
+```text
+.data/shopee_catalog/feminino/scopes/calcado/<run-id>/
+```
+
+Tambem e aceitavel outro formato equivalente, desde que:
+
+- preserve `catalog_profile_slug=feminino` nos artefatos;
+- nao sobrescreva `.data/shopee_catalog/feminino/<run-id>/` de rodadas completas;
+- deixe claro no `run_summary.json` que `discovery_scope=calcado`;
+- seja testavel sem chamada real a Shopee.
 
 ## Fora de escopo
 
-Esta entrega não deve:
+Esta entrega nao deve:
 
-- mesclar automaticamente o resultado no catálogo operacional feminino;
-- promover itens para produção;
-- alterar Supabase;
-- alterar `catalog_items`;
-- adicionar slots de publicação;
-- implementar `+2` mensagens por hora;
-- alterar as atuais 112 mensagens/dia;
-- alterar distribuição editorial;
+- importar automaticamente o resultado no Supabase;
+- promover itens para producao;
+- alterar `catalog_items` remotamente;
 - alterar score;
 - alterar cooldown;
 - alterar fallback;
-- criar regra de rotação;
-- criar regra específica de escolha por horário;
-- mudar seleção dos itens existentes;
-- alterar taxonomia existente;
-- criar novos contratos downstream.
+- alterar selecao editorial;
+- alterar horarios;
+- alterar n8n;
+- alterar WhatsApp;
+- alterar WAHA;
+- criar novo grupo;
+- criar novo destino operacional;
+- criar novo profile operacional;
+- criar regra de rotacao;
+- criar regra especifica de escolha por horario.
 
-Esses assuntos pertencem às etapas específicas de taxonomia/planejamento e não fazem parte desta mudança de discovery.
+## Criterios de aceitacao
 
-## Critérios de aceitação
+A implementacao so esta concluida se todos os itens abaixo forem demonstrados:
 
-A implementação só está concluída se todos os itens abaixo forem demonstrados:
+1. `--profile feminino` sem `--discovery-scope` permanece com comportamento e fontes atuais.
+2. `--profile feminino --discovery-scope calcado` carrega somente as 11 keywords aprovadas.
+3. `--profile feminino --discovery-scope moda` usa somente as keywords do grupo macro `moda`.
+4. `--profile feminino --discovery-scope cabelo` usa somente as keywords do grupo macro `cabelo`.
+5. A flag nao percorre keywords de outros grupos femininos atuais.
+6. O profile carregado continua sendo `feminino`.
+7. A saida do scope mantem `catalog_profile_slug=feminino`.
+8. A saida focada fica isolada por escopo e nao sobrescreve rodadas completas.
+9. Nenhum `[[profiles]] slug = "feminino-calcados"` e criado.
+10. O suporte a `--discovery-scope` e generico para qualquer grupo macro existente em `profile.subniches[].slug`, sem hardcode de `calcado`, `moda` ou `cabelo`.
+11. Um novo grupo macro adicionado a `profile.subniches` fica automaticamente habilitado como flag quando possuir `keyword_terms`.
+12. Um escopo inexistente falha antes de chamar o provider.
+13. Um grupo macro sem `keyword_terms` falha antes de chamar o provider com erro claro.
+14. Todo `target_subniche` declarado no grupo macro e validado contra `allowed_subniches` da taxonomia vigente do profile.
+15. Um grupo macro com `target_subniche` inexistente falha antes de chamar o provider.
+16. Nenhum grupo, destino de publicacao ou configuracao n8n/WhatsApp e criado.
+17. Nenhuma regra de score, fallback, cooldown, dedup ou selecao e modificada.
+18. Os testes existentes continuam passando.
 
-1. O profile `feminino` permanece inalterado em comportamento e conteúdo dentro de `config/shopee_catalog_profiles.toml`.
-2. O novo profile `feminino-calcados` é carregado pelo loader existente sem mudança de código compartilhado.
-3. O novo profile contém somente as 11 keywords aprovadas de calçados.
-4. A execução de `--profile feminino-calcados` não percorre keywords de maquiagem, skincare, cabelo, moda geral ou outros grupos femininos já existentes.
-5. A execução de `--profile feminino` continua funcionando exatamente como antes.
-6. Nenhuma mudança é necessária em `shopee_catalog_builder`.
-7. Nenhuma mudança é necessária nos providers Shopee.
-8. A saída de `feminino-calcados` fica isolada por slug.
-9. Nenhum grupo, destino de publicação ou configuração n8n/WhatsApp é criado.
-10. Nenhuma regra de score, fallback, cooldown, dedup ou seleção é modificada.
-11. Os testes existentes continuam passando.
-12. Testes adicionais devem ser criados apenas se necessários para provar o carregamento do novo profile e a ausência de regressão no profile `feminino`.
+## Testes minimos de regressao
 
-## Testes mínimos de regressão
+Antes da implementacao, capturar a configuracao carregada do profile `feminino`.
 
-Antes da implementação, capturar a configuração carregada do profile `feminino`.
-
-Depois da implementação, provar:
+Depois da implementacao, provar:
 
 ```text
-feminino_before == feminino_after
+feminino_before_sem_scope == feminino_after_sem_scope
 ```
 
-Validar também:
+Validar tambem:
 
 ```text
-set(feminino_calcados.keyword_terms) == {
+set(feminino.subniches["calcado"].keyword_terms) == {
   sandalia,
   sapatilha,
   chinelo,
@@ -336,91 +491,128 @@ set(feminino_calcados.keyword_terms) == {
 }
 ```
 
-E provar que:
+E provar que uma execucao planejada para o builder com scope usa:
 
 ```text
+profile.slug == feminino
+discovery_scope == calcado
+target_subniches == somente subnichos existentes em allowed_subniches
+collection_keywords == somente as 11 aprovadas
+```
+
+Tambem provar que execucoes por grupos macro existentes funcionam sem cadastro adicional:
+
+```text
+profile.slug == feminino
+discovery_scope == moda
+collection_keywords == feminino.subniches["moda"].keyword_terms
+```
+
+```text
+profile.slug == feminino
+discovery_scope == cabelo
+collection_keywords == feminino.subniches["cabelo"].keyword_terms
+```
+
+Tambem validar que:
+
+```text
+feminino-calcados != profile operacional
 feminino-calcados != destino operacional
 feminino-calcados != novo grupo
 feminino-calcados != nova regra editorial
 ```
 
-## Regra de contenção
+## Regra de contencao
 
-Antes de qualquer alteração, aplicar a pergunta:
+Antes de qualquer alteracao, aplicar a pergunta:
 
-> Esta mudança é estritamente necessária para criar ou executar o profile técnico `feminino-calcados` usando o builder atual?
+> Esta mudanca e estritamente necessaria para executar `--profile feminino --discovery-scope calcado` usando o builder atual e mantendo a identidade operacional como `feminino`?
 
-Se a resposta for não, a mudança está fora do escopo.
+Se a resposta for nao, a mudanca esta fora do escopo.
 
-Não fazer:
+Nao fazer:
 
-- refatoração oportunista;
-- correção de problemas paralelos;
-- reorganização de configuração existente;
-- renomeação de estruturas atuais;
-- abstração nova para compartilhamento de `negative_terms`;
-- alteração de código compartilhado para reduzir duplicação;
-- mudança de comportamento dos profiles atuais.
+- refatoracao oportunista;
+- correcao de problemas paralelos;
+- reorganizacao de configuracao existente;
+- renomeacao de estruturas atuais;
+- profile tecnico `feminino-calcados`;
+- normalizacao posterior `feminino-calcados -> feminino`;
+- alteracao de Supabase;
+- alteracao de publicacao;
+- mudanca de comportamento dos profiles atuais.
 
 ## Resultado esperado
 
-Depois da implementação existirão dois caminhos independentes:
+Depois da implementacao existirao dois modos do mesmo profile operacional:
 
 ```text
-feminino
-→ comportamento atual intacto
+shopee-catalog-builder --profile feminino
+-> comportamento atual intacto
+-> usa keyword_terms completas do feminino
+-> saida de profile feminino
 ```
 
 ```text
-feminino-calcados
-→ discovery apenas pelas 11 keywords aprovadas
-→ aplicação das travas negativas próprias do novo profile
-→ deduplicação e persistência pelo mecanismo já existente
-→ saída isolada
-```
-
-A única nova capacidade operacional deve ser a possibilidade de executar o builder atual com:
-
-```bash
-shopee-catalog-builder --profile feminino-calcados
+shopee-catalog-builder --profile feminino --discovery-scope calcado
+-> discovery apenas pelas 11 keywords aprovadas
+-> aplica as travas negativas do profile feminino
+-> deduplicacao e persistencia pelo mecanismo existente
+-> saida isolada por escopo
+-> saida de profile feminino
+-> pronta para importacao controlada posterior como profile=feminino
 ```
 
 ## Prompt para o Codex implementar esta spec
 
 ```text
-Implemente a spec `docs/projeto/10-spec-discovery-calcados-feminino.md` no repositório atual.
+Implemente a spec `docs/projeto/10-spec-discovery-calcados-feminino.md` no repositorio atual.
 
-PRINCÍPIO MAIS IMPORTANTE: a mudança deve ser cirúrgica, estritamente aditiva e com regressão zero. Não altere nada que já exista além do mínimo indispensável para adicionar o novo profile técnico `feminino-calcados`.
+PRINCIPIO MAIS IMPORTANTE: a mudanca deve ser cirurgica, aditiva e com regressao zero. Nao crie o profile tecnico `feminino-calcados`; a identidade operacional deve continuar sendo `feminino`.
 
 Antes de editar:
-1. Leia `AGENTS.md` e siga todas as instruções do repositório.
+1. Leia `AGENTS.md` e siga todas as instrucoes do repositorio.
 2. Leia integralmente `docs/projeto/10-spec-discovery-calcados-feminino.md`.
 3. Inspecione `config/shopee_catalog_profiles.toml`.
-4. Inspecione o loader de profiles e o `shopee_catalog_builder` apenas para confirmar o contrato atual. Não refatore esses componentes.
-5. Capture a configuração atual do profile `feminino` para provar que ficará inalterada.
+4. Inspecione o loader de profiles e o `shopee_catalog_builder` apenas para confirmar o contrato atual.
+5. Capture a configuracao atual do profile `feminino` para provar que ficara inalterada quando a flag nao for usada.
 
-IMPLEMENTAÇÃO ESPERADA:
-- adicionar um novo `[[profiles]]` em `config/shopee_catalog_profiles.toml` com slug `feminino-calcados`;
+IMPLEMENTACAO ESPERADA:
+- adicionar suporte generico a `--discovery-scope <scope>` no builder Shopee;
+- aceitar automaticamente como scope qualquer grupo macro presente em `profile.subniches[].slug`;
+- usar as keywords do grupo macro em `profile.subniches[].keyword_terms`;
+- adicionar a configuracao declarativa do grupo macro `calcado` dentro do profile `feminino`;
+- declarar `target_subniches` do grupo `calcado` apontando somente para os cinco subnichos de calcados ja existentes na taxonomia feminina;
+- validar `target_subniches` contra `allowed_subniches` de `config/catalog-taxonomies/feminino/shopee_feminino_subniches_taxonomia_base.json`;
 - usar exatamente estas keywords simples: `sandalia`, `sapatilha`, `chinelo`, `rasteirinha`, `rasteira`, `mocassim`, `loafer`, `papete`, `tamanco`, `slide`, `birken`;
-- não adicionar `feminino` às keywords;
-- aplicar no novo profile as travas negativas relevantes já existentes no profile feminino, de forma declarativa;
-- NÃO modificar o bloco atual do profile `feminino`;
-- NÃO criar herança/refatoração para compartilhar configuração se isso exigir mudança de código comum;
-- NÃO alterar `shopee_catalog_builder` se o profile já puder ser carregado pelo contrato atual;
-- NÃO criar CLI novo nem novas flags;
-- NÃO alterar provider Shopee, paginação, dedup, filtros globais, classificação, score, cooldown, fallback, seleção, horários, Supabase, n8n, WhatsApp ou WAHA;
-- NÃO implementar ainda a expansão de taxonomia nem o +2 mensagens/hora; isso está fora desta spec.
+- nao adicionar `feminino` as keywords;
+- quando a flag for usada, coletar somente as keywords do scope;
+- quando a flag nao for usada, preservar exatamente as keywords atuais do profile;
+- manter `catalog_profile_slug=feminino` nos artefatos;
+- isolar a saida do scope para nao sobrescrever rodadas completas;
+- NAO criar `[[profiles]] slug = "feminino-calcados"`;
+- NAO criar normalizacao posterior de profile;
+- NAO alterar provider Shopee, paginacao, dedup, filtros globais, classificacao, score, cooldown, fallback, selecao, horarios, Supabase, n8n, WhatsApp ou WAHA.
 
-VALIDAÇÃO OBRIGATÓRIA:
-1. Rode os testes relevantes do loader/configuração e os testes existentes relacionados ao catálogo Shopee.
-2. Prove que o profile `feminino` antes e depois possui exatamente a mesma configuração.
-3. Prove que `feminino-calcados` contém somente as 11 keywords aprovadas.
-4. Prove que o builder para `feminino-calcados` usa somente essas keywords e produz saída isolada por slug.
-5. Rode a suíte existente suficiente para demonstrar ausência de regressão.
-6. Mostre o diff final e explique arquivo por arquivo por que cada alteração foi indispensável.
+VALIDACAO OBRIGATORIA:
+1. Rode os testes relevantes do loader/configuracao e os testes existentes relacionados ao catalogo Shopee.
+2. Prove que `--profile feminino` sem scope carrega a mesma configuracao e percorre as mesmas keywords de antes.
+3. Prove que `--profile feminino --discovery-scope calcado` usa somente as 11 keywords aprovadas.
+4. Prove que `--profile feminino --discovery-scope moda` usa somente as keywords do grupo macro `moda`.
+5. Prove que `--profile feminino --discovery-scope cabelo` usa somente as keywords do grupo macro `cabelo`.
+6. Prove que a saida focada preserva `catalog_profile_slug=feminino` e registra `discovery_scope=calcado`.
+7. Prove que nao existe profile operacional `feminino-calcados`.
+8. Prove que um novo grupo macro adicionado a `profile.subniches` fica automaticamente habilitado como flag quando possuir `keyword_terms`.
+9. Prove que um escopo inexistente falha antes de chamar o provider.
+10. Prove que grupo macro sem `keyword_terms` falha antes de chamar o provider com erro claro.
+11. Prove que `target_subniches` do grupo `calcado` e validado contra `allowed_subniches` da taxonomia vigente do profile.
+12. Prove que um `target_subniche` inexistente falha antes de chamar o provider.
+13. Rode a suite existente suficiente para demonstrar ausencia de regressao.
+14. Mostre o diff final e explique arquivo por arquivo por que cada alteracao foi indispensavel.
 
-CONTENÇÃO DE ESCOPO:
-Se durante a implementação você concluir que precisa alterar código compartilhado, schema, Supabase, seleção, taxonomia, n8n, publicação ou qualquer componente fora da inclusão declarativa do novo profile, NÃO faça a alteração automaticamente. Pare essa parte, documente a incompatibilidade encontrada e explique por que a spec não pode ser cumprida de forma puramente aditiva.
+CONTENCAO DE ESCOPO:
+Se durante a implementacao voce concluir que precisa alterar schema, Supabase, selecao, taxonomia, n8n, publicacao ou qualquer componente fora da flag/configuracao de discovery, NAO faca a alteracao automaticamente. Pare essa parte, documente a incompatibilidade encontrada e explique por que a spec precisa ser reavaliada.
 
-Não aproveite esta tarefa para corrigir ou refatorar qualquer outro ponto do projeto.
+Nao aproveite esta tarefa para corrigir ou refatorar qualquer outro ponto do projeto.
 ```
