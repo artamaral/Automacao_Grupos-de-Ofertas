@@ -83,6 +83,19 @@ def test_clone_expansion_restores_fanout_configuration_after_drive_nodes() -> No
         assert "destination_count: source.destinations.length" not in code
 
 
+def test_clone_prepares_waha_send_from_image_url() -> None:
+    workflow = workflow_payload()
+    for name in (
+        "Preparar Envio WAHA",
+        "Preparar Envio WAHA Estatico",
+        "Preparar Envio WAHA Pontual",
+    ):
+        code = node(workflow, name)["parameters"]["jsCode"]
+        assert "item.image_url" in code
+        assert "waha_image_url" in code
+        assert "waha_image_base64" not in code
+
+
 @pytest.mark.parametrize("forbidden", guard.FORBIDDEN_VALUES)
 def test_clone_contract_rejects_production_reference(forbidden: str) -> None:
     workflow = workflow_payload()

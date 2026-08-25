@@ -88,8 +88,23 @@ return destinations.map((destination, destinationIndex) => ({
 
 
 PREPARE_SEND_CODE = """const item = $json;
-const canSend = item.real_send_enabled === true && Boolean(item.message_text && item.target_chat_id && item.waha_image_base64);
-return { json: { ...item, target_allowed: true, waha_should_send: canSend, blocked_reason: canSend ? null : 'test_send_not_enabled_or_payload_missing', delivery_status: 'cancelled', adapter_status: canSend ? 'ready_for_real_channel_node' : 'not_sent' } };"""
+const targetChatId = String(item.target_chat_id || '').trim();
+const imageUrl = String(item.image_url || '').trim();
+const imageIsValid = /^https?:\\/\\//i.test(imageUrl);
+const canSend = item.real_send_enabled === true && Boolean(item.message_text && targetChatId && imageIsValid);
+return {
+  json: {
+    ...item,
+    target_allowed: true,
+    waha_should_send: canSend,
+    waha_chat_id: canSend ? targetChatId : null,
+    waha_image_url: canSend ? imageUrl : null,
+    waha_image_filename: canSend ? `oferta-${String(item.item_id || item.stable_key || 'teste').replace(/[^a-z0-9_-]/gi, '').slice(0, 80) || 'teste'}.jpg` : null,
+    blocked_reason: canSend ? null : 'test_send_not_enabled_or_payload_missing',
+    delivery_status: canSend ? 'pending' : 'cancelled',
+    adapter_status: canSend ? 'ready_for_real_channel_node' : 'not_sent',
+  },
+};"""
 
 
 NORMALIZE_SEND_CODE = """const original = $('PREPARE_NODE').item.json;
