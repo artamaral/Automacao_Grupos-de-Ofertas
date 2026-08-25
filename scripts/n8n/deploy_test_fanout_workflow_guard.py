@@ -120,6 +120,8 @@ def validate_workflow(workflow: dict[str, Any], workflow_id: str = DEFAULT_WORKF
         if node is None or node.get("type") != "n8n-nodes-base.splitInBatches":
             errors.append(f"missing sequential destination loop: {loop_name}")
     expected_routes = {
+        "Trigger Manual Estatico Fanout Teste": {"Resolver Sequencia Estatica"},
+        "Trigger Manual Pontual Fanout Teste": {"Resolver Sequencia Pontual"},
         "Configurar Destinos Fanout Teste": {
             "IF Fluxo Recorrente Fanout",
             "IF Fluxo Estatico Fanout",
@@ -138,6 +140,13 @@ def validate_workflow(workflow: dict[str, Any], workflow_id: str = DEFAULT_WORKF
     for source, expected in expected_routes.items():
         if not expected <= connection_targets(workflow, source):
             errors.append(f"fan-out connection missing from {source}")
+    for manual_name in (
+        "Trigger Manual Estatico Fanout Teste",
+        "Trigger Manual Pontual Fanout Teste",
+    ):
+        node = node_by_name(workflow, manual_name)
+        if node is None or node.get("type") != "n8n-nodes-base.manualTrigger":
+            errors.append(f"missing isolated manual trigger: {manual_name}")
     if "Loop Ofertas" not in connection_targets(workflow, "Loop Destinos Recorrente"):
         errors.append("recurring destination loop must return to offer loop")
     for source, connection in workflow.get("connections", {}).items():

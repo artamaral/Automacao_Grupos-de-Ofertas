@@ -115,6 +115,17 @@ def code_node(node_id: str, name: str, code: str, position: list[int]) -> dict[s
     }
 
 
+def manual_trigger_node(node_id: str, name: str, position: list[int]) -> dict[str, Any]:
+    return {
+        "parameters": {},
+        "id": node_id,
+        "name": name,
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": position,
+    }
+
+
 def loop_node(node_id: str, name: str, position: list[int]) -> dict[str, Any]:
     return {
         "parameters": {"batchSize": 1, "options": {}},
@@ -260,6 +271,16 @@ def build() -> dict[str, Any]:
 
     workflow["nodes"].extend(
         [
+            manual_trigger_node(
+                "test-fanout-manual-static",
+                "Trigger Manual Estatico Fanout Teste",
+                [0, 540],
+            ),
+            manual_trigger_node(
+                "test-fanout-manual-one-shot",
+                "Trigger Manual Pontual Fanout Teste",
+                [0, 960],
+            ),
             code_node(
                 "test-fanout-config",
                 "Configurar Destinos Fanout Teste",
@@ -305,6 +326,16 @@ def build() -> dict[str, Any]:
     )
 
     set_connection(workflow, "Trigger Manual", [["Set Contexto MVP"]])
+    set_connection(
+        workflow,
+        "Trigger Manual Estatico Fanout Teste",
+        [["Resolver Sequencia Estatica"]],
+    )
+    set_connection(
+        workflow,
+        "Trigger Manual Pontual Fanout Teste",
+        [["Resolver Sequencia Pontual"]],
+    )
     set_connection(workflow, "Set Contexto MVP", [["Configurar Destinos Fanout Teste"]])
     set_connection(workflow, "Schedule Recorrente Fanout Teste", [["Set Contexto Schedule Grupo"]])
     set_connection(workflow, "Set Contexto Schedule Grupo", [["Configurar Destinos Fanout Teste"]])

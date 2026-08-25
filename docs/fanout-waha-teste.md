@@ -23,6 +23,10 @@ O JSON versionado mantem apenas os nomes logicos `grupo-teste-fanout` e
 
 - Os tres fluxos usam a mesma lista `destinations[]`: recorrente Supabase,
   mensagens estaticas e mensagens pontuais.
+- O recorrente usa o `Trigger Manual` original. As mensagens estaticas e
+  pontuais usam, respectivamente, `Trigger Manual Estatico Fanout Teste` e
+  `Trigger Manual Pontual Fanout Teste`; execute somente o gatilho do fluxo
+  que esta sendo validado.
 - Cada destino passa por loop sequencial e `/api/sendImage`.
 - O recorrente consulta somente uma previa e nunca claima a fila diaria.
 - O clone nao grava nem atualiza `offers.publication_events`.

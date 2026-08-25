@@ -111,6 +111,17 @@ def test_clone_has_sequential_loop_and_wait_for_each_flow() -> None:
     assert "Loop Ofertas" in guard.connection_targets(workflow, "Loop Destinos Recorrente")
 
 
+def test_clone_has_isolated_manual_entries_for_drive_flows() -> None:
+    workflow = workflow_payload()
+    expected = {
+        "Trigger Manual Estatico Fanout Teste": "Resolver Sequencia Estatica",
+        "Trigger Manual Pontual Fanout Teste": "Resolver Sequencia Pontual",
+    }
+    for trigger_name, target_name in expected.items():
+        assert node(workflow, trigger_name)["type"] == "n8n-nodes-base.manualTrigger"
+        assert target_name in guard.connection_targets(workflow, trigger_name)
+
+
 def test_clone_has_no_ledger_or_archive_nodes() -> None:
     workflow = workflow_payload()
     names = {item["name"] for item in workflow["nodes"]}

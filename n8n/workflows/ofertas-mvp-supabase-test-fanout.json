@@ -1305,6 +1305,28 @@
       ]
     },
     {
+      "parameters": {},
+      "id": "test-fanout-manual-static",
+      "name": "Trigger Manual Estatico Fanout Teste",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        540
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "test-fanout-manual-one-shot",
+      "name": "Trigger Manual Pontual Fanout Teste",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        960
+      ]
+    },
+    {
       "parameters": {
         "jsCode": "const destinations = [\n  { target: 'grupo-teste-fanout', chat_id_var: 'N8N_TEST_FANOUT_GROUP_CHAT_ID', destination_kind: 'group', channel_adapter: 'whatsapp', active: true },\n  { target: 'canal-teste-fanout', chat_id_var: 'N8N_TEST_FANOUT_CHANNEL_CHAT_ID', destination_kind: 'channel', channel_adapter: 'whatsapp', active: true },\n];\nconst configured = destinations.filter((destination) => destination.active === true).map((destination) => ({\n  ...destination,\n  target_chat_id: String($vars[destination.chat_id_var] || '').trim(),\n}));\nif (configured.length !== 2) throw new Error('fanout de teste exige exatamente dois destinos ativos');\nconst targetNames = new Set();\nfor (const destination of configured) {\n  if (!/^[a-z0-9][a-z0-9_-]{1,80}$/i.test(destination.target) || targetNames.has(destination.target)) throw new Error('target de teste invalido ou duplicado');\n  targetNames.add(destination.target);\n  if (destination.channel_adapter !== 'whatsapp') throw new Error('adapter de teste invalido');\n  const expectedSuffix = destination.destination_kind === 'group' ? /@g\\.us$/ : /@newsletter$/;\n  if (!expectedSuffix.test(destination.target_chat_id)) throw new Error(`chat id invalido para ${destination.destination_kind}`);\n}\nreturn [{ json: { ...$json, destinations: configured, allowed_targets: configured.map((destination) => destination.target), validation_source_preview: true, real_send_enabled: String($vars.N8N_TEST_FANOUT_REAL_SEND_ENABLED || '').toLowerCase() === 'true', send_delay_seconds_min: 45, send_delay_seconds_max: 90 } }];"
       },
@@ -2112,6 +2134,28 @@
         [
           {
             "node": "Set Contexto Schedule Grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Manual Estatico Fanout Teste": {
+      "main": [
+        [
+          {
+            "node": "Resolver Sequencia Estatica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Manual Pontual Fanout Teste": {
+      "main": [
+        [
+          {
+            "node": "Resolver Sequencia Pontual",
             "type": "main",
             "index": 0
           }
