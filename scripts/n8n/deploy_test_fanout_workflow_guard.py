@@ -174,16 +174,35 @@ def build_update_sql(workflow: dict[str, Any], workflow_id: str) -> str:
     connections = json.dumps(workflow["connections"], ensure_ascii=False, separators=(",", ":"))
     settings = json.dumps(workflow.get("settings", {}), ensure_ascii=False, separators=(",", ":"))
     return (
-        "update workflow_entity\n"
-        f"set nodes = {dollar_quote(nodes)}::json,\n"
-        f"    connections = {dollar_quote(connections)}::json,\n"
-        f"    settings = {dollar_quote(settings)}::json,\n"
-        "    active = false,\n"
-        '    "versionId" = gen_random_uuid()::text,\n'
-        '    "versionCounter" = coalesce("versionCounter", 0) + 1,\n'
-        '    "updatedAt" = now()\n'
-        f"where id = {sql_literal(workflow_id)}\n"
-        "returning id, active;"
+        "with updated_workflow as (\n"
+        "  update workflow_entity\n"
+        f"  set nodes = {dollar_quote(nodes)}::json,\n"
+        f"      connections = {dollar_quote(connections)}::json,\n"
+        f"      settings = {dollar_quote(settings)}::json,\n"
+        "      active = false,\n"
+        '      "versionId" = gen_random_uuid()::text,\n'
+        '      "versionCounter" = coalesce("versionCounter", 0) + 1,\n'
+        '      "updatedAt" = now()\n'
+        f"  where id = {sql_literal(workflow_id)}\n"
+        '  returning id, "versionId", name, nodes, connections, "updatedAt"\n'
+        "),\n"
+        "insert into workflow_history (\n"
+        '  "versionId", "workflowId", authors, "createdAt", "updatedAt",\n'
+        '  nodes, connections, name, autosaved, description, "nodeGroups"\n'
+        ")\n"
+        "select\n"
+        '  updated."versionId", updated.id,\n'
+        "  coalesce((\n"
+        "    select history.authors\n"
+        "    from workflow_history history\n"
+        '    where history."workflowId" = updated.id\n'
+        '    order by history."createdAt" desc\n'
+        "    limit 1\n"
+        "  ), 'system'),\n"
+        '  updated."updatedAt", updated."updatedAt", updated.nodes,\n'
+        "  updated.connections, updated.name, false, null, '[]'::json\n"
+        "from updated_workflow updated\n"
+        'returning "workflowId" as id;'
     )
 
 
@@ -197,7 +216,7 @@ def apply_workflow(sql: str, args: argparse.Namespace) -> None:
     )
     if completed.returncode != 0:
         raise WorkflowGuardError("failed to update the imported test fan-out workflow")
-    if "|f" not in completed.stdout.replace(" ", ""):
+    if not completed.stdout.strip():
         raise WorkflowGuardError(
             "workflow was not updated inactive; import it in the n8n panel first"
         )

@@ -114,3 +114,11 @@ def test_clone_has_no_ledger_or_archive_nodes() -> None:
         & names
     )
     assert "Mover Pasta msg_XXX Pontual" not in names
+
+
+def test_guard_update_sql_creates_workflow_history() -> None:
+    sql = guard.build_update_sql(workflow_payload(), guard.DEFAULT_WORKFLOW_ID)
+
+    assert "insert into workflow_history" in sql
+    assert '"workflowId"' in sql
+    assert "active = false" in sql
