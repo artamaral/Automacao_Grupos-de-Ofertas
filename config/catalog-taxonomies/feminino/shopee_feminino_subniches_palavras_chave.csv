@@ -1,6 +1,11 @@
 subniche,keyword_count,keywords
 acessorios-femininos,1,óculos feminino
 bolsas-e-carteiras,2,bolsa feminina | carteira feminina
+calcados-chinelo,2,chinelo | chinelo feminino
+calcados-mocassim,3,loafer feminino | mocassim | mocassim feminino
+calcados-rasteirinha,2,rasteira feminina | rasteirinha
+calcados-sandalia,5,sandal | sandalia | sandalia feminina | sandália | sandália feminina
+calcados-sapatilha,2,sapatilha | sapatilha feminina
 cabelo-ferramentas,5,babyliss | chapinha | escova secadora | modelador de cabelo | secador cabelo
 cabelo-tratamento,3,creme cabelo | cronograma capilar | óleo capilar
 cuidados-depilacao,1,depilador feminino
@@ -19,6 +24,7 @@ moda-evangelica,3,moda evangelica | saia evangelica | vestido evangelico
 moda-festa,2,look festa | vestido festa
 moda-fitness,7,conjunto academia | legging academia | moda fitness | roupa academia | shorts academia | top academia | top fitness
 moda-geral,4,look | moda | roupa | roupas
+moda-gestante,0,
 moda-inverno,9,cardigan | casaco | conjunto moletom | jaqueta | jaqueta couro | jaqueta jeans | moletom | sueter | tricot
 moda-macacoes-e-macaquinhos,2,macacao | macaquinho
 moda-ofertas-e-basicos,4,roupa barata | roupa promocao | roupas atacado | roupas shopee

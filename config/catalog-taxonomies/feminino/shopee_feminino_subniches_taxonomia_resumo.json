@@ -4,9 +4,9 @@
   "catalog_profile_slug": "feminino",
   "catalog_profile_name": "Feminino",
   "input_rows": 176101,
-  "allowed_subniches_count": 32,
+  "allowed_subniches_count": 37,
   "source_keywords_discovered": 134,
-  "source_keywords_mapped": 134,
+  "source_keywords_mapped": 148,
   "unmapped_discovered_keywords": [],
   "output_files": {
     "taxonomy_json": "/mnt/data/shopee_feminino_subniches_taxonomia_base.json",

@@ -37,6 +37,14 @@ class DailyPlanningPolicy:
     weekly_rotation_quotas: dict[str, int]
     publication_groups: dict[str, tuple[str, ...]] = field(default_factory=dict)
     excluded_subniches: tuple[str, ...] = ()
+    window_family_quotas: tuple[WindowFamilyQuota, ...] = ()
+
+
+@dataclass(frozen=True)
+class WindowFamilyQuota:
+    family: str
+    subniches: tuple[str, ...]
+    items_per_window: int
 
 
 @dataclass(frozen=True)
@@ -69,6 +77,7 @@ def load_daily_planning_policy(
             item.get("excluded_subniches"),
             "excluded_subniches",
         )
+        window_family_quotas = _window_family_quotas(item.get("window_family_quotas"))
         policy = DailyPlanningPolicy(
             profile=profile,
             marketplace=marketplace,
@@ -83,6 +92,7 @@ def load_daily_planning_policy(
             weekly_rotation_quotas=rotation,
             publication_groups=publication_groups,
             excluded_subniches=excluded_subniches,
+            window_family_quotas=window_family_quotas,
         )
         validate_daily_planning_policy(policy)
         return policy
@@ -110,6 +120,19 @@ def validate_daily_planning_policy(policy: DailyPlanningPolicy) -> None:
             raise DispatchPlanningError(f"invalid publication group: {key}")
         if set(subniches) & set(policy.excluded_subniches):
             raise DispatchPlanningError(f"publication group includes excluded subniche: {key}")
+    family_subniches: set[str] = set()
+    for quota in policy.window_family_quotas:
+        if quota.items_per_window <= 0 or quota.items_per_window > policy.items_per_window:
+            raise DispatchPlanningError(f"invalid window family quota: {quota.family}")
+        if family_subniches & set(quota.subniches):
+            raise DispatchPlanningError(
+                f"window family quota overlaps subniches: {quota.family}"
+            )
+        if set(quota.subniches) & set(policy.excluded_subniches):
+            raise DispatchPlanningError(
+                f"window family quota includes excluded subniche: {quota.family}"
+            )
+        family_subniches.update(quota.subniches)
 
 
 def weekly_rotation_daily_quotas(
@@ -245,21 +268,27 @@ def _sequence_windows(
 
     planned: list[PlannedDispatch] = []
     daily_sequence = 0
+    family_by_subniche = _active_window_family_by_subniche(policy, selected)
     extra_rotation_windows = _spread_indexes(
         len(policy.schedule_hours),
         policy.rotation_items_per_day - len(policy.schedule_hours),
     )
     for window_index, hour in enumerate(policy.schedule_hours):
         window_counts: Counter[str] = Counter()
+        window_family_counts: Counter[str] = Counter()
         rotation_target = 1 + int(window_index in extra_rotation_windows)
         rotation_selected = 0
         for slot in range(1, policy.items_per_window + 1):
             remaining_windows = len(policy.schedule_hours) - window_index - 1
+            remaining_slots = policy.items_per_window - slot + 1
             available = _available_window_subniches(
                 queues,
                 window_counts=window_counts,
+                window_family_counts=window_family_counts,
                 remaining_windows=remaining_windows,
+                remaining_slots=remaining_slots,
                 policy=policy,
+                family_by_subniche=family_by_subniche,
             )
             if not available:
                 raise DispatchPlanningError(f"cannot fill hour {hour} under subniche cap")
@@ -294,6 +323,9 @@ def _sequence_windows(
             if bucket == "weekly_rotation":
                 rotation_selected += 1
             window_counts[subniche] += 1
+            family = family_by_subniche.get(subniche)
+            if family:
+                window_family_counts[family] += 1
             daily_sequence += 1
             planned.append(
                 PlannedDispatch(
@@ -313,14 +345,24 @@ def _available_window_subniches(
     queues: dict[str, deque[tuple[DispatchCandidate, str, str]]],
     *,
     window_counts: Counter[str],
+    window_family_counts: Counter[str],
     remaining_windows: int,
+    remaining_slots: int,
     policy: DailyPlanningPolicy,
+    family_by_subniche: dict[str, str],
 ) -> list[str]:
     available = [
         subniche
         for subniche, queue in queues.items()
         if queue and window_counts[subniche] < policy.max_items_per_subniche_per_window
     ]
+    available = _filter_window_family_quotas(
+        available,
+        window_family_counts=window_family_counts,
+        remaining_slots=remaining_slots,
+        policy=policy,
+        family_by_subniche=family_by_subniche,
+    )
     urgent = [
         subniche
         for subniche in available
@@ -333,6 +375,41 @@ def _available_window_subniches(
         )
     ]
     return urgent or available
+
+
+def _filter_window_family_quotas(
+    available: list[str],
+    *,
+    window_family_counts: Counter[str],
+    remaining_slots: int,
+    policy: DailyPlanningPolicy,
+    family_by_subniche: dict[str, str],
+) -> list[str]:
+    if not policy.window_family_quotas:
+        return available
+    active_families = set(family_by_subniche.values())
+    remaining_by_family = {
+        quota.family: quota.items_per_window - window_family_counts[quota.family]
+        for quota in policy.window_family_quotas
+        if quota.family in active_families
+    }
+    available = [
+        subniche
+        for subniche in available
+        if remaining_by_family.get(family_by_subniche.get(subniche, ""), 1) > 0
+    ]
+    required_now = {
+        family
+        for family, remaining in remaining_by_family.items()
+        if remaining > 0 and remaining >= remaining_slots
+    }
+    if not required_now:
+        return available
+    return [
+        subniche
+        for subniche in available
+        if family_by_subniche.get(subniche) in required_now
+    ]
 
 
 def _remaining_window_capacity(
@@ -501,6 +578,47 @@ def _publication_group_map(raw: object) -> dict[str, tuple[str, ...]]:
             raise DispatchPlanningError(f"invalid publication group: {group}")
         groups[group] = subniches
     return groups
+
+
+def _window_family_quotas(raw: object) -> tuple[WindowFamilyQuota, ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise DispatchPlanningError("window_family_quotas must contain quotas")
+    quotas: list[WindowFamilyQuota] = []
+    seen: set[str] = set()
+    for item in raw:
+        if not isinstance(item, dict):
+            raise DispatchPlanningError("invalid window family quota")
+        family = str(item.get("family", "")).strip()
+        subniches = _string_tuple(item.get("subniches"), f"window_family_quotas.{family}")
+        count = int(item.get("items_per_window", 0))
+        if not family or not subniches or count <= 0 or family in seen:
+            raise DispatchPlanningError(f"invalid window family quota: {family}")
+        quotas.append(
+            WindowFamilyQuota(
+                family=family,
+                subniches=subniches,
+                items_per_window=count,
+            )
+        )
+        seen.add(family)
+    return tuple(quotas)
+
+
+def _active_window_family_by_subniche(
+    policy: DailyPlanningPolicy,
+    selected: list[tuple[DispatchCandidate, str, str]],
+) -> dict[str, str]:
+    selected_counts = Counter(item[0].primary_subniche for item in selected)
+    active: dict[str, str] = {}
+    for quota in policy.window_family_quotas:
+        expected_total = quota.items_per_window * len(policy.schedule_hours)
+        selected_total = sum(selected_counts[subniche] for subniche in quota.subniches)
+        if selected_total != expected_total:
+            continue
+        active.update({subniche: quota.family for subniche in quota.subniches})
+    return active
 
 
 def _string_tuple(raw: object, field: str) -> tuple[str, ...]:

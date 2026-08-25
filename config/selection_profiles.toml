@@ -93,7 +93,7 @@ items = 1
 [[policies]]
 slug = "feminino"
 niche = "feminino"
-total_items = 8
+total_items = 10
 max_zero_sales_items = 4
 minimum_daily_runs = 14
 cooldown_hours_default = 24
@@ -101,7 +101,7 @@ cooldown_hours_default = 24
 publication_cooldown_operational_days = 3
 evidence = "catalogs/clean/feminino/clean_catalog_rating_4_8_plus.csv"
 planning_mode = "daily_persisted"
-daily_total_items = 112
+daily_total_items = 140
 rotation_items_per_day = 16
 schedule_hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 max_items_per_subniche_per_window = 2
@@ -227,6 +227,37 @@ items = 4
 [[policies.fixed_daily_quotas]]
 subniche = "acessorios-femininos"
 items = 4
+
+[[policies.fixed_daily_quotas]]
+subniche = "calcados-sandalia"
+items = 10
+
+[[policies.fixed_daily_quotas]]
+subniche = "calcados-sapatilha"
+items = 8
+
+[[policies.fixed_daily_quotas]]
+subniche = "calcados-chinelo"
+items = 4
+
+[[policies.fixed_daily_quotas]]
+subniche = "calcados-rasteirinha"
+items = 4
+
+[[policies.fixed_daily_quotas]]
+subniche = "calcados-mocassim"
+items = 2
+
+[[policies.window_family_quotas]]
+family = "calcados"
+subniches = [
+  "calcados-sandalia",
+  "calcados-sapatilha",
+  "calcados-chinelo",
+  "calcados-rasteirinha",
+  "calcados-mocassim",
+]
+items_per_window = 2
 
 [[policies.weekly_rotation_quotas]]
 subniche = "rotacao-moda"

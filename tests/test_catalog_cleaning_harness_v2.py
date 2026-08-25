@@ -13,12 +13,86 @@ MODULE_PATH = (
     / "catalog-cleaning"
     / "catalog_cleaning_harness_v2.py"
 )
+FEMININO_TAXONOMY_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "config"
+    / "catalog-taxonomies"
+    / "feminino"
+    / "shopee_feminino_subniches_taxonomia_base.json"
+)
 pytest.importorskip("pandas")
 SPEC = importlib.util.spec_from_file_location("catalog_cleaning_harness_v2", MODULE_PATH)
 assert SPEC is not None
 catalog_cleaning_harness_v2 = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(catalog_cleaning_harness_v2)
+
+
+def test_feminino_taxonomy_accepts_calcados_subniches() -> None:
+    taxonomy = catalog_cleaning_harness_v2.load_taxonomy(FEMININO_TAXONOMY_PATH)
+
+    calcados = {
+        "calcados-sandalia",
+        "calcados-sapatilha",
+        "calcados-chinelo",
+        "calcados-rasteirinha",
+        "calcados-mocassim",
+    }
+
+    assert len(taxonomy["allowed_subniches"]) == 37
+    assert calcados <= set(taxonomy["allowed_subniches"])
+
+
+def test_feminino_taxonomy_maps_sandal_to_sandalia_only() -> None:
+    taxonomy = catalog_cleaning_harness_v2.load_taxonomy(FEMININO_TAXONOMY_PATH)
+
+    subniches, *_ = catalog_cleaning_harness_v2.classify_subniches(
+        '["keyword:sandal"]',
+        "Sandal feminina",
+        taxonomy,
+    )
+
+    assert subniches == ["calcados-sandalia"]
+    assert "calcados-sandal" not in taxonomy["allowed_subniches"]
+
+
+def test_feminino_taxonomy_classifies_basic_calcados_samples() -> None:
+    taxonomy = catalog_cleaning_harness_v2.load_taxonomy(FEMININO_TAXONOMY_PATH)
+
+    samples = {
+        "Sandália Feminina": "calcados-sandalia",
+        "Sapatilha Feminina": "calcados-sapatilha",
+        "Chinelo Feminino": "calcados-chinelo",
+        "Rasteirinha Feminina": "calcados-rasteirinha",
+        "Mocassim Feminino": "calcados-mocassim",
+    }
+
+    for product_name, expected in samples.items():
+        subniches, *_ = catalog_cleaning_harness_v2.classify_subniches(
+            '["keyword:feminino"]',
+            product_name,
+            taxonomy,
+        )
+        assert subniches == [expected]
+
+
+def test_feminino_taxonomy_preserves_existing_non_calcados_samples() -> None:
+    taxonomy = catalog_cleaning_harness_v2.load_taxonomy(FEMININO_TAXONOMY_PATH)
+
+    samples = {
+        '["keyword:vestido"]': "moda-vestidos",
+        '["keyword:batom"]': "maquiagem-labios",
+        '["keyword:bolsa feminina"]': "bolsas-e-carteiras",
+        '["keyword:skincare"]': "skincare-facial",
+    }
+
+    for source_hits, expected in samples.items():
+        subniches, *_ = catalog_cleaning_harness_v2.classify_subniches(
+            source_hits,
+            "Produto feminino",
+            taxonomy,
+        )
+        assert subniches == [expected]
 
 
 def test_catalog_cleaning_harness_removes_forbidden_terms(tmp_path: Path) -> None:

@@ -46,19 +46,41 @@ MODA_SUBNICHES = {
     "moda-geral",
 }
 EXCLUDED_MODA = {"moda-evangelica", "moda-festa", "moda-gestante"}
+CALCADOS_SUBNICHES = {
+    "calcados-sandalia",
+    "calcados-sapatilha",
+    "calcados-chinelo",
+    "calcados-rasteirinha",
+    "calcados-mocassim",
+}
+CALCADOS_DAILY_QUOTAS = {
+    "calcados-sandalia": 10,
+    "calcados-sapatilha": 8,
+    "calcados-chinelo": 4,
+    "calcados-rasteirinha": 4,
+    "calcados-mocassim": 2,
+}
 
 
 def test_feminino_policy_closes_daily_and_weekly_totals() -> None:
     policy = load_daily_planning_policy(POLICY_PATH)
 
-    assert policy.items_per_window == 8
+    assert policy.items_per_window == 10
     assert policy.schedule_hours == tuple(range(8, 22))
-    assert policy.daily_total_items == 112
-    assert sum(policy.fixed_daily_quotas.values()) == 96
+    assert policy.daily_total_items == 140
+    assert sum(policy.fixed_daily_quotas.values()) == 124
     assert sum(policy.weekly_rotation_quotas.values()) == 112
+    assert policy.rotation_items_per_day == 16
     assert sum(
         policy.fixed_daily_quotas[group] for group in MODA_FIXED_GROUPS
-    ) == 33
+    ) == 36
+    assert {
+        subniche: policy.fixed_daily_quotas[subniche]
+        for subniche in CALCADOS_SUBNICHES
+    } == CALCADOS_DAILY_QUOTAS
+    assert policy.window_family_quotas[0].family == "calcados"
+    assert set(policy.window_family_quotas[0].subniches) == CALCADOS_SUBNICHES
+    assert policy.window_family_quotas[0].items_per_window == 2
     assert policy.weekly_rotation_quotas["rotacao-moda"] == 28
     assert policy.publication_groups["moda-bottoms"] == (
         "moda-calcas",
@@ -95,36 +117,45 @@ def test_daily_plan_builds_ideal_editorial_distribution_without_fallback() -> No
         planned_date=date(2026, 8, 13),
     )
 
-    assert len(plan) == 112
-    assert len({item.candidate.stable_key for item in plan}) == 112
-    assert [item.daily_sequence for item in plan] == list(range(1, 113))
+    assert len(plan) == 140
+    assert len({item.candidate.stable_key for item in plan}) == 140
+    assert [item.daily_sequence for item in plan] == list(range(1, 141))
     by_hour = Counter(item.planned_hour for item in plan)
-    assert by_hour == Counter({hour: 8 for hour in range(8, 22)})
+    assert by_hour == Counter({hour: 10 for hour in range(8, 22)})
     for hour in range(8, 22):
         window = [item for item in plan if item.planned_hour == hour]
-        assert [item.slot_sequence for item in window] == list(range(1, 9))
+        assert [item.slot_sequence for item in window] == list(range(1, 11))
         assert max(Counter(item.candidate.primary_subniche for item in window).values()) <= 2
-    assert sum(item.selection_bucket == "fixed_daily" for item in plan) == 96
+        assert (
+            sum(item.candidate.primary_subniche in CALCADOS_SUBNICHES for item in window)
+            == 2
+        )
+    assert sum(item.selection_bucket == "fixed_daily" for item in plan) == 124
     assert sum(item.selection_bucket == "weekly_rotation" for item in plan) == 16
+    assert Counter(
+        item.candidate.primary_subniche
+        for item in plan
+        if item.candidate.primary_subniche in CALCADOS_SUBNICHES
+    ) == CALCADOS_DAILY_QUOTAS
     assert sum(
         item.selection_bucket == "fixed_daily"
         and item.selection_reason.removeprefix("fixed_daily:") in MODA_FIXED_GROUPS
         for item in plan
-    ) == 33
+    ) == 36
     assert sum(item.selection_reason == "weekly_rotation:rotacao-moda" for item in plan) == 4
-    assert sum(item.candidate.primary_subniche in MODA_SUBNICHES for item in plan) == 37
+    assert sum(item.candidate.primary_subniche in MODA_SUBNICHES for item in plan) == 40
     assert sum(
         item.selection_bucket == "fixed_daily"
         and item.selection_reason.removeprefix("fixed_daily:") in MAQUIAGEM_FIXED
         for item in plan
-    ) == 22
+    ) == 19
     assert sum(
         item.selection_bucket == "fixed_daily"
         and item.selection_reason
         in {"fixed_daily:cabelo-tratamento", "fixed_daily:cabelo-ferramentas"}
         for item in plan
-    ) == 15
-    assert sum(item.selection_reason == "fixed_daily:skincare-facial" for item in plan) == 11
+    ) == 13
+    assert sum(item.selection_reason == "fixed_daily:skincare-facial" for item in plan) == 9
     assert sum(item.selection_reason == "fixed_daily:unhas-manicure" for item in plan) == 5
     assert sum(item.selection_reason == "fixed_daily:cuidados-depilacao" for item in plan) == 1
     assert not any(item.candidate.primary_subniche in EXCLUDED_MODA for item in plan)
@@ -205,7 +236,7 @@ def test_daily_plan_redistributes_shortfall_inside_fixed_class() -> None:
         planned_date=date(2026, 8, 13),
     )
 
-    assert len(plan) == 112
+    assert len(plan) == 140
     assert any(item.selection_reason == "fixed_daily:redistributed" for item in plan)
     assert not any(
         item.selection_reason == f"fixed_daily:{missing_subniche}"
@@ -244,12 +275,12 @@ def test_daily_plan_fills_rotation_shortfall_from_top_general_score() -> None:
         planned_date=date(2026, 8, 16),
     )
 
-    assert len(plan) == 112
+    assert len(plan) == 140
     assert sum(item.selection_bucket == "weekly_rotation" for item in plan) == 16
     assert sum(
         item.selection_reason == "weekly_rotation:top_score_fallback" for item in plan
     ) == 16
-    assert len({item.candidate.stable_key for item in plan}) == 112
+    assert len({item.candidate.stable_key for item in plan}) == 140
 
 
 def test_excluded_moda_subniches_never_enter_plan_even_with_high_scores() -> None:

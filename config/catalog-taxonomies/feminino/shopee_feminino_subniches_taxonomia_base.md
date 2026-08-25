@@ -52,8 +52,8 @@ Remover ofertas do perfil `feminino` quando os campos textuais indicarem itens m
 
 - Perfil: `feminino` / `Feminino`
 - Linhas analisadas: `176101`
-- Subnichos permitidos: `32`
-- Palavras-chave mapeadas: `134`
+- Subnichos permitidos: `37`
+- Palavras-chave mapeadas: `148`
 
 ## Subnichos e palavras-chave
 
@@ -65,6 +65,35 @@ Remover ofertas do perfil `feminino` quando os campos textuais indicarem itens m
 
 - `bolsa feminina`
 - `carteira feminina`
+
+### `calcados-chinelo`
+
+- `chinelo`
+- `chinelo feminino`
+
+### `calcados-mocassim`
+
+- `loafer feminino`
+- `mocassim`
+- `mocassim feminino`
+
+### `calcados-rasteirinha`
+
+- `rasteira feminina`
+- `rasteirinha`
+
+### `calcados-sandalia`
+
+- `sandal`
+- `sandalia`
+- `sandalia feminina`
+- `sandália`
+- `sandália feminina`
+
+### `calcados-sapatilha`
+
+- `sapatilha`
+- `sapatilha feminina`
 
 ### `cabelo-ferramentas`
 
@@ -178,6 +207,10 @@ Remover ofertas do perfil `feminino` quando os campos textuais indicarem itens m
 - `moda`
 - `roupa`
 - `roupas`
+
+### `moda-gestante`
+
+Sem palavra-chave direta; permanece bloqueado pelos termos proibidos e excluído da política diária.
 
 ### `moda-inverno`
 

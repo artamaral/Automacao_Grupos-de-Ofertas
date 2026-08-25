@@ -6,6 +6,11 @@
   "allowed_subniches": [
     "acessorios-femininos",
     "bolsas-e-carteiras",
+    "calcados-chinelo",
+    "calcados-mocassim",
+    "calcados-rasteirinha",
+    "calcados-sandalia",
+    "calcados-sapatilha",
     "cabelo-ferramentas",
     "cabelo-tratamento",
     "cuidados-depilacao",
@@ -24,6 +29,7 @@
     "moda-festa",
     "moda-fitness",
     "moda-geral",
+    "moda-gestante",
     "moda-inverno",
     "moda-macacoes-e-macaquinhos",
     "moda-ofertas-e-basicos",
@@ -61,6 +67,8 @@
     "calca pantalona": "moda-calcas",
     "calca plus size": "moda-plus-size",
     "calca wide leg": "moda-calcas",
+    "chinelo": "calcados-chinelo",
+    "chinelo feminino": "calcados-chinelo",
     "calcinha": "lingerie-e-intimos",
     "camisa": "moda-partes-de-cima",
     "camisa social": "moda-social-e-trabalho",
@@ -97,6 +105,7 @@
     "limpeza facial": "skincare-facial",
     "lingerie": "lingerie-e-intimos",
     "lixa elétrica unha": "unhas-manicure",
+    "loafer feminino": "calcados-mocassim",
     "look": "moda-geral",
     "look casual": "moda-casual",
     "look festa": "moda-festa",
@@ -111,6 +120,8 @@
     "moda plus size": "moda-plus-size",
     "moda praia": "moda-praia",
     "modelador de cabelo": "cabelo-ferramentas",
+    "mocassim": "calcados-mocassim",
+    "mocassim feminino": "calcados-mocassim",
     "moletom": "moda-inverno",
     "máscara de cílios": "maquiagem-olhos",
     "máscara facial": "skincare-facial",
@@ -131,6 +142,8 @@
     "roupas atacado": "moda-ofertas-e-basicos",
     "roupas shopee": "moda-ofertas-e-basicos",
     "rímel": "maquiagem-olhos",
+    "rasteira feminina": "calcados-rasteirinha",
+    "rasteirinha": "calcados-rasteirinha",
     "saia": "moda-saias-e-shorts",
     "saia curta": "moda-saias-e-shorts",
     "saia evangelica": "moda-evangelica",
@@ -139,12 +152,19 @@
     "saia midi": "moda-saias-e-shorts",
     "saia plissada": "moda-saias-e-shorts",
     "saida de praia": "moda-praia",
+    "sandal": "calcados-sandalia",
+    "sandalia": "calcados-sandalia",
+    "sandalia feminina": "calcados-sandalia",
+    "sandália": "calcados-sandalia",
+    "sandália feminina": "calcados-sandalia",
     "secador cabelo": "cabelo-ferramentas",
     "short": "moda-saias-e-shorts",
     "short saia": "moda-saias-e-shorts",
     "shorts academia": "moda-fitness",
     "shorts jeans": "moda-saias-e-shorts",
     "skincare": "skincare-facial",
+    "sapatilha": "calcados-sapatilha",
+    "sapatilha feminina": "calcados-sapatilha",
     "sueter": "moda-inverno",
     "sutia": "lingerie-e-intimos",
     "sérum facial": "skincare-facial",
@@ -267,6 +287,31 @@
       "pattern_regex": "\\b(plus size|plussize|tamanho grande)\\b"
     },
     {
+      "order": 120,
+      "subniche": "calcados-sandalia",
+      "pattern_regex": "\\b(sandal|sand[aá]lia)\\b"
+    },
+    {
+      "order": 121,
+      "subniche": "calcados-sapatilha",
+      "pattern_regex": "\\b(sapatilha)\\b"
+    },
+    {
+      "order": 122,
+      "subniche": "calcados-chinelo",
+      "pattern_regex": "\\b(chinelo)\\b"
+    },
+    {
+      "order": 123,
+      "subniche": "calcados-rasteirinha",
+      "pattern_regex": "\\b(rasteirinha|rasteira feminina)\\b"
+    },
+    {
+      "order": 124,
+      "subniche": "calcados-mocassim",
+      "pattern_regex": "\\b(mocassim|loafer feminino)\\b"
+    },
+    {
       "order": 130,
       "subniche": "moda-evangelica",
       "pattern_regex": "\\b(evangelic[ao]|moda evang[eé]lica|saia evang[eé]lica|vestido evang[eé]lico)\\b"
@@ -351,7 +396,7 @@
     "input_file": "/mnt/data/clean_catalog.csv",
     "input_rows": 176101,
     "discovered_source_keywords": 134,
-    "mapped_source_keywords": 134,
+    "mapped_source_keywords": 148,
     "unused_mapped_keywords": [],
     "top_source_keywords": {
       "calca pantalona": 1990,
