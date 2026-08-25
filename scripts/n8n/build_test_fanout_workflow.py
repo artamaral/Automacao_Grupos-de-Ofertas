@@ -15,12 +15,12 @@ FORBIDDEN_PRODUCTION_VALUES = (
 
 
 FANOUT_CONFIGURATION_CODE = """const destinations = [
-  { target: 'grupo-teste-fanout', chat_id_env: 'N8N_TEST_FANOUT_GROUP_CHAT_ID', destination_kind: 'group', channel_adapter: 'whatsapp', active: true },
-  { target: 'canal-teste-fanout', chat_id_env: 'N8N_TEST_FANOUT_CHANNEL_CHAT_ID', destination_kind: 'channel', channel_adapter: 'whatsapp', active: true },
+  { target: 'grupo-teste-fanout', chat_id_var: 'N8N_TEST_FANOUT_GROUP_CHAT_ID', destination_kind: 'group', channel_adapter: 'whatsapp', active: true },
+  { target: 'canal-teste-fanout', chat_id_var: 'N8N_TEST_FANOUT_CHANNEL_CHAT_ID', destination_kind: 'channel', channel_adapter: 'whatsapp', active: true },
 ];
 const configured = destinations.filter((destination) => destination.active === true).map((destination) => ({
   ...destination,
-  target_chat_id: String($env[destination.chat_id_env] || '').trim(),
+  target_chat_id: String($vars[destination.chat_id_var] || '').trim(),
 }));
 if (configured.length !== 2) throw new Error('fanout de teste exige exatamente dois destinos ativos');
 const targetNames = new Set();
@@ -31,7 +31,7 @@ for (const destination of configured) {
   const expectedSuffix = destination.destination_kind === 'group' ? /@g\\.us$/ : /@newsletter$/;
   if (!expectedSuffix.test(destination.target_chat_id)) throw new Error(`chat id invalido para ${destination.destination_kind}`);
 }
-return [{ json: { ...$json, destinations: configured, allowed_targets: configured.map((destination) => destination.target), validation_source_preview: true, real_send_enabled: String($env.N8N_TEST_FANOUT_REAL_SEND_ENABLED || '').toLowerCase() === 'true', send_delay_seconds_min: 45, send_delay_seconds_max: 90 } }];"""
+return [{ json: { ...$json, destinations: configured, allowed_targets: configured.map((destination) => destination.target), validation_source_preview: true, real_send_enabled: String($vars.N8N_TEST_FANOUT_REAL_SEND_ENABLED || '').toLowerCase() === 'true', send_delay_seconds_min: 45, send_delay_seconds_max: 90 } }];"""
 
 
 RECURRING_CONTEXT_CODE = """const item = $json;

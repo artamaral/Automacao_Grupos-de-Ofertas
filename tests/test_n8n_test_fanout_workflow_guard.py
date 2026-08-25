@@ -45,6 +45,15 @@ def test_clone_contract_accepts_isolated_fanout() -> None:
     guard.validate_workflow(workflow_payload())
 
 
+def test_clone_reads_operational_destinations_from_n8n_variables() -> None:
+    config = node(workflow_payload(), "Configurar Destinos Fanout Teste")
+    code = config["parameters"]["jsCode"]
+
+    assert "$vars[destination.chat_id_var]" in code
+    assert "$vars.N8N_TEST_FANOUT_REAL_SEND_ENABLED" in code
+    assert "$env" not in code
+
+
 @pytest.mark.parametrize("forbidden", guard.FORBIDDEN_VALUES)
 def test_clone_contract_rejects_production_reference(forbidden: str) -> None:
     workflow = workflow_payload()

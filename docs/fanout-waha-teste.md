@@ -5,12 +5,16 @@ e um canal WhatsApp sem alterar o workflow real `OfertasMvpSupab1`.
 
 ## Configuracao operacional
 
-No ambiente do n8n/VPS, configurar apenas fora do Git:
+Nas variaveis nativas da instancia n8n, configurar apenas fora do Git:
 
 - `N8N_TEST_FANOUT_GROUP_CHAT_ID`: chat ID do grupo de teste, com sufixo `@g.us`.
 - `N8N_TEST_FANOUT_CHANNEL_CHAT_ID`: chat ID do canal de teste, com sufixo
   `@newsletter`.
 - `N8N_TEST_FANOUT_REAL_SEND_ENABLED=true`: habilita o envio real do clone.
+
+O clone usa `$vars`, nao `$env`, para manter
+`N8N_BLOCK_ENV_ACCESS_IN_NODE=true` e impedir que os nos Code tenham acesso
+ao ambiente completo da instancia.
 
 O JSON versionado mantem apenas os nomes logicos `grupo-teste-fanout` e
 `canal-teste-fanout`. O clone permanece `active=false` apos importacao.
