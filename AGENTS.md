@@ -58,8 +58,8 @@ Diretrizes obrigatorias:
   pelo usuario no VSCode.
 - Segredos, tokens, chaves de API, cookies, QR codes e sessoes nunca devem ser
   enviados ao GitHub.
-- Nao criar branches novas sem aprovacao explicita do usuario.
-- O fluxo padrao deve acontecer na `main`, salvo pedido diferente.
+- E proibido criar uma branch nova sem que o usuario tenha solicitado isso de forma clara e explicita. Aprovacao implicita, conveniencia tecnica ou inferencia de fluxo nao autorizam criar branch.
+- Na duvida, permanecer e trabalhar na branch atual. Nunca trocar para `main` ou criar outra branch apenas por suposicao; usar a branch indicada pelo usuario ou a branch atual verificada no repositorio.
 
 ### Continuidade
 
