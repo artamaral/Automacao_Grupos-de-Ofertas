@@ -215,7 +215,8 @@ def apply_workflow(sql: str, args: argparse.Namespace) -> None:
         capture_output=True,
     )
     if completed.returncode != 0:
-        raise WorkflowGuardError("failed to update the imported test fan-out workflow")
+        detail = completed.stderr.strip() or completed.stdout.strip() or "no psql diagnostic"
+        raise WorkflowGuardError(f"failed to update the imported test fan-out workflow: {detail}")
     if not completed.stdout.strip():
         raise WorkflowGuardError(
             "workflow was not updated inactive; import it in the n8n panel first"
