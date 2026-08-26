@@ -24,9 +24,9 @@ TIMER_NAME = "shopee-candidate-refresh.timer"
 PROFILE = "feminino"
 MARKETPLACE = "shopee"
 LOOKBACK_AFTER_BRT = "06:30"
-EXPECTED_DAILY_PLAN_SLOTS = 112
+EXPECTED_DAILY_PLAN_SLOTS = 140
 FIRST_DISPATCH_HOUR = 8
-EXPECTED_FIRST_WINDOW_READY = 8
+EXPECTED_FIRST_WINDOW_READY = 10
 
 
 @dataclass(frozen=True)
@@ -281,6 +281,8 @@ def main() -> int:
             run_status = str(report.get("run_status", ""))
             attempts = int(report_value(report, "summary", "api_calls_attempted") or 0)
             snapshots = int(report_value(report, "summary", "snapshots_inserted") or 0)
+            failed = int(report_value(report, "summary", "failed_refreshes") or 0)
+            no_node = int(report_value(report, "summary", "no_node_refreshes") or 0)
             max_calls = int(report_value(report, "limits", "max_api_calls") or 0)
             elapsed = report_value(report, "summary", "elapsed_seconds")
             if not run_status.startswith(("completed", "partial")):
@@ -293,20 +295,58 @@ def main() -> int:
                 problems.append("nenhum snapshot inserido")
             if elapsed is None:
                 problems.append("duration/elapsed_seconds ausente")
+            # no_node/failed são issues OPERACIONAIS a monitorar sempre
+            if no_node > 0:
+                problems.append(f"{no_node} itens no_node (produtos sem nó na API — limpar/analisar)")
+            if failed > 0:
+                problems.append(f"{failed} refreshes com falha técnica")
 
-        if not problems:
-            return 0
-        print(
-            build_alert(
-                problems=problems,
-                timer_enabled=timer_enabled,
-                timer_active=timer_active,
-                service_state=service_state,
-                report=report,
-                report_path=report_path,
-                dispatch_state=dispatch_state,
+        # SEMPRE entrega resumo no Telegram (independente do resultado).
+        # Alerta quando há problemas; resumo informativo quando está tudo ok.
+        if problems:
+            print(
+                build_alert(
+                    problems=problems,
+                    timer_enabled=timer_enabled,
+                    timer_active=timer_active,
+                    service_state=service_state,
+                    report=report,
+                    report_path=report_path,
+                    dispatch_state=dispatch_state,
+                )
             )
-        )
+        else:
+            lines = ["✅ Refresh Shopee OK (resumo diário)"]
+            lines.append(f"- timer: enabled={timer_enabled}, active={timer_active}")
+            if report:
+                lines.append(f"- run_id: {report.get('run_id', '?')}")
+                lines.append(f"- run_status: {report.get('run_status', '?')}")
+                lines.append(
+                    "- chamadas: "
+                    f"{report_value(report, 'summary', 'api_calls_attempted')}/"
+                    f"{report_value(report, 'limits', 'max_api_calls')}"
+                )
+                lines.append(
+                    "- snapshots: "
+                    f"{report_value(report, 'summary', 'snapshots_inserted')}"
+                )
+                no_node_ok = int(report_value(report, "summary", "no_node_refreshes") or 0)
+                failed_ok = int(report_value(report, "summary", "failed_refreshes") or 0)
+                lines.append(f"- falhas: {failed_ok} | no_node: {no_node_ok}")
+                lines.append(
+                    "- duração: "
+                    f"{report_value(report, 'summary', 'elapsed_seconds')}s"
+                )
+            if dispatch_state:
+                lines.append(
+                    "- fila: "
+                    f"data={dispatch_state.get('planned_date', '?')}, "
+                    f"slots={dispatch_state.get('total_slots', '?')}, "
+                    f"planned={dispatch_state.get('planned_slots', '?')}, "
+                    f"janela_08={dispatch_state.get('first_window_ready', '?')}/"
+                    f"{EXPECTED_FIRST_WINDOW_READY}"
+                )
+            print("\n".join(lines))
         return 0
     except Exception as error:  # noqa: BLE001
         print(f"ERRO watchdog refresh Shopee: {error}", file=sys.stderr)
