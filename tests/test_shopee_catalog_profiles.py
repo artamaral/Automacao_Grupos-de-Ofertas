@@ -19,7 +19,7 @@ negative_terms = ["pet"]
 shop_ids = [123]
 shop_names = ["Loja 1"]
 subniches = [
-  { slug = "fraldas", name = "Fraldas", keyword_terms = ["fralda"], negative_terms = [] }
+  { slug = "fraldas", name = "Fraldas", target_subniches = ["fraldas"], keyword_terms = ["fralda"] }
 ]
 """,
         encoding="utf-8",
@@ -35,6 +35,7 @@ subniches = [
     assert profile.shop_ids == (123,)
     assert profile.shop_names == ("Loja 1",)
     assert profile.subniches[0].slug == "fraldas"
+    assert profile.subniches[0].target_subniches == ("fraldas",)
 
 
 def test_load_shopee_catalog_profile_catalog_rejects_missing_profiles(tmp_path: Path) -> None:
@@ -72,3 +73,33 @@ def test_mae_e_bebe_profile_absorbs_maternity_keywords() -> None:
     assert "moda gestante" in profile.keyword_terms
     assert "roupa gestante" in profile.keyword_terms
     assert "vestido gestante" in profile.keyword_terms
+
+
+def test_feminino_profile_declares_calcado_macro_without_operational_profile() -> None:
+    catalog = load_shopee_catalog_profile_catalog(Path("config/shopee_catalog_profiles.toml"))
+
+    profile = catalog.get("feminino")
+
+    assert profile is not None
+    assert catalog.get("feminino-calcados") is None
+    calcado = next(item for item in profile.subniches if item.slug == "calcado")
+    assert calcado.keyword_terms == (
+        "sandalia",
+        "sapatilha",
+        "chinelo",
+        "rasteirinha",
+        "rasteira",
+        "mocassim",
+        "loafer",
+        "papete",
+        "tamanco",
+        "slide",
+        "birken",
+    )
+    assert calcado.target_subniches == (
+        "calcados-sandalia",
+        "calcados-sapatilha",
+        "calcados-chinelo",
+        "calcados-rasteirinha",
+        "calcados-mocassim",
+    )

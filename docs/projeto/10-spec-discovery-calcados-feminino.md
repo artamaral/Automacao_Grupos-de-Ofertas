@@ -36,7 +36,7 @@ Tudo que ja existe deve permanecer intacto.
 Esta implementacao **nao pode alterar**:
 
 - as `keyword_terms` atuais do profile `feminino`;
-- os subnichos atuais do profile `feminino`;
+- os grupos macro atuais do profile `feminino`;
 - discovery dos demais nichos;
 - provider Shopee;
 - algoritmo de coleta;
@@ -85,7 +85,7 @@ Adicionar uma flag opcional ao builder:
 Regras:
 
 - a flag so deve restringir as fontes de coleta;
-- a flag deve aceitar qualquer subnicho permitido pela taxonomia do profile carregado, alem de agregadores explicitamente declarados;
+- a flag deve aceitar somente grupos macro declarados em `profile.subniches[].slug`;
 - a flag nao muda `profile.slug`;
 - a flag nao muda `catalog_profile_slug` na saida;
 - a flag nao cria novo destino operacional;
@@ -146,7 +146,7 @@ Campo obrigatorio:
 profiles[].subniches[].slug
 ```
 
-Exemplos de scopes validos esperados:
+Exemplos de scopes validos esperados para o profile `feminino`:
 
 ```text
 moda
@@ -157,6 +157,8 @@ skincare
 unhas
 acessorios
 ```
+
+`calcado` e o novo grupo macro desta entrega. Os demais ja existem no profile atual e devem funcionar com a mesma flag sem cadastro paralelo.
 
 Os subnichos editoriais finos da taxonomia continuam existindo, mas nao devem ser a interface principal da flag. Portanto, comandos como estes nao devem ser o caminho recomendado:
 
@@ -198,20 +200,10 @@ shopee-catalog-builder --profile feminino --discovery-scope cabelo
 
 Nesse caso, `cabelo` precisa existir em `profile.subniches[].slug`, e as keywords devem vir do proprio bloco `subniches` do profile.
 
-Para o novo grupo macro de calcados, declarar:
+Para o novo grupo macro de calcados, declarar um novo item no array `subniches` existente:
 
 ```toml
-{ slug = "calcado",
-name = "Calcados Femininos"
-target_subniches = [
-  "calcados-sandalia",
-  "calcados-sapatilha",
-  "calcados-chinelo",
-  "calcados-rasteirinha",
-  "calcados-mocassim",
-]
-keyword_terms = [...]
-}
+{ slug = "calcado", name = "Calcados Femininos", target_subniches = ["calcados-sandalia", "calcados-sapatilha", "calcados-chinelo", "calcados-rasteirinha", "calcados-mocassim"], keyword_terms = [...], negative_terms = [...] }
 ```
 
 Assim, a capacidade atende o caso operacional correto:
@@ -333,13 +325,10 @@ Adicionar a configuracao declarativa do grupo macro dentro do bloco existente `s
 config/shopee_catalog_profiles.toml
 ```
 
-Formato recomendado:
+Formato recomendado: adicionar somente este item ao array `subniches = [` ja existente no bloco `slug = "feminino"`:
 
 ```toml
-subniches = [
-  # manter os grupos macro existentes intactos
-  { slug = "calcado", name = "Calcados Femininos", target_subniches = ["calcados-sandalia", "calcados-sapatilha", "calcados-chinelo", "calcados-rasteirinha", "calcados-mocassim"], keyword_terms = ["sandalia", "sapatilha", "chinelo", "rasteirinha", "rasteira", "mocassim", "loafer", "papete", "tamanco", "slide", "birken"], negative_terms = ["masculino", "masculina", "masculinos", "masculinas", "masculin", "for men", "for man"] },
-]
+{ slug = "calcado", name = "Calcados Femininos", target_subniches = ["calcados-sandalia", "calcados-sapatilha", "calcados-chinelo", "calcados-rasteirinha", "calcados-mocassim"], keyword_terms = ["sandalia", "sapatilha", "chinelo", "rasteirinha", "rasteira", "mocassim", "loafer", "papete", "tamanco", "slide", "birken"], negative_terms = ["masculino", "masculina", "masculinos", "masculinas", "masculin", "for men", "for man"] },
 ```
 
 Regras:
@@ -348,6 +337,7 @@ Regras:
 - nao criar `[[profiles]] slug = "feminino-calcados"`;
 - nao criar heranca/refatoracao de `negative_terms`;
 - nao modificar profiles de outros nichos;
+- nao alterar os itens atuais do array `subniches`; apenas adicionar o novo item `calcado`;
 - nao criar `discovery_scopes` separado se `subniches` ja representa os grupos macro do profile;
 - o suporte no loader/CLI deve ser generico para qualquer `profile.subniches[].slug`;
 - o loader/CLI deve validar `target_subniches` contra `allowed_subniches` da taxonomia do profile quando o campo existir.

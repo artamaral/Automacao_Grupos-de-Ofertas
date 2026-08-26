@@ -25,6 +25,7 @@ from ofertas_bot.shopee_catalog_profiles import (
 )
 
 DEFAULT_OUTPUT_BASE_DIR = Path(".data/shopee_catalog")
+DEFAULT_TAXONOMY_BASE_DIR = Path("config/catalog-taxonomies")
 DEFAULT_PAGE_SIZE = 50
 DEFAULT_MAX_PAGES = 50
 CATALOG_FIELDNAMES = [
@@ -76,11 +77,27 @@ class SourceRun:
     stop_reason: str
 
 
+@dataclass(frozen=True)
+class CatalogRunPlan:
+    profile: ShopeeCatalogProfile
+    run_id: str
+    run_dir: Path
+    discovery_scope: str | None
+    collection_keywords: tuple[str, ...]
+    target_subniches: tuple[str, ...]
+    include_shop_ids: bool
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Constroi catalogo consolidado Shopee a partir de keyword e shopId"
     )
     parser.add_argument("--profile", required=True, help="Slug do catalog profile")
+    parser.add_argument(
+        "--discovery-scope",
+        default=None,
+        help="Slug de um grupo macro em profile.subniches[] para restringir a coleta",
+    )
     parser.add_argument(
         "--profiles-file",
         default="config/shopee_catalog_profiles.toml",
@@ -102,12 +119,20 @@ def run(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         profile = _load_profile(Path(args.profiles_file), args.profile)
+        run_id = args.run_id or datetime.now(UTC).replace(microsecond=0).strftime(
+            "%Y-%m-%dT%H-%M-%SZ"
+        )
+        plan = _resolve_catalog_run_plan(
+            profile=profile,
+            discovery_scope=args.discovery_scope,
+            output_base_dir=args.output_base_dir,
+            run_id=run_id,
+        )
     except ShopeeCatalogProfileError as error:
         print(f"ERRO | {error}")
         return 3
 
-    run_id = args.run_id or datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H-%M-%SZ")
-    run_dir = args.output_base_dir / profile.slug / run_id
+    run_dir = plan.run_dir
     run_dir.mkdir(parents=True, exist_ok=True)
 
     provider = ShopeeProvider(settings=get_settings())
@@ -124,15 +149,22 @@ def run(argv: Sequence[str] | None = None) -> int:
     clean_json_path = run_dir / "clean_catalog.json"
     summary_path = run_dir / "run_summary.json"
 
-    print(f"INFO | profile={profile.slug}")
-    print(f"INFO | run_id={run_id}")
+    print(f"INFO | profile={plan.profile.slug}")
+    if plan.discovery_scope:
+        print(f"INFO | discovery_scope={plan.discovery_scope}")
+    print(f"INFO | run_id={plan.run_id}")
     print(f"INFO | output_dir={run_dir}")
-    if profile.start_match_ids:
+    if plan.profile.start_match_ids:
         print(
-            "INFO | reference_match_ids=" + ",".join(str(item) for item in profile.start_match_ids)
+            "INFO | reference_match_ids="
+            + ",".join(str(item) for item in plan.profile.start_match_ids)
         )
 
-    for source_type, source_value, params in _iter_collection_sources(profile):
+    for source_type, source_value, params in _iter_collection_sources(
+        plan.profile,
+        collection_keywords=plan.collection_keywords,
+        include_shop_ids=plan.include_shop_ids,
+    ):
         items, source_run = _collect_product_offer_pages(
             provider=provider,
             source_type=source_type,
@@ -145,8 +177,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         raw_source_rows.extend(items)
         _merge_items(merged_items, items)
         _persist_catalog_run(
-            profile=profile,
-            run_id=run_id,
+            plan=plan,
             raw_source_rows=raw_source_rows,
             merged_items=merged_items,
             source_runs=source_runs,
@@ -161,8 +192,7 @@ def run(argv: Sequence[str] | None = None) -> int:
 
     print(f"INFO | Catalogo Shopee salvo em {run_dir}")
     final_summary = _build_catalog_summary(
-        profile=profile,
-        run_id=run_id,
+        plan=plan,
         raw_source_rows=raw_source_rows,
         merged_items=merged_items,
         source_runs=source_runs,
@@ -186,14 +216,118 @@ def _load_profile(path: Path, slug: str) -> ShopeeCatalogProfile:
     return profile
 
 
+def _resolve_catalog_run_plan(
+    *,
+    profile: ShopeeCatalogProfile,
+    discovery_scope: str | None,
+    output_base_dir: Path,
+    run_id: str,
+    taxonomy_base_dir: Path = DEFAULT_TAXONOMY_BASE_DIR,
+) -> CatalogRunPlan:
+    scope_slug = discovery_scope.strip().lower() if discovery_scope else None
+    if scope_slug is None:
+        return CatalogRunPlan(
+            profile=profile,
+            run_id=run_id,
+            run_dir=output_base_dir / profile.slug / run_id,
+            discovery_scope=None,
+            collection_keywords=profile.keyword_terms,
+            target_subniches=(),
+            include_shop_ids=True,
+        )
+
+    scope = _find_discovery_scope(profile=profile, scope_slug=scope_slug)
+    if not scope.keyword_terms:
+        raise ShopeeCatalogProfileError(
+            f"discovery scope sem keyword_terms: profile={profile.slug} scope={scope_slug}"
+        )
+    if scope.target_subniches:
+        _validate_target_subniches(
+            profile=profile,
+            scope=scope,
+            taxonomy_base_dir=taxonomy_base_dir,
+        )
+    return CatalogRunPlan(
+        profile=profile,
+        run_id=run_id,
+        run_dir=output_base_dir / profile.slug / "scopes" / scope_slug / run_id,
+        discovery_scope=scope_slug,
+        collection_keywords=scope.keyword_terms,
+        target_subniches=scope.target_subniches,
+        include_shop_ids=False,
+    )
+
+
+def _find_discovery_scope(
+    *,
+    profile: ShopeeCatalogProfile,
+    scope_slug: str,
+) -> ShopeeCatalogSubniche:
+    for subniche in profile.subniches:
+        if subniche.slug == scope_slug:
+            return subniche
+    available = ", ".join(subniche.slug for subniche in profile.subniches) or "nenhum"
+    raise ShopeeCatalogProfileError(
+        f"discovery scope nao encontrado: profile={profile.slug} "
+        f"scope={scope_slug} scopes_disponiveis={available}"
+    )
+
+
+def _validate_target_subniches(
+    *,
+    profile: ShopeeCatalogProfile,
+    scope: ShopeeCatalogSubniche,
+    taxonomy_base_dir: Path,
+) -> None:
+    allowed = _load_allowed_subniches(
+        taxonomy_dir=taxonomy_base_dir / profile.slug,
+        profile_slug=profile.slug,
+    )
+    invalid = tuple(item for item in scope.target_subniches if item not in allowed)
+    if invalid:
+        raise ShopeeCatalogProfileError(
+            f"target_subniches invalidos no discovery scope: profile={profile.slug} "
+            f"scope={scope.slug} invalidos={','.join(invalid)}"
+        )
+
+
+def _load_allowed_subniches(*, taxonomy_dir: Path, profile_slug: str) -> set[str]:
+    taxonomy_files = sorted(taxonomy_dir.glob("*subniches_taxonomia_base.json"))
+    if not taxonomy_files:
+        raise ShopeeCatalogProfileError(
+            f"taxonomia de subniches nao encontrada para profile={profile_slug}: {taxonomy_dir}"
+        )
+    if len(taxonomy_files) > 1:
+        paths = ", ".join(str(path) for path in taxonomy_files)
+        raise ShopeeCatalogProfileError(
+            f"taxonomia de subniches ambigua para profile={profile_slug}: {paths}"
+        )
+    try:
+        payload = json.loads(taxonomy_files[0].read_text(encoding="utf-8"))
+    except json.JSONDecodeError as error:
+        raise ShopeeCatalogProfileError(
+            f"taxonomia de subniches invalida para profile={profile_slug}: {error}"
+        ) from error
+    allowed = payload.get("allowed_subniches")
+    if not isinstance(allowed, list) or not allowed:
+        raise ShopeeCatalogProfileError(
+            f"taxonomia de subniches sem allowed_subniches para profile={profile_slug}"
+        )
+    return {str(item).strip().lower() for item in allowed if str(item).strip()}
+
+
 def _iter_collection_sources(
     profile: ShopeeCatalogProfile,
+    *,
+    collection_keywords: tuple[str, ...] | None = None,
+    include_shop_ids: bool = True,
 ) -> list[tuple[str, str, dict[str, Any]]]:
     sources: list[tuple[str, str, dict[str, Any]]] = []
-    for keyword in profile.keyword_terms:
+    for keyword in collection_keywords or profile.keyword_terms:
         sources.append(("keyword", keyword, {"keyword": keyword}))
-    for shop_id in profile.shop_ids:
-        sources.append(("shopId", str(shop_id), {"shop_id": shop_id}))
+    if include_shop_ids:
+        for shop_id in profile.shop_ids:
+            sources.append(("shopId", str(shop_id), {"shop_id": shop_id}))
     return sources
 
 
@@ -409,8 +543,7 @@ def _serialize_csv_value(value: Any) -> Any:
 
 def _persist_catalog_run(
     *,
-    profile: ShopeeCatalogProfile,
-    run_id: str,
+    plan: CatalogRunPlan,
     raw_source_rows: list[dict[str, Any]],
     merged_items: dict[str, dict[str, Any]],
     source_runs: list[SourceRun],
@@ -423,8 +556,7 @@ def _persist_catalog_run(
     summary_path: Path,
 ) -> None:
     summary_payload = _build_catalog_summary(
-        profile=profile,
-        run_id=run_id,
+        plan=plan,
         raw_source_rows=raw_source_rows,
         merged_items=merged_items,
         source_runs=source_runs,
@@ -435,8 +567,11 @@ def _persist_catalog_run(
         clean_csv_path=clean_csv_path,
         clean_json_path=clean_json_path,
     )
-    deduplicated_items = _build_deduplicated_items(profile=profile, merged_items=merged_items)
-    clean_items = _build_clean_items(profile=profile, deduplicated_items=deduplicated_items)
+    deduplicated_items = _build_deduplicated_items(
+        profile=plan.profile,
+        merged_items=merged_items,
+    )
+    clean_items = _build_clean_items(profile=plan.profile, deduplicated_items=deduplicated_items)
     operational_clean_items = [project_operational_catalog_row(item) for item in clean_items]
     _write_catalog_csv(raw_csv_path, raw_source_rows)
     raw_json_path.write_text(
@@ -469,8 +604,7 @@ def _persist_catalog_run(
 
 def _build_catalog_summary(
     *,
-    profile: ShopeeCatalogProfile,
-    run_id: str,
+    plan: CatalogRunPlan,
     raw_source_rows: list[dict[str, Any]],
     merged_items: dict[str, dict[str, Any]],
     source_runs: list[SourceRun],
@@ -481,6 +615,7 @@ def _build_catalog_summary(
     clean_csv_path: Path,
     clean_json_path: Path,
 ) -> dict[str, Any]:
+    profile = plan.profile
     deduplicated_items = _build_deduplicated_items(profile=profile, merged_items=merged_items)
     clean_items = _build_clean_items(profile=profile, deduplicated_items=deduplicated_items)
     return {
@@ -493,7 +628,10 @@ def _build_catalog_summary(
             "shop_ids": list(profile.shop_ids),
             "shop_names": list(profile.shop_names),
         },
-        "run_id": run_id,
+        "run_id": plan.run_id,
+        "discovery_scope": plan.discovery_scope,
+        "collection_keywords": list(plan.collection_keywords),
+        "target_subniches": list(plan.target_subniches),
         "source_runs": [asdict(item) for item in source_runs],
         "summary": {
             "raw_row_count": len(raw_source_rows),

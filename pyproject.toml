@@ -41,6 +41,7 @@ ofertas-local-doctor = "ofertas_bot.local_artifacts_doctor_cli:main"
 ofertas-local-flow = "ofertas_bot.local_flow_cli:main"
 ofertas-cloud-runner = "ofertas_bot.cloud_runner_server:main"
 ofertas-plan-daily-dispatch = "ofertas_bot.tools.plan_daily_dispatch:main"
+shopee-catalog-builder = "ofertas_bot.tools.shopee_catalog_builder:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

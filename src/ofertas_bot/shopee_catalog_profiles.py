@@ -13,6 +13,7 @@ class ShopeeCatalogProfileError(ValueError):
 class ShopeeCatalogSubniche:
     slug: str
     name: str
+    target_subniches: tuple[str, ...] = ()
     keyword_terms: tuple[str, ...] = ()
     negative_terms: tuple[str, ...] = ()
     shop_ids: tuple[int, ...] = ()
@@ -27,6 +28,7 @@ class ShopeeCatalogSubniche:
             raise ShopeeCatalogProfileError("catalog subniche name is required")
         object.__setattr__(self, "slug", slug)
         object.__setattr__(self, "name", name)
+        object.__setattr__(self, "target_subniches", _normalize_terms(self.target_subniches))
         object.__setattr__(self, "keyword_terms", _normalize_terms(self.keyword_terms))
         object.__setattr__(self, "negative_terms", _normalize_terms(self.negative_terms))
         object.__setattr__(self, "shop_ids", _normalize_ints(self.shop_ids))
@@ -129,6 +131,7 @@ def _subniche_tuple(value: object) -> tuple[ShopeeCatalogSubniche, ...]:
             ShopeeCatalogSubniche(
                 slug=str(item.get("slug", "")),
                 name=str(item.get("name", "")),
+                target_subniches=_text_tuple(item.get("target_subniches")),
                 keyword_terms=_text_tuple(item.get("keyword_terms")),
                 negative_terms=_text_tuple(item.get("negative_terms")),
                 shop_ids=_int_tuple(item.get("shop_ids")),
