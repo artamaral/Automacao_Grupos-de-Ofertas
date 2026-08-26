@@ -79,16 +79,20 @@ Remover ofertas do perfil `feminino` quando os campos textuais indicarem itens m
 
 ### `calcados-rasteirinha`
 
+- `rasteira`
 - `rasteira feminina`
 - `rasteirinha`
 
 ### `calcados-sandalia`
 
+- `papete`
 - `sandal`
 - `sandalia`
 - `sandalia feminina`
 - `sandália`
 - `sandália feminina`
+
+- `tamanco`
 
 ### `calcados-sapatilha`
 

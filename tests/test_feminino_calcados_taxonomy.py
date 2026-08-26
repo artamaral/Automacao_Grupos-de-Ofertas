@@ -32,6 +32,26 @@ def test_feminino_taxonomy_maps_sandal_to_sandalia() -> None:
     assert taxonomy["source_keyword_to_subniche"]["sandália"] == "calcados-sandalia"
 
 
+def test_feminino_taxonomy_maps_new_calcado_discovery_terms() -> None:
+    taxonomy = _load_taxonomy()
+    mappings = taxonomy["source_keyword_to_subniche"]
+
+    assert mappings["papete"] == "calcados-sandalia"
+    assert mappings["tamanco"] == "calcados-sandalia"
+    assert mappings["rasteira"] == "calcados-rasteirinha"
+    assert mappings["rasteira feminina"] == "calcados-rasteirinha"
+    assert mappings["rasteirinha"] == "calcados-rasteirinha"
+
+
+def test_feminino_taxonomy_keeps_ambiguous_calcado_terms_unmapped() -> None:
+    taxonomy = _load_taxonomy()
+    mappings = taxonomy["source_keyword_to_subniche"]
+
+    assert "slide" not in mappings
+    assert "loafer" not in mappings
+    assert "birken" not in mappings
+
+
 def test_feminino_taxonomy_classifies_basic_calcados_samples_by_fallback() -> None:
     taxonomy = _load_taxonomy()
     samples = {
