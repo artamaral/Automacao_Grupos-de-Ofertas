@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Shopee refresh, planning and tracking daily at 06:30 BRT
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 America/Sao_Paulo
+Persistent=true
+RandomizedDelaySec=0
+Unit=shopee-refresh-plan-tracking.service
+
+[Install]
+WantedBy=timers.target

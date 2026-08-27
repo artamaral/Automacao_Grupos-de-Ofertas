@@ -1,0 +1,11 @@
+[Unit]
+Description=Sync Shopee conversion report daily at 11:00 BRT
+
+[Timer]
+OnCalendar=*-*-* 11:00:00 America/Sao_Paulo
+Persistent=true
+RandomizedDelaySec=0
+Unit=shopee-conversion-report-sync.service
+
+[Install]
+WantedBy=timers.target

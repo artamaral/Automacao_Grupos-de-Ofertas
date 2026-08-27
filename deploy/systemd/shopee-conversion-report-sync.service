@@ -1,0 +1,16 @@
+[Unit]
+Description=Sync previous-day Shopee conversion report
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ofertas-refresh
+Group=ofertas-refresh
+WorkingDirectory=/opt/automacao_grupo_compras/app
+ExecStart=/bin/bash /opt/automacao_grupo_compras/app/scripts/ops/run_shopee_conversion_report_sync.sh
+TimeoutStartSec=30min
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
