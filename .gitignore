@@ -20,6 +20,7 @@ venv/
 .data/
 logs/
 exports/
+deploy/*.zip
 n8n/root/data/
 src/*.egg-info/
 src/ofertas_bot.egg-info/
