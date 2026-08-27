@@ -18,7 +18,7 @@ from ofertas_bot.providers.transport import HttpTransport, UrllibHttpTransport
 from ofertas_bot.settings import Settings
 
 GENERATE_SHORT_LINK = """
-mutation GenerateShortLink($originUrl: String, $subIds: [String]) {
+mutation GenerateShortLink($originUrl: String!, $subIds: [String]) {
   generateShortLink(input: {originUrl: $originUrl, subIds: $subIds}) { shortLink }
 }
 """.strip()

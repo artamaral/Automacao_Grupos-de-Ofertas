@@ -42,3 +42,4 @@ def test_conversion_query_has_required_outputs_and_no_product_id() -> None:
     ):
         assert field in text
     assert "productId" not in text
+    assert "GenerateShortLink($originUrl: String!" in text
