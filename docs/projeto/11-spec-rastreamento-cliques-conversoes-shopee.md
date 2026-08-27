@@ -1,423 +1,105 @@
-# Spec — Rastreamento de cliques, conversões e diversidade funcional na Shopee
+# Spec — Rastreamento de cliques, conversões e valor por exposição na Shopee
 
-Status: especificação funcional e técnica para instrumentação de rastreamento e base analítica. As regras comerciais/editoriais existentes permanecem preservadas. A modelagem de `product_type` editorial continua como evolução futura.
+Status: especificação funcional e técnica para instrumentação de tracking e base analítica. As regras comerciais/editoriais existentes permanecem preservadas. `product_type` editorial continua como evolução futura.
 
-## 1. Escopo técnico e orquestração diária
+## 1. Objetivo de negócio
 
-### 1.1 Objetivo de negócio
+O objetivo não é replicar os relatórios da Shopee no Supabase. O objetivo é responder, com evidência, quanto valor cada exposição do grupo produziu e o que isso ensina sobre o próximo produto que merece ocupar um slot.
 
-O objetivo desta evolução não é copiar os relatórios da Shopee para o Supabase. O objetivo é responder, com evidência, às perguntas centrais da operação:
-
-1. qual exposição/publicação merece ocupar espaço no grupo;
-2. quais exposições geram interesse, medido por clique;
-3. quais exposições geram monetização direta ou indireta;
-4. qual item foi anunciado versus qual item foi efetivamente comprado;
-5. quanto valor cada slot editorial produziu;
-6. futuramente, se há saturação por tipo funcional de produto mesmo quando os `item_id` são diferentes.
-
-A unidade canônica de análise é a **exposição planejada**, identificada por `daily_dispatch_plan.dispatch_plan_id`.
-
-A instrumentação deve permitir analisar, por exposição:
+A unidade canônica de análise é a exposição planejada:
 
 ```text
-publicação
-→ cliques
+offers.daily_dispatch_plan.dispatch_plan_id
+```
+
+A arquitetura deve permitir a cadeia:
+
+```text
+exposição planejada
+→ publicação
+→ raw clicks
 → conversões
 → pedidos
 → itens comprados
 → comissão
 ```
 
-sem substituir o `commercial_score` atual antes de existir evidência suficiente.
+Perguntas centrais:
 
-### 1.2 Decisão de orquestração
+1. qual exposição/publicação merece ocupar espaço no grupo;
+2. quais exposições geram interesse, medido por clique;
+3. quais exposições geram monetização;
+4. a venda foi do mesmo produto anunciado ou de outro produto;
+5. quanto `totalCommission` cada exposição produziu;
+6. quais subnichos consomem slots e qual retorno produzem;
+7. futuramente, se existe saturação por tipo funcional mesmo com `item_id` diferentes.
 
-Hoje existem caminhos operacionais separados para:
+O `commercial_score` atual não deve ser alterado por esta spec.
 
-- refresh de candidatos/ofertas Shopee;
-- planejamento e persistência da fila diária em `offers.daily_dispatch_plan`.
+## 2. Orquestração diária
 
-Esta evolução deve consolidar a execução diária em **uma única orquestração sequencial**, composta por três estágios funcionais e uma liberação final:
+Hoje existem caminhos separados para refresh e planejamento diário. A evolução deve criar uma única orquestração sequencial:
 
 ```text
 1. Refresh Shopee existente
    ↓
-2. Planejamento da fila diária existente
+2. Planner diário existente
    ↓
 3. Geração das short URLs rastreáveis
    ↓
 4. Liberação da fila para consumo/publicação
 ```
 
-A terceira etapa só pode ocorrer depois da criação de `offers.daily_dispatch_plan`, porque o `dispatch_plan_id` é parte obrigatória do tracking.
+A consolidação é apenas de orquestração. Refresh e planner continuam componentes independentes e testáveis.
 
-A consolidação é de **orquestração**, e não uma fusão monolítica dos componentes. Refresh e planner devem continuar testáveis e executáveis isoladamente para diagnóstico.
-
-### 1.3 O que deve ser alterado
-
-Devem ser alterados somente os pontos necessários para:
-
-- criar uma operação diária única que execute refresh, planner e geração de tracking em ordem;
-- gerar uma short URL Shopee para cada exposição planejada;
-- persistir o resultado por `dispatch_plan_id`;
-- liberar para publicação somente exposições com tracking válido;
-- fazer a superfície consumida pelo publicador entregar a nova short URL no campo `offer_link` já esperado pela copy;
-- criar estruturas persistentes para ingestão do Click Report CSV;
-- criar estruturas persistentes para `conversionReport` e `validatedReport`;
-- permitir análises por exposição, clique, conversão e item comprado.
-
-### 1.4 O que NÃO deve ser alterado
-
-A consolidação **NÃO DEVE alterar o escopo funcional dos dois processos existentes**.
-
-No refresh, não alterar por causa desta spec:
+### 2.1 Não alterar no refresh
 
 - critérios de candidatos;
-- políticas e limites de refresh;
-- regras `FRESH`/`STALE`;
+- políticas/limites;
+- `FRESH`/`STALE`;
 - snapshots;
-- critérios de estabilidade;
-- lógica de scoring ou elegibilidade.
+- estabilidade;
+- scoring;
+- elegibilidade.
 
-No planejamento diário, não alterar por causa desta spec:
+### 2.2 Não alterar no planner
 
-- `commercial_score`;
-- pesos de score;
+- `commercial_score` e seus pesos;
 - quotas;
 - distribuição editorial;
 - rotação;
 - fallback;
 - cooldown;
-- subnichos/taxonomia;
+- taxonomia/subnichos;
 - número de slots;
-- horários e sequenciamento;
-- critérios atuais de elegibilidade;
-- regras atuais de gravação/substituição da `daily_dispatch_plan`.
+- horários/sequenciamento;
+- regras atuais de persistência/substituição do plano.
 
-No publicador/n8n, não alterar por causa desta spec:
+### 2.3 Não alterar no publicador/n8n
 
-- copy existente, exceto pelo fato de o mesmo campo `offer_link` passar a conter a URL rastreável da exposição;
+- copy existente;
 - allowlist;
-- destino/grupo WhatsApp;
-- WAHA/conexão existente;
-- regras atuais de claim, consumo e registro do envio;
-- estrutura editorial da mensagem.
+- grupo/destino WhatsApp;
+- WAHA;
+- regras atuais de claim, consumo e registro do envio.
 
-## 2. Fontes de dados e identidade já disponíveis
+A única mudança de contrato de dados para a copy é que o mesmo campo `offer_link` passa a expor a short URL específica da exposição.
 
-### 2.1 Supabase
+## 3. Identidade e tracking pré-publicação
 
-Em `offers.daily_dispatch_plan` já existem, entre outros:
+O `dispatch_plan_id` é a identidade canônica pré-publicação. O `publish_id` continua sendo a identidade do evento de publicação registrado depois do envio.
 
-- `dispatch_plan_id UUID NOT NULL`;
-- `profile TEXT NOT NULL`;
-- `marketplace TEXT NOT NULL`;
-- `stable_key TEXT NOT NULL`;
-- `item_id BIGINT NOT NULL`;
-- `primary_subniche TEXT NOT NULL`;
-- `commercial_score NUMERIC NOT NULL`;
-- `selection_bucket TEXT NOT NULL`;
-- `selection_reason TEXT NOT NULL`;
-- `planned_date DATE NOT NULL`;
-- `planned_hour SMALLINT NOT NULL`;
-- `slot_sequence SMALLINT NOT NULL`;
-- `daily_sequence SMALLINT NOT NULL`;
-- `publication_event_id UUID NULL`;
-- `consumed_at TIMESTAMPTZ NULL`.
+### 3.1 URL de entrada
 
-Em `offers.catalog_items` já existem, entre outros:
-
-- `product_link`;
-- `offer_link`;
-- `item_id`;
-- `profile`;
-- `marketplace`;
-- informações comerciais e editoriais do item.
-
-Em `offers.publication_events` já existem, entre outros:
-
-- `publish_id UUID NOT NULL`;
-- `dispatch_plan_id UUID NULL`;
-- `profile TEXT NOT NULL`;
-- `marketplace TEXT NOT NULL`;
-- `item_id BIGINT NULL`;
-- `target TEXT NOT NULL`;
-- `channel_adapter TEXT NOT NULL`;
-- `delivery_status TEXT NOT NULL`;
-- `planned_at TIMESTAMPTZ NULL`;
-- `sent_at TIMESTAMPTZ NULL`;
-- `offer_title TEXT NOT NULL`;
-- `offer_url TEXT NOT NULL`;
-- `offer_price NUMERIC NULL`;
-- `message_text TEXT NOT NULL`.
-
-O `dispatch_plan_id` é a chave canônica pré-publicação. O `publish_id` continua sendo a identidade do evento de publicação registrado após o envio.
-
-### 2.2 Cadeia de identidade
-
-```text
-daily_dispatch_plan.dispatch_plan_id
-  → Sub ID da exposição
-  → short URL específica da exposição
-  → publication_events.publish_id
-  → Click Report CSV
-  → conversionReport / validatedReport
-```
-
-Informações já conhecidas pela exposição — `profile`, `item_id`, `primary_subniche`, `commercial_score`, horário e slot — **não devem ser duplicadas desnecessariamente** nas tabelas de clique/conversão. Elas devem ser recuperadas por `dispatch_plan_id`.
-
-## 3. Fontes externas Shopee
-
-### 3.1 Click Report — fonte de raw clicks
-
-O Click Report **não está disponível na Open API observada**. Ele precisa ser baixado pela Central/Central de Comando da Shopee e posteriormente ingerido pelo projeto.
-
-O CSV fornecido anteriormente possui exatamente as colunas:
-
-- `ID dos Cliques`;
-- `Tempo dos Cliques`;
-- `Região dos Cliques`;
-- `Sub_id`;
-- `Referenciador`.
-
-O arquivo analisado continha 48 raw clicks e todos possuíam `Sub_id = ----`. Portanto esses cliques históricos continuam úteis como volume bruto, mas não podem ser reconciliados deterministicamente com uma exposição específica.
-
-O Click Report é a fonte primária para **interesse/tráfego**, porque inclui cliques sem compra.
-
-O campo `Referenciador` não deve ser usado como chave principal de atribuição.
-
-### 3.2 Gap ainda aberto: serialização de múltiplos `subIds` no Click Report
-
-Foi gerada e testada a short URL:
-
-```text
-https://s.shopee.com.br/3g3DPzjYgO
-```
-
-com os quatro Sub IDs:
-
-```text
-[
-  "wa",
-  "feminino",
-  "dp550e8400e29b41d4a716446655440000",
-  "18797641257"
-]
-```
-
-O teste de `generateShortLink` confirma que a API aceita os quatro valores e retorna a short URL.
-
-**Ainda falta confirmar empiricamente como esses quatro valores aparecem na única coluna `Sub_id` do Click Report CSV.**
-
-O teste planejado consiste em gerar múltiplos cliques nessa short URL e baixar um novo Click Report no dia seguinte.
-
-Até observar esse arquivo:
-
-- não fixar delimitador;
-- não fixar parser;
-- não assumir que os quatro valores aparecem separadamente;
-- preservar sempre o `Sub_id` bruto recebido.
-
-### 3.3 `conversionReport`
-
-Query de referência fornecida:
-
-```graphql
-{
-  conversionReport(
-    conversionStatus: ALL,
-    productId: 22599034226,
-    categoryType: ALL,
-    orderStatus: ALL,
-    buyerType: ALL,
-    productType: ALL,
-    fraudStatus: ALL,
-    device: ALL
-  ) {
-    nodes {
-      clickTime
-      purchaseTime
-      conversionId
-      shopeeCommissionCapped
-      sellerCommission
-      totalCommission
-      netCommission
-      mcnManagementFeeRate
-      mcnManagementFee
-      mcnContractId
-      linkedMcnName
-      buyerType
-      utmContent
-      device
-      productType
-      referrer
-      orders {
-        orderId
-        shopType
-        orderStatus
-        items {
-          shopId
-          shopName
-          completeTime
-          promotionId
-          modelId
-          itemId
-          itemName
-          itemPrice
-          displayItemStatus
-          actualAmount
-          refundAmount
-          qty
-          imageUrl
-          itemTotalCommission
-          itemSellerCommission
-          itemSellerCommissionRate
-          itemShopeeCommissionCapped
-          itemShopeeCommissionRate
-          itemNotes
-          globalCategoryLv1Name
-          globalCategoryLv2Name
-          globalCategoryLv3Name
-          fraudStatus
-          fraudReason
-          attributionType
-          channelType
-          campaignPartnerName
-          campaignType
-        }
-      }
-    }
-    pageInfo {
-      page
-      limit
-      hasNextPage
-      scrollId
-    }
-  }
-}
-```
-
-O `productId: 22599034226` desse exemplo é **fictício para teste** e não deve ser tratado como constante ou dado real do projeto.
-
-A query observada demonstra filtros para:
-
-- `conversionStatus`;
-- `productId`;
-- `categoryType`;
-- `orderStatus`;
-- `buyerType`;
-- `productType`;
-- `fraudStatus`;
-- `device`.
-
-Não inferir a obrigatoriedade ou opcionalidade desses argumentos apenas a partir do exemplo.
-
-O `clickTime` desse relatório representa o clique associado à conversão e **não substitui o Click Report para o universo de raw clicks**.
-
-### 3.4 `validatedReport`
-
-Query de referência fornecida:
-
-```graphql
-{
-  validatedReport {
-    nodes {
-      clickTime
-      purchaseTime
-      conversionId
-      shopeeCommissionCapped
-      sellerCommission
-      totalCommission
-      buyerType
-      utmContent
-      device
-      productType
-      referrer
-      netCommission
-      mcnManagementFeeRate
-      mcnManagementFee
-      mcnContractId
-      linkedMcnName
-      orders {
-        orderId
-        shopType
-        orderStatus
-        items {
-          shopId
-          shopName
-          completeTime
-          promotionId
-          modelId
-          itemId
-          itemName
-          itemPrice
-          displayItemStatus
-          actualAmount
-          refundAmount
-          qty
-          imageUrl
-          itemTotalCommission
-          itemSellerCommission
-          itemSellerCommissionRate
-          itemShopeeCommissionCapped
-          itemShopeeCommissionRate
-          itemNotes
-          globalCategoryLv1Name
-          globalCategoryLv2Name
-          globalCategoryLv3Name
-          fraudStatus
-          fraudReason
-          attributionType
-          channelType
-          campaignPartnerName
-          campaignType
-        }
-      }
-    }
-    pageInfo {
-      page
-      limit
-      hasNextPage
-      scrollId
-    }
-  }
-}
-```
-
-No exemplo fornecido, `validatedReport` foi chamado sem argumentos. Isso não autoriza inferir que outros formatos/filtros não existam.
-
-A diferença semântica exata entre `conversionReport` e `validatedReport` permanece aberta. **Não sobrescrever silenciosamente um pelo outro.** Preservar a origem da observação.
-
-## 4. Contrato obrigatório de tracking e short URL
-
-### 4.1 Momento de geração
-
-A linha pode ser criada em `offers.daily_dispatch_plan` antes da URL rastreável, pois o próprio `dispatch_plan_id` participa da chamada.
-
-Porém, uma linha Shopee **não pode ser exposta como pronta para publicação** até a geração e persistência bem-sucedida da short URL rastreável.
-
-```text
-PLANNED
-  daily_dispatch_plan existe
-  dispatch_plan_id existe
-      ↓
-TRACKING
-  generateShortLink executado
-  shortLink persistida
-      ↓
-READY
-  v_daily_dispatch_ready expõe a linha
-```
-
-Não deve existir fallback silencioso para publicação usando URL não rastreada.
-
-### 4.2 URL de entrada e URL consumida pela copy
-
-Entrada da API:
+A entrada `originUrl` de `generateShortLink` deve ser:
 
 ```text
 offers.catalog_items.product_link
 ```
+
+Não usar `catalog_items.offer_link` como origem da nova chamada.
+
+### 3.2 URL usada pela copy
 
 Fluxo:
 
@@ -426,38 +108,32 @@ catalog_items.product_link
         ↓ originUrl
 generateShortLink
         ↓ shortLink
-tracking_short_url da exposição planejada
-        ↓ exposta como offer_link
+daily_dispatch_plan.tracking_short_url
+        ↓ projetada como offer_link
 v_daily_dispatch_ready
         ↓
 n8n / copy / WhatsApp
 ```
 
-O n8n atual consome `offer_link` na copy e esse contrato deve ser preservado.
+A short URL é propriedade da exposição planejada. **Não sobrescrever globalmente `catalog_items.offer_link`** com link contendo tracking de um `dispatch_plan_id` específico.
 
-**Não sobrescrever globalmente `catalog_items.offer_link` com uma URL específica de `dispatch_plan_id`.** A short URL pertence à exposição planejada. O mesmo produto reutilizado em outro plano deve receber outra short URL.
-
-### 4.3 Quatro Sub IDs obrigatórios
+### 3.3 Quatro Sub IDs obrigatórios
 
 | Posição | Conteúdo | Regra | Exemplo |
 | --- | --- | --- | --- |
 | `subId[0]` | meio | literal deste fluxo | `wa` |
 | `subId[1]` | perfil | `daily_dispatch_plan.profile` sem mapping manual | `feminino` |
 | `subId[2]` | exposição | `dp` + UUID sem hífens | `dp550e8400e29b41d4a716446655440000` |
-| `subId[3]` | item anunciado | `item_id` como texto | `18797641257` |
+| `subId[3]` | produto anunciado | `daily_dispatch_plan.item_id` como texto | `18797641257` |
 
 A quinta posição permanece reservada.
 
-O uso direto de `profile` evita tabelas manuais de abreviação e torna novos profiles automaticamente rastreáveis.
-
-### 4.4 Normalização de `dispatch_plan_id`
+Normalização:
 
 ```text
 550e8400-e29b-41d4-a716-446655440000
-        ↓ remover '-'
-550e8400e29b41d4a716446655440000
-        ↓ prefixar 'dp'
-dp550e8400e29b41d4a716446655440000
+→ 550e8400e29b41d4a716446655440000
+→ dp550e8400e29b41d4a716446655440000
 ```
 
 Regra:
@@ -466,11 +142,11 @@ Regra:
 dispatch_tracking_id = "dp" + replace(dispatch_plan_id::text, "-", "")
 ```
 
-Não usar underscore, hífen, truncamento ou hash.
+Não usar hífen, underscore, truncamento ou hash.
 
-Esse formato completo foi validado em chamada real de `generateShortLink`.
+Esse formato completo foi aceito em teste real de `generateShortLink`.
 
-### 4.5 Exemplo validado
+### 3.4 Exemplo validado
 
 ```graphql
 mutation {
@@ -489,448 +165,355 @@ mutation {
 }
 ```
 
-Retorno observado de `shortLink`:
+Short URL observada:
 
 ```text
 https://s.shopee.com.br/3g3DPzjYgO
 ```
 
-### 4.6 Precondições para READY
+### 3.5 Precondições para READY
 
-Uma exposição Shopee somente pode ficar `READY` quando:
+Uma exposição Shopee só pode ficar pronta quando:
 
-- existir `product_link` válida;
-- `profile` estiver presente;
-- `dispatch_plan_id` estiver presente;
-- `item_id` estiver presente;
-- os quatro Sub IDs forem produzidos conforme contrato;
-- `generateShortLink` retornar uma `shortLink` válida;
-- a short URL tiver sido persistida para aquele `dispatch_plan_id`.
+- existir `product_link`;
+- existir `profile`;
+- existir `dispatch_plan_id`;
+- existir `item_id`;
+- os quatro Sub IDs forem produzidos conforme o contrato;
+- `generateShortLink` retornar `shortLink` válida;
+- a short URL for persistida para o plano.
 
-Falha de tracking bloqueia somente a exposição afetada e não autoriza envio sem rastreamento.
+Não existe fallback silencioso para URL sem tracking.
+
+## 4. Fontes externas e para que cada uma serve
+
+### 4.1 Click Report CSV — interesse/raw clicks
+
+O Click Report não está na Open API observada. Ele é obtido pelo Portal/Central do Afiliado e importado posteriormente.
+
+O CSV já fornecido possui:
+
+- `ID dos Cliques`;
+- `Tempo dos Cliques`;
+- `Região dos Cliques`;
+- `Sub_id`;
+- `Referenciador`.
+
+O arquivo histórico analisado possui 48 raw clicks e `Sub_id = ----` em todos; esses registros permanecem válidos como tráfego bruto, mas não podem ser atribuídos deterministicamente a um plano.
+
+A documentação oficial da Shopee confirma que o Relatório de Cliques pode ser exportado e analisado por `Sub_id(s)` e orienta separar os Sub IDs em colunas no Excel. Portanto a arquitetura **pode depender documentalmente da presença dos Sub IDs no relatório**.
+
+Fonte oficial verificada: [Como acompanhar o número de cliques nos seus links](https://help.shopee.com.br/portal/10/article/127718-Como-acompanhar-o-n%C3%BAmero-de-cliques-nos-seus-links?previousPage=related+articles).
+
+O teste empírico em andamento não decide se os Sub IDs existem; ele servirá apenas para confirmar a **serialização/delimitador concreto no CSV** e validar o parser.
+
+Até o novo CSV:
+
+- preservar sempre `Sub_id` bruto;
+- não fixar delimitador;
+- não fixar parser baseado em hipótese.
+
+A documentação oficial apresenta `ID dos Cliques` como campo/filtro do relatório, mas não foi encontrada garantia de unicidade global. Portanto `click_id` deve ser indexado, mas **não deve receber constraint `UNIQUE` nesta fase**.
+
+### 4.2 `conversionReport` — conversões e valor observado
+
+A query de referência fornecida retorna no nível da conversão:
+
+- `clickTime`;
+- `purchaseTime`;
+- `conversionId`;
+- `shopeeCommissionCapped`;
+- `sellerCommission`;
+- `totalCommission`;
+- `netCommission`;
+- `mcnManagementFeeRate`;
+- `mcnManagementFee`;
+- `mcnContractId`;
+- `linkedMcnName`;
+- `buyerType`;
+- `utmContent`;
+- `device`;
+- `productType`;
+- `referrer`.
+
+Pedidos retornam `orderId`, `shopType`, `orderStatus` e itens com `itemId`, `itemName`, valores, comissão, categorias, fraude, `attributionType` e demais campos do payload fornecido.
+
+A paginação retorna `page`, `limit`, `hasNextPage`, `scrollId`.
+
+O `productId` usado na query de exemplo é fictício e não deve virar constante/default.
+
+`clickTime` aqui representa o clique da conversão e não substitui o Click Report para o universo de raw clicks.
+
+### 4.3 KPI econômico principal
+
+Decisão fechada:
+
+```text
+KPI econômico principal = totalCommission
+```
+
+Motivo operacional: `totalCommission` representa a soma observada das parcelas de comissão retornadas no relatório. Exemplo real fornecido:
+
+```text
+shopeeCommissionCapped = 1.6542
+sellerCommission       = 30.8784
+totalCommission        = 32.5326
+```
+
+`netCommission` continua armazenado para reconciliação, mas não é o KPI principal de valor por slot desta fase.
+
+### 4.4 Venda direta versus indireta
+
+A documentação oficial da Shopee define:
+
+- **direta**: compra do mesmo produto divulgado;
+- **indireta**: compra de produto diferente do divulgado.
+
+Fonte oficial verificada: [Como funcionam as atribuições: vendas diretas ou indiretas](https://help.shopee.com.br/portal/10/article/163055-Como-funcionam-as-atribui%C3%A7%C3%B5es%3A-vendas-diretas-ou-indiretas?previousPage=related+articles).
+
+Portanto a classificação interna não depende de loja:
+
+```text
+advertised_item_id = daily_dispatch_plan.item_id
+purchased_item_id  = conversionReport.orders.items.itemId
+
+advertised_item_id = purchased_item_id  → direct
+advertised_item_id <> purchased_item_id → indirect
+```
+
+Não é necessário obter `shop_id` do produto anunciado para responder essa pergunta. `shopId` do item comprado pode continuar no raw payload/coluna auxiliar, mas não é requisito da classificação direta/indireta.
+
+`attributionType` permanece armazenado como evidência externa e pode ser comparado com a classificação derivada, mas a regra principal acima já está suportada documentalmente.
+
+Exemplo real fornecido também mostrou `attributionType = ORDERED_IN_SAME_SHOP`; esse valor deve ser preservado, não reinterpretado além do contrato documentado.
+
+### 4.5 `validatedReport` — reconciliação financeira posterior
+
+A documentação oficial da Shopee confirma que, após o pedido ficar `Concluído`, a comissão passa por validação e as comissões validadas representam valores cujo recebimento está assegurado.
+
+Fonte oficial verificada: [Entenda o processo de validação das comissões](https://help.shopee.com.br/portal/10/article/163057-Entenda-o-Processo-de-Valida%C3%A7%C3%A3o-das-Comiss%C3%B5es).
+
+Na Open API/Playground observado pelo projeto, `validatedReport` requer `validationId`. O resultado real de `conversionReport` fornecido contém `conversionId` e `orderId`, mas não apresentou `validationId`.
+
+**Pendência:** identificar, em fonte oficial/API disponível à conta, como obter programaticamente o `validationId` requerido.
+
+Até isso ser resolvido:
+
+- `validatedReport` não bloqueia a implementação de tracking, raw clicks e `conversionReport`;
+- a primeira camada analítica usa Click Report + `conversionReport`;
+- `validatedReport` entra como reconciliação financeira posterior;
+- não inventar ligação `conversionId → validationId`.
 
 ## 5. Princípio de modelagem do banco
 
-O banco deve ser modelado pelas **decisões de negócio**, não pela quantidade de campos que a Shopee fornece.
+O banco é orientado a decisão de negócio:
 
-Princípios:
+1. `dispatch_plan_id` é a identidade da exposição;
+2. não duplicar em clique/conversão dados recuperáveis do plano;
+3. preservar raw externo para auditoria e reprocessamento;
+4. promover a coluna apenas o que participa das análises principais;
+5. separar item anunciado de item comprado;
+6. preservar proveniência de `conversionReport` e futuramente `validatedReport`;
+7. não replicar integralmente o schema externo.
 
-1. `dispatch_plan_id` é a chave da exposição;
-2. não duplicar na conversão/clique dados já recuperáveis do plano;
-3. preservar raw/origem externa suficiente para auditoria e reprocessamento;
-4. criar colunas explícitas para dados usados nas análises principais;
-5. manter `raw_payload JSONB` para campos externos secundários e evolução futura;
-6. separar item anunciado de item comprado;
-7. preservar a origem `conversion_report` versus `validated_report`;
-8. não transformar o Supabase em réplica integral do schema externo.
+## 6. Schema proposto
 
-## 6. Esquema proposto das tabelas
+### 6.1 Alterações em `offers.daily_dispatch_plan`
 
-### 6.1 Alteração de `offers.daily_dispatch_plan` — tracking da exposição
+**Fonte:** processo interno + `generateShortLink`.
 
-**Fonte:** processo interno + retorno de `generateShortLink`.
-
-| Coluna | Tipo sugerido | Origem | Uso |
-| --- | --- | --- | --- |
-| `tracking_sub_ids` | `TEXT[] NULL` | request `generateShortLink` | auditoria dos 4 Sub IDs enviados |
-| `tracking_short_url` | `TEXT NULL` | `generateShortLink.shortLink` | URL efetiva da publicação |
-| `tracking_generated_at` | `TIMESTAMPTZ NULL` | interno | auditoria |
-| `tracking_status` | `TEXT NOT NULL DEFAULT 'pending'` | interno | `pending/ready/failed` |
-| `tracking_error` | `TEXT NULL` | interno | diagnóstico técnico |
-
-Regras:
-
-- `tracking_sub_ids` deve ter exatamente quatro posições quando `tracking_status='ready'`;
-- `tracking_short_url` deve existir quando `tracking_status='ready'`;
-- `catalog_items.product_link` permanece inalterado;
-- `catalog_items.offer_link` não é sobrescrito pela short URL de uma exposição;
-- `v_daily_dispatch_ready.offer_link` deve projetar `daily_dispatch_plan.tracking_short_url` para Shopee.
-
-### 6.2 `offers.shopee_click_report_imports` — lotes do CSV
-
-**Fonte:** arquivo baixado manualmente da Central Shopee.
-
-Finalidade: idempotência e proveniência do arquivo.
-
-| Coluna | Tipo sugerido | Origem |
+| Coluna | Tipo sugerido | Uso |
 | --- | --- | --- |
-| `import_id` | `UUID PK` | interno |
-| `source_filename` | `TEXT NOT NULL` | arquivo |
-| `source_sha256` | `TEXT NOT NULL UNIQUE` | hash do arquivo |
-| `downloaded_at` | `TIMESTAMPTZ NULL` | informado/operacional |
-| `imported_at` | `TIMESTAMPTZ NOT NULL` | interno |
-| `row_count` | `INTEGER NOT NULL` | ingestão |
-| `status` | `TEXT NOT NULL` | interno |
-| `error` | `TEXT NULL` | interno |
-| `created_at` | `TIMESTAMPTZ NOT NULL` | interno |
+| `tracking_sub_ids` | `TEXT[] NULL` | quatro Sub IDs enviados |
+| `tracking_short_url` | `TEXT NULL` | URL efetiva da exposição |
+| `tracking_generated_at` | `TIMESTAMPTZ NULL` | auditoria |
+| `tracking_status` | `TEXT NOT NULL DEFAULT 'pending'` | `pending/ready/failed` |
+| `tracking_error` | `TEXT NULL` | diagnóstico técnico |
 
-### 6.3 `offers.shopee_click_events` — raw clicks + resolução
+Regras: exatamente quatro Sub IDs e short URL não nula quando `tracking_status='ready'`; `v_daily_dispatch_ready.offer_link` deve projetar `tracking_short_url` para Shopee.
 
-**Fonte:** uma linha do Click Report CSV.
+### 6.2 `offers.shopee_click_report_imports`
 
-A mesma tabela preserva o raw e os campos resolvidos; não é necessário criar uma terceira tabela analítica apenas para repetir o clique.
+**Fonte:** CSV baixado do Portal do Afiliado.
 
-| Coluna | Tipo sugerido | Origem | Importância |
-| --- | --- | --- | --- |
-| `click_event_id` | `UUID PK` | interno | chave técnica |
-| `import_id` | `UUID NOT NULL FK` | lote | proveniência |
-| `click_id` | `TEXT NOT NULL` | `ID dos Cliques` | identidade externa do evento |
-| `click_time` | `TIMESTAMPTZ NOT NULL` | `Tempo dos Cliques` | análise temporal |
-| `click_region` | `TEXT NULL` | `Região dos Cliques` | dado secundário preservado |
-| `sub_id_raw` | `TEXT NULL` | `Sub_id` | raw obrigatório |
-| `referrer` | `TEXT NULL` | `Referenciador` | auditoria/origem secundária |
-| `dispatch_plan_id` | `UUID NULL FK` | derivado de `sub_id_raw` | ligação principal quando resolvida |
-| `advertised_item_id_raw` | `BIGINT NULL` | derivado do tracking | validação contra plano |
-| `tracking_parse_status` | `TEXT NOT NULL` | interno | `unparsed/resolved/unrecognized/legacy_empty` |
-| `tracking_parse_error` | `TEXT NULL` | interno | diagnóstico |
-| `raw_row` | `JSONB NOT NULL` | CSV original | reprocessamento/auditoria |
-| `created_at` | `TIMESTAMPTZ NOT NULL` | interno | auditoria |
+| Coluna | Tipo sugerido |
+| --- | --- |
+| `import_id` | `UUID PK` |
+| `source_filename` | `TEXT NOT NULL` |
+| `source_sha256` | `TEXT NOT NULL UNIQUE` |
+| `downloaded_at` | `TIMESTAMPTZ NULL` |
+| `imported_at` | `TIMESTAMPTZ NOT NULL` |
+| `row_count` | `INTEGER NOT NULL` |
+| `status` | `TEXT NOT NULL` |
+| `error` | `TEXT NULL` |
+| `created_at` | `TIMESTAMPTZ NOT NULL` |
 
-Observações:
+### 6.3 `offers.shopee_click_events`
 
-- `profile`, `primary_subniche`, `commercial_score` e slot **não precisam ser duplicados**: vêm do `dispatch_plan_id`;
-- `sub_id_raw='----'` deve ser preservado e classificado como legado/não atribuível;
-- a estratégia final de parsing fica pendente do CSV gerado após o teste dos quatro Sub IDs;
-- `click_id` não deve ser assumido como usuário único;
-- após confirmar unicidade, pode ser criada constraint de idempotência apropriada sobre `click_id`; até lá, `source_sha256 + linha/raw` deve permitir reprocessamento seguro.
+**Fonte:** uma linha do Click Report.
 
-### 6.4 `offers.shopee_conversion_sync_runs` — execuções da API
-
-**Fonte:** cada execução de `conversionReport` ou `validatedReport`.
-
-| Coluna | Tipo sugerido | Origem |
+| Coluna | Tipo sugerido | Origem/uso |
 | --- | --- | --- |
-| `sync_run_id` | `UUID PK` | interno |
-| `report_type` | `TEXT NOT NULL` | `conversion_report` / `validated_report` |
-| `query_filters` | `JSONB NOT NULL` | filtros efetivamente usados |
-| `started_at` | `TIMESTAMPTZ NOT NULL` | interno |
-| `finished_at` | `TIMESTAMPTZ NULL` | interno |
-| `status` | `TEXT NOT NULL` | interno |
-| `nodes_received` | `INTEGER NOT NULL DEFAULT 0` | ingestão |
-| `last_page` | `INTEGER NULL` | `pageInfo.page` |
-| `page_limit` | `INTEGER NULL` | `pageInfo.limit` |
-| `has_next_page` | `BOOLEAN NULL` | `pageInfo.hasNextPage` |
-| `last_scroll_id` | `TEXT NULL` | `pageInfo.scrollId` |
-| `error` | `TEXT NULL` | interno |
-| `created_at` | `TIMESTAMPTZ NOT NULL` | interno |
+| `click_event_id` | `UUID PK` | chave técnica interna |
+| `import_id` | `UUID NOT NULL FK` | lote |
+| `click_id` | `TEXT NOT NULL` | `ID dos Cliques`; indexar, não declarar UNIQUE ainda |
+| `click_time` | `TIMESTAMPTZ NOT NULL` | `Tempo dos Cliques` |
+| `click_region` | `TEXT NULL` | raw secundário |
+| `sub_id_raw` | `TEXT NULL` | raw obrigatório |
+| `referrer` | `TEXT NULL` | raw secundário |
+| `dispatch_plan_id` | `UUID NULL FK` | resolvido do tracking |
+| `advertised_item_id_raw` | `BIGINT NULL` | quarto Sub ID, para consistência |
+| `tracking_parse_status` | `TEXT NOT NULL` | `unparsed/resolved/unrecognized/legacy_empty` |
+| `tracking_parse_error` | `TEXT NULL` | diagnóstico |
+| `raw_row` | `JSONB NOT NULL` | linha original |
+| `created_at` | `TIMESTAMPTZ NOT NULL` | auditoria |
 
-`query_filters` deve preservar inclusive `productId` quando usado. O `productId` fictício do exemplo não deve ser persistido como default da aplicação.
+Não duplicar `profile`, subnicho, score ou slot; todos vêm do plano após resolver `dispatch_plan_id`.
 
-### 6.5 `offers.shopee_conversions` — conversão canônica
+### 6.4 `offers.shopee_conversion_sync_runs`
 
-**Fonte:** campos de nível `nodes` de `conversionReport`/`validatedReport`.
+**Fonte:** execução/paginação da API.
 
-A tabela canônica contém apenas dados necessários para atribuição temporal e econômica. Campos externos secundários permanecem nas observações/raw payload.
+| Coluna | Tipo sugerido |
+| --- | --- |
+| `sync_run_id` | `UUID PK` |
+| `report_type` | `TEXT NOT NULL` |
+| `query_filters` | `JSONB NOT NULL` |
+| `started_at` | `TIMESTAMPTZ NOT NULL` |
+| `finished_at` | `TIMESTAMPTZ NULL` |
+| `status` | `TEXT NOT NULL` |
+| `nodes_received` | `INTEGER NOT NULL DEFAULT 0` |
+| `last_page` | `INTEGER NULL` |
+| `page_limit` | `INTEGER NULL` |
+| `has_next_page` | `BOOLEAN NULL` |
+| `last_scroll_id` | `TEXT NULL` |
+| `error` | `TEXT NULL` |
+| `created_at` | `TIMESTAMPTZ NOT NULL` |
 
-| Coluna | Tipo sugerido | Origem | Uso |
-| --- | --- | --- | --- |
-| `conversion_id` | `TEXT PK` | `conversionId` | identidade natural |
-| `dispatch_plan_id` | `UUID NULL FK` | resolvido de `utmContent` | ligação à exposição |
-| `utm_content_raw` | `TEXT NULL` | `utmContent` | preservação da atribuição externa |
-| `click_time` | `TIMESTAMPTZ NULL` | `clickTime` | latência publicação→clique convertido |
-| `purchase_time` | `TIMESTAMPTZ NULL` | `purchaseTime` | latência clique→compra |
-| `buyer_type` | `TEXT NULL` | `buyerType` | segmentação futura |
-| `total_commission` | `NUMERIC NULL` | `totalCommission` | monetização bruta observada |
-| `net_commission` | `NUMERIC NULL` | `netCommission` | monetização líquida observada |
-| `seller_commission` | `NUMERIC NULL` | `sellerCommission` | composição da comissão |
-| `shopee_commission_capped` | `NUMERIC NULL` | `shopeeCommissionCapped` | composição da comissão |
-| `first_seen_at` | `TIMESTAMPTZ NOT NULL` | interno | auditoria |
-| `last_seen_at` | `TIMESTAMPTZ NOT NULL` | interno | auditoria |
-| `created_at` | `TIMESTAMPTZ NOT NULL` | interno | auditoria |
-| `updated_at` | `TIMESTAMPTZ NOT NULL` | interno | auditoria |
+Nesta primeira fase, `report_type='conversion_report'`. `validated_report` entra quando o fluxo de `validationId` estiver definido.
 
-Não é necessário duplicar aqui `profile`, `subniche`, `commercial_score`, `item_id` anunciado ou horário do slot.
+### 6.5 `offers.shopee_conversions`
 
-### 6.6 `offers.shopee_conversion_observations` — estado visto em cada relatório
+**Fonte:** `conversionReport.nodes[]` e futuramente `validatedReport.nodes[]`.
 
-**Fonte:** um node observado por um `sync_run`.
-
-Finalidade: evitar que `validatedReport` sobrescreva silenciosamente `conversionReport` antes de conhecermos sua semântica exata.
-
-| Coluna | Tipo sugerido | Origem |
+| Coluna | Tipo sugerido | Uso |
 | --- | --- | --- |
-| `observation_id` | `UUID PK` | interno |
-| `conversion_id` | `TEXT NOT NULL FK` | `conversionId` |
-| `sync_run_id` | `UUID NOT NULL FK` | execução |
-| `report_type` | `TEXT NOT NULL` | origem |
-| `observed_at` | `TIMESTAMPTZ NOT NULL` | interno |
-| `total_commission` | `NUMERIC NULL` | API |
-| `net_commission` | `NUMERIC NULL` | API |
-| `seller_commission` | `NUMERIC NULL` | API |
-| `shopee_commission_capped` | `NUMERIC NULL` | API |
-| `mcn_management_fee_rate` | `NUMERIC NULL` | API |
-| `mcn_management_fee` | `NUMERIC NULL` | API |
-| `mcn_contract_id` | `TEXT NULL` | API |
-| `linked_mcn_name` | `TEXT NULL` | API |
-| `device` | `TEXT NULL` | API |
-| `shopee_product_type` | `TEXT NULL` | API `productType` |
-| `referrer` | `TEXT NULL` | API |
-| `raw_payload` | `JSONB NOT NULL` | node original |
+| `conversion_id` | `TEXT PK` | identidade externa |
+| `dispatch_plan_id` | `UUID NULL FK` | resolvido de `utmContent` |
+| `utm_content_raw` | `TEXT NULL` | raw de tracking |
+| `click_time` | `TIMESTAMPTZ NULL` | clique convertido |
+| `purchase_time` | `TIMESTAMPTZ NULL` | compra |
+| `buyer_type` | `TEXT NULL` | segmentação futura |
+| `total_commission` | `NUMERIC NULL` | **KPI econômico principal** |
+| `net_commission` | `NUMERIC NULL` | reconciliação |
+| `seller_commission` | `NUMERIC NULL` | composição |
+| `shopee_commission_capped` | `NUMERIC NULL` | composição |
+| `first_seen_at` | `TIMESTAMPTZ NOT NULL` | auditoria |
+| `last_seen_at` | `TIMESTAMPTZ NOT NULL` | auditoria |
+| `created_at` | `TIMESTAMPTZ NOT NULL` | auditoria |
+| `updated_at` | `TIMESTAMPTZ NOT NULL` | auditoria |
 
-O `productType` externo da Shopee **não é o mesmo conceito** que o futuro `product_type` editorial do projeto.
+### 6.6 `offers.shopee_conversion_observations`
 
-### 6.7 `offers.shopee_conversion_orders` — pedidos
+Serve para preservar o node bruto por execução e, futuramente, comparar `conversionReport` com `validatedReport`.
+
+| Coluna | Tipo sugerido |
+| --- | --- |
+| `observation_id` | `UUID PK` |
+| `conversion_id` | `TEXT NOT NULL FK` |
+| `sync_run_id` | `UUID NOT NULL FK` |
+| `report_type` | `TEXT NOT NULL` |
+| `observed_at` | `TIMESTAMPTZ NOT NULL` |
+| `total_commission` | `NUMERIC NULL` |
+| `net_commission` | `NUMERIC NULL` |
+| `seller_commission` | `NUMERIC NULL` |
+| `shopee_commission_capped` | `NUMERIC NULL` |
+| `raw_payload` | `JSONB NOT NULL` |
+
+Campos secundários como MCN, `device`, `productType` e `referrer` permanecem no raw nesta fase, salvo necessidade analítica posterior.
+
+### 6.7 `offers.shopee_conversion_orders`
 
 **Fonte:** `nodes[].orders[]`.
 
-| Coluna | Tipo sugerido | Origem |
-| --- | --- | --- |
-| `conversion_order_id` | `UUID PK` | interno |
-| `conversion_id` | `TEXT NOT NULL FK` | parent node |
-| `order_id` | `TEXT NOT NULL` | `orderId` |
-| `shop_type` | `TEXT NULL` | `shopType` |
-| `order_status` | `TEXT NULL` | `orderStatus` |
-| `first_seen_at` | `TIMESTAMPTZ NOT NULL` | interno |
-| `last_seen_at` | `TIMESTAMPTZ NOT NULL` | interno |
-| `raw_payload` | `JSONB NULL` | pedido original |
+| Coluna | Tipo sugerido |
+| --- | --- |
+| `conversion_order_id` | `UUID PK` |
+| `conversion_id` | `TEXT NOT NULL FK` |
+| `order_id` | `TEXT NOT NULL` |
+| `shop_type` | `TEXT NULL` |
+| `order_status` | `TEXT NULL` |
+| `first_seen_at` | `TIMESTAMPTZ NOT NULL` |
+| `last_seen_at` | `TIMESTAMPTZ NOT NULL` |
+| `raw_payload` | `JSONB NULL` |
 
 Chave natural proposta para estado corrente: `conversion_id + order_id`.
 
-### 6.8 `offers.shopee_conversion_items` — itens efetivamente comprados
+### 6.8 `offers.shopee_conversion_items`
 
 **Fonte:** `nodes[].orders[].items[]`.
 
-Essa tabela é central para distinguir o produto anunciado do produto comprado.
+| Coluna | Tipo sugerido | Uso |
+| --- | --- | --- |
+| `conversion_item_id` | `UUID PK` | técnica |
+| `conversion_id` | `TEXT NOT NULL FK` | conversão |
+| `order_id` | `TEXT NOT NULL` | pedido |
+| `item_id` | `BIGINT NOT NULL` | item comprado |
+| `item_name` | `TEXT NULL` | leitura/auditoria |
+| `item_price` | `NUMERIC NULL` | referência |
+| `actual_amount` | `NUMERIC NULL` | valor efetivo |
+| `refund_amount` | `NUMERIC NULL` | ajuste |
+| `qty` | `INTEGER NULL` | quantidade |
+| `item_total_commission` | `NUMERIC NULL` | comissão do item |
+| `global_category_lv1_name` | `TEXT NULL` | demanda comprada |
+| `global_category_lv2_name` | `TEXT NULL` | demanda comprada |
+| `global_category_lv3_name` | `TEXT NULL` | demanda comprada |
+| `fraud_status` | `TEXT NULL` | integridade |
+| `attribution_type` | `TEXT NULL` | evidência Shopee |
+| `complete_time` | `TIMESTAMPTZ NULL` | ciclo do pedido |
+| `raw_payload` | `JSONB NOT NULL` | item completo original |
 
-#### Colunas analíticas de primeira classe
-
-| Coluna | Tipo sugerido | Origem | Uso |
-| --- | --- | --- | --- |
-| `conversion_item_id` | `UUID PK` | interno | chave técnica |
-| `conversion_id` | `TEXT NOT NULL FK` | node | ligação à conversão |
-| `order_id` | `TEXT NOT NULL` | pedido | ligação ao pedido |
-| `item_id` | `BIGINT NOT NULL` | `itemId` | item comprado |
-| `shop_id` | `BIGINT NULL` | `shopId` | mesma loja/outra loja |
-| `item_name` | `TEXT NULL` | `itemName` | leitura/auditoria |
-| `item_price` | `NUMERIC NULL` | `itemPrice` | valor de referência |
-| `actual_amount` | `NUMERIC NULL` | `actualAmount` | valor efetivo |
-| `refund_amount` | `NUMERIC NULL` | `refundAmount` | ajuste econômico |
-| `qty` | `INTEGER NULL` | `qty` | quantidade |
-| `item_total_commission` | `NUMERIC NULL` | `itemTotalCommission` | valor gerado pelo item |
-| `global_category_lv1_name` | `TEXT NULL` | API | demanda comprada |
-| `global_category_lv2_name` | `TEXT NULL` | API | demanda comprada |
-| `global_category_lv3_name` | `TEXT NULL` | API | demanda comprada |
-| `fraud_status` | `TEXT NULL` | API | integridade |
-| `attribution_type` | `TEXT NULL` | API | atribuição externa sem inferência |
-| `complete_time` | `TIMESTAMPTZ NULL` | `completeTime` | ciclo do pedido |
-| `raw_payload` | `JSONB NOT NULL` | item original | auditoria/evolução |
-
-#### Campos preservados no `raw_payload` e não obrigatoriamente promovidos a coluna nesta fase
-
-- `shopName`;
-- `promotionId`;
-- `modelId`;
-- `displayItemStatus`;
-- `imageUrl`;
-- `itemSellerCommission`;
-- `itemSellerCommissionRate`;
-- `itemShopeeCommissionCapped`;
-- `itemShopeeCommissionRate`;
-- `itemNotes`;
-- `fraudReason`;
-- `channelType`;
-- `campaignPartnerName`;
-- `campaignType`.
-
-Esses campos não são descartados; apenas não dirigem o desenho analítico inicial.
+`shopId`, `shopName`, campanhas, taxas adicionais, `promotionId`, `modelId` e demais campos fornecidos pela API ficam preservados em `raw_payload` nesta fase porque não são necessários para responder direta versus indireta.
 
 ### 6.9 Diagrama lógico
 
 ```text
-offers.daily_dispatch_plan
+daily_dispatch_plan
   PK dispatch_plan_id
   item_id anunciado
   primary_subniche
   commercial_score
   tracking_short_url
   tracking_sub_ids
-          │
-          ├─────────────── 0..1 offers.publication_events
-          │
-          ├─────────────── 0..N offers.shopee_click_events
-          │                         raw CSV + dispatch_plan_id resolvido
-          │
-          └─────────────── 0..N offers.shopee_conversions
-                                    │
-                                    ├── 0..N sho...conversion_observations
-                                    └── 1..N sho...conversion_orders
-                                                   │
-                                                   └── 1..N sho...conversion_items
-                                                          item_id comprado
+       │
+       ├──── 0..1 publication_events
+       ├──── 0..N shopee_click_events
+       └──── 0..N shopee_conversions
+                    ├──── 0..N conversion_observations
+                    └──── 1..N conversion_orders
+                                  └──── 1..N conversion_items
+                                             item_id comprado
+
+shopee_click_report_imports → proveniência/idempotência do CSV
+shopee_conversion_sync_runs → proveniência/paginação da API
 ```
 
-Tabelas operacionais auxiliares:
+## 7. Queries analíticas prioritárias
 
-```text
-shopee_click_report_imports → controla arquivos CSV
-shopee_conversion_sync_runs → controla chamadas/paginação da API
-```
+As queries abaixo expressam o contrato de negócio; nomes finais podem ser ajustados na migração.
 
-## 7. Classificação de valor da exposição
-
-A arquitetura deve permitir, sem inventar semântica da Shopee, comparar:
-
-```text
-item anunciado = daily_dispatch_plan.item_id
-item comprado  = shopee_conversion_items.item_id
-```
-
-e, quando a loja do item anunciado estiver disponível de forma confiável no catálogo/snapshot:
-
-```text
-1. mesmo item anunciado
-2. outro item da mesma loja
-3. outro item/outra loja
-```
-
-`attribution_type` deve ser armazenado como evidência externa e só interpretado após observar valores reais/documentação oficial.
-
-O objetivo analítico é medir o **valor do slot editorial**, não apenas “o item anunciado vendeu ou não”.
-
-## 8. `product_type` editorial — evolução futura
-
-O futuro `product_type` editorial representa função comercial do produto dentro do subnicho, por exemplo:
-
-```text
-skincare-facial → serum
-skincare-facial → hidratante
-lingerie-e-intimos → calcinha
-lingerie-e-intimos → sutia
-```
-
-Esse campo não existe hoje no Supabase e não é requisito desta implementação.
-
-Origem futura permanece aberta, provavelmente relacionada a descoberta/taxonomia por palavras-chave, título, subnicho e categorias.
-
-O `productType` retornado pela Shopee no relatório de conversão é um dado externo e **não deve ser automaticamente equiparado** ao futuro `product_type` editorial.
-
-## 9. Entradas e saídas formais
-
-### 9.1 Preparação diária
-
-Entradas da terceira etapa:
-
-- `dispatch_plan_id`;
-- `profile`;
-- `item_id`;
-- `marketplace`;
-- `catalog_items.product_link`.
-
-Saída persistida:
-
-```text
-dispatch_plan_id
-tracking_sub_ids[4]
-tracking_short_url
-tracking_generated_at
-tracking_status
-```
-
-Saída para o publicador:
-
-```text
-offer_link = tracking_short_url
-```
-
-### 9.2 Click Report
-
-Entrada:
-
-```text
-CSV baixado manualmente da Central Shopee
-```
-
-Saída:
-
-```text
-import lot
-+ raw click events
-+ dispatch_plan_id resolvido quando possível
-```
-
-### 9.3 Relatórios de conversão
-
-Entrada:
-
-```text
-conversionReport / validatedReport paginados
-```
-
-Saída:
-
-```text
-sync_run
-+ conversion canonical
-+ observation por relatório
-+ orders
-+ purchased items
-```
-
-## 10. Métricas principais
-
-### 10.1 Exposição
-
-- publicações por subnicho;
-- publicações por `item_id`;
-- distribuição por horário/slot;
-- concentração de exposição.
-
-### 10.2 Interesse
-
-- raw clicks totais;
-- cliques atribuídos por exposição;
-- cliques por publicação;
-- cliques por item anunciado;
-- cliques por subnicho via join;
-- latência publicação → primeiro clique;
-- percentual de clicks não atribuídos.
-
-Enquanto não houver impressões confiáveis do WhatsApp, usar `cliques por publicação`, não denominar CTR.
-
-### 10.3 Monetização
-
-- conversões por exposição;
-- comissão total e líquida por exposição;
-- comissão por clique;
-- item anunciado versus item comprado;
-- categorias compradas;
-- latência clique convertido → compra;
-- diferença entre estado observado em `conversionReport` e `validatedReport`.
-
-### 10.4 Integridade
-
-- 100% das novas exposições Shopee publicadas com tracking válido;
-- 100% com short URL persistida;
-- Click Report com `Sub_id` não reconhecido;
-- `utmContent` não reconhecido;
-- divergência entre item anunciado no tracking e plano;
-- publicação sem plano;
-- conversão sem plano resolvido;
-- duplicidade indevida de identidade.
-
-## 11. Queries analíticas propostas
-
-As queries abaixo são **propostas de leitura** sobre o schema desta spec. Nomes finais podem ser ajustados na migração, mas as perguntas de negócio são parte do contrato.
-
-### 11.1 Valor por exposição
-
-Pergunta: **quais publicações geraram mais interesse e dinheiro por slot?**
+### 7.1 Valor por exposição — KPI principal `totalCommission`
 
 ```sql
 with clicks as (
-  select
-    dispatch_plan_id,
-    count(*) as clicks,
-    min(click_time) as first_click_at
+  select dispatch_plan_id, count(*) as clicks, min(click_time) as first_click_at
   from offers.shopee_click_events
   where dispatch_plan_id is not null
   group by dispatch_plan_id
-), conversions as (
-  select
-    dispatch_plan_id,
-    count(*) as conversions,
-    sum(coalesce(total_commission, 0)) as total_commission,
-    sum(coalesce(net_commission, 0)) as net_commission
+), conv as (
+  select dispatch_plan_id,
+         count(*) as conversions,
+         sum(coalesce(total_commission, 0)) as total_commission
   from offers.shopee_conversions
   where dispatch_plan_id is not null
   group by dispatch_plan_id
@@ -944,63 +527,26 @@ select
   p.primary_subniche,
   p.commercial_score,
   pe.sent_at,
-  coalesce(c.clicks, 0) as clicks,
-  coalesce(v.conversions, 0) as conversions,
-  coalesce(v.total_commission, 0) as total_commission,
-  coalesce(v.net_commission, 0) as net_commission,
-  case when coalesce(c.clicks, 0) > 0
-       then v.net_commission / c.clicks
-       else null end as net_commission_per_click,
-  c.first_click_at - pe.sent_at as time_to_first_click
+  coalesce(cl.clicks, 0) as clicks,
+  coalesce(cv.conversions, 0) as conversions,
+  coalesce(cv.total_commission, 0) as total_commission,
+  case when coalesce(cl.clicks, 0) > 0
+       then cv.total_commission / cl.clicks end as total_commission_per_click,
+  cl.first_click_at - pe.sent_at as time_to_first_click
 from offers.daily_dispatch_plan p
-left join offers.publication_events pe
-  on pe.dispatch_plan_id = p.dispatch_plan_id
-left join clicks c
-  on c.dispatch_plan_id = p.dispatch_plan_id
-left join conversions v
-  on v.dispatch_plan_id = p.dispatch_plan_id
+left join offers.publication_events pe on pe.dispatch_plan_id = p.dispatch_plan_id
+left join clicks cl on cl.dispatch_plan_id = p.dispatch_plan_id
+left join conv cv on cv.dispatch_plan_id = p.dispatch_plan_id
 where p.marketplace = 'shopee';
 ```
 
-### 11.2 Performance por subnicho
+### 7.2 Performance por subnicho
 
-Pergunta: **qual subnicho consome slots e qual retorno produz?**
+Pergunta: quantos slots o subnicho consome e quanto `totalCommission` produz por exposição?
 
-```sql
-with exposure_value as (
-  -- substituir pela view/query 11.1
-  select
-    p.dispatch_plan_id,
-    p.primary_subniche,
-    count(distinct ce.click_event_id) as clicks,
-    count(distinct c.conversion_id) as conversions,
-    coalesce(sum(distinct c.net_commission), 0) as net_commission
-  from offers.daily_dispatch_plan p
-  left join offers.shopee_click_events ce
-    on ce.dispatch_plan_id = p.dispatch_plan_id
-  left join offers.shopee_conversions c
-    on c.dispatch_plan_id = p.dispatch_plan_id
-  where p.marketplace = 'shopee'
-  group by p.dispatch_plan_id, p.primary_subniche
-)
-select
-  primary_subniche,
-  count(*) as exposures,
-  sum(clicks) as clicks,
-  sum(conversions) as conversions,
-  sum(net_commission) as net_commission,
-  sum(clicks)::numeric / nullif(count(*), 0) as clicks_per_exposure,
-  sum(net_commission) / nullif(count(*), 0) as commission_per_exposure
-from exposure_value
-group by primary_subniche
-order by commission_per_exposure desc nulls last;
-```
+Implementar preferencialmente sobre uma view agregada por `dispatch_plan_id` para evitar multiplicação em joins 1:N.
 
-Nota de implementação: evitar multiplicação de comissão por joins 1:N; preferir views/agregações intermediárias por `dispatch_plan_id`.
-
-### 11.3 Item anunciado versus item comprado
-
-Pergunta: **o produto converte diretamente ou funciona como gerador de tráfego para outras compras?**
+### 7.3 Venda direta versus indireta
 
 ```sql
 select
@@ -1008,56 +554,38 @@ select
   p.item_id as advertised_item_id,
   i.item_id as purchased_item_id,
   case
-    when i.item_id = p.item_id then 'same_item'
-    else 'different_item'
-  end as purchase_relation,
-  i.global_category_lv1_name,
-  i.global_category_lv2_name,
-  i.global_category_lv3_name,
+    when i.item_id = p.item_id then 'direct'
+    else 'indirect'
+  end as sale_type,
   i.attribution_type,
   i.actual_amount,
-  i.item_total_commission
+  i.item_total_commission,
+  i.global_category_lv1_name,
+  i.global_category_lv2_name,
+  i.global_category_lv3_name
 from offers.shopee_conversions c
-join offers.daily_dispatch_plan p
-  on p.dispatch_plan_id = c.dispatch_plan_id
-join offers.shopee_conversion_items i
-  on i.conversion_id = c.conversion_id;
+join offers.daily_dispatch_plan p on p.dispatch_plan_id = c.dispatch_plan_id
+join offers.shopee_conversion_items i on i.conversion_id = c.conversion_id;
 ```
 
-Quando houver `shop_id` confiável do item anunciado, evoluir o `case` para:
-
-```text
-same_item
-same_shop_other_item
-other_shop_item
-```
-
-### 11.4 Produtos anunciados que geram mais compra indireta
-
-Pergunta: **quais produtos são bons geradores de jornada mesmo quando não são o item comprado?**
+### 7.4 Produtos anunciados que geram mais venda indireta
 
 ```sql
 select
   p.item_id as advertised_item_id,
   count(distinct p.dispatch_plan_id) as exposures,
   count(distinct c.conversion_id) as conversions,
-  count(*) filter (where i.item_id <> p.item_id) as different_item_lines,
+  count(*) filter (where i.item_id <> p.item_id) as indirect_item_lines,
   sum(i.item_total_commission) filter (where i.item_id <> p.item_id)
-    as indirect_item_commission
+    as indirect_total_commission
 from offers.daily_dispatch_plan p
-join offers.shopee_conversions c
-  on c.dispatch_plan_id = p.dispatch_plan_id
-join offers.shopee_conversion_items i
-  on i.conversion_id = c.conversion_id
+join offers.shopee_conversions c on c.dispatch_plan_id = p.dispatch_plan_id
+join offers.shopee_conversion_items i on i.conversion_id = c.conversion_id
 group by p.item_id
-order by indirect_item_commission desc nulls last;
+order by indirect_total_commission desc nulls last;
 ```
 
-A expressão “indireta” aqui é operacional (`item comprado != item anunciado`). Não substitui a semântica oficial de `attributionType`.
-
-### 11.5 Categorias efetivamente compradas após nossas exposições
-
-Pergunta: **o que a audiência realmente compra depois de entrar pela publicação?**
+### 7.5 Categorias efetivamente compradas
 
 ```sql
 select
@@ -1067,63 +595,19 @@ select
   count(*) as purchased_item_lines,
   sum(coalesce(i.qty, 0)) as units,
   sum(coalesce(i.actual_amount, 0)) as actual_amount,
-  sum(coalesce(i.item_total_commission, 0)) as item_commission
+  sum(coalesce(i.item_total_commission, 0)) as total_commission
 from offers.shopee_conversion_items i
-join offers.shopee_conversions c
-  on c.conversion_id = i.conversion_id
+join offers.shopee_conversions c on c.conversion_id = i.conversion_id
 where c.dispatch_plan_id is not null
-group by
-  i.global_category_lv1_name,
-  i.global_category_lv2_name,
-  i.global_category_lv3_name
-order by item_commission desc nulls last;
+group by 1,2,3
+order by total_commission desc nulls last;
 ```
 
-### 11.6 Funil publicação → clique → conversão
+### 7.6 Funil publicação → raw click → conversão
 
-Pergunta: **onde perdemos valor: exposição sem clique ou clique sem conversão?**
+Usar `publication_events`, clicks atribuídos por `dispatch_plan_id` e conversões atribuídas pelo mesmo plano. `clicks_per_publication` não deve ser chamado CTR enquanto não houver impressão individual confiável.
 
-```sql
-with clicks as (
-  select dispatch_plan_id, count(*) as clicks
-  from offers.shopee_click_events
-  where dispatch_plan_id is not null
-  group by dispatch_plan_id
-), conv as (
-  select dispatch_plan_id, count(*) as conversions
-  from offers.shopee_conversions
-  where dispatch_plan_id is not null
-  group by dispatch_plan_id
-)
-select
-  p.planned_date,
-  count(*) as planned_exposures,
-  count(pe.publish_id) filter (where pe.delivery_status = 'confirmed') as published,
-  sum(coalesce(cl.clicks, 0)) as clicks,
-  sum(coalesce(cv.conversions, 0)) as conversions,
-  sum(coalesce(cl.clicks, 0))::numeric /
-    nullif(count(pe.publish_id) filter (where pe.delivery_status = 'confirmed'), 0)
-    as clicks_per_publication,
-  sum(coalesce(cv.conversions, 0))::numeric /
-    nullif(sum(coalesce(cl.clicks, 0)), 0)
-    as conversions_per_click
-from offers.daily_dispatch_plan p
-left join offers.publication_events pe
-  on pe.dispatch_plan_id = p.dispatch_plan_id
-left join clicks cl
-  on cl.dispatch_plan_id = p.dispatch_plan_id
-left join conv cv
-  on cv.dispatch_plan_id = p.dispatch_plan_id
-where p.marketplace = 'shopee'
-group by p.planned_date
-order by p.planned_date;
-```
-
-`clicks_per_publication` não deve ser chamado de CTR enquanto não houver impressão individual confiável.
-
-### 11.7 Latência publicação → clique → compra
-
-Pergunta: **quanto tempo uma publicação leva para produzir ação econômica?**
+### 7.7 Latência
 
 ```sql
 select
@@ -1136,42 +620,15 @@ select
   c.purchase_time - c.click_time as click_to_purchase,
   c.purchase_time - pe.sent_at as publication_to_purchase
 from offers.shopee_conversions c
-join offers.publication_events pe
-  on pe.dispatch_plan_id = c.dispatch_plan_id
+join offers.publication_events pe on pe.dispatch_plan_id = c.dispatch_plan_id
 where pe.sent_at is not null;
 ```
 
-### 11.8 Cobertura e integridade do tracking
+### 7.8 Cobertura de tracking
 
-Pergunta: **a instrumentação está funcionando antes de confiar nas análises?**
+Meta: 100% das exposições Shopee publicadas com `tracking_status='ready'`, short URL não nula e quatro Sub IDs.
 
-```sql
-select
-  planned_date,
-  count(*) as shopee_plans,
-  count(*) filter (
-    where tracking_status = 'ready'
-      and tracking_short_url is not null
-      and cardinality(tracking_sub_ids) = 4
-  ) as tracked_ready,
-  count(*) filter (where tracking_status = 'failed') as tracking_failed,
-  round(
-    100.0 * count(*) filter (
-      where tracking_status = 'ready'
-        and tracking_short_url is not null
-        and cardinality(tracking_sub_ids) = 4
-    ) / nullif(count(*), 0),
-    2
-  ) as tracking_coverage_pct
-from offers.daily_dispatch_plan
-where marketplace = 'shopee'
-group by planned_date
-order by planned_date;
-```
-
-### 11.9 Raw clicks não atribuídos
-
-Pergunta: **quanto do interesse ainda não conseguimos ligar a uma exposição?**
+### 7.9 Raw clicks não atribuídos
 
 ```sql
 select
@@ -1185,128 +642,71 @@ group by 1
 order by 1;
 ```
 
-### 11.10 Comparação `conversionReport` versus `validatedReport`
+### 7.10 Reconciliação futura com `validatedReport`
 
-Pergunta: **o que mudou entre as observações dos dois relatórios?**
+Quando o fluxo de `validationId` estiver definido, comparar por `conversion_id` o `totalCommission` observado em `conversionReport` com o valor correspondente no relatório validado. Até lá, essa query/report não bloqueia a primeira entrega.
 
-```sql
-select
-  o.conversion_id,
-  max(o.total_commission) filter (where o.report_type = 'conversion_report')
-    as conversion_report_commission,
-  max(o.total_commission) filter (where o.report_type = 'validated_report')
-    as validated_report_commission,
-  max(o.net_commission) filter (where o.report_type = 'conversion_report')
-    as conversion_report_net,
-  max(o.net_commission) filter (where o.report_type = 'validated_report')
-    as validated_report_net
-from offers.shopee_conversion_observations o
-group by o.conversion_id
-order by o.conversion_id;
-```
+## 8. `product_type` editorial — evolução futura
 
-Essa query mostra diferenças observadas; **não interpreta por que existem** até a semântica do `validatedReport` ser formalmente confirmada.
+O futuro `product_type` interno representa função comercial/editorial do produto, por exemplo `serum`, `hidratante`, `calcinha`, `sutia`.
 
-### 11.11 Relação entre `commercial_score` e resultado observado
+Ele não existe hoje e não é requisito desta instrumentação. Sua origem futura permanece aberta, provavelmente ligada a descoberta/taxonomia, palavras-chave, título, subnicho e categorias.
 
-Pergunta: **o score atual está correlacionado com interesse/comissão real?**
+O `productType` retornado pela Shopee é um campo externo e não deve ser automaticamente equiparado ao conceito editorial interno.
 
-```sql
-with per_exposure as (
-  select
-    p.dispatch_plan_id,
-    p.commercial_score,
-    count(distinct ce.click_event_id) as clicks,
-    coalesce(max(c.net_commission), 0) as net_commission
-  from offers.daily_dispatch_plan p
-  left join offers.shopee_click_events ce
-    on ce.dispatch_plan_id = p.dispatch_plan_id
-  left join offers.shopee_conversions c
-    on c.dispatch_plan_id = p.dispatch_plan_id
-  where p.marketplace = 'shopee'
-  group by p.dispatch_plan_id, p.commercial_score
-)
-select
-  width_bucket(commercial_score, 0, 100, 10) as score_bucket,
-  count(*) as exposures,
-  avg(clicks) as avg_clicks,
-  avg(net_commission) as avg_net_commission
-from per_exposure
-group by score_bucket
-order by score_bucket;
-```
+## 9. Critérios de aceite 1–10
 
-Os limites de score acima são exemplo de leitura e devem ser ajustados à escala real do `commercial_score` se não for 0–100.
-
-## 12. Relatórios analíticos recomendados
-
-A primeira camada de reporting deve ser pequena e orientada a decisão:
-
-1. **Valor por exposição** — slots, cliques, conversões, comissão e latência;
-2. **Performance por subnicho** — exposição versus interesse versus monetização;
-3. **Item anunciado × item comprado** — mesma compra versus compra diferente;
-4. **Demanda comprada** — categorias/itens efetivamente adquiridos;
-5. **Funil diário** — publicações → raw clicks → conversões;
-6. **Integridade do tracking** — cobertura, erros e não atribuídos;
-7. **Score versus resultado observado** — evidência para futura evolução do ranking.
-
-Futuramente, após criação do `product_type` editorial, adicionar:
-
-- exposição por tipo funcional;
-- clicks por tipo;
-- comissão por tipo;
-- concentração Top 1/Top 3/Top 5;
-- valor marginal por slot funcional.
-
-## 13. Critérios de aceite
-
-A fase de instrumentação/modelagem é considerada tecnicamente pronta quando:
-
-1. existe uma operação única refresh → planner → tracking;
+1. existe uma operação única `refresh → planner → tracking`;
 2. refresh e planner mantêm seus contratos funcionais atuais;
-3. cada plano Shopee possui `dispatch_plan_id` antes de gerar tracking;
+3. cada plano Shopee possui `dispatch_plan_id` antes do tracking;
 4. `originUrl` vem de `catalog_items.product_link`;
 5. Sub IDs seguem exatamente `wa`, `profile`, `dp<uuid_sem_hifens>`, `item_id`;
 6. a short URL é persistida por exposição e não no catálogo global;
 7. `v_daily_dispatch_ready.offer_link` entrega a short URL rastreável;
 8. nenhuma exposição Shopee é publicada sem tracking válido;
-9. o Click Report CSV pode ser importado idempotentemente e preserva a linha raw;
-10. o parser de `Sub_id` só será fechado após observar o CSV do teste dos quatro Sub IDs;
-11. `conversionReport` e `validatedReport` têm proveniência separada;
-12. conversão, pedido e item comprado são entidades distintas;
-13. item anunciado continua vindo do plano, item comprado vem do relatório;
-14. as queries de valor por exposição, subnicho, item anunciado×comprado e integridade podem ser executadas;
-15. nenhuma regra de score, quota, fallback, cooldown ou seleção editorial foi alterada por esta entrega.
+9. Click Report CSV pode ser importado idempotentemente preservando a linha raw; `click_id` é indexado mas não assumido globalmente único;
+10. a presença de múltiplos Sub IDs no relatório está suportada pela documentação oficial; o parser concreto depende apenas da confirmação de serialização/delimitador no CSV do teste.
 
-## 14. Princípios e limites de interpretação
+## 10. Review de pendências
 
-Não assumir que:
+### 10.1 Pendências que bloqueiam apenas partes específicas
 
-- `item_id` diferente significa conteúdo editorial diferente;
-- alta venda histórica significa alto interesse no grupo;
-- baixa venda direta significa publicação ruim;
-- `clickTime` de conversão representa todos os cliques;
-- `referrer` sozinho identifica a publicação;
-- `productType` da Shopee equivale ao futuro `product_type` editorial;
-- `attributionType` possui significado não confirmado;
-- `validatedReport` deve substituir `conversionReport`;
-- um `Sub_id` bruto do Click Report possui formato conhecido antes do teste empírico.
+**P1 — serialização concreta dos Sub IDs no CSV.**
 
-A pergunta final que esta arquitetura deve permitir responder é:
+A existência dos Sub IDs no relatório está documentada. Falta apenas observar o CSV gerado pelo teste para definir delimitador/parser concreto. Isso bloqueia somente a implementação final do parser de raw clicks, não o schema nem o restante do pipeline.
 
-> **Quanto valor cada exposição do grupo produziu, de que forma produziu esse valor e o que isso ensina sobre o próximo produto que merece ocupar um slot?**
+**P2 — origem programática do `validationId`.**
 
-## 15. Fora de escopo
+O Playground/API observado exige `validationId` para `validatedReport`, mas o `conversionReport` real não o retorna. É necessário localizar, em fonte oficial/API disponível à conta, o fluxo que fornece esse identificador. Isso bloqueia apenas a reconciliação via `validatedReport`, não tracking, clicks ou analytics de `conversionReport`.
 
-Continuam fora desta spec:
+### 10.2 Detalhes de implementação ainda a fechar, mas sem decisão de negócio pendente
 
-- alteração do `commercial_score`;
+- constraints/checks SQL finais para `tracking_status` e cardinalidade dos Sub IDs;
+- índices finais além de `click_id`, `dispatch_plan_id`, `conversion_id`, `order_id`;
+- estratégia de retry/backoff da API;
+- política de atualização/idempotência de conversões quando o mesmo `conversion_id` reaparece;
+- período/cadência da sincronização de `conversionReport`;
+- mecanismo operacional de upload/importação do Click Report inicialmente manual;
+- testes de paginação com `scrollId` e seu comportamento real;
+- view agregada canônica por `dispatch_plan_id` para reporting e prevenção de multiplicação em joins 1:N.
+
+### 10.3 Decisões que NÃO estão mais pendentes
+
+- KPI econômico principal: `totalCommission`;
+- direta/indireta: comparação entre `daily_dispatch_plan.item_id` e item comprado `items.itemId`;
+- `shop_id` do item anunciado não é necessário para essa classificação;
+- Click Report é a fonte de todos os raw clicks e é obtido fora da Open API observada;
+- múltiplos Sub IDs são suportados no relatório conforme documentação oficial;
+- `ID dos Cliques` não recebe `UNIQUE` sem contrato explícito de unicidade global;
+- `validatedReport` é reconciliação financeira posterior e não bloqueia a primeira implementação;
+- `product_type` editorial permanece fora desta fase.
+
+## 11. Fora de escopo
+
+- mudança do `commercial_score`;
 - redistribuição editorial baseada em cliques antes de acumular evidência;
-- algoritmo do futuro `product_type` editorial;
-- mudança das regras internas de refresh;
-- mudança das regras internas do planner;
+- algoritmo do futuro `product_type`;
+- mudança das regras internas de refresh/planner;
 - redefinição da copy;
-- interpretação não validada dos campos externos Shopee;
-- automação do download do Click Report enquanto não houver mecanismo confirmado para isso.
-
-Autenticação/assinatura da Shopee, retry e detalhes do cliente GraphQL são detalhes de implementação da integração e devem respeitar o contrato definido aqui sem ampliar o escopo funcional.
+- automação do download do Click Report enquanto não houver mecanismo confirmado;
+- inferências não suportadas sobre campos externos Shopee.
