@@ -24,9 +24,10 @@ from ofertas_bot.candidate_refresh import (
     select_scoring_candidates,
     snapshot_from_product_offer_response,
 )
+from ofertas_bot.distribution_strategy import resolve_profile_distribution_strategy
 from ofertas_bot.models import ScoredOffer
 from ofertas_bot.providers.shopee import ShopeeProvider
-from ofertas_bot.selection import apply_default_selection_policy, resolve_selection_policy
+from ofertas_bot.selection import apply_default_selection_policy
 from ofertas_bot.settings import get_settings
 from ofertas_bot.storage.supabase_candidate_refresh_store import (
     SupabaseCandidateRefreshStore,
@@ -252,9 +253,11 @@ def run_candidate_refresh(
     paths.output_dir.mkdir(parents=True, exist_ok=True)
 
     ttl_hours = store.load_ttl_hours(profile=profile, marketplace=marketplace)
-    policy = resolve_selection_policy(profile)
-    if policy is None:
-        raise CandidateRefreshError(f"selection policy not found: {profile}")
+    strategy = resolve_profile_distribution_strategy(
+        profile,
+        marketplace=marketplace,
+        operational_date=resolved_operational_date,
+    )
 
     all_candidates = store.load_discovery_candidates(
         profile=profile,
@@ -277,7 +280,7 @@ def run_candidate_refresh(
         discovery_candidates = select_ranked_refresh_candidates(
             operational_candidates,
             limit=discovery_limit,
-            subniche_weights=policy.subniche_quotas,
+            subniche_weights=strategy.refresh_weights,
         )
     before_by_item = {candidate.item_id: candidate for candidate in discovery_candidates}
 
@@ -413,7 +416,7 @@ def run_candidate_refresh(
     scoring_candidates = select_scoring_candidates(
         fresh_valid_candidates,
         limit=scoring_limit,
-        subniche_weights=policy.subniche_quotas,
+        subniche_weights=strategy.refresh_weights,
     )
     offers = [candidate.to_offer() for candidate in scoring_candidates]
     scored = ScorerAgent().score(offers)
@@ -484,11 +487,11 @@ def run_candidate_refresh(
     exploration_limit = discovery_limit - ranking_limit
     planned_ranking = scale_subniche_quotas(
         limit=ranking_limit,
-        weights=policy.subniche_quotas,
+        weights=strategy.refresh_weights,
     )
     planned_exploration = scale_subniche_quotas(
         limit=exploration_limit,
-        weights=policy.subniche_quotas,
+        weights=strategy.refresh_weights,
     )
     rank_changes = sum(
         row["rank_before"] != row["rank_after"] for row in ranking_change_rows
@@ -507,6 +510,12 @@ def run_candidate_refresh(
         "run_status": run_status,
         "operational_date": resolved_operational_date.isoformat(),
         "operational_timezone": "America/Sao_Paulo",
+        "distribution_strategy": {
+            "planning_mode": strategy.planning_mode,
+            "refresh_weights": strategy.refresh_weights,
+            "discovery_weights": strategy.discovery_weights,
+            "required_daily_quotas": strategy.required_daily_quotas,
+        },
         "ttl_hours": ttl_hours,
         "limits": {
             "discovery": discovery_limit,

@@ -2,9 +2,16 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 
 from ofertas_bot.candidate_refresh import DiscoveryCandidate, SnapshotInput
+from ofertas_bot.daily_dispatch_planner import (
+    DispatchCandidate,
+    load_daily_planning_policy,
+    plan_daily_dispatches,
+)
+from ofertas_bot.distribution_strategy import resolve_profile_distribution_strategy
 from ofertas_bot.tools.candidate_refresh import run_candidate_refresh
 
 NOW = datetime(2026, 8, 11, 12, tzinfo=UTC)
@@ -376,6 +383,81 @@ def test_explicit_item_can_recheck_confirmed_unavailable_candidate(tmp_path: Pat
     assert result.report["summary"]["successful_refreshes"] == 1
 
 
+def test_feminino_refresh_feeds_required_calcados_daily_plan(tmp_path: Path) -> None:
+    strategy = resolve_profile_distribution_strategy(
+        "feminino",
+        operational_date=D0_DATE,
+    )
+    candidates = _candidates_for_strategy(strategy.required_daily_quotas)
+    store = FakeStore(candidates)
+    provider = FakeProvider(
+        {candidate.item_id: _response(candidate.item_id) for candidate in candidates}
+    )
+
+    result = _run(
+        tmp_path,
+        store=store,
+        provider=provider,
+        discovery_limit=sum(strategy.required_daily_quotas.values()),
+        scoring_limit=sum(strategy.required_daily_quotas.values()),
+        max_calls=sum(strategy.required_daily_quotas.values()),
+        operational_date=D0_DATE,
+    )
+
+    refreshed_candidates = [
+        DispatchCandidate(
+            profile=candidate.profile,
+            marketplace=candidate.marketplace,
+            stable_key=candidate.stable_key,
+            item_id=candidate.item_id,
+            primary_subniche=candidate.primary_subniche,
+            commercial_score=Decimal(str(candidate.commercial_score)),
+            sales_count=100,
+            rating=Decimal("4.9"),
+        )
+        for candidate in store.candidates.values()
+        if candidate.refresh_status == "FRESH"
+    ]
+    policy = load_daily_planning_policy(
+        Path("config/selection_profiles.toml"),
+        profile="feminino",
+        marketplace="shopee",
+    )
+    plan = plan_daily_dispatches(
+        refreshed_candidates,
+        policy=policy,
+        planned_date=D0_DATE,
+    )
+
+    assert result.report["distribution_strategy"]["planning_mode"] == "daily_persisted"
+    assert result.report["summary"]["successful_refreshes"] == 140
+    calcados_subniches = (
+        "calcados-sandalia",
+        "calcados-sapatilha",
+        "calcados-chinelo",
+        "calcados-rasteirinha",
+        "calcados-mocassim",
+    )
+    assert {
+        key: result.report["distribution_strategy"]["refresh_weights"][key]
+        for key in calcados_subniches
+    } == {
+        "calcados-sandalia": 10,
+        "calcados-sapatilha": 8,
+        "calcados-chinelo": 4,
+        "calcados-rasteirinha": 4,
+        "calcados-mocassim": 2,
+    }
+    assert sum(
+        item.candidate.primary_subniche.startswith("calcados-") for item in plan
+    ) == 28
+    assert not any(
+        item.candidate.primary_subniche.startswith("calcados-")
+        and item.selection_reason == "fixed_daily:redistributed"
+        for item in plan
+    )
+
+
 def test_two_real_verifications_preserve_two_snapshots(tmp_path: Path) -> None:
     store = FakeStore([_candidate(1)])
     provider = FakeProvider({1: _response(1, price="100")})
@@ -394,6 +476,7 @@ def _run(
     store: FakeStore,
     provider: FakeProvider,
     discovery_limit: int = 1,
+    scoring_limit: int = 1,
     max_calls: int = 10,
     item_ids: list[int] | None = None,
     run_id: str = "run",
@@ -403,7 +486,7 @@ def _run(
         profile="feminino",
         marketplace="shopee",
         discovery_limit=discovery_limit,
-        scoring_limit=1,
+        scoring_limit=scoring_limit,
         max_api_calls=max_calls,
         item_ids=item_ids,
         output_base_dir=tmp_path,
@@ -415,7 +498,12 @@ def _run(
     )
 
 
-def _candidate(item_id: int, *, refresh_status: str = "MISSING") -> DiscoveryCandidate:
+def _candidate(
+    item_id: int,
+    *,
+    refresh_status: str = "MISSING",
+    subniche: str = "maquiagem-olhos",
+) -> DiscoveryCandidate:
     return DiscoveryCandidate(
         catalog_item_id=item_id,
         profile="feminino",
@@ -425,8 +513,8 @@ def _candidate(item_id: int, *, refresh_status: str = "MISSING") -> DiscoveryCan
         product_name=f"Produto {item_id}",
         product_link=f"https://shopee.com.br/product/{item_id}/{item_id}",
         image_url=None,
-        subniches=("maquiagem-olhos",),
-        primary_subniche="maquiagem-olhos",
+        subniches=(subniche,),
+        primary_subniche=subniche,
         refresh_status=refresh_status,
         last_checked_at=None,
         last_attempted_at=None,
@@ -436,6 +524,23 @@ def _candidate(item_id: int, *, refresh_status: str = "MISSING") -> DiscoveryCan
         rank_subniche=item_id,
         commercial_score=100 - item_id,
     )
+
+
+def _candidates_for_strategy(quotas: dict[str, int]) -> list[DiscoveryCandidate]:
+    candidates: list[DiscoveryCandidate] = []
+    item_id = 1
+    for subniche, quota in quotas.items():
+        for _ in range(quota):
+            candidates.append(
+                replace(
+                    _candidate(item_id, subniche=subniche),
+                    rank_profile=item_id,
+                    rank_subniche=item_id,
+                    commercial_score=Decimal(1000 - item_id),
+                )
+            )
+            item_id += 1
+    return candidates
 
 
 def _response(item_id: int, *, price: str = "90") -> dict[str, object]:
