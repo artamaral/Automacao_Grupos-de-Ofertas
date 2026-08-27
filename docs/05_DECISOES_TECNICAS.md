@@ -1,5 +1,24 @@
 # Decisoes Tecnicas
 
+## 2026-08-27 - Publicacao controlada do workflow Instagram
+
+Decisao:
+
+- publicar a versao de producao de `OfertasInstagramSupab1` somente apos seis
+  entregas manuais confirmadas no ledger, tres Reels e tres Carrosseis;
+- manter a ativacao do agendamento separada da comprovacao de entrega: o
+  workflow foi publicado, mas o processo n8n ainda precisa ser reiniciado para
+  carregar o cron ativo;
+- nao alterar o workflow WhatsApp, migrations pendentes fora do escopo ou a
+  regra de selecao editorial nesta etapa.
+
+Motivo:
+
+- os eventos confirmados provaram a alternancia Reel/Carrossel, o polling de
+  container e o registro no ledger sem reutilizar o mesmo plano de despacho;
+- o aviso do CLI torna o reinicio uma dependencia tecnica real para a
+  ativacao do scheduler, e nao apenas uma formalidade documental.
+
 ## 2026-08-21 - Skill local para mensagens estaticas do grupo feminino
 
 Decisao:

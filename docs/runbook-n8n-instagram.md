@@ -269,3 +269,24 @@ Se a revalidacao falhar antes da publicacao:
 - fallback sempre pela ordem materializada em `offers.daily_dispatch_plan`;
 - sem publicacao automatica em massa;
 - sem download, transcodificacao ou hospedagem propria de midia.
+
+## 2026-08-27 - Publicacao do workflow de producao
+
+Etapa concluida:
+
+- a validacao de producao do guard passou para `OfertasInstagramSupab1`;
+- a versao `f0385f9d-19ea-4809-ab59-080f54d61a3c` foi implantada em modo
+  `instagram-production`, com cron `0 10,12,14,16,18,20 * * *`;
+- a versao atual foi publicada pelo comando oficial
+  `n8n publish:workflow --id=OfertasInstagramSupab1`;
+- o n8n listou `OfertasInstagramSupab1` entre os workflows ativos;
+- a validacao manual anterior registrou tres eventos `confirmed` de
+  `instagram_reels` e tres de `instagram_carousel` em 2026-08-27.
+
+Pendencia operacional explicita:
+
+- o CLI do n8n informou que a publicacao so passa a valer no processo em
+  execucao apos reiniciar o servico `n8n`. Esse reinicio ainda nao foi feito,
+  pois interrompe brevemente execucoes dos workflows hospedados no mesmo
+  servico. Portanto, o workflow esta publicado/ativo no banco, mas o cron de
+  producao ainda nao deve ser considerado efetivo ate essa manutencao.
