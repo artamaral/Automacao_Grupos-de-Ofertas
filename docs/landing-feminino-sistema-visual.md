@@ -312,6 +312,38 @@ A direção visual será considerada respeitada quando:
 9. a decoração não reduza a legibilidade nem a conversão;
 10. a landing não crie uma identidade gráfica nova desconectada dos materiais existentes.
 
-## 17. Próxima etapa
+## 17. Wireframe oficial
 
-Com a identidade visual definida, o próximo passo é fechar o **wireframe final da V1**, especificando a ordem e a disposição dos blocos em desktop e mobile antes da implementação de HTML/CSS.
+O wireframe desktop/mobile da V1 foi confirmado e está documentado em:
+
+`docs/landing-feminino-wireframe.md`
+
+Esse documento passa a ser a referência para ordem das seções, disposição dos blocos, repetição dos CTAs, comportamento mobile e apresentação da prova de curadoria.
+
+A ordem principal confirmada é:
+
+```text
+Hero
+  ↓
+Faixa de confiança
+  ↓
+Macrogrupos
+  ↓
+Como funciona
+  ↓
+Prova de curadoria / exemplos reais
+  ↓
+Vitrine Shopee
+  ↓
+Urgência real
+  ↓
+CTA final
+  ↓
+Rodapé
+```
+
+O CTA fixo no mobile permanece como recurso opcional a ser validado durante a implementação, conforme critérios descritos no wireframe.
+
+## 18. Próxima etapa
+
+Com contrato funcional, copy, sistema visual e wireframe confirmados, a próxima etapa é validar o ambiente Hostinger e definir o mecanismo técnico da hospedagem e da rota `/go/whatsapp/{nicho}` antes de iniciar a implementação em HTML/CSS.
