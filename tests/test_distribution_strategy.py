@@ -106,13 +106,12 @@ def test_feminino_strategy_includes_required_calcados_subniches() -> None:
             "calcados-sandalia",
             "calcados-sapatilha",
             "calcados-chinelo",
-            "calcados-rasteirinha",
             "calcados-mocassim",
         )
     } == {
-        "calcados-sandalia": 10,
-        "calcados-sapatilha": 8,
-        "calcados-chinelo": 4,
-        "calcados-rasteirinha": 4,
-        "calcados-mocassim": 2,
+        "calcados-sandalia": 11,
+        "calcados-sapatilha": 9,
+        "calcados-chinelo": 5,
+        "calcados-mocassim": 3,
     }
+    assert "calcados-rasteirinha" not in strategy.refresh_weights

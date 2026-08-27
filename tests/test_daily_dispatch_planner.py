@@ -50,15 +50,13 @@ CALCADOS_SUBNICHES = {
     "calcados-sandalia",
     "calcados-sapatilha",
     "calcados-chinelo",
-    "calcados-rasteirinha",
     "calcados-mocassim",
 }
 CALCADOS_DAILY_QUOTAS = {
-    "calcados-sandalia": 10,
-    "calcados-sapatilha": 8,
-    "calcados-chinelo": 4,
-    "calcados-rasteirinha": 4,
-    "calcados-mocassim": 2,
+    "calcados-sandalia": 11,
+    "calcados-sapatilha": 9,
+    "calcados-chinelo": 5,
+    "calcados-mocassim": 3,
 }
 
 

@@ -435,19 +435,20 @@ def test_feminino_refresh_feeds_required_calcados_daily_plan(tmp_path: Path) -> 
         "calcados-sandalia",
         "calcados-sapatilha",
         "calcados-chinelo",
-        "calcados-rasteirinha",
         "calcados-mocassim",
     )
     assert {
         key: result.report["distribution_strategy"]["refresh_weights"][key]
         for key in calcados_subniches
     } == {
-        "calcados-sandalia": 10,
-        "calcados-sapatilha": 8,
-        "calcados-chinelo": 4,
-        "calcados-rasteirinha": 4,
-        "calcados-mocassim": 2,
+        "calcados-sandalia": 11,
+        "calcados-sapatilha": 9,
+        "calcados-chinelo": 5,
+        "calcados-mocassim": 3,
     }
+    assert "calcados-rasteirinha" not in result.report["distribution_strategy"][
+        "refresh_weights"
+    ]
     assert sum(
         item.candidate.primary_subniche.startswith("calcados-") for item in plan
     ) == 28

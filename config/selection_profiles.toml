@@ -230,23 +230,19 @@ items = 4
 
 [[policies.fixed_daily_quotas]]
 subniche = "calcados-sandalia"
-items = 10
+items = 11
 
 [[policies.fixed_daily_quotas]]
 subniche = "calcados-sapatilha"
-items = 8
+items = 9
 
 [[policies.fixed_daily_quotas]]
 subniche = "calcados-chinelo"
-items = 4
-
-[[policies.fixed_daily_quotas]]
-subniche = "calcados-rasteirinha"
-items = 4
+items = 5
 
 [[policies.fixed_daily_quotas]]
 subniche = "calcados-mocassim"
-items = 2
+items = 3
 
 [[policies.window_family_quotas]]
 family = "calcados"
@@ -254,7 +250,6 @@ subniches = [
   "calcados-sandalia",
   "calcados-sapatilha",
   "calcados-chinelo",
-  "calcados-rasteirinha",
   "calcados-mocassim",
 ]
 items_per_window = 2
