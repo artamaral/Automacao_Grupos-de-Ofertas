@@ -27,7 +27,8 @@ A implementação da V1 utilizará:
 - `.htaccess` / `mod_rewrite` para URLs limpas;
 - HTTPS/SSL;
 - GitHub como origem versionada do código;
-- deploy pela integração Git da Hostinger, quando a opção estiver disponível no hPanel do site.
+- pacote de deploy preparado a partir do código versionado;
+- upload manual do pacote pelo hPanel/Gerenciador de Arquivos da Hostinger.
 
 Não são necessários para a V1:
 
@@ -52,41 +53,67 @@ Segundo a validação realizada no assistente da Hostinger para o plano Web Sing
 
 SFTP/Rsync não fazem parte do Web Single.
 
-A integração Git deve ser confirmada no hPanel depois que `mktdigitalofertas.com.br` estiver corretamente vinculado ao site/plano. O caminho informado pela Hostinger é:
+Após validação prática do ambiente, foi confirmado que **não será utilizado carregamento/deploy direto via GitHub no site atual**. Portanto, GitHub permanece como fonte de verdade e histórico do código, mas a publicação na Hostinger será feita manualmente por pacote.
 
-```text
-Websites → Gerenciar/Dashboard → Advanced → Git
-```
+## 4. Fluxo oficial de versionamento e deploy
 
-## 4. Deploy preferencial
-
-O método preferencial de deploy da V1 será GitHub → Hostinger.
-
-Fluxo:
+Fluxo definido para a V1:
 
 ```text
 GitHub
   ↓
-branch de produção
+branch/revisão/commit aprovado
   ↓
-Hostinger / Advanced / Git
+geração do pacote de produção
   ↓
-Deploy
+validação do conteúdo do pacote
   ↓
-public_html
+Hostinger hPanel / Gerenciador de Arquivos
   ↓
-HTML + CSS + JS + PHP + .htaccess
+upload manual
+  ↓
+extração/cópia para public_html
+  ↓
+testes pós-deploy
 ```
 
-A integração da Hostinger permite, quando disponível no site/plano:
+### 4.1 Papel do GitHub
 
-- conectar uma conta GitHub;
-- selecionar o repositório;
-- selecionar uma branch;
-- definir o diretório raiz do deploy;
-- publicar os arquivos do projeto.
+GitHub continua sendo usado para:
 
-A branch atual `docs/feminino-calcados-discovery` é uma branch de definição/documentação e não deve ser tratada automaticamente como branch permanente de produção. A estratégia final de branch de deploy deve ser definida durante a implementação.
+- código-fonte oficial;
+- histórico de alterações;
+- revisão;
+- commits;
+- rollback lógico;
+- preparação da versão que será empacotada.
+
+A Hostinger não é a fonte de verdade do código.
+
+### 4.2 Papel do pacote de deploy
+
+A implementação deve permitir gerar um pacote contendo **somente os arquivos necessários para produção**.
+
+Estrutura conceitual do conteúdo do pacote:
+
+```text
+public_html/
+├── .htaccess
+├── feminino/
+├── assets/
+├── go/
+└── error/
+```
+
+O pacote não deve exigir o upload do repositório inteiro nem incluir documentação, arquivos de desenvolvimento ou módulos não relacionados à landing.
+
+### 4.3 Publicação manual
+
+A publicação será feita no hPanel, preferencialmente pelo Gerenciador de Arquivos, por meio de upload e extração/cópia do pacote para `public_html` ou diretório público equivalente.
+
+FTP pode ser usado como alternativa operacional se necessário.
+
+Não há requisito de integração automática GitHub → Hostinger na V1.
 
 ## 5. URLs oficiais da V1
 
@@ -148,9 +175,11 @@ A V1 deve manter uma única fonte de configuração para o destino do nicho femi
 
 A configuração pode ser implementada em PHP, preferencialmente sem expor o valor no HTML ou JavaScript entregue ao navegador.
 
-A localização exata do arquivo/configuração deve seguir a solução mais simples suportada pelo ambiente Hostinger no momento da implantação.
+A localização exata do arquivo/configuração deve seguir a solução mais simples suportada pelo ambiente Hostinger e pelo processo de pacote manual.
 
-Não é requisito criar uma infraestrutura adicional apenas para proteger esse valor.
+Não é requisito criar infraestrutura adicional apenas para proteger esse valor.
+
+Ao gerar o pacote de deploy, a configuração necessária para produção deve estar claramente documentada. Se o arquivo de configuração não for versionado com o convite real, o processo deve indicar exatamente onde inserir o valor antes ou depois do upload.
 
 ## 8. Estrutura de arquivos de referência
 
@@ -163,17 +192,20 @@ public_html/
 ├── assets/
 │   ├── css/
 │   ├── js/
-│   └── img/
+│   ├── img/
+│   └── qr/
 ├── go/
 │   └── whatsapp/
 │       └── feminino.php
+├── error/
+│   └── whatsapp-indisponivel.html
 └── .htaccess
 
 configuração do WhatsApp
 └── fonte única utilizada pelo PHP
 ```
 
-A estrutura final pode ser ajustada durante a implementação desde que preserve os contratos de URL e a fonte única de configuração.
+A estrutura final pode ser ajustada durante a implementação desde que preserve os contratos de URL, a fonte única de configuração e a possibilidade de gerar um pacote simples para upload manual.
 
 ## 9. QR Code no desktop
 
@@ -241,21 +273,46 @@ Estado informado em 2026-08-27:
 
 Esse estado permite que a primeira publicação da landing seja tratada como implantação inicial, sem necessidade de migração de uma aplicação existente do projeto.
 
-## 12. Pendências antes do primeiro deploy
+## 12. Preparação antes do primeiro deploy
 
-Antes da publicação, confirmar no hPanel:
+Antes da publicação manual:
 
-1. que `mktdigitalofertas.com.br` está vinculado ao site/plano correto;
-2. que `Advanced → Git` aparece para esse site;
-3. que o repositório GitHub pode ser conectado;
-4. que uma branch específica pode ser selecionada;
-5. qual diretório raiz será usado no deploy;
-6. que o deploy chega ao `public_html` ou ao diretório público equivalente;
-7. que o SSL do domínio está ativo.
+1. confirmar que o SSL do domínio está ativo;
+2. abrir `public_html` e registrar o conteúdo existente antes de substituir qualquer arquivo;
+3. gerar o pacote de produção a partir de uma versão/commit aprovado no GitHub;
+4. validar que o pacote contém somente os arquivos necessários à landing;
+5. validar onde ficará a configuração centralizada do convite;
+6. manter backup simples dos arquivos atuais da página padrão caso seja necessário rollback;
+7. fazer upload do pacote no hPanel;
+8. extrair/copiar os arquivos para `public_html`;
+9. executar o checklist pós-deploy.
 
-Caso Git não esteja disponível no site após o vínculo correto, FTP/Gerenciador de Arquivos são fallback operacional, não a primeira opção.
+## 13. Regras do pacote de produção
 
-## 13. Critérios de aceite técnico
+O pacote deve:
+
+- poder ser extraído diretamente ou copiado de forma simples para `public_html`;
+- conter a estrutura necessária para `/feminino` e `/go/whatsapp/feminino`;
+- incluir `.htaccess` quando necessário;
+- incluir PHP, CSS, JS, imagens e QR Code necessários;
+- não incluir `.git`;
+- não incluir documentação do projeto;
+- não incluir arquivos de teste/desenvolvimento desnecessários;
+- não incluir outros módulos do repositório;
+- possuir instruções curtas de configuração e publicação.
+
+A geração do pacote deve ser reproduzível a partir do repositório.
+
+## 14. Rollback operacional
+
+Como o deploy é manual, o rollback da V1 deve ser simples:
+
+1. manter o commit/tag ou referência da versão anterior no GitHub;
+2. manter, quando aplicável, uma cópia do pacote anterior;
+3. em caso de falha, reenviar o pacote anterior ou restaurar o backup dos arquivos substituídos;
+4. testar novamente as URLs principais.
+
+## 15. Critérios de aceite técnico
 
 A arquitetura desta etapa será considerada implementada quando:
 
@@ -268,9 +325,11 @@ A arquitetura desta etapa será considerada implementada quando:
 7. trocar o destino não exigir alteração da landing;
 8. o QR Code desktop apontar para `/go/whatsapp/feminino`;
 9. o botão mobile e o QR Code desktop chegarem ao mesmo destino lógico;
-10. o código implantado estiver versionado no GitHub;
-11. o método preferencial de deploy for Git, quando a opção estiver habilitada para o site.
+10. o código publicado estiver versionado no GitHub;
+11. existir um pacote de produção limpo e reproduzível;
+12. o deploy puder ser executado manualmente pelo hPanel sem enviar o repositório inteiro;
+13. existir checklist de publicação e pós-deploy.
 
-## 14. Próxima etapa
+## 16. Próxima etapa
 
-Com arquitetura, wireframe, copy e sistema visual definidos, o próximo passo é elaborar a **especificação técnica de implementação**, definindo os arquivos, responsabilidades, regras de rewrite, comportamento do PHP, geração do QR Code, assets e testes necessários antes de iniciar o código.
+A especificação técnica de implementação deve usar este fluxo de deploy manual como contrato operacional e exigir do Codex a criação de um pacote pronto para upload na Hostinger.
