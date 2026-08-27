@@ -24,7 +24,9 @@ mutation GenerateShortLink($originUrl: String!, $subIds: [String!]) {
 """.strip()
 
 CONVERSION_REPORT = """
-query DailyConversionReport($purchaseTimeStart: Int!, $purchaseTimeEnd: Int!, $scrollId: String) {
+query DailyConversionReport(
+  $purchaseTimeStart: Int64, $purchaseTimeEnd: Int64, $scrollId: String
+) {
   conversionReport(
     purchaseTimeStart: $purchaseTimeStart, purchaseTimeEnd: $purchaseTimeEnd,
     conversionStatus: ALL, categoryType: ALL, orderStatus: ALL, buyerType: ALL,
