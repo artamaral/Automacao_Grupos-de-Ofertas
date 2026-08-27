@@ -1,7 +1,7 @@
 # Contrato V1 — Landing + Link WhatsApp + UTM
 
 **Status:** Decidido para V1  
-**Versão do contrato:** 1.2  
+**Versão do contrato:** 1.3  
 **Data:** 2026-08-26  
 **Branch:** `docs/feminino-calcados-discovery`
 
@@ -433,6 +433,51 @@ Configuração inválida não deve redirecionar automaticamente para convite ant
 
 No futuro, múltiplos grupos dentro do mesmo nicho poderão ser adicionados atrás de `/go/whatsapp/{nicho}` sem exigir mudança na URL pública da landing ou das campanhas.
 
+### RB-14 — Curadoria Shopee como prova secundária
+
+A landing feminina poderá utilizar uma Vitrine do Afiliado Shopee ou coleção curada equivalente como prova de curadoria real.
+
+Esse recurso deve funcionar como evidência do tipo de produto selecionado e como mecanismo opcional para a visitante explorar exemplos antes de entrar no grupo.
+
+A Vitrine Shopee não substitui o objetivo principal da landing e não deve competir visualmente com o CTA de entrada no WhatsApp.
+
+### RB-15 — CTAs secundários de curadoria
+
+A landing poderá exibir CTAs secundários associados à curadoria, por exemplo:
+
+- `Ver nossa seleção na Shopee`;
+- `Ver oferta`;
+- `Pegar cupom`;
+- `Ver ofertas de calçados`.
+
+Esses CTAs são auxiliares. O CTA dominante permanece a entrada no grupo de WhatsApp.
+
+### RB-16 — Urgência baseada em condição real
+
+A copy poderá trabalhar senso de urgência baseado exclusivamente em condições reais do mercado e das ofertas, tais como:
+
+- preço promocional pode mudar;
+- cupom pode expirar ou atingir limite de uso;
+- estoque pode acabar;
+- oferta pode deixar de estar disponível.
+
+É proibido criar escassez artificial, contagem regressiva fictícia, prazo inventado ou qualquer afirmação de urgência que não corresponda a uma condição real verificável.
+
+### RB-17 — Tensão principal da mensagem
+
+A tensão de comunicação da landing feminina deve ser construída em torno de uma necessidade real da usuária:
+
+```text
+nao tenho tempo para procurar boas ofertas
+        +
+quando descubro, o preco ou cupom pode ja ter mudado
+        |
+        v
+receber uma curadoria no WhatsApp resolve o problema de descobrir tarde
+```
+
+A mensagem deve vender conveniência, curadoria e timing, e não medo artificial de perda.
+
 ## 8. Requisitos não funcionais mínimos
 
 A V1 deve:
@@ -474,35 +519,35 @@ Ter múltiplos nichos com uma landing e um grupo ativo por nicho é compatível 
 
 ## 10. Critérios de aceite da V1
 
-A V1 é considerada funcional quando todos os seguintes cenários forem atendidos para cada nicho implantado:
+A V1 é considerada funcional quando todos os seguintes cenários forem atendidos:
 
-1. abrir `/{nicho}` sem UTM carrega a landing correta;
-2. abrir `/{nicho}` com UTMs carrega a landing correta;
-3. clicar no CTA leva à rota `/go/whatsapp/{nicho}`;
+1. abrir a landing sem UTM carrega a página normalmente;
+2. abrir a landing com UTMs carrega a página normalmente;
+3. clicar no CTA principal leva à rota `/go/whatsapp/{nicho}`;
 4. os parâmetros UTM recebidos permanecem disponíveis na chamada da rota `/go/whatsapp/{nicho}`;
-5. `/go/whatsapp/{nicho}` responde com HTTP `302` para o convite configurado daquele nicho;
-6. alterar a configuração do grupo daquele nicho muda o destino sem alterar a URL pública da landing;
+5. `/go/whatsapp/{nicho}` responde com HTTP `302` para o convite configurado do nicho;
+6. alterar a configuração do grupo muda o destino sem alterar a URL pública da landing;
 7. o fluxo funciona em navegador mobile;
 8. o fluxo funciona em navegador desktop;
 9. a página funciona sem banco de dados, GA4 ou Meta Pixel;
-10. ausência de configuração válida do nicho produz falha controlada e não redirect incorreto;
+10. ausência de configuração válida do grupo produz falha controlada e não redirect incorreto;
 11. o convite do grupo não está duplicado como dependência dentro da landing;
 12. UTMs não precisam ser propagadas para `chat.whatsapp.com` para que a V1 seja considerada correta;
-13. adicionar um novo nicho não exige alterar a convenção de URL dos nichos existentes.
+13. a landing feminina pode exibir uma prova de curadoria via Vitrine Shopee sem remover a prioridade visual do CTA de WhatsApp;
+14. qualquer urgência usada na copy corresponde a condição real e não a escassez artificial.
 
 ## 11. Contratos de URL
 
-### Landing por nicho
+### Landing
 
 ```text
 GET /{nicho}
 ```
 
-Exemplos:
+Exemplo inicial:
 
 ```text
 GET /feminino
-GET /mae-bebe
 ```
 
 Aceita opcionalmente:
@@ -515,17 +560,16 @@ utm_content
 utm_term
 ```
 
-### Redirect WhatsApp por nicho
+### Redirect WhatsApp
 
 ```text
 GET /go/whatsapp/{nicho}
 ```
 
-Exemplos:
+Exemplo inicial:
 
 ```text
 GET /go/whatsapp/feminino
-GET /go/whatsapp/mae-bebe
 ```
 
 Aceita opcionalmente os mesmos parâmetros UTM preservados da landing.
@@ -542,39 +586,110 @@ Resposta esperada quando não configurado corretamente:
 ```text
 falha controlada
 sem redirect para destino arbitrario
-sem fallback para outro nicho
 ```
 
-## 12. Decisões registradas
+## 12. Diretrizes de conteúdo da landing feminina
+
+A primeira landing implementada será a do nicho feminino.
+
+### Público de referência
+
+Mulheres de aproximadamente 30 a 55 anos.
+
+Essa faixa é uma referência inicial de linguagem e posicionamento, não uma restrição técnica de acesso.
+
+### Promessa principal
+
+A landing deve comunicar que a participante receberá no grupo uma curadoria de bons produtos em oferta e cupons voltados ao universo feminino.
+
+Direção conceitual:
+
+```text
+bons produtos + ofertas + cupons + curadoria + timing
+```
+
+### Subnichos
+
+A landing deve destacar os subnichos oficiais existentes na taxonomia feminina do projeto. Não deve criar categorias promocionais independentes da taxonomia operacional.
+
+### Exemplos de curadoria
+
+A landing poderá mostrar exemplos reais ou representativos do tipo de produto selecionado, podendo direcionar para:
+
+- oferta específica;
+- cupom válido;
+- coleção temática;
+- Vitrine Shopee curada.
+
+Quando houver link de afiliado ou coleção de afiliado, o uso deve seguir as regras aplicáveis do programa de afiliados e as diretrizes de transparência adotadas pelo projeto.
+
+### Hierarquia de CTA
+
+CTA principal:
+
+```text
+Entrar no grupo de ofertas
+```
+
+ou equivalente com foco explícito em receber ofertas no WhatsApp.
+
+CTAs secundários podem incluir:
+
+```text
+Ver nossa seleção na Shopee
+Ver oferta
+Pegar cupom
+Ver ofertas de calçados
+```
+
+O CTA de WhatsApp deve permanecer dominante em posição, contraste e recorrência.
+
+### Gancho de timing
+
+A landing deve comunicar que uma boa oferta é útil quando chega a tempo.
+
+A mensagem pode explorar conceitos como:
+
+- `receba quando aparecer algo que vale a pena`;
+- `ofertas e cupons podem mudar`;
+- `não dependa de lembrar de procurar`.
+
+A redação final será definida em etapa específica de copy.
+
+## 13. Decisões registradas
 
 | Status | Decisão |
 |---|---|
-| Decidido | V1 é composta por landing por nicho + rota controlada para WhatsApp por nicho + suporte/preservação de UTM. |
+| Decidido | V1 é composta por landing + rota controlada para WhatsApp + suporte/preservação de UTM. |
 | Decidido | UTM faz parte da V1. |
 | Decidido | GA4 e Meta Pixel não fazem parte do contrato V1. |
-| Decidido | V1 possui apenas um grupo WhatsApp ativo por nicho. |
-| Decidido | A arquitetura nasce multi-nicho, usando `/{nicho}` e `/go/whatsapp/{nicho}`. |
-| Decidido | Exemplos planejados incluem `/feminino` e `/mae-bebe`. |
-| Decidido | A URL pública de um nicho deve permanecer estável mesmo quando o convite do grupo daquele nicho mudar. |
+| Decidido | A arquitetura de URL nasce preparada para múltiplos nichos. |
+| Decidido | A V1 possui apenas um grupo WhatsApp ativo por nicho. |
+| Decidido | A URL pública deve permanecer estável mesmo quando o convite do grupo mudar. |
 | Decidido | Banco de dados não é requisito da V1. |
 | Decidido | `/go/whatsapp/{nicho}` utiliza HTTP 302. |
-| Decidido | O link real do grupo é centralizado em uma única configuração por nicho. |
-| Decidido | Trocar o grupo de um nicho não exige editar a landing. |
-| Decidido | Configuração ausente ou inválida gera falha controlada, sem fallback silencioso. |
-| Decidido | UTMs são preservadas até a rota de redirect, mas não precisam seguir para o domínio do WhatsApp na V1. |
-| Decidido | No futuro, múltiplos grupos do mesmo nicho poderão ficar atrás da mesma rota sem mudar URLs públicas. |
+| Decidido | O link real do grupo é centralizado em configuração única por nicho. |
+| Decidido | Trocar o grupo não exige editar a landing. |
+| Decidido | A primeira landing implementada será `/feminino`. |
+| Decidido | A landing feminina fala prioritariamente com mulheres de aproximadamente 30 a 55 anos. |
+| Decidido | A promessa central é receber bons produtos em oferta e cupons, com curadoria voltada ao universo feminino. |
+| Decidido | A Vitrine Shopee pode ser usada como prova secundária de curadoria. |
+| Decidido | CTAs de oferta, cupom e coleção são secundários ao CTA de entrada no grupo. |
+| Decidido | O gancho de urgência deve se basear apenas em preço, cupom, estoque ou disponibilidade reais. |
+| Decidido | Escassez artificial e urgência fictícia não devem ser usadas. |
 | Em aberto | Definir domínio definitivo de produção. |
-| Em aberto | Definir mecanismo técnico de armazenamento das configurações na Hostinger. |
-| Em aberto | Definir copy e identidade visual finais por nicho. |
+| Em aberto | Definir mecanismo técnico de configuração do link do grupo na Hostinger. |
+| Em aberto | Definir copy final e identidade visual. |
+| Em aberto | Definir a URL exata da Vitrine Shopee/coleções quando estiverem prontas. |
 
-## 13. Próximo detalhamento
+## 14. Próximo detalhamento
 
 Depois deste contrato, os próximos documentos/revisões devem detalhar separadamente:
 
-1. conteúdo e copy da primeira landing (`/feminino`);
+1. copy final e estrutura de conteúdo da landing feminina;
 2. identidade visual e assets;
-3. mecanismo técnico do redirect e configuração por nicho na Hostinger;
-4. convenção operacional para criação das UTMs;
-5. processo de deploy;
-6. critérios de observabilidade e testes da V1;
-7. contrato futuro de roteamento quando um nicho possuir múltiplos grupos.
+3. mecanismo técnico do redirect na Hostinger;
+4. URL e operação da Vitrine Shopee/coleções;
+5. convenção operacional para criação das UTMs;
+6. processo de deploy;
+7. critérios de observabilidade e testes da V1.
