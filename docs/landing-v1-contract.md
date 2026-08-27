@@ -1,7 +1,7 @@
 # Contrato V1 — Landing + Link WhatsApp + UTM
 
 **Status:** Decidido para V1  
-**Versão do contrato:** 1.4  
+**Versão do contrato:** 1.5  
 **Data:** 2026-08-26  
 **Branch:** `docs/feminino-calcados-discovery`
 
@@ -136,6 +136,59 @@ Para comunicação com a usuária final, a cobertura do nicho feminino deve ser 
 Esses macrogrupos são uma camada de apresentação da landing. Eles não substituem nem redefinem a taxonomia técnica usada pelo catálogo, discovery, scoring ou seleção de ofertas.
 
 A finalidade é comunicar de forma simples e reconhecível os principais tipos de produtos que a participante pode esperar receber no grupo.
+
+### 3.5 Hero definido para a landing feminina
+
+Título:
+
+> Ofertas e cupons para mulheres, não perca tempo procurando
+
+Subtítulo:
+
+> Receba no WhatsApp ótimos produtos de beleza, moda, calçados, bolsas, cabelos e skincare.
+
+Gancho:
+
+> Os preços mudam, os cupons acabam e as melhores ofertas podem durar pouco.
+
+CTA principal:
+
+> Quero receber as ofertas no WhatsApp
+
+### 3.6 Mensagem de confiança
+
+A landing deve destacar como mensagem de confiança:
+
+> 💎 Ofertas e cupons apenas de produtos ORIGINAIS e de lojas CONFIÁVEIS
+
+Essa mensagem deve ser tratada como parte importante da proposta de valor da landing feminina e não apenas como observação de rodapé.
+
+### 3.7 Como funciona
+
+A seção `Como funciona` deve explicar em linhas gerais o que a participante receberá e como o grupo opera, sem transformar detalhes operacionais variáveis em promessas públicas rígidas.
+
+Conteúdo conceitual esperado:
+
+- curadoria de produtos femininos nos seis macrogrupos definidos neste contrato;
+- ofertas e cupons de produtos originais e lojas confiáveis;
+- recebimento das oportunidades diretamente no WhatsApp;
+- mensagens com informações suficientes para avaliar a oferta e acessar o produto/cupom;
+- somente administradores enviam mensagens;
+- existência de período de silêncio noturno.
+
+A landing não deve publicar quantidade diária fixa de mensagens nem horários detalhados de cada disparo/trigger.
+
+### 3.8 Período de silêncio
+
+O período de silêncio deve ser comunicado como elemento de conforto e confiança.
+
+A operação possui último trigger às `21:00`, podendo haver envio residual por até aproximadamente 10 minutos. Por isso, a landing não deve afirmar que as mensagens encerram exatamente às `21:00`.
+
+A comunicação pública deve usar aproximadamente:
+
+> 🌙 Seu descanso é respeitado. As mensagens param à noite e só voltam pela manhã. O grupo fica em silêncio aproximadamente entre 21h10 e 8h.
+
+O horário pode evoluir no futuro, mas enquanto esta política estiver vigente a landing deve evitar qualquer promessa conflitante com esse intervalo.
 
 ## 4. Contrato do link WhatsApp
 
@@ -517,6 +570,32 @@ A landing feminina deve apresentar exatamente estes seis macrogrupos ao público
 
 Esses macrogrupos existem para comunicação visual e não alteram a taxonomia técnica interna do projeto.
 
+### RB-21 — Produtos originais e lojas confiáveis
+
+A landing feminina deve comunicar explicitamente que a curadoria é composta por ofertas e cupons de produtos originais e lojas confiáveis.
+
+Texto-base definido:
+
+> 💎 Ofertas e cupons apenas de produtos ORIGINAIS e de lojas CONFIÁVEIS
+
+### RB-22 — Sem promessa pública de volume de mensagens
+
+A landing não deve prometer quantidade fixa de mensagens por dia. A cadência operacional poderá evoluir sem exigir mudança da promessa pública da landing.
+
+### RB-23 — Sem detalhamento público dos triggers
+
+A landing não deve publicar os horários individuais de triggers ou disparos. O comportamento deve ser descrito de forma simples como recebimento de ofertas ao longo do dia.
+
+### RB-24 — Período de silêncio como elemento de confiança
+
+Enquanto a operação mantiver o último trigger às 21h com possibilidade de envio residual por aproximadamente 10 minutos, a comunicação pública deve considerar o início do silêncio aproximadamente às 21h10.
+
+A landing deve comunicar que não há mensagens durante a noite e que o grupo fica em silêncio aproximadamente entre `21h10` e `08h00`.
+
+### RB-25 — Somente administradores enviam mensagens
+
+A landing deve comunicar que somente administradores enviam mensagens no grupo, evitando a expectativa de conversas, correntes ou mensagens de participantes.
+
 ## 8. Requisitos não funcionais mínimos
 
 A V1 deve:
@@ -572,7 +651,11 @@ A V1 é considerada funcional quando todos os seguintes cenários forem atendido
 10. ausência de configuração válida do grupo produz falha controlada e não redirect incorreto;
 11. o convite do grupo não está duplicado como dependência dentro da landing;
 12. UTMs não precisam ser propagadas para `chat.whatsapp.com` para que a V1 seja considerada correta;
-13. a landing feminina exibe os seis macrogrupos definidos neste contrato, sem substituir a taxonomia técnica interna.
+13. a landing feminina exibe os seis macrogrupos definidos neste contrato, sem substituir a taxonomia técnica interna;
+14. a landing comunica produtos originais e lojas confiáveis;
+15. a landing não promete quantidade fixa de mensagens nem expõe os horários de cada trigger;
+16. a landing comunica o período aproximado de silêncio entre 21h10 e 8h;
+17. a landing comunica que somente administradores enviam mensagens.
 
 ## 11. Contratos de URL
 
@@ -646,13 +729,17 @@ sem redirect para destino arbitrario
 | Decidido | A urgência da copy deve ser baseada apenas em condições reais. |
 | Decidido | Público de referência da primeira landing: mulheres de aproximadamente 30 a 55 anos. |
 | Decidido | A landing feminina exibe os macrogrupos Beleza, Moda, Calçados, Bolsas e acessórios, Cabelos e Skincare. |
+| Decidido | A landing destaca que as ofertas e cupons são de produtos originais e lojas confiáveis. |
+| Decidido | A landing não promete volume diário fixo nem publica horários individuais de triggers. |
+| Decidido | O período de silêncio comunicado é aproximadamente de 21h10 a 8h. |
+| Decidido | Somente administradores enviam mensagens no grupo. |
 
 ## 13. Próximos detalhamentos
 
 Depois deste contrato, os próximos documentos/revisões devem detalhar separadamente:
 
 1. estrutura final das seções da landing feminina;
-2. copy de cada seção;
+2. copy da seção de prova/curadoria Shopee e exemplos reais de ofertas;
 3. identidade visual e assets;
 4. mecanismo técnico do redirect na Hostinger;
 5. convenção operacional para criação das UTMs;
