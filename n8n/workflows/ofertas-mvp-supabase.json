@@ -45,7 +45,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      dry_run: false,\n      limit: 8,\n      profile: 'feminino',\n      marketplace: 'shopee',\n      target: 'grupo-ofertas-feminino',\n      target_chat_id: '120363412864266334@g.us',\n      allowed_targets_csv: 'grupo-ofertas-feminino',\n      channel_adapter: 'whatsapp',\n      send_delay_seconds_min: 45,\n      send_delay_seconds_max: 90,\n      coupon_url: 'https://s.shopee.com.br/4AxtmHq4If',\n      run_id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-schedule-grupo-real',\n    },\n  },\n];"
+        "jsCode": "return [\n  {\n    json: {\n      dry_run: false,\n      limit: 10,\n      profile: 'feminino',\n      marketplace: 'shopee',\n      target: 'grupo-ofertas-feminino',\n      target_chat_id: '120363412864266334@g.us',\n      allowed_targets_csv: 'grupo-ofertas-feminino',\n      channel_adapter: 'whatsapp',\n      send_delay_seconds_min: 45,\n      send_delay_seconds_max: 90,\n      coupon_url: 'https://s.shopee.com.br/4AxtmHq4If',\n      run_id: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '-schedule-grupo-real',\n    },\n  },\n];"
       },
       "id": "schedule-context-grupo-real",
       "name": "Set Contexto Schedule Grupo",
