@@ -106,13 +106,15 @@ def test_utm_script_has_an_explicit_allowlist_and_no_persistence() -> None:
 
 def test_redirect_uses_config_only_and_declares_temporary_redirect() -> None:
     php = read(REDIRECT)
+    config = read(CONFIG)
     assert "WHATSAPP_GROUP_URL_FEMININO" in php
     assert "header('Location: ' . trim($destination), true, 302)" in php
     assert "FILTER_VALIDATE_URL" in php
     assert "WHATSAPP_INVITE_HOST" in php
     assert "$_GET" not in php
     assert "$_POST" not in php
-    assert "chat.whatsapp.com" not in read(CONFIG)
+    assert config.count("https://chat.whatsapp.com/") == 1
+    assert re.search(r"https://chat\.whatsapp\.com/[A-Za-z0-9]{20,24}", config)
 
 
 def test_clean_urls_are_internally_rewritten_without_directory_redirects() -> None:

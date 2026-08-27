@@ -4,10 +4,12 @@ O conteúdo de `deploy/public_html/` é o pacote de produção. Ele pode ser cop
 
 ## Configurar ou trocar o convite do WhatsApp
 
+O convite informado em 27/08/2026 já está configurado na fonte única abaixo.
+
 1. Abra `deploy/public_html/_config/whatsapp.php`.
-2. Preencha somente o valor de `WHATSAPP_GROUP_URL_FEMININO`.
+2. Para trocar o grupo, altere somente o valor de `WHATSAPP_GROUP_URL_FEMININO`.
 3. Use um convite no formato `https://chat.whatsapp.com/CODIGO_DO_CONVITE`.
-4. Salve o arquivo e teste a rota antes de divulgar a landing.
+4. Salve o arquivo, gere o ZIP novamente e teste a rota antes de divulgar a landing.
 
 O convite fica apenas nesse arquivo. Não o adicione ao HTML, JavaScript, QR Code ou outros arquivos. Para trocar o grupo futuramente, altere somente esse valor e reenvie `_config/whatsapp.php`.
 
@@ -26,7 +28,7 @@ O comando valida a estrutura e cria `deploy/landing-feminino-public-html.zip`. O
 1. Confirme o commit aprovado e gere o ZIP.
 2. No hPanel, abra o Gerenciador de Arquivos e inspecione o `public_html` atual.
 3. Faça um backup dos arquivos existentes antes de substituir qualquer item.
-4. Confirme que o convite foi configurado em `_config/whatsapp.php`.
+4. Confirme que o convite ativo continua configurado em `_config/whatsapp.php`.
 5. Envie o ZIP e extraia seu conteúdo.
 6. Copie o conteúdo da pasta extraída `public_html` para o `public_html` real.
 7. Preserve arquivos desconhecidos até confirmar se podem ser substituídos.
