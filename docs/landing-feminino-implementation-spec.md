@@ -14,7 +14,7 @@ Implementar a primeira landing pública do projeto **Ofertas Femininas**, usando
 - `docs/landing-feminino-wireframe.md`;
 - `docs/landing-feminino-arquitetura-hostinger.md`.
 
-A implementação não deve reinterpretar a estratégia, copy, identidade visual ou arquitetura já decididas. Quando houver conflito entre implementação sugerida e os documentos acima, prevalecem os contratos/documentos de decisão.
+A implementação não deve reinterpretar estratégia, copy, identidade visual ou arquitetura já decididas.
 
 ## 2. Escopo da implementação
 
@@ -30,8 +30,8 @@ A V1 deve entregar:
 8. configuração única do convite ativo do WhatsApp fora do HTML/JS;
 9. QR Code na experiência desktop apontando para a rota controlada;
 10. `.htaccess` para URLs limpas/rewrite, se necessário;
-11. estrutura pronta para deploy via Git na Hostinger;
-12. tratamento de erro controlado quando o destino WhatsApp não estiver configurado ou for inválido.
+11. tratamento de erro controlado quando o destino WhatsApp não estiver configurado ou for inválido;
+12. pacote de produção pronto para upload manual no hPanel da Hostinger.
 
 ## 3. Fora do escopo
 
@@ -52,7 +52,8 @@ Não implementar nesta V1:
 - armazenamento persistente das UTMs;
 - geração dinâmica de ofertas a partir de APIs;
 - automação de atualização dos cards de produto;
-- testes A/B.
+- testes A/B;
+- integração automática GitHub → Hostinger.
 
 ## 4. Stack
 
@@ -62,14 +63,14 @@ Usar apenas:
 - CSS3;
 - JavaScript vanilla quando necessário;
 - PHP suportado pela Hostinger;
-- `.htaccess` / `mod_rewrite` quando necessário para URLs limpas;
+- `.htaccess` / `mod_rewrite` quando necessário;
 - assets locais otimizados.
 
 Evitar frameworks e dependências desnecessárias.
 
 ## 5. Estrutura de arquivos esperada
 
-A implementação pode usar estrutura equivalente à abaixo:
+Estrutura equivalente à abaixo:
 
 ```text
 public_html/
@@ -82,11 +83,7 @@ public_html/
 │   ├── js/
 │   │   └── feminino.js
 │   ├── img/
-│   │   ├── ofertas-femininas-hero.*
-│   │   ├── oferta-referencia.*
-│   │   └── ...
 │   └── qr/
-│       └── feminino-whatsapp.*
 ├── go/
 │   └── whatsapp/
 │       └── feminino.php
@@ -96,26 +93,17 @@ public_html/
 
 A configuração do convite não deve ficar no HTML ou JavaScript público.
 
-A configuração pode ser mantida em PHP de forma centralizada, preferencialmente fora do diretório público quando o ambiente Hostinger permitir isso sem aumentar significativamente a complexidade.
-
-Exemplo conceitual:
-
-```text
-private/
-└── whatsapp-config.php
-```
-
-Se manter a configuração fora de `public_html` complicar o deploy Git do plano atual, pode ser usada uma configuração PHP não exposta diretamente como texto pelo servidor. O requisito obrigatório é **centralização do destino**, não sigilo absoluto.
+O requisito obrigatório é **centralização do destino**, não sigilo absoluto. Se for simples no ambiente Hostinger, usar arquivo PHP dedicado para configuração. Não criar infraestrutura adicional apenas para esconder o convite.
 
 ## 6. URLs oficiais
 
-### 6.1 Landing
+### Landing
 
 ```text
 GET https://mktdigitalofertas.com.br/feminino
 ```
 
-Deve aceitar opcionalmente:
+Aceita opcionalmente:
 
 ```text
 utm_source
@@ -125,13 +113,11 @@ utm_content
 utm_term
 ```
 
-### 6.2 Redirect WhatsApp
+### Redirect WhatsApp
 
 ```text
 GET https://mktdigitalofertas.com.br/go/whatsapp/feminino
 ```
-
-Também deve aceitar os mesmos parâmetros UTM preservados da landing.
 
 Resposta normal:
 
@@ -142,7 +128,7 @@ Location: <CONVITE_WHATSAPP_CONFIGURADO>
 
 ## 7. Comportamento de UTM
 
-Ao carregar `/feminino`, o JavaScript deve ler apenas os parâmetros UTM suportados presentes na URL e preservá-los no destino dos CTAs do WhatsApp.
+Ao carregar `/feminino`, preservar nos CTAs apenas os parâmetros UTM suportados presentes na URL.
 
 Exemplo:
 
@@ -150,7 +136,7 @@ Exemplo:
 Entrada:
 /feminino?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
 
-CTA gerado:
+CTA:
 /go/whatsapp/feminino?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
 ```
 
@@ -159,23 +145,23 @@ Regras:
 - UTMs são opcionais;
 - parâmetros ausentes não devem ser inventados;
 - valores desconhecidos devem ser preservados como texto;
-- a landing não deve falhar se nenhuma UTM estiver presente;
-- não é necessário acrescentar UTM ao link final `chat.whatsapp.com`;
-- não armazenar UTM em banco, cookie ou localStorage na V1.
+- ausência de UTM não pode quebrar a landing;
+- não adicionar UTM ao link final `chat.whatsapp.com`;
+- não persistir UTM em banco, cookie ou localStorage.
 
 ## 8. Redirect WhatsApp
 
-O arquivo PHP responsável pela rota deve:
+O PHP deve:
 
 1. carregar a configuração centralizada do nicho feminino;
-2. verificar que o valor existe;
-3. verificar que não está vazio;
-4. verificar que é uma URL HTTPS válida;
-5. verificar que corresponde a um formato/domínio de convite WhatsApp aceito pela implementação;
-6. responder com HTTP `302` e header `Location` quando válido;
+2. verificar que existe;
+3. verificar que não está vazia;
+4. verificar que é URL HTTPS válida;
+5. verificar formato/domínio aceito para convite WhatsApp;
+6. responder HTTP `302` com `Location` quando válido;
 7. interromper a execução após o redirect.
 
-Não usar redirect `301`.
+Não usar `301`.
 
 Não colocar o convite diretamente:
 
@@ -185,29 +171,25 @@ Não colocar o convite diretamente:
 - em anúncios;
 - em múltiplos arquivos de configuração.
 
-## 9. Falha controlada do redirect
+## 9. Falha controlada
 
 Se o convite estiver ausente ou inválido:
 
 - não redirecionar;
-- não usar convite antigo como fallback;
+- não usar fallback silencioso;
 - não redirecionar para outro nicho;
-- não mostrar path de arquivo, variável, stack trace ou detalhes internos;
-- responder com uma página simples e amigável informando indisponibilidade temporária.
+- não expor paths, variáveis, stack trace ou detalhes internos;
+- apresentar página amigável de indisponibilidade.
 
-Copy-base sugerida:
+Copy-base:
 
 > O acesso ao grupo está temporariamente indisponível.
 >
 > Tente novamente em alguns minutos.
 
-A página de erro deve manter linguagem visual mínima coerente com Ofertas Femininas.
-
 ## 10. QR Code
 
-### 10.1 Regra
-
-Na versão desktop, exibir QR Code como mecanismo adicional de entrada no grupo.
+Na versão desktop, exibir QR Code como mecanismo complementar.
 
 O QR Code deve codificar:
 
@@ -215,23 +197,17 @@ O QR Code deve codificar:
 https://mktdigitalofertas.com.br/go/whatsapp/feminino
 ```
 
-Não codificar diretamente o convite `chat.whatsapp.com`.
-
-### 10.2 UTM e QR Code
-
-Para a V1, o QR Code institucional pode apontar para a rota estável sem UTM.
-
-Se futuramente houver necessidade de atribuição específica do QR Code, poderá ser criada uma URL com UTM própria sem alterar a arquitetura.
-
-### 10.3 Responsividade
+Nunca codificar diretamente `chat.whatsapp.com`.
 
 - desktop: botão + QR Code podem coexistir;
-- mobile: o botão é prioritário e o QR Code pode ser ocultado para evitar redundância;
-- o QR Code não deve competir visualmente com o CTA principal.
+- mobile: botão é prioritário e QR Code pode ser ocultado;
+- QR Code institucional pode usar a rota sem UTM.
 
 ## 11. Wireframe obrigatório
 
-A ordem principal da landing deve seguir:
+Seguir `docs/landing-feminino-wireframe.md`.
+
+Ordem:
 
 1. Hero;
 2. faixa de confiança;
@@ -243,11 +219,9 @@ A ordem principal da landing deve seguir:
 8. CTA final;
 9. rodapé.
 
-O documento `docs/landing-feminino-wireframe.md` é a referência oficial para disposição desktop/mobile.
-
 ## 12. Copy obrigatória/base
 
-Usar como base os textos consolidados em `docs/landing-v1-contract.md`.
+Usar os textos consolidados em `docs/landing-v1-contract.md`.
 
 ### Hero
 
@@ -277,7 +251,7 @@ Usar como base os textos consolidados em `docs/landing-v1-contract.md`.
 
 > 🔕 Só administradores enviam mensagens
 
-A implementação não deve introduzir quantidade fixa de mensagens por dia ou grade de horários de triggers.
+Não introduzir quantidade fixa de mensagens por dia ou horários individuais de triggers.
 
 ## 13. Macrogrupos
 
@@ -290,49 +264,47 @@ Exibir exatamente:
 - 💇‍♀️ Cabelos
 - 🧴 Skincare
 
-Esses nomes são camada de apresentação e não devem ser usados para alterar a taxonomia interna do projeto.
+Não alterar a taxonomia interna do projeto.
 
 ## 14. Sistema visual
 
-Usar `docs/landing-feminino-sistema-visual.md` como referência oficial.
+Seguir `docs/landing-feminino-sistema-visual.md`.
 
 Diretrizes essenciais:
 
-- identidade Ofertas Femininas deve ser dominante;
+- identidade Ofertas Femininas dominante;
 - fundo creme/rosado claro;
 - coral/terracota nos CTAs;
 - vinho/vermelho escuro nos títulos;
-- rosa/pêssego em blocos secundários;
+- rosa/pêssego nos blocos secundários;
 - serifada elegante para títulos;
-- sans-serif legível para textos e botões;
+- sans-serif legível para textos;
 - banner institucional das quatro mulheres como referência do Hero;
-- peça de oferta existente como referência de cards e linguagem comercial;
-- Shopee e Amazon visualmente subordinadas à marca Ofertas Femininas.
+- peça de oferta como referência de cards e linguagem comercial;
+- Shopee e Amazon visualmente subordinadas à marca.
 
 ## 15. Assets
 
-Os dois assets fornecidos na definição visual devem ser tratados como referência oficial:
+Referências oficiais:
 
 1. banner institucional Ofertas Femininas com quatro mulheres;
-2. peça visual de oferta/produto usada como referência de cor, tipografia, preço, bordas, fundo e composição.
+2. peça visual de oferta/produto fornecida na definição visual.
 
-Durante a implementação, copiar/adicionar ao repositório apenas os arquivos de imagem necessários e permitidos, usando nomes descritivos.
+Usar assets existentes no repositório se já existirem. Caso não existam, deixar caminhos/estrutura claramente preparados e documentar onde inserir os arquivos. Não inventar arquivos como se já existissem.
 
-Não modificar os assets originais sem necessidade.
-
-Otimizar para web quando apropriado, mantendo qualidade visual suficiente.
+Otimizar imagens para web quando apropriado.
 
 ## 16. Cards de prova de curadoria
 
-A V1 pode conter aproximadamente 3 a 4 ofertas reais.
+Criar estrutura para aproximadamente 3 a 4 cards.
 
 Cada card deve suportar:
 
 - imagem;
-- nome do produto;
+- nome;
 - marketplace;
-- preço/oferta quando atual;
-- cupom quando aplicável;
+- preço/oferta quando real;
+- cupom quando real;
 - CTA secundário.
 
 CTAs possíveis:
@@ -342,9 +314,7 @@ CTAs possíveis:
 - `Ver ofertas de calçados`;
 - `Ver nossa seleção na Shopee`.
 
-Não inventar preço, estoque, desconto ou validade.
-
-Se no momento da implementação ainda não houver exemplos reais definidos, construir a estrutura dos cards de forma que os dados possam ser substituídos facilmente sem alterar o layout.
+Não inventar preço, estoque, desconto ou validade. Se não houver exemplos reais definidos, usar placeholders claramente identificados no código e facilmente substituíveis.
 
 ## 17. Vitrine Shopee
 
@@ -354,220 +324,278 @@ CTA-base:
 
 > Ver nossa seleção na Shopee
 
-Ela não deve ter peso visual maior que o CTA do WhatsApp.
+Hierarquia visual:
+
+```text
+WhatsApp > Vitrine Shopee > oferta/cupom individual
+```
 
 ## 18. Responsividade
 
 ### Mobile
 
-Prioridades:
-
-- CTA principal aparecer cedo;
-- Hero não ser dominado pela ilustração;
+- CTA principal aparece cedo;
+- Hero não é dominado pela ilustração;
 - seções empilhadas;
-- macrogrupos em grid/chips compactos;
-- cards de oferta empilhados ou em carrossel simples;
+- macrogrupos compactos;
+- cards responsivos;
 - QR Code pode ser ocultado;
-- botões com área de toque confortável.
+- botões com área de toque adequada.
 
 ### Desktop
 
-- Hero pode usar duas colunas;
+- Hero em duas colunas quando adequado;
 - copy à esquerda e asset institucional à direita;
 - botão WhatsApp + QR Code podem coexistir;
-- cards podem usar grid de 3 ou 4 colunas conforme largura disponível.
+- cards em grid responsivo.
 
 ## 19. CTA fixo mobile
 
-Um CTA fixo discreto no rodapé da viewport mobile é **opcional**.
+CTA fixo inferior é **opcional**.
 
-Não é requisito para aceite da primeira implementação.
+Se implementado:
 
-Caso seja implementado:
-
-- deve aparecer somente após o usuário deixar a região inicial do Hero ou em comportamento equivalente não invasivo;
-- não pode cobrir conteúdo importante;
-- deve apontar para a mesma rota controlada com UTMs preservadas;
-- deve ser fácil de remover/desativar.
+- não pode ser invasivo;
+- não pode cobrir conteúdo;
+- deve preservar UTMs;
+- deve ser fácil de desativar.
 
 ## 20. `.htaccess` e URLs limpas
 
-Configurar apenas o necessário para garantir que as URLs públicas definidas funcionem.
+Configurar apenas o necessário.
 
-Não criar regras genéricas ou complexas sem necessidade.
+- evitar loops;
+- não transformar o redirect WhatsApp em permanente;
+- manter `.htaccess` mínimo se a estrutura física de diretórios já resolver as URLs.
 
-A implementação deve evitar loops de redirect e não deve transformar o `302` de WhatsApp em redirect permanente.
+## 21. SEO e acessibilidade mínimos
 
-Se a estrutura física de diretórios já permitir `/feminino` e `/go/whatsapp/feminino` sem rewrite adicional, manter `.htaccess` mínimo.
+Incluir:
 
-## 21. SEO mínimo
-
-Mesmo sendo landing de aquisição, incluir:
-
-- `<title>` coerente com Ofertas Femininas;
-- `meta description` curta;
-- `viewport` correto;
+- `<title>`;
+- meta description;
+- viewport;
 - `lang="pt-BR"`;
-- headings em hierarquia semântica;
-- `alt` nas imagens relevantes;
-- favicon caso exista asset apropriado.
-
-Não implementar estratégia SEO avançada nesta V1.
-
-## 22. Acessibilidade mínima
-
-- contraste suficiente;
+- headings semânticos;
+- `alt` em imagens relevantes;
 - foco de teclado visível;
+- contraste suficiente;
 - botões/links semanticamente corretos;
-- QR Code acompanhado de alternativa textual/botão;
-- não depender apenas de cor para indicar ação;
-- imagens decorativas com tratamento adequado;
-- respeitar `prefers-reduced-motion` caso animações sejam introduzidas.
+- alternativa textual ao QR Code.
 
-## 23. Performance
+## 22. Performance
 
-A landing deve ser leve.
-
-Regras:
-
-- não adicionar bibliotecas grandes para funções simples;
-- otimizar imagens;
-- evitar autoplay de vídeo;
-- evitar fontes em excesso;
-- adiar JavaScript não crítico;
+- sem bibliotecas grandes desnecessárias;
+- imagens otimizadas;
+- JS mínimo;
+- sem autoplay de vídeo;
+- poucas fontes;
 - evitar efeitos pesados;
-- garantir carregamento aceitável em conexão móvel.
+- priorizar carregamento móvel rápido.
 
-## 24. Segurança e robustez
+## 23. Segurança e robustez
 
-- escapar/validar qualquer valor usado pelo PHP;
-- não construir header `Location` com entrada arbitrária do visitante;
-- o destino deve vir somente da configuração controlada;
-- não expor arquivos internos por erro;
+- validar qualquer valor usado pelo PHP;
+- não construir `Location` com entrada arbitrária do visitante;
+- destino vem somente da configuração controlada;
+- não expor erros internos;
 - não ativar display de erros PHP em produção;
-- não executar código baseado em UTM;
-- UTM é somente dado textual de navegação.
+- UTM é apenas dado textual de navegação.
 
-## 25. Deploy Git/Hostinger
+## 24. Versionamento e deploy manual na Hostinger
 
-Método preferencial:
+GitHub permanece como fonte de verdade do código, mas **não existe integração GitHub → Hostinger para esta implantação**.
+
+Fluxo oficial:
 
 ```text
 GitHub
   ↓
-branch de deploy/produção definida no momento da implantação
+branch/revisão/commit aprovado
   ↓
-Hostinger hPanel → Advanced → Git
+gerar pacote de produção
   ↓
-Deploy
+validar pacote
   ↓
-site publicado
+Hostinger hPanel / Gerenciador de Arquivos
+  ↓
+upload manual
+  ↓
+extrair/copiar para public_html
+  ↓
+testes pós-deploy
 ```
 
-A branch `docs/feminino-calcados-discovery` é a branch atual de definição e documentação. Ela não deve ser assumida automaticamente como branch permanente de produção.
+FTP pode ser usado como alternativa manual se necessário.
 
-Antes do primeiro deploy, confirmar no hPanel:
+## 25. Pacote de produção obrigatório
 
-1. domínio `mktdigitalofertas.com.br` vinculado ao site/plano correto;
-2. opção `Advanced → Git` disponível;
-3. repositório conectado;
-4. branch de deploy escolhida explicitamente;
-5. diretório raiz de deploy configurado corretamente;
-6. HTTPS/SSL ativo.
+A implementação deve gerar ou deixar pronta uma forma simples e reproduzível de gerar um pacote contendo somente o necessário para produção.
 
-Gerenciador de Arquivos e FTP são fallback operacional, não método preferencial.
+Conteúdo esperado:
+
+```text
+deploy/
+└── public_html/
+    ├── .htaccess
+    ├── feminino/
+    ├── assets/
+    ├── go/
+    └── error/
+```
+
+O nome exato da pasta de preparação pode variar, mas o conteúdo final deve poder ser copiado de forma simples para `public_html`.
+
+O pacote não deve incluir:
+
+- `.git`;
+- documentação;
+- arquivos de desenvolvimento não necessários;
+- outros módulos do projeto;
+- segredos desnecessários;
+- código de n8n, catálogo, Supabase ou automações não relacionadas.
+
+Se houver arquivo de configuração do convite que precise ser ajustado manualmente, documentar exatamente:
+
+- caminho;
+- formato;
+- valor esperado;
+- momento em que deve ser configurado.
 
 ## 26. Estado atual do domínio
 
-No momento desta spec, `https://mktdigitalofertas.com.br/` está operacional e apresenta apenas a página padrão da hospedagem, sem aplicação de produção relevante a preservar.
+`https://mktdigitalofertas.com.br/` está operacional e apresenta apenas a página padrão da hospedagem.
 
-A implantação deve ainda evitar apagar arquivos desconhecidos sem antes verificar o conteúdo de `public_html` durante o deploy inicial.
+Antes do primeiro upload:
 
-## 27. Testes obrigatórios antes da publicação
+- verificar o conteúdo atual de `public_html`;
+- manter backup simples dos arquivos existentes antes de substituir;
+- não apagar arquivos desconhecidos sem inspeção.
+
+## 27. Checklist de deploy manual
+
+Antes do upload:
+
+1. confirmar commit/versionamento da versão a publicar;
+2. gerar pacote de produção;
+3. revisar o conteúdo do pacote;
+4. confirmar configuração do convite;
+5. confirmar que `.htaccess` está incluído quando necessário;
+6. confirmar que assets necessários estão presentes;
+7. criar backup do conteúdo atual de `public_html`.
+
+Publicação:
+
+8. subir o pacote pelo hPanel;
+9. extrair/copiar o conteúdo para `public_html`;
+10. conferir permissões/estrutura se necessário;
+11. não executar mudanças fora do diretório da landing sem necessidade.
+
+Pós-deploy:
+
+12. abrir `/feminino`;
+13. testar CTA;
+14. testar redirect `302`;
+15. testar QR Code;
+16. testar mobile e desktop;
+17. testar URL com UTM;
+18. verificar HTTPS;
+19. confirmar que não há erros visíveis de PHP ou assets quebrados.
+
+## 28. Testes obrigatórios
 
 ### Landing
 
-1. abrir `/feminino` sem query string;
-2. abrir `/feminino` com UTMs completas;
-3. abrir com UTMs parciais;
-4. validar mobile;
-5. validar desktop;
-6. validar imagens e fontes;
-7. validar todos os CTAs.
+1. `/feminino` sem query string;
+2. `/feminino` com UTMs completas;
+3. UTMs parciais;
+4. mobile;
+5. desktop;
+6. imagens/fontes;
+7. CTAs.
 
 ### UTM
 
-8. clicar no CTA com UTMs e confirmar que elas chegam à URL `/go/whatsapp/feminino`;
-9. confirmar que ausência de UTM não cria parâmetros vazios desnecessários.
+8. CTA preserva UTMs até `/go/whatsapp/feminino`;
+9. ausência de UTM não cria parâmetros vazios desnecessários.
 
 ### Redirect
 
-10. confirmar HTTP `302`;
-11. confirmar `Location` apontando para o grupo configurado;
-12. confirmar que mudar a configuração muda o destino sem editar a landing;
-13. testar configuração ausente;
-14. testar configuração inválida;
-15. confirmar ausência de fallback silencioso.
+10. HTTP `302`;
+11. `Location` aponta para grupo configurado;
+12. trocar configuração muda destino sem editar landing;
+13. configuração ausente;
+14. configuração inválida;
+15. ausência de fallback silencioso.
 
 ### QR Code
 
-16. escanear em um celular real;
-17. confirmar que abre a rota controlada;
-18. confirmar que continua independente do convite real do WhatsApp.
+16. escanear em celular real;
+17. confirmar rota controlada;
+18. confirmar independência do convite real.
 
 ### Visual
 
-19. validar coerência com os assets Ofertas Femininas;
-20. confirmar que WhatsApp é o CTA dominante;
-21. confirmar que Shopee/ofertas individuais são secundários;
-22. confirmar que não há promessa de volume diário fixo ou horários individuais de triggers.
+19. coerência com assets Ofertas Femininas;
+20. WhatsApp é CTA dominante;
+21. Shopee/ofertas individuais são secundários;
+22. não há promessa de volume diário fixo ou horários individuais de triggers.
 
-## 28. Critérios de aceite
+### Pacote
+
+23. pacote contém somente arquivos de produção necessários;
+24. pacote pode ser copiado para `public_html` sem depender do repositório inteiro;
+25. instruções de configuração/publicação estão claras.
+
+## 29. Critérios de aceite
 
 A implementação está pronta quando:
 
-1. `https://mktdigitalofertas.com.br/feminino` carrega corretamente;
-2. layout segue o wireframe aprovado;
-3. identidade segue o sistema visual aprovado;
-4. copy-base definida aparece corretamente;
+1. `/feminino` carrega corretamente;
+2. layout segue o wireframe;
+3. identidade segue o sistema visual;
+4. copy-base está correta;
 5. funciona em mobile e desktop;
 6. CTAs preservam UTMs;
-7. `/go/whatsapp/feminino` retorna `302` para o destino configurado;
+7. `/go/whatsapp/feminino` retorna `302` para destino configurado;
 8. convite real não está no HTML/JS nem no QR Code;
-9. trocar o convite exige alterar somente a configuração centralizada;
+9. trocar convite exige alterar somente a configuração centralizada;
 10. erro de configuração gera falha controlada;
 11. QR Code desktop funciona;
-12. página não exige banco, WordPress, Node.js ou serviços externos para funcionar;
-13. deploy pode ser realizado via Git na Hostinger após configuração do hPanel;
-14. todos os testes obrigatórios relevantes passam.
+12. não há dependência de banco, WordPress, Node.js ou serviços externos obrigatórios;
+13. existe pacote de produção pronto para upload manual;
+14. existe checklist de upload e pós-deploy;
+15. todos os testes relevantes passam.
 
-## 29. Instrução para o Codex
+## 30. Instrução para o Codex
 
 Implementar esta spec de forma incremental e conservadora.
 
-### Regras para implementação
+### Regras
 
-- Ler antes os quatro documentos referenciados na seção 1.
+- Ler integralmente os quatro documentos referenciados na seção 1.
 - Não alterar regras de negócio, copy aprovada, wireframe ou identidade sem solicitação explícita.
 - Não adicionar frameworks ou infraestrutura fora do escopo.
-- Não modificar workflows, automações, seleção de ofertas, catálogo, n8n, Supabase ou demais partes do projeto não relacionadas à landing.
-- Trabalhar somente nos arquivos necessários para a landing e seu redirect.
-- Manter o convite do WhatsApp centralizado e fora do HTML/JS.
-- Implementar preservação de UTM de forma simples e testável.
-- Gerar o QR Code a partir da rota estável do projeto, nunca do convite real.
-- Criar testes ou roteiro de validação suficiente para comprovar cada critério de aceite.
-- Antes de qualquer deploy real, mostrar os arquivos alterados e o plano de implantação.
-- Não sobrescrever o conteúdo do servidor Hostinger sem verificar o diretório de destino.
+- Não modificar workflows, automações, catálogo, n8n, Supabase ou outras áreas do projeto.
+- Trabalhar somente nos arquivos necessários para a landing e redirect.
+- Manter convite centralizado e fora do HTML/JS.
+- Preservar UTM de forma simples e testável.
+- Gerar QR Code a partir da rota estável, nunca do convite real.
+- Preparar pacote de produção para upload manual na Hostinger.
+- **Não fazer deploy real.**
+- **Não configurar integração Git da Hostinger.**
+- Não sobrescrever nem manipular o servidor Hostinger.
 
 ### Resultado esperado do Codex
 
 Ao finalizar, apresentar:
 
-1. resumo dos arquivos criados/alterados;
-2. estrutura final da landing;
-3. como configurar o convite do WhatsApp;
+1. arquivos criados/alterados;
+2. arquitetura final;
+3. como configurar e trocar o convite do WhatsApp;
 4. como testar localmente quando possível;
-5. como configurar o Git no hPanel;
-6. checklist de deploy;
-7. checklist pós-deploy;
-8. qualquer pendência que dependa de acesso manual à Hostinger ou de assets finais.
+5. caminho/estrutura do pacote de produção;
+6. como gerar o pacote novamente;
+7. checklist de upload manual no hPanel;
+8. checklist pós-deploy;
+9. qualquer pendência de assets ou configuração externa.
