@@ -169,7 +169,97 @@ O `Referenciador` não deve ser usado como chave principal de atribuição.
 
 ### 3.2 `conversionReport`
 
-O schema fornecido para `conversionReport` disponibiliza no nó de conversão, entre outros:
+A query fornecida e validada como referência funcional é:
+
+```graphql
+{
+  conversionReport(
+    conversionStatus: ALL,
+    productId: 22599034226,
+    categoryType: ALL,
+    orderStatus: ALL,
+    buyerType: ALL,
+    productType: ALL,
+    fraudStatus: ALL,
+    device: ALL
+  ) {
+    nodes {
+      clickTime
+      purchaseTime
+      conversionId
+      shopeeCommissionCapped
+      sellerCommission
+      totalCommission
+      netCommission
+      mcnManagementFeeRate
+      mcnManagementFee
+      mcnContractId
+      linkedMcnName
+      buyerType
+      utmContent
+      device
+      productType
+      referrer
+      orders {
+        orderId
+        shopType
+        orderStatus
+        items {
+          shopId
+          shopName
+          completeTime
+          promotionId
+          modelId
+          itemId
+          itemName
+          itemPrice
+          displayItemStatus
+          actualAmount
+          refundAmount
+          qty
+          imageUrl
+          itemTotalCommission
+          itemSellerCommission
+          itemSellerCommissionRate
+          itemShopeeCommissionCapped
+          itemShopeeCommissionRate
+          itemNotes
+          globalCategoryLv1Name
+          globalCategoryLv2Name
+          globalCategoryLv3Name
+          fraudStatus
+          fraudReason
+          attributionType
+          channelType
+          campaignPartnerName
+          campaignType
+        }
+      }
+    }
+    pageInfo {
+      page
+      limit
+      hasNextPage
+      scrollId
+    }
+  }
+}
+```
+
+Essa query confirma, no exemplo fornecido, a possibilidade de solicitar `conversionReport` com os filtros:
+
+- `conversionStatus`;
+- `productId`;
+- `categoryType`;
+- `orderStatus`;
+- `buyerType`;
+- `productType`;
+- `fraudStatus`;
+- `device`.
+
+O valor `productId: 22599034226` acima é um valor concreto da consulta de exemplo e **não deve ser tratado como constante do sistema**. A spec também não presume, a partir desse exemplo, quais argumentos são obrigatórios ou opcionais; a implementação deve respeitar o contrato real do schema da API.
+
+No nível de conversão são retornados:
 
 - `clickTime`;
 - `purchaseTime`;
@@ -194,7 +284,7 @@ Pedidos incluem:
 - `shopType`;
 - `orderStatus`.
 
-Itens comprados incluem, entre outros:
+Itens comprados incluem:
 
 - `shopId`;
 - `shopName`;
@@ -225,7 +315,7 @@ Itens comprados incluem, entre outros:
 - `campaignPartnerName`;
 - `campaignType`.
 
-A paginação disponibiliza:
+A paginação retorna:
 
 - `page`;
 - `limit`;
@@ -236,7 +326,75 @@ A paginação disponibiliza:
 
 ### 3.3 `validatedReport`
 
-O `validatedReport` fornecido possui essencialmente o mesmo conjunto de campos de conversão, pedido e item, além da mesma estrutura de paginação.
+A query fornecida e validada como referência funcional é:
+
+```graphql
+{
+  validatedReport {
+    nodes {
+      clickTime
+      purchaseTime
+      conversionId
+      shopeeCommissionCapped
+      sellerCommission
+      totalCommission
+      buyerType
+      utmContent
+      device
+      productType
+      referrer
+      netCommission
+      mcnManagementFeeRate
+      mcnManagementFee
+      mcnContractId
+      linkedMcnName
+      orders {
+        orderId
+        shopType
+        orderStatus
+        items {
+          shopId
+          shopName
+          completeTime
+          promotionId
+          modelId
+          itemId
+          itemName
+          itemPrice
+          displayItemStatus
+          actualAmount
+          refundAmount
+          qty
+          imageUrl
+          itemTotalCommission
+          itemSellerCommission
+          itemSellerCommissionRate
+          itemShopeeCommissionCapped
+          itemShopeeCommissionRate
+          itemNotes
+          globalCategoryLv1Name
+          globalCategoryLv2Name
+          globalCategoryLv3Name
+          fraudStatus
+          fraudReason
+          attributionType
+          channelType
+          campaignPartnerName
+          campaignType
+        }
+      }
+    }
+    pageInfo {
+      page
+      limit
+      hasNextPage
+      scrollId
+    }
+  }
+}
+```
+
+No exemplo fornecido, `validatedReport` é chamado sem argumentos e retorna essencialmente o mesmo conjunto de campos de conversão, pedido e item, além da mesma estrutura de paginação. Isso **não autoriza inferir** que o endpoint não aceite filtros em outras formas; registra-se apenas o formato observado.
 
 Esta spec não presume uma diferença semântica baseada apenas no nome do endpoint. A implementação deve preservar a origem do dado (`conversionReport` ou `validatedReport`) para permitir comparação e reconciliação sem sobrescrever silenciosamente um estado pelo outro.
 
@@ -494,22 +652,30 @@ Regras:
 
 ### 6.4 Execuções de sincronização dos relatórios da API
 
-Para preservar proveniência, paginação e reprocessamento, criar tabela equivalente a `offers.shopee_conversion_sync_runs`.
+Para preservar proveniência, filtros, paginação e reprocessamento, criar tabela equivalente a `offers.shopee_conversion_sync_runs`.
 
 Campos mínimos:
 
 - `sync_run_id UUID PK`;
 - `report_type TEXT NOT NULL` com valores `conversion_report` ou `validated_report`;
-- filtros/período solicitados em `JSONB`;
+- `request_filters JSONB` — preservar os filtros efetivamente enviados;
+- `product_id_filter BIGINT NULL` — opcional como campo derivado/indexável quando `productId` estiver presente na consulta;
 - `started_at TIMESTAMPTZ`;
 - `finished_at TIMESTAMPTZ NULL`;
 - `status TEXT`;
 - `rows_received INTEGER`;
-- último `scroll_id`/metadados de paginação quando aplicável;
+- `last_page INTEGER NULL`;
+- `last_limit INTEGER NULL`;
+- `has_next_page BOOLEAN NULL`;
+- `last_scroll_id TEXT NULL`;
 - `error TEXT NULL`;
 - `created_at TIMESTAMPTZ`.
 
-Isso permite auditar de qual consulta da Shopee veio cada observação.
+Para `conversionReport`, `request_filters` deve poder preservar, quando usados, os valores de `conversionStatus`, `productId`, `categoryType`, `orderStatus`, `buyerType`, `productType`, `fraudStatus` e `device`.
+
+Para o `validatedReport` observado sem argumentos, `request_filters` pode ser `{}`. Isso não deve ser interpretado como prova de que o endpoint não aceite filtros em outras formas.
+
+A ingestão deve continuar seguindo `pageInfo.hasNextPage` e preservar `page`, `limit` e `scrollId` suficientes para auditoria/reprocessamento.
 
 ### 6.5 Conversões canônicas
 
@@ -776,7 +942,7 @@ A evolução é considerada tecnicamente concluída para a fase de instrumentaç
 10. nenhuma exposição Shopee é liberada para publicação sem tracking válido;
 11. `publication_events` continua reconciliável ao mesmo `dispatch_plan_id`;
 12. existe modelo persistente para ingestão idempotente do Click Report;
-13. existe modelo persistente para `conversionReport` e `validatedReport`, preservando a origem da observação;
+13. existe modelo persistente para `conversionReport` e `validatedReport`, preservando a origem da observação e os filtros/paginação usados em cada sync;
 14. pedidos e itens comprados são preservados separadamente da identidade da conversão;
 15. nenhuma regra de score, quota, fallback, cooldown ou seleção editorial foi alterada por esta entrega.
 
@@ -820,7 +986,8 @@ Não assumir que:
 - referrer sozinho identifica a publicação;
 - `productType` da Shopee equivale ao futuro `product_type` editorial;
 - `attributionType` possui significado não confirmado pelos valores/documentação da Shopee;
-- `validatedReport` deve sobrescrever `conversionReport` sem uma regra formal.
+- `validatedReport` deve sobrescrever `conversionReport` sem uma regra formal;
+- a ausência de argumentos no exemplo de `validatedReport` prova que o endpoint não aceita filtros.
 
 As decisões futuras devem poder analisar separadamente:
 
