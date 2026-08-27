@@ -1,7 +1,7 @@
 # Contrato V1 — Landing + Link WhatsApp + UTM
 
 **Status:** Decidido para V1  
-**Versão do contrato:** 1.0  
+**Versão do contrato:** 1.1  
 **Data:** 2026-08-26  
 **Branch:** `docs/feminino-calcados-discovery`
 
@@ -126,7 +126,105 @@ Deve ser possível alterar o link real do grupo de WhatsApp sem alterar:
 
 Ao acessar `/go/whatsapp`, o usuário deve ser redirecionado para o convite configurado do grupo ativo.
 
-A implementação técnica exata do redirect será definida na implementação, preservando este comportamento funcional.
+O redirect da V1 deve utilizar resposta HTTP temporária `302`.
+
+A escolha de `302` é deliberada: o destino do grupo pode ser alterado no futuro e não deve ser tratado pelos clientes como um destino permanente.
+
+Fluxo normativo:
+
+```text
+GET /go/whatsapp
+        |
+        v
+ler WHATSAPP_GROUP_URL
+        |
+        v
+validar configuracao
+        |
+        +-- invalida/ausente --> falha controlada
+        |
+        v
+HTTP 302
+        |
+        v
+WHATSAPP_GROUP_URL
+```
+
+### 4.5 Fonte única de configuração
+
+O link real do grupo deve existir em um único ponto de configuração identificado como:
+
+```text
+WHATSAPP_GROUP_URL
+```
+
+A implementação deve evitar duplicar o convite do grupo em HTML, JavaScript, anúncios ou múltiplos arquivos de configuração.
+
+Objetivo operacional:
+
+```text
+alterar WHATSAPP_GROUP_URL
+        |
+        v
+novo destino passa a valer em /go/whatsapp
+        |
+        v
+landing, anúncios e URLs públicas permanecem inalterados
+```
+
+### 4.6 Validação mínima do destino
+
+Antes do redirect, a implementação deve verificar que `WHATSAPP_GROUP_URL`:
+
+- existe;
+- não está vazio;
+- representa uma URL HTTPS;
+- aponta para um domínio/forma de convite do WhatsApp aceita pela implementação.
+
+A validação exata do formato poderá ser definida no código, mas a aplicação não deve redirecionar para um valor arbitrário ou claramente inválido.
+
+### 4.7 Falha controlada
+
+Se `WHATSAPP_GROUP_URL` estiver ausente ou inválida:
+
+- não realizar redirect para endereço desconhecido;
+- não usar automaticamente um grupo antigo como fallback silencioso;
+- não expor detalhes internos de configuração ao visitante;
+- retornar uma resposta/página de erro controlada.
+
+A copy visual da página de erro será definida separadamente.
+
+### 4.8 UTMs no redirect
+
+Os parâmetros UTM recebidos em `/go/whatsapp` pertencem ao contexto de aquisição do projeto e não precisam ser acrescentados ao link final `chat.whatsapp.com` na V1.
+
+Contrato:
+
+```text
+/ofertas?utm_source=instagram&...
+        |
+        v
+/go/whatsapp?utm_source=instagram&...
+        |
+        v
+HTTP 302 -> WHATSAPP_GROUP_URL
+```
+
+As UTMs devem permanecer disponíveis até a chamada de `/go/whatsapp`, permitindo futura instrumentação. A V1 não exige persistência nem propagação das UTMs para o domínio do WhatsApp.
+
+### 4.9 Operação de troca do grupo
+
+Trocar o grupo ativo da V1 deve exigir somente a alteração da configuração `WHATSAPP_GROUP_URL` e a aplicação/deploy da configuração conforme o mecanismo suportado pelo ambiente Hostinger escolhido.
+
+A operação não deve exigir edição da landing page.
+
+Após a troca, deve ser feito um teste simples acessando `/go/whatsapp` e confirmando que o novo convite é o destino retornado.
+
+### 4.10 Ambiente
+
+A V1 deve possuir configuração de produção para `WHATSAPP_GROUP_URL`.
+
+Ambiente separado de staging não é requisito obrigatório da V1. Caso exista ambiente de teste, ele não deve utilizar por engano o convite de produção durante validações destrutivas ou experimentais.
 
 ## 5. Contrato UTM
 
@@ -244,11 +342,27 @@ UTMs recebidas na landing devem ser preservadas até a rota de saída para Whats
 
 Se não houver link de WhatsApp configurado, a aplicação não deve redirecionar silenciosamente para destino desconhecido ou incorreto.
 
-O comportamento visual de erro será definido na implementação, mas a falha deve ser explícita e controlada.
+A falha deve ser explícita e controlada.
 
 ### RB-07 — Mobile-first
 
 O fluxo principal deve funcionar primeiro em dispositivos móveis, sem impedir uso em desktop.
+
+### RB-08 — Redirect temporário
+
+`/go/whatsapp` deve usar HTTP `302` na V1.
+
+### RB-09 — Configuração única
+
+O destino do grupo deve ser obtido de `WHATSAPP_GROUP_URL` como fonte única de configuração.
+
+### RB-10 — Troca sem alteração da landing
+
+A troca do grupo ativo não deve exigir alteração do HTML, CSS ou JavaScript da landing.
+
+### RB-11 — Sem fallback silencioso
+
+Configuração inválida não deve redirecionar automaticamente para convite antigo ou alternativo não explicitamente configurado.
 
 ## 8. Requisitos não funcionais mínimos
 
@@ -261,7 +375,8 @@ A V1 deve:
 - não exigir banco de dados;
 - não exigir cookies para funcionar;
 - permitir versionamento integral do código no Git;
-- permitir alteração do destino WhatsApp sem alterar a URL pública da campanha.
+- permitir alteração do destino WhatsApp sem alterar a URL pública da campanha;
+- centralizar o destino do grupo em uma única configuração operacional.
 
 ## 9. Fora do escopo da V1
 
@@ -295,12 +410,14 @@ A V1 é considerada funcional quando todos os seguintes cenários forem atendido
 2. abrir a landing com UTMs carrega a página normalmente;
 3. clicar no CTA leva à rota `/go/whatsapp`;
 4. os parâmetros UTM recebidos permanecem disponíveis na chamada da rota `/go/whatsapp`;
-5. `/go/whatsapp` redireciona para o convite configurado do grupo ativo;
-6. alterar o convite configurado muda o destino sem alterar a URL pública da landing;
+5. `/go/whatsapp` responde com HTTP `302` para o convite configurado em `WHATSAPP_GROUP_URL`;
+6. alterar `WHATSAPP_GROUP_URL` muda o destino sem alterar a URL pública da landing;
 7. o fluxo funciona em navegador mobile;
 8. o fluxo funciona em navegador desktop;
 9. a página funciona sem banco de dados, GA4 ou Meta Pixel;
-10. ausência de configuração válida do grupo produz falha controlada e não redirect incorreto.
+10. ausência de configuração válida do grupo produz falha controlada e não redirect incorreto;
+11. o convite do grupo não está duplicado como dependência dentro da landing;
+12. UTMs não precisam ser propagadas para `chat.whatsapp.com` para que a V1 seja considerada correta.
 
 ## 11. Contratos de URL
 
@@ -331,7 +448,15 @@ Aceita opcionalmente os mesmos parâmetros UTM preservados da landing.
 Resposta esperada quando configurado corretamente:
 
 ```text
-redirect -> convite do grupo WhatsApp ativo
+HTTP 302
+Location: <WHATSAPP_GROUP_URL>
+```
+
+Resposta esperada quando não configurado corretamente:
+
+```text
+falha controlada
+sem redirect para destino arbitrario
 ```
 
 ## 12. Decisões registradas
@@ -344,8 +469,13 @@ redirect -> convite do grupo WhatsApp ativo
 | Decidido | V1 possui apenas um grupo WhatsApp ativo por vez. |
 | Decidido | A URL pública deve permanecer estável mesmo quando o convite do grupo mudar. |
 | Decidido | Banco de dados não é requisito da V1. |
+| Decidido | `/go/whatsapp` utiliza HTTP 302. |
+| Decidido | O link real do grupo é centralizado em `WHATSAPP_GROUP_URL`. |
+| Decidido | Trocar o grupo não exige editar a landing. |
+| Decidido | Configuração ausente ou inválida gera falha controlada, sem fallback silencioso. |
+| Decidido | UTMs são preservadas até `/go/whatsapp`, mas não precisam ser enviadas ao WhatsApp na V1. |
 | Em aberto | Definir domínio/path definitivo de produção. |
-| Em aberto | Definir mecanismo técnico de configuração do link do grupo na Hostinger. |
+| Em aberto | Definir o mecanismo concreto suportado pela Hostinger para armazenar/aplicar `WHATSAPP_GROUP_URL`. |
 | Em aberto | Definir copy e identidade visual finais. |
 
 ## 13. Próximo detalhamento
@@ -354,7 +484,14 @@ Depois deste contrato, os próximos documentos/revisões devem detalhar separada
 
 1. conteúdo e copy da landing;
 2. identidade visual e assets;
-3. mecanismo técnico do redirect na Hostinger;
-4. convenção operacional para criação das UTMs;
-5. processo de deploy;
+3. mecanismo concreto de hospedagem/deploy na Hostinger;
+4. forma concreta de armazenar/aplicar `WHATSAPP_GROUP_URL` no ambiente escolhido;
+5. convenção operacional para criação das UTMs;
 6. critérios de observabilidade e testes da V1.
+
+## 14. Histórico do contrato
+
+| Versão | Data | Alteração |
+|---|---|---|
+| 1.0 | 2026-08-26 | Define contrato inicial Landing + WhatsApp + UTM. |
+| 1.1 | 2026-08-26 | Define HTTP 302, `WHATSAPP_GROUP_URL`, validação, falha controlada, operação de troca do grupo e tratamento das UTMs no redirect. |
