@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from ofertas_bot.providers.shopee_tracking import ShopeeTrackingProvider
 from ofertas_bot.shopee_click_report_importer import HEADERS, parse_click_report
 from ofertas_bot.shopee_conversion_sync import collect_conversion_report, query_filters
 from ofertas_bot.shopee_tracking import (
@@ -119,6 +120,37 @@ def test_conversion_pagination_omits_first_scroll_and_uses_next() -> None:
     )
     assert provider.calls == [None, "next"]
     assert len(report.nodes) == 2
+
+
+def test_provider_serializes_int64_and_really_omits_first_scroll(monkeypatch) -> None:
+    provider = ShopeeTrackingProvider("partner", "secret")
+    calls = []
+
+    def execute(query, operation, variables):
+        calls.append((query, operation, variables))
+        return {
+            "data": {
+                "conversionReport": {
+                    "nodes": [],
+                    "pageInfo": {"hasNextPage": False, "scrollId": ""},
+                }
+            }
+        }
+
+    monkeypatch.setattr(provider, "_execute", execute)
+    provider.conversion_page(1787713200, 1787799599)
+    provider.conversion_page(1787713200, 1787799599, "next")
+
+    first_query, _, first_variables = calls[0]
+    next_query, _, next_variables = calls[1]
+    assert "$scrollId" not in first_query
+    assert "scrollId:" not in first_query
+    assert first_variables == {
+        "purchaseTimeStart": "1787713200",
+        "purchaseTimeEnd": "1787799599",
+    }
+    assert "scrollId: $scrollId" in next_query
+    assert next_variables["scrollId"] == "next"
 
 
 def test_conversion_identity_allows_same_conversion_with_different_orders() -> None:

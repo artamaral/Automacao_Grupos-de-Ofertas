@@ -102,12 +102,20 @@ class ShopeeTrackingProvider:
         self, purchase_time_start: int, purchase_time_end: int, scroll_id: str | None = None
     ) -> dict[str, Any]:
         variables: dict[str, Any] = {
-            "purchaseTimeStart": purchase_time_start,
-            "purchaseTimeEnd": purchase_time_end,
+            # Shopee's custom Int64 scalar accepts JSON strings, not JSON numbers.
+            "purchaseTimeStart": str(purchase_time_start),
+            "purchaseTimeEnd": str(purchase_time_end),
         }
+        query = CONVERSION_REPORT
         if scroll_id is not None:
             variables["scrollId"] = scroll_id
-        response = self._execute(CONVERSION_REPORT, "DailyConversionReport", variables)
+        else:
+            # The first request must omit scrollId altogether. Leaving the argument in
+            # the document with an undefined variable is serialized as null by GraphQL.
+            query = query.replace(", $scrollId: String", "").replace(
+                ", scrollId: $scrollId", ""
+            )
+        response = self._execute(query, "DailyConversionReport", variables)
         raise_if_graphql_errors(response)
         data = response.get("data")
         report = data.get("conversionReport") if isinstance(data, dict) else None
