@@ -1,7 +1,7 @@
 # Contrato V1 — Landing + Link WhatsApp + UTM
 
 **Status:** Decidido para V1  
-**Versão do contrato:** 1.3  
+**Versão do contrato:** 1.4  
 **Data:** 2026-08-26  
 **Branch:** `docs/feminino-calcados-discovery`
 
@@ -119,6 +119,23 @@ Cada landing da V1 deve possuir, no mínimo:
 - carregamento por HTTPS.
 
 Copy final, identidade visual definitiva, exemplos de ofertas e demais blocos de conteúdo serão detalhados separadamente por nicho.
+
+### 3.4 Macrogrupos exibidos na landing feminina
+
+A landing feminina não deve expor toda a taxonomia técnica interna de subnichos.
+
+Para comunicação com a usuária final, a cobertura do nicho feminino deve ser apresentada por estes seis macrogrupos, exatamente com estes nomes e ícones:
+
+- 💄 Beleza
+- 👗 Moda
+- 👠 Calçados
+- 👜 Bolsas e acessórios
+- 💇‍♀️ Cabelos
+- 🧴 Skincare
+
+Esses macrogrupos são uma camada de apresentação da landing. Eles não substituem nem redefinem a taxonomia técnica usada pelo catálogo, discovery, scoring ou seleção de ofertas.
+
+A finalidade é comunicar de forma simples e reconhecível os principais tipos de produtos que a participante pode esperar receber no grupo.
 
 ## 4. Contrato do link WhatsApp
 
@@ -465,18 +482,40 @@ A copy poderá trabalhar senso de urgência baseado exclusivamente em condiçõe
 
 ### RB-17 — Tensão principal da mensagem
 
-A tensão de comunicação da landing feminina deve ser construída em torno de uma necessidade real da usuária:
+A tensão de comunicação da landing feminina deve ser construída sobre uma situação real:
 
-```text
-nao tenho tempo para procurar boas ofertas
-        +
-quando descubro, o preco ou cupom pode ja ter mudado
-        |
-        v
-receber uma curadoria no WhatsApp resolve o problema de descobrir tarde
-```
+- a usuária não tem tempo ou interesse em pesquisar continuamente por boas ofertas;
+- quando descobre uma oportunidade tarde, o preço, cupom ou estoque pode já ter mudado;
+- o grupo resolve esse problema fazendo a curadoria e entregando os achados diretamente no WhatsApp.
 
-A mensagem deve vender conveniência, curadoria e timing, e não medo artificial de perda.
+### RB-18 — Público de referência feminino
+
+A primeira landing implementada será do nicho feminino e deve falar prioritariamente com mulheres de aproximadamente 30 a 55 anos.
+
+Essa faixa é uma referência de linguagem, visual e seleção de exemplos, não uma restrição de acesso ao grupo.
+
+### RB-19 — Promessa central
+
+A promessa da landing feminina deve combinar:
+
+- bons produtos;
+- ofertas;
+- cupons;
+- curadoria;
+- recebimento no WhatsApp em tempo de aproveitar oportunidades ainda válidas.
+
+### RB-20 — Macrogrupos públicos do feminino
+
+A landing feminina deve apresentar exatamente estes seis macrogrupos ao público:
+
+- 💄 Beleza
+- 👗 Moda
+- 👠 Calçados
+- 👜 Bolsas e acessórios
+- 💇‍♀️ Cabelos
+- 🧴 Skincare
+
+Esses macrogrupos existem para comunicação visual e não alteram a taxonomia técnica interna do projeto.
 
 ## 8. Requisitos não funcionais mínimos
 
@@ -523,9 +562,9 @@ A V1 é considerada funcional quando todos os seguintes cenários forem atendido
 
 1. abrir a landing sem UTM carrega a página normalmente;
 2. abrir a landing com UTMs carrega a página normalmente;
-3. clicar no CTA principal leva à rota `/go/whatsapp/{nicho}`;
+3. clicar no CTA leva à rota `/go/whatsapp/{nicho}`;
 4. os parâmetros UTM recebidos permanecem disponíveis na chamada da rota `/go/whatsapp/{nicho}`;
-5. `/go/whatsapp/{nicho}` responde com HTTP `302` para o convite configurado do nicho;
+5. a rota responde com HTTP `302` para o convite configurado do nicho;
 6. alterar a configuração do grupo muda o destino sem alterar a URL pública da landing;
 7. o fluxo funciona em navegador mobile;
 8. o fluxo funciona em navegador desktop;
@@ -533,12 +572,11 @@ A V1 é considerada funcional quando todos os seguintes cenários forem atendido
 10. ausência de configuração válida do grupo produz falha controlada e não redirect incorreto;
 11. o convite do grupo não está duplicado como dependência dentro da landing;
 12. UTMs não precisam ser propagadas para `chat.whatsapp.com` para que a V1 seja considerada correta;
-13. a landing feminina pode exibir uma prova de curadoria via Vitrine Shopee sem remover a prioridade visual do CTA de WhatsApp;
-14. qualquer urgência usada na copy corresponde a condição real e não a escassez artificial.
+13. a landing feminina exibe os seis macrogrupos definidos neste contrato, sem substituir a taxonomia técnica interna.
 
 ## 11. Contratos de URL
 
-### Landing
+### Landing por nicho
 
 ```text
 GET /{nicho}
@@ -560,7 +598,7 @@ utm_content
 utm_term
 ```
 
-### Redirect WhatsApp
+### Redirect WhatsApp por nicho
 
 ```text
 GET /go/whatsapp/{nicho}
@@ -588,108 +626,35 @@ falha controlada
 sem redirect para destino arbitrario
 ```
 
-## 12. Diretrizes de conteúdo da landing feminina
-
-A primeira landing implementada será a do nicho feminino.
-
-### Público de referência
-
-Mulheres de aproximadamente 30 a 55 anos.
-
-Essa faixa é uma referência inicial de linguagem e posicionamento, não uma restrição técnica de acesso.
-
-### Promessa principal
-
-A landing deve comunicar que a participante receberá no grupo uma curadoria de bons produtos em oferta e cupons voltados ao universo feminino.
-
-Direção conceitual:
-
-```text
-bons produtos + ofertas + cupons + curadoria + timing
-```
-
-### Subnichos
-
-A landing deve destacar os subnichos oficiais existentes na taxonomia feminina do projeto. Não deve criar categorias promocionais independentes da taxonomia operacional.
-
-### Exemplos de curadoria
-
-A landing poderá mostrar exemplos reais ou representativos do tipo de produto selecionado, podendo direcionar para:
-
-- oferta específica;
-- cupom válido;
-- coleção temática;
-- Vitrine Shopee curada.
-
-Quando houver link de afiliado ou coleção de afiliado, o uso deve seguir as regras aplicáveis do programa de afiliados e as diretrizes de transparência adotadas pelo projeto.
-
-### Hierarquia de CTA
-
-CTA principal:
-
-```text
-Entrar no grupo de ofertas
-```
-
-ou equivalente com foco explícito em receber ofertas no WhatsApp.
-
-CTAs secundários podem incluir:
-
-```text
-Ver nossa seleção na Shopee
-Ver oferta
-Pegar cupom
-Ver ofertas de calçados
-```
-
-O CTA de WhatsApp deve permanecer dominante em posição, contraste e recorrência.
-
-### Gancho de timing
-
-A landing deve comunicar que uma boa oferta é útil quando chega a tempo.
-
-A mensagem pode explorar conceitos como:
-
-- `receba quando aparecer algo que vale a pena`;
-- `ofertas e cupons podem mudar`;
-- `não dependa de lembrar de procurar`.
-
-A redação final será definida em etapa específica de copy.
-
-## 13. Decisões registradas
+## 12. Decisões registradas
 
 | Status | Decisão |
 |---|---|
 | Decidido | V1 é composta por landing + rota controlada para WhatsApp + suporte/preservação de UTM. |
 | Decidido | UTM faz parte da V1. |
 | Decidido | GA4 e Meta Pixel não fazem parte do contrato V1. |
-| Decidido | A arquitetura de URL nasce preparada para múltiplos nichos. |
-| Decidido | A V1 possui apenas um grupo WhatsApp ativo por nicho. |
+| Decidido | V1 possui um grupo WhatsApp ativo por nicho. |
 | Decidido | A URL pública deve permanecer estável mesmo quando o convite do grupo mudar. |
 | Decidido | Banco de dados não é requisito da V1. |
 | Decidido | `/go/whatsapp/{nicho}` utiliza HTTP 302. |
-| Decidido | O link real do grupo é centralizado em configuração única por nicho. |
+| Decidido | O link real do grupo é centralizado em uma configuração por nicho. |
 | Decidido | Trocar o grupo não exige editar a landing. |
-| Decidido | A primeira landing implementada será `/feminino`. |
-| Decidido | A landing feminina fala prioritariamente com mulheres de aproximadamente 30 a 55 anos. |
-| Decidido | A promessa central é receber bons produtos em oferta e cupons, com curadoria voltada ao universo feminino. |
+| Decidido | Configuração ausente ou inválida produz falha controlada. |
+| Decidido | A arquitetura nasce multi-nicho, mesmo que apenas o feminino seja implantado inicialmente. |
 | Decidido | A Vitrine Shopee pode ser usada como prova secundária de curadoria. |
-| Decidido | CTAs de oferta, cupom e coleção são secundários ao CTA de entrada no grupo. |
-| Decidido | O gancho de urgência deve se basear apenas em preço, cupom, estoque ou disponibilidade reais. |
-| Decidido | Escassez artificial e urgência fictícia não devem ser usadas. |
-| Em aberto | Definir domínio definitivo de produção. |
-| Em aberto | Definir mecanismo técnico de configuração do link do grupo na Hostinger. |
-| Em aberto | Definir copy final e identidade visual. |
-| Em aberto | Definir a URL exata da Vitrine Shopee/coleções quando estiverem prontas. |
+| Decidido | O CTA dominante permanece a entrada no WhatsApp. |
+| Decidido | A urgência da copy deve ser baseada apenas em condições reais. |
+| Decidido | Público de referência da primeira landing: mulheres de aproximadamente 30 a 55 anos. |
+| Decidido | A landing feminina exibe os macrogrupos Beleza, Moda, Calçados, Bolsas e acessórios, Cabelos e Skincare. |
 
-## 14. Próximo detalhamento
+## 13. Próximos detalhamentos
 
 Depois deste contrato, os próximos documentos/revisões devem detalhar separadamente:
 
-1. copy final e estrutura de conteúdo da landing feminina;
-2. identidade visual e assets;
-3. mecanismo técnico do redirect na Hostinger;
-4. URL e operação da Vitrine Shopee/coleções;
+1. estrutura final das seções da landing feminina;
+2. copy de cada seção;
+3. identidade visual e assets;
+4. mecanismo técnico do redirect na Hostinger;
 5. convenção operacional para criação das UTMs;
 6. processo de deploy;
 7. critérios de observabilidade e testes da V1.
