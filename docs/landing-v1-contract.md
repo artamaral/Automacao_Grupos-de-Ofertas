@@ -1,21 +1,22 @@
 # Contrato V1 — Landing + Link WhatsApp + UTM
 
 **Status:** Decidido para V1  
-**Versão do contrato:** 1.1  
+**Versão do contrato:** 1.2  
 **Data:** 2026-08-26  
 **Branch:** `docs/feminino-calcados-discovery`
 
 ## 1. Objetivo
 
-Definir o contrato funcional mínimo da primeira versão da landing page usada para captar usuários para o grupo de ofertas no WhatsApp.
+Definir o contrato funcional mínimo da primeira versão da landing page usada para captar usuários para grupos de ofertas no WhatsApp.
 
-A V1 deve resolver apenas três responsabilidades:
+A V1 deve resolver quatro responsabilidades:
 
-1. apresentar uma landing page pública e mobile-first;
-2. direcionar o usuário para o grupo de WhatsApp por uma URL controlada pelo projeto;
-3. receber e preservar parâmetros UTM para identificar a origem do tráfego.
+1. apresentar uma landing page pública e mobile-first por nicho;
+2. direcionar o usuário para o grupo de WhatsApp correspondente ao nicho por uma URL controlada pelo projeto;
+3. receber e preservar parâmetros UTM para identificar a origem do tráfego;
+4. nascer com convenção de URL compatível com múltiplos nichos, sem exigir múltiplos grupos simultâneos dentro do mesmo nicho na V1.
 
-GA4, Meta Pixel, banco de dados, Supabase, roteamento automático entre vários grupos e medição de entrada efetiva no grupo ficam fora deste contrato V1.
+GA4, Meta Pixel, banco de dados, Supabase, roteamento automático entre vários grupos do mesmo nicho e medição de entrada efetiva no grupo ficam fora deste contrato V1.
 
 ## 2. Escopo funcional da V1
 
@@ -24,28 +25,59 @@ Fluxo oficial:
 ```text
 Anúncio / Instagram / outro canal
               |
-              | URL da landing + UTM
+              | URL da landing do nicho + UTM
               v
-Landing page pública
+Landing pública do nicho
               |
               | CTA "Entrar no grupo"
               v
-Rota controlada /go/whatsapp
+Rota controlada /go/whatsapp/{nicho}
               |
               v
-Link de convite do grupo WhatsApp ativo
+Link de convite do grupo WhatsApp ativo daquele nicho
+```
+
+Exemplo inicial:
+
+```text
+/feminino
+    |
+    v
+/go/whatsapp/feminino
+    |
+    v
+grupo feminino ativo
+```
+
+Exemplo futuro de outro nicho:
+
+```text
+/mae-bebe
+    |
+    v
+/go/whatsapp/mae-bebe
+    |
+    v
+grupo mae-bebe ativo
 ```
 
 ## 3. Contrato da landing page
 
 ### 3.1 Entrada
 
-A landing deve aceitar acesso por URL pública no domínio do projeto.
+Cada nicho deve possuir uma URL pública própria no domínio do projeto.
 
-Exemplo conceitual:
+Convenção:
 
 ```text
-https://seudominio.com.br/ofertas
+/{nicho}
+```
+
+Exemplos:
+
+```text
+https://seudominio.com.br/feminino
+https://seudominio.com.br/mae-bebe
 ```
 
 A URL poderá receber parâmetros UTM.
@@ -53,32 +85,32 @@ A URL poderá receber parâmetros UTM.
 Exemplo:
 
 ```text
-https://seudominio.com.br/ofertas?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_ofertas_femininas&utm_content=reels_01
+https://seudominio.com.br/feminino?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_ofertas_femininas&utm_content=reels_01
 ```
 
 ### 3.2 Saída principal
 
-A única conversão obrigatória da V1 é o clique no CTA principal para entrada no grupo.
+A única conversão obrigatória da V1 é o clique no CTA principal para entrada no grupo do nicho correspondente.
 
 O CTA não deve apontar diretamente para o link permanente do grupo do WhatsApp.
 
-O CTA deve apontar para uma rota controlada pelo projeto:
+O CTA deve apontar para uma rota controlada pelo projeto com o nicho explícito:
 
 ```text
-/go/whatsapp
+/go/whatsapp/{nicho}
 ```
 
-Exemplo conceitual:
+Exemplo:
 
 ```text
-https://seudominio.com.br/go/whatsapp
+https://seudominio.com.br/go/whatsapp/feminino
 ```
 
 ### 3.3 Conteúdo mínimo
 
-A V1 deve possuir, no mínimo:
+Cada landing da V1 deve possuir, no mínimo:
 
-- identificação clara do grupo;
+- identificação clara do nicho/grupo;
 - proposta de valor resumida;
 - CTA principal para entrar no grupo;
 - CTA adicional próximo ao fim da página;
@@ -86,37 +118,52 @@ A V1 deve possuir, no mínimo:
 - funcionamento adequado em desktop;
 - carregamento por HTTPS.
 
-Copy final, identidade visual definitiva, exemplos de ofertas e demais blocos de conteúdo serão detalhados separadamente.
+Copy final, identidade visual definitiva, exemplos de ofertas e demais blocos de conteúdo serão detalhados separadamente por nicho.
 
 ## 4. Contrato do link WhatsApp
 
 ### 4.1 Regra principal
 
-Nenhum anúncio, bio, QR code ou material externo deve depender diretamente do convite permanente de um grupo específico quando puder utilizar a landing ou a rota controlada.
+Nenhum anúncio, bio, QR code ou material externo deve depender diretamente do convite permanente de um grupo específico quando puder utilizar a landing ou a rota controlada do nicho.
 
 A regra é:
 
 ```text
-URL pública do projeto
+URL pública do nicho
         |
         v
-/go/whatsapp
+/go/whatsapp/{nicho}
         |
         v
-link real do WhatsApp
+link real do WhatsApp daquele nicho
 ```
 
 ### 4.2 Destino da V1
 
-Na V1 haverá apenas um destino ativo configurado por vez.
+Na V1 haverá apenas um destino ativo por nicho.
 
-Não haverá balanceamento, escolha automática ou distribuição entre vários grupos nesta versão.
+Não haverá balanceamento, escolha automática ou distribuição entre vários grupos dentro do mesmo nicho nesta versão.
+
+A arquitetura, porém, deve preservar a URL pública por nicho para que no futuro a mesma rota possa escolher entre múltiplos grupos sem quebrar anúncios ou landings existentes.
+
+Exemplo futuro:
+
+```text
+/go/whatsapp/feminino
+        |
+        v
+router feminino
+        |
+        +--> Grupo Feminino 01
+        +--> Grupo Feminino 02
+        +--> Grupo Feminino 03
+```
 
 ### 4.3 Troca do grupo
 
-Deve ser possível alterar o link real do grupo de WhatsApp sem alterar:
+Deve ser possível alterar o link real do grupo de WhatsApp de um nicho sem alterar:
 
-- a URL divulgada da landing;
+- a URL divulgada da landing daquele nicho;
 - URLs utilizadas em anúncios;
 - links em bio;
 - QR codes que apontem para a URL controlada;
@@ -124,19 +171,19 @@ Deve ser possível alterar o link real do grupo de WhatsApp sem alterar:
 
 ### 4.4 Comportamento esperado
 
-Ao acessar `/go/whatsapp`, o usuário deve ser redirecionado para o convite configurado do grupo ativo.
+Ao acessar `/go/whatsapp/{nicho}`, o usuário deve ser redirecionado para o convite configurado do grupo ativo daquele nicho.
 
 O redirect da V1 deve utilizar resposta HTTP temporária `302`.
 
-A escolha de `302` é deliberada: o destino do grupo pode ser alterado no futuro e não deve ser tratado pelos clientes como um destino permanente.
+A escolha de `302` é deliberada: o destino pode ser alterado no futuro e não deve ser tratado pelos clientes como permanente.
 
 Fluxo normativo:
 
 ```text
-GET /go/whatsapp
+GET /go/whatsapp/{nicho}
         |
         v
-ler WHATSAPP_GROUP_URL
+resolver configuracao do nicho
         |
         v
 validar configuracao
@@ -147,15 +194,29 @@ validar configuracao
 HTTP 302
         |
         v
-WHATSAPP_GROUP_URL
+URL do grupo ativo daquele nicho
 ```
 
 ### 4.5 Fonte única de configuração
 
-O link real do grupo deve existir em um único ponto de configuração identificado como:
+Cada nicho deve possuir uma única configuração operacional para o grupo ativo.
+
+Na V1, a convenção de variável pode ser:
 
 ```text
-WHATSAPP_GROUP_URL
+WHATSAPP_GROUP_URL_<NICHO>
+```
+
+Exemplo inicial:
+
+```text
+WHATSAPP_GROUP_URL_FEMININO
+```
+
+Exemplo futuro:
+
+```text
+WHATSAPP_GROUP_URL_MAE_BEBE
 ```
 
 A implementação deve evitar duplicar o convite do grupo em HTML, JavaScript, anúncios ou múltiplos arquivos de configuração.
@@ -163,10 +224,10 @@ A implementação deve evitar duplicar o convite do grupo em HTML, JavaScript, a
 Objetivo operacional:
 
 ```text
-alterar WHATSAPP_GROUP_URL
+alterar WHATSAPP_GROUP_URL_FEMININO
         |
         v
-novo destino passa a valer em /go/whatsapp
+novo destino passa a valer em /go/whatsapp/feminino
         |
         v
 landing, anúncios e URLs públicas permanecem inalterados
@@ -174,18 +235,18 @@ landing, anúncios e URLs públicas permanecem inalterados
 
 ### 4.6 Validação mínima do destino
 
-Antes do redirect, a implementação deve verificar que `WHATSAPP_GROUP_URL`:
+Antes do redirect, a implementação deve verificar que a configuração do nicho:
 
 - existe;
-- não está vazio;
+- não está vazia;
 - representa uma URL HTTPS;
 - aponta para um domínio/forma de convite do WhatsApp aceita pela implementação.
 
-A validação exata do formato poderá ser definida no código, mas a aplicação não deve redirecionar para um valor arbitrário ou claramente inválido.
+A aplicação não deve redirecionar para um valor arbitrário ou claramente inválido.
 
 ### 4.7 Falha controlada
 
-Se `WHATSAPP_GROUP_URL` estiver ausente ou inválida:
+Se a configuração do nicho estiver ausente ou inválida:
 
 - não realizar redirect para endereço desconhecido;
 - não usar automaticamente um grupo antigo como fallback silencioso;
@@ -196,35 +257,35 @@ A copy visual da página de erro será definida separadamente.
 
 ### 4.8 UTMs no redirect
 
-Os parâmetros UTM recebidos em `/go/whatsapp` pertencem ao contexto de aquisição do projeto e não precisam ser acrescentados ao link final `chat.whatsapp.com` na V1.
+Os parâmetros UTM recebidos em `/go/whatsapp/{nicho}` pertencem ao contexto de aquisição do projeto e não precisam ser acrescentados ao link final `chat.whatsapp.com` na V1.
 
 Contrato:
 
 ```text
-/ofertas?utm_source=instagram&...
+/feminino?utm_source=instagram&...
         |
         v
-/go/whatsapp?utm_source=instagram&...
+/go/whatsapp/feminino?utm_source=instagram&...
         |
         v
-HTTP 302 -> WHATSAPP_GROUP_URL
+HTTP 302 -> URL do grupo feminino ativo
 ```
 
-As UTMs devem permanecer disponíveis até a chamada de `/go/whatsapp`, permitindo futura instrumentação. A V1 não exige persistência nem propagação das UTMs para o domínio do WhatsApp.
+As UTMs devem permanecer disponíveis até a chamada da rota de redirect, permitindo futura instrumentação. A V1 não exige persistência nem propagação das UTMs para o domínio do WhatsApp.
 
 ### 4.9 Operação de troca do grupo
 
-Trocar o grupo ativo da V1 deve exigir somente a alteração da configuração `WHATSAPP_GROUP_URL` e a aplicação/deploy da configuração conforme o mecanismo suportado pelo ambiente Hostinger escolhido.
+Trocar o grupo ativo de um nicho deve exigir somente a alteração da configuração daquele nicho e a aplicação/deploy conforme o mecanismo suportado pelo ambiente Hostinger escolhido.
 
 A operação não deve exigir edição da landing page.
 
-Após a troca, deve ser feito um teste simples acessando `/go/whatsapp` e confirmando que o novo convite é o destino retornado.
+Após a troca, deve ser feito um teste simples acessando `/go/whatsapp/{nicho}` e confirmando que o novo convite é o destino retornado.
 
 ### 4.10 Ambiente
 
-A V1 deve possuir configuração de produção para `WHATSAPP_GROUP_URL`.
+A V1 deve possuir configuração de produção para cada nicho implantado.
 
-Ambiente separado de staging não é requisito obrigatório da V1. Caso exista ambiente de teste, ele não deve utilizar por engano o convite de produção durante validações destrutivas ou experimentais.
+Ambiente separado de staging não é requisito obrigatório da V1. Caso exista ambiente de teste, ele não deve utilizar por engano convites de produção durante validações destrutivas ou experimentais.
 
 ## 5. Contrato UTM
 
@@ -256,16 +317,16 @@ UTM não é requisito para acesso à página nem para entrada no grupo.
 
 Quando a landing for acessada com parâmetros UTM, esses valores não devem ser descartados durante a navegação que leva ao CTA do WhatsApp.
 
-A V1 deve preservar os parâmetros recebidos até a chamada da rota `/go/whatsapp`.
+A V1 deve preservar os parâmetros recebidos até a chamada da rota `/go/whatsapp/{nicho}`.
 
 Exemplo:
 
 ```text
 Entrada:
-/ofertas?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
+/feminino?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
 
 CTA:
-/go/whatsapp?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
+/go/whatsapp/feminino?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
 ```
 
 Essa preservação existe para permitir instrumentação posterior sem precisar alterar as URLs das campanhas já publicadas.
@@ -291,7 +352,7 @@ Uma URL com apenas parte dos parâmetros deve continuar funcionando.
 Exemplo válido:
 
 ```text
-/ofertas?utm_source=instagram&utm_campaign=grupo_feminino
+/feminino?utm_source=instagram&utm_campaign=grupo_feminino
 ```
 
 ## 6. Convenção inicial de UTMs
@@ -320,49 +381,57 @@ Os nomes definitivos de campanhas e criativos pertencem à estratégia de mídia
 
 ### RB-01 — Uma ação principal
 
-A landing deve priorizar a entrada no grupo de WhatsApp como ação principal.
+Cada landing deve priorizar a entrada no grupo de WhatsApp do respectivo nicho como ação principal.
 
 ### RB-02 — Desacoplamento do grupo
 
 O convite real do WhatsApp não deve ser a URL pública permanente usada nas campanhas quando a rota controlada puder ser utilizada.
 
-### RB-03 — Um grupo ativo
+### RB-03 — Um grupo ativo por nicho
 
-A V1 trabalha com um único destino de WhatsApp por vez.
+A V1 trabalha com um único destino de WhatsApp ativo por nicho.
 
-### RB-04 — UTM opcional
+### RB-04 — Arquitetura multi-nicho
+
+As URLs devem usar a convenção `/{nicho}` para landing e `/go/whatsapp/{nicho}` para redirect, mesmo que inicialmente apenas um nicho esteja implantado.
+
+### RB-05 — UTM opcional
 
 A ausência de UTM nunca pode impedir carregamento da landing ou entrada no WhatsApp.
 
-### RB-05 — Preservação de UTM
+### RB-06 — Preservação de UTM
 
 UTMs recebidas na landing devem ser preservadas até a rota de saída para WhatsApp.
 
-### RB-06 — Falha no destino
+### RB-07 — Falha no destino
 
-Se não houver link de WhatsApp configurado, a aplicação não deve redirecionar silenciosamente para destino desconhecido ou incorreto.
+Se não houver link de WhatsApp configurado para o nicho solicitado, a aplicação não deve redirecionar silenciosamente para destino desconhecido ou incorreto.
 
 A falha deve ser explícita e controlada.
 
-### RB-07 — Mobile-first
+### RB-08 — Mobile-first
 
 O fluxo principal deve funcionar primeiro em dispositivos móveis, sem impedir uso em desktop.
 
-### RB-08 — Redirect temporário
+### RB-09 — Redirect temporário
 
-`/go/whatsapp` deve usar HTTP `302` na V1.
+`/go/whatsapp/{nicho}` deve usar HTTP `302` na V1.
 
-### RB-09 — Configuração única
+### RB-10 — Configuração única por nicho
 
-O destino do grupo deve ser obtido de `WHATSAPP_GROUP_URL` como fonte única de configuração.
+O destino de cada nicho deve ser obtido de uma única configuração operacional.
 
-### RB-10 — Troca sem alteração da landing
+### RB-11 — Troca sem alteração da landing
 
-A troca do grupo ativo não deve exigir alteração do HTML, CSS ou JavaScript da landing.
+A troca do grupo ativo de um nicho não deve exigir alteração do HTML, CSS ou JavaScript da landing.
 
-### RB-11 — Sem fallback silencioso
+### RB-12 — Sem fallback silencioso
 
-Configuração inválida não deve redirecionar automaticamente para convite antigo ou alternativo não explicitamente configurado.
+Configuração inválida não deve redirecionar automaticamente para convite antigo ou para grupo de outro nicho.
+
+### RB-13 — Evolução sem quebra de URL
+
+No futuro, múltiplos grupos dentro do mesmo nicho poderão ser adicionados atrás de `/go/whatsapp/{nicho}` sem exigir mudança na URL pública da landing ou das campanhas.
 
 ## 8. Requisitos não funcionais mínimos
 
@@ -376,7 +445,8 @@ A V1 deve:
 - não exigir cookies para funcionar;
 - permitir versionamento integral do código no Git;
 - permitir alteração do destino WhatsApp sem alterar a URL pública da campanha;
-- centralizar o destino do grupo em uma única configuração operacional.
+- centralizar o destino de cada nicho em uma única configuração operacional;
+- manter URLs estáveis por nicho para permitir evolução futura sem quebra de campanhas.
 
 ## 9. Fora do escopo da V1
 
@@ -393,38 +463,46 @@ Explicitamente fora deste contrato:
 - medição de vendas de afiliados;
 - dashboard;
 - teste A/B;
-- múltiplos grupos simultâneos;
+- múltiplos grupos simultâneos dentro do mesmo nicho;
 - balanceamento de tráfego entre grupos;
 - regra automática por capacidade do grupo;
 - painel administrativo;
 - CMS;
 - WordPress.
 
-Esses itens poderão ser adicionados em versões posteriores sem alterar o objetivo funcional da V1.
+Ter múltiplos nichos com uma landing e um grupo ativo por nicho é compatível com o contrato V1. O que permanece fora do escopo é a distribuição automática entre vários grupos dentro de um mesmo nicho.
 
 ## 10. Critérios de aceite da V1
 
-A V1 é considerada funcional quando todos os seguintes cenários forem atendidos:
+A V1 é considerada funcional quando todos os seguintes cenários forem atendidos para cada nicho implantado:
 
-1. abrir a landing sem UTM carrega a página normalmente;
-2. abrir a landing com UTMs carrega a página normalmente;
-3. clicar no CTA leva à rota `/go/whatsapp`;
-4. os parâmetros UTM recebidos permanecem disponíveis na chamada da rota `/go/whatsapp`;
-5. `/go/whatsapp` responde com HTTP `302` para o convite configurado em `WHATSAPP_GROUP_URL`;
-6. alterar `WHATSAPP_GROUP_URL` muda o destino sem alterar a URL pública da landing;
+1. abrir `/{nicho}` sem UTM carrega a landing correta;
+2. abrir `/{nicho}` com UTMs carrega a landing correta;
+3. clicar no CTA leva à rota `/go/whatsapp/{nicho}`;
+4. os parâmetros UTM recebidos permanecem disponíveis na chamada da rota `/go/whatsapp/{nicho}`;
+5. `/go/whatsapp/{nicho}` responde com HTTP `302` para o convite configurado daquele nicho;
+6. alterar a configuração do grupo daquele nicho muda o destino sem alterar a URL pública da landing;
 7. o fluxo funciona em navegador mobile;
 8. o fluxo funciona em navegador desktop;
 9. a página funciona sem banco de dados, GA4 ou Meta Pixel;
-10. ausência de configuração válida do grupo produz falha controlada e não redirect incorreto;
+10. ausência de configuração válida do nicho produz falha controlada e não redirect incorreto;
 11. o convite do grupo não está duplicado como dependência dentro da landing;
-12. UTMs não precisam ser propagadas para `chat.whatsapp.com` para que a V1 seja considerada correta.
+12. UTMs não precisam ser propagadas para `chat.whatsapp.com` para que a V1 seja considerada correta;
+13. adicionar um novo nicho não exige alterar a convenção de URL dos nichos existentes.
 
 ## 11. Contratos de URL
 
-### Landing
+### Landing por nicho
 
 ```text
-GET /ofertas
+GET /{nicho}
+```
+
+Exemplos:
+
+```text
+GET /feminino
+GET /mae-bebe
 ```
 
 Aceita opcionalmente:
@@ -437,10 +515,17 @@ utm_content
 utm_term
 ```
 
-### Redirect WhatsApp
+### Redirect WhatsApp por nicho
 
 ```text
-GET /go/whatsapp
+GET /go/whatsapp/{nicho}
+```
+
+Exemplos:
+
+```text
+GET /go/whatsapp/feminino
+GET /go/whatsapp/mae-bebe
 ```
 
 Aceita opcionalmente os mesmos parâmetros UTM preservados da landing.
@@ -449,7 +534,7 @@ Resposta esperada quando configurado corretamente:
 
 ```text
 HTTP 302
-Location: <WHATSAPP_GROUP_URL>
+Location: <URL_DO_GRUPO_ATIVO_DO_NICHO>
 ```
 
 Resposta esperada quando não configurado corretamente:
@@ -457,41 +542,39 @@ Resposta esperada quando não configurado corretamente:
 ```text
 falha controlada
 sem redirect para destino arbitrario
+sem fallback para outro nicho
 ```
 
 ## 12. Decisões registradas
 
 | Status | Decisão |
 |---|---|
-| Decidido | V1 é composta por landing + rota controlada para WhatsApp + suporte/preservação de UTM. |
+| Decidido | V1 é composta por landing por nicho + rota controlada para WhatsApp por nicho + suporte/preservação de UTM. |
 | Decidido | UTM faz parte da V1. |
 | Decidido | GA4 e Meta Pixel não fazem parte do contrato V1. |
-| Decidido | V1 possui apenas um grupo WhatsApp ativo por vez. |
-| Decidido | A URL pública deve permanecer estável mesmo quando o convite do grupo mudar. |
+| Decidido | V1 possui apenas um grupo WhatsApp ativo por nicho. |
+| Decidido | A arquitetura nasce multi-nicho, usando `/{nicho}` e `/go/whatsapp/{nicho}`. |
+| Decidido | Exemplos planejados incluem `/feminino` e `/mae-bebe`. |
+| Decidido | A URL pública de um nicho deve permanecer estável mesmo quando o convite do grupo daquele nicho mudar. |
 | Decidido | Banco de dados não é requisito da V1. |
-| Decidido | `/go/whatsapp` utiliza HTTP 302. |
-| Decidido | O link real do grupo é centralizado em `WHATSAPP_GROUP_URL`. |
-| Decidido | Trocar o grupo não exige editar a landing. |
+| Decidido | `/go/whatsapp/{nicho}` utiliza HTTP 302. |
+| Decidido | O link real do grupo é centralizado em uma única configuração por nicho. |
+| Decidido | Trocar o grupo de um nicho não exige editar a landing. |
 | Decidido | Configuração ausente ou inválida gera falha controlada, sem fallback silencioso. |
-| Decidido | UTMs são preservadas até `/go/whatsapp`, mas não precisam ser enviadas ao WhatsApp na V1. |
-| Em aberto | Definir domínio/path definitivo de produção. |
-| Em aberto | Definir o mecanismo concreto suportado pela Hostinger para armazenar/aplicar `WHATSAPP_GROUP_URL`. |
-| Em aberto | Definir copy e identidade visual finais. |
+| Decidido | UTMs são preservadas até a rota de redirect, mas não precisam seguir para o domínio do WhatsApp na V1. |
+| Decidido | No futuro, múltiplos grupos do mesmo nicho poderão ficar atrás da mesma rota sem mudar URLs públicas. |
+| Em aberto | Definir domínio definitivo de produção. |
+| Em aberto | Definir mecanismo técnico de armazenamento das configurações na Hostinger. |
+| Em aberto | Definir copy e identidade visual finais por nicho. |
 
 ## 13. Próximo detalhamento
 
 Depois deste contrato, os próximos documentos/revisões devem detalhar separadamente:
 
-1. conteúdo e copy da landing;
+1. conteúdo e copy da primeira landing (`/feminino`);
 2. identidade visual e assets;
-3. mecanismo concreto de hospedagem/deploy na Hostinger;
-4. forma concreta de armazenar/aplicar `WHATSAPP_GROUP_URL` no ambiente escolhido;
-5. convenção operacional para criação das UTMs;
-6. critérios de observabilidade e testes da V1.
-
-## 14. Histórico do contrato
-
-| Versão | Data | Alteração |
-|---|---|---|
-| 1.0 | 2026-08-26 | Define contrato inicial Landing + WhatsApp + UTM. |
-| 1.1 | 2026-08-26 | Define HTTP 302, `WHATSAPP_GROUP_URL`, validação, falha controlada, operação de troca do grupo e tratamento das UTMs no redirect. |
+3. mecanismo técnico do redirect e configuração por nicho na Hostinger;
+4. convenção operacional para criação das UTMs;
+5. processo de deploy;
+6. critérios de observabilidade e testes da V1;
+7. contrato futuro de roteamento quando um nicho possuir múltiplos grupos.
