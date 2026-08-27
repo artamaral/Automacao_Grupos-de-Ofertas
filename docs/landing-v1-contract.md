@@ -1,7 +1,7 @@
 # Contrato V1 — Landing + Link WhatsApp + UTM
 
 **Status:** Decidido para V1  
-**Versão do contrato:** 1.5  
+**Versão do contrato:** 1.6  
 **Data:** 2026-08-26  
 **Branch:** `docs/feminino-calcados-discovery`
 
@@ -18,6 +18,8 @@ A V1 deve resolver quatro responsabilidades:
 
 GA4, Meta Pixel, banco de dados, Supabase, roteamento automático entre vários grupos do mesmo nicho e medição de entrada efetiva no grupo ficam fora deste contrato V1.
 
+A primeira implementação da V1 será exclusivamente para o nicho feminino.
+
 ## 2. Escopo funcional da V1
 
 Fluxo oficial:
@@ -29,7 +31,7 @@ Anúncio / Instagram / outro canal
               v
 Landing pública do nicho
               |
-              | CTA "Entrar no grupo"
+              | CTA principal
               v
 Rota controlada /go/whatsapp/{nicho}
               |
@@ -49,7 +51,7 @@ Exemplo inicial:
 grupo feminino ativo
 ```
 
-Exemplo futuro de outro nicho:
+Exemplo futuro:
 
 ```text
 /mae-bebe
@@ -90,11 +92,9 @@ https://seudominio.com.br/feminino?utm_source=instagram&utm_medium=paid&utm_camp
 
 ### 3.2 Saída principal
 
-A única conversão obrigatória da V1 é o clique no CTA principal para entrada no grupo do nicho correspondente.
+A conversão obrigatória da V1 é o clique no CTA principal para entrada no grupo do nicho correspondente.
 
-O CTA não deve apontar diretamente para o link permanente do grupo do WhatsApp.
-
-O CTA deve apontar para uma rota controlada pelo projeto com o nicho explícito:
+O CTA não deve apontar diretamente para o convite permanente do WhatsApp. Deve apontar para:
 
 ```text
 /go/whatsapp/{nicho}
@@ -106,25 +106,17 @@ Exemplo:
 https://seudominio.com.br/go/whatsapp/feminino
 ```
 
-### 3.3 Conteúdo mínimo
+### 3.3 Público de referência da landing feminina
 
-Cada landing da V1 deve possuir, no mínimo:
+A primeira landing deve falar prioritariamente com mulheres de aproximadamente 30 a 55 anos.
 
-- identificação clara do nicho/grupo;
-- proposta de valor resumida;
-- CTA principal para entrar no grupo;
-- CTA adicional próximo ao fim da página;
-- layout mobile-first;
-- funcionamento adequado em desktop;
-- carregamento por HTTPS.
-
-Copy final, identidade visual definitiva, exemplos de ofertas e demais blocos de conteúdo serão detalhados separadamente por nicho.
+Essa faixa é referência para linguagem, visual e escolha de exemplos. Não é uma restrição de acesso ao grupo.
 
 ### 3.4 Macrogrupos exibidos na landing feminina
 
 A landing feminina não deve expor toda a taxonomia técnica interna de subnichos.
 
-Para comunicação com a usuária final, a cobertura do nicho feminino deve ser apresentada por estes seis macrogrupos, exatamente com estes nomes e ícones:
+Para comunicação com a usuária final, a cobertura do nicho feminino deve ser apresentada exatamente com estes seis macrogrupos:
 
 - 💄 Beleza
 - 👗 Moda
@@ -133,70 +125,229 @@ Para comunicação com a usuária final, a cobertura do nicho feminino deve ser 
 - 💇‍♀️ Cabelos
 - 🧴 Skincare
 
-Esses macrogrupos são uma camada de apresentação da landing. Eles não substituem nem redefinem a taxonomia técnica usada pelo catálogo, discovery, scoring ou seleção de ofertas.
+Esses macrogrupos são uma camada de apresentação da landing. Eles não substituem nem redefinem a taxonomia técnica usada por catálogo, discovery, scoring ou seleção de ofertas.
 
-A finalidade é comunicar de forma simples e reconhecível os principais tipos de produtos que a participante pode esperar receber no grupo.
+## 4. Copy consolidada da landing feminina
 
-### 3.5 Hero definido para a landing feminina
+Os textos desta seção foram definidos durante o desenho da V1 e estão próximos da copy de produção. Devem ser usados como base na implementação. Ajustes posteriores de pontuação, hierarquia visual ou pequenas variações de redação podem ser feitos sem alterar a promessa ou as regras de negócio.
 
-Título:
+### 4.1 Hero
+
+**Título**
 
 > Ofertas e cupons para mulheres, não perca tempo procurando
 
-Subtítulo:
+**Subtítulo**
 
 > Receba no WhatsApp ótimos produtos de beleza, moda, calçados, bolsas, cabelos e skincare.
 
-Gancho:
+**Gancho**
 
 > Os preços mudam, os cupons acabam e as melhores ofertas podem durar pouco.
 
-CTA principal:
+**CTA principal**
 
 > Quero receber as ofertas no WhatsApp
 
-### 3.6 Mensagem de confiança
+### 4.2 Mensagem principal de confiança
 
-A landing deve destacar como mensagem de confiança:
+Esta mensagem deve receber destaque visual e não ser tratada apenas como observação de rodapé:
 
 > 💎 Ofertas e cupons apenas de produtos ORIGINAIS e de lojas CONFIÁVEIS
 
-Essa mensagem deve ser tratada como parte importante da proposta de valor da landing feminina e não apenas como observação de rodapé.
+### 4.3 Como funciona — copy-base
 
-### 3.7 Como funciona
+A seção deve explicar de maneira simples o que a participante recebe e como o grupo funciona.
 
-A seção `Como funciona` deve explicar em linhas gerais o que a participante receberá e como o grupo opera, sem transformar detalhes operacionais variáveis em promessas públicas rígidas.
+**🔎 Nós fazemos a curadoria**
 
-Conteúdo conceitual esperado:
+> Selecionamos produtos femininos de beleza, moda, calçados, bolsas, cabelos e skincare, priorizando boas ofertas e cupons.
 
-- curadoria de produtos femininos nos seis macrogrupos definidos neste contrato;
-- ofertas e cupons de produtos originais e lojas confiáveis;
-- recebimento das oportunidades diretamente no WhatsApp;
-- mensagens com informações suficientes para avaliar a oferta e acessar o produto/cupom;
-- somente administradores enviam mensagens;
-- existência de período de silêncio noturno.
+**💎 Produtos e lojas confiáveis**
 
-A landing não deve publicar quantidade diária fixa de mensagens nem horários detalhados de cada disparo/trigger.
+> Ofertas e cupons apenas de produtos originais e de lojas confiáveis.
 
-### 3.8 Período de silêncio
+**📲 Você recebe direto no WhatsApp**
 
-O período de silêncio deve ser comunicado como elemento de conforto e confiança.
+> As ofertas são enviadas ao longo do dia, para você não precisar ficar procurando promoções.
 
-A operação possui último trigger às `21:00`, podendo haver envio residual por até aproximadamente 10 minutos. Por isso, a landing não deve afirmar que as mensagens encerram exatamente às `21:00`.
+**🏷️ Oferta + preço + cupom + link**
 
-A comunicação pública deve usar aproximadamente:
+> Cada mensagem traz as informações necessárias para avaliar rapidamente a oportunidade e acessar a oferta.
 
-> 🌙 Seu descanso é respeitado. As mensagens param à noite e só voltam pela manhã. O grupo fica em silêncio aproximadamente entre 21h10 e 8h.
+**🌙 Seu descanso é respeitado**
 
-O horário pode evoluir no futuro, mas enquanto esta política estiver vigente a landing deve evitar qualquer promessa conflitante com esse intervalo.
+> As mensagens param à noite e só voltam pela manhã. O grupo fica em silêncio aproximadamente entre 21h10 e 8h.
 
-## 4. Contrato do link WhatsApp
+**🔕 Só administradores enviam mensagens**
 
-### 4.1 Regra principal
+> Somente administradores enviam mensagens no grupo, evitando conversas, correntes ou mensagens de participantes.
+
+### 4.4 Tensão de comunicação
+
+A tensão da landing deve partir de uma situação real:
+
+```text
+A usuária não quer perder tempo procurando promoções
+        +
+preços mudam, cupons acabam e estoque pode terminar
+        ↓
+o grupo faz a curadoria e avisa pelo WhatsApp
+```
+
+Formulações já discutidas e aprovadas como referência:
+
+> Quando aparece uma boa oferta, você precisa saber a tempo.
+
+> Boas ofertas não ficam disponíveis para sempre. Entre no grupo e receba nossos achados e cupons enquanto ainda estão valendo.
+
+> Nós procuramos. Você recebe quando aparece algo que vale a pena.
+
+Essas formulações são referências de copy e podem ser usadas em seções secundárias, desde que não criem promessa de disponibilidade garantida.
+
+### 4.5 Urgência permitida
+
+A copy pode criar senso de urgência exclusivamente com base em condições reais:
+
+- preço promocional pode mudar;
+- cupom pode expirar ou atingir limite de uso;
+- estoque pode acabar;
+- oferta pode deixar de estar disponível.
+
+Não usar:
+
+- escassez artificial;
+- contagem regressiva fictícia;
+- prazo inventado;
+- afirmação de últimas unidades sem evidência;
+- qualquer urgência que não corresponda a uma condição real verificável.
+
+### 4.6 CTA final
+
+A página deve repetir o objetivo principal próximo ao final.
+
+Copy-base:
+
+> Quer receber essas ofertas todos os dias?
+
+CTA-base:
+
+> Quero receber as ofertas no WhatsApp
+
+O CTA final pode usar variação equivalente, como:
+
+> Quero entrar no grupo
+
+O destino permanece `/go/whatsapp/feminino` com preservação das UTMs recebidas.
+
+## 5. Prova de curadoria e Vitrine Shopee
+
+### 5.1 Função da Vitrine Shopee
+
+A Vitrine do Afiliado Shopee, ou coleção curada equivalente, pode ser utilizada como prova concreta da curadoria realizada pelo projeto.
+
+Ela deve permitir que a visitante veja o tipo de produto selecionado antes de entrar no grupo.
+
+A Vitrine Shopee é um elemento secundário. Não deve competir visualmente com o CTA principal de entrada no WhatsApp.
+
+### 5.2 Copy-base para a prova de curadoria
+
+Formulações já discutidas:
+
+> Quer ver o tipo de oferta que selecionamos?
+
+CTA secundário:
+
+> Ver nossa seleção na Shopee
+
+Também podem existir chamadas específicas, por exemplo:
+
+> Calçados que valem a pena
+
+CTA:
+
+> Ver seleção de calçados
+
+E:
+
+> Cupons e achados
+
+CTA:
+
+> Ver seleção na Shopee
+
+### 5.3 Exemplos reais de ofertas
+
+A landing pode apresentar aproximadamente 3 a 4 exemplos visuais de ofertas ou categorias curadas.
+
+Modelo conceitual:
+
+```text
+Ofertas que você pode receber no grupo
+
+[Produto de beleza]
+De R$ XX,XX por R$ XX,XX
+[Ver oferta]
+
+[Calçado feminino]
+Oferta em destaque
+[Ver ofertas de calçados]
+
+[Cupom Shopee]
+Cupom disponível
+[Pegar cupom]
+```
+
+Os dados exibidos devem corresponder à oferta real no momento em que forem publicados. A landing não deve manter preço, desconto, estoque ou validade fictícios.
+
+CTAs secundários permitidos:
+
+- `Ver nossa seleção na Shopee`;
+- `Ver oferta`;
+- `Pegar cupom`;
+- `Ver ofertas de calçados`;
+- `Ver seleção de calçados`;
+- `Ver seleção na Shopee`.
+
+O CTA dominante da página continua sendo a entrada no grupo de WhatsApp.
+
+## 6. Regras públicas de operação
+
+### 6.1 Não prometer quantidade fixa de mensagens
+
+A landing não deve informar quantidade diária fixa de mensagens.
+
+A cadência operacional pode evoluir sem exigir mudança da promessa pública da landing.
+
+### 6.2 Não publicar horários individuais de triggers
+
+A landing não deve informar horários detalhados de cada trigger ou disparo.
+
+O comportamento público deve ser descrito simplesmente como recebimento de ofertas ao longo do dia.
+
+### 6.3 Período de silêncio
+
+A operação possui último trigger às `21:00`, podendo haver envio residual por até aproximadamente 10 minutos.
+
+Por isso, a landing não deve afirmar silêncio a partir de 21h em ponto.
+
+Contrato público atual:
+
+> O grupo fica em silêncio aproximadamente entre 21h10 e 8h.
+
+Esse horário pode evoluir futuramente. Enquanto a política estiver vigente, a landing não deve publicar promessa conflitante com ela.
+
+### 6.4 Somente administradores enviam mensagens
+
+A landing deve comunicar que somente administradores enviam mensagens no grupo.
+
+Esse ponto funciona como elemento de confiança e deixa claro que o grupo não funciona como chat aberto entre participantes.
+
+## 7. Contrato do link WhatsApp
+
+### 7.1 Regra principal
 
 Nenhum anúncio, bio, QR code ou material externo deve depender diretamente do convite permanente de um grupo específico quando puder utilizar a landing ou a rota controlada do nicho.
-
-A regra é:
 
 ```text
 URL pública do nicho
@@ -208,15 +359,13 @@ URL pública do nicho
 link real do WhatsApp daquele nicho
 ```
 
-### 4.2 Destino da V1
+### 7.2 Destino da V1
 
 Na V1 haverá apenas um destino ativo por nicho.
 
-Não haverá balanceamento, escolha automática ou distribuição entre vários grupos dentro do mesmo nicho nesta versão.
+Não haverá balanceamento, escolha automática ou distribuição entre vários grupos dentro do mesmo nicho.
 
-A arquitetura, porém, deve preservar a URL pública por nicho para que no futuro a mesma rota possa escolher entre múltiplos grupos sem quebrar anúncios ou landings existentes.
-
-Exemplo futuro:
+A arquitetura deve permitir evolução futura sem quebra de URL:
 
 ```text
 /go/whatsapp/feminino
@@ -229,25 +378,21 @@ router feminino
         +--> Grupo Feminino 03
 ```
 
-### 4.3 Troca do grupo
+### 7.3 Troca do grupo
 
-Deve ser possível alterar o link real do grupo de WhatsApp de um nicho sem alterar:
+Deve ser possível alterar o link real do grupo sem alterar:
 
-- a URL divulgada da landing daquele nicho;
+- a URL da landing;
 - URLs utilizadas em anúncios;
 - links em bio;
-- QR codes que apontem para a URL controlada;
-- demais materiais externos que utilizem a rota do projeto.
+- QR codes;
+- materiais externos que utilizem a rota controlada.
 
-### 4.4 Comportamento esperado
+### 7.4 Redirect
 
-Ao acessar `/go/whatsapp/{nicho}`, o usuário deve ser redirecionado para o convite configurado do grupo ativo daquele nicho.
+Ao acessar `/go/whatsapp/{nicho}`, o usuário deve ser redirecionado para o convite configurado daquele nicho.
 
-O redirect da V1 deve utilizar resposta HTTP temporária `302`.
-
-A escolha de `302` é deliberada: o destino pode ser alterado no futuro e não deve ser tratado pelos clientes como permanente.
-
-Fluxo normativo:
+A V1 usa HTTP `302`.
 
 ```text
 GET /go/whatsapp/{nicho}
@@ -264,14 +409,12 @@ validar configuracao
 HTTP 302
         |
         v
-URL do grupo ativo daquele nicho
+URL do grupo ativo
 ```
 
-### 4.5 Fonte única de configuração
+### 7.5 Configuração única por nicho
 
-Cada nicho deve possuir uma única configuração operacional para o grupo ativo.
-
-Na V1, a convenção de variável pode ser:
+Convenção da V1:
 
 ```text
 WHATSAPP_GROUP_URL_<NICHO>
@@ -283,91 +426,36 @@ Exemplo inicial:
 WHATSAPP_GROUP_URL_FEMININO
 ```
 
-Exemplo futuro:
+O convite não deve ficar duplicado em HTML, JavaScript, anúncios ou múltiplos arquivos de configuração.
 
-```text
-WHATSAPP_GROUP_URL_MAE_BEBE
-```
+### 7.6 Validação e falha controlada
 
-A implementação deve evitar duplicar o convite do grupo em HTML, JavaScript, anúncios ou múltiplos arquivos de configuração.
-
-Objetivo operacional:
-
-```text
-alterar WHATSAPP_GROUP_URL_FEMININO
-        |
-        v
-novo destino passa a valer em /go/whatsapp/feminino
-        |
-        v
-landing, anúncios e URLs públicas permanecem inalterados
-```
-
-### 4.6 Validação mínima do destino
-
-Antes do redirect, a implementação deve verificar que a configuração do nicho:
+Antes do redirect, a implementação deve verificar que a configuração:
 
 - existe;
 - não está vazia;
-- representa uma URL HTTPS;
-- aponta para um domínio/forma de convite do WhatsApp aceita pela implementação.
+- é HTTPS;
+- possui forma/domínio de convite do WhatsApp aceito pela implementação.
 
-A aplicação não deve redirecionar para um valor arbitrário ou claramente inválido.
+Se estiver ausente ou inválida:
 
-### 4.7 Falha controlada
+- não redirecionar para endereço desconhecido;
+- não usar grupo antigo como fallback silencioso;
+- não usar grupo de outro nicho;
+- não expor detalhes internos;
+- retornar resposta/página de erro controlada.
 
-Se a configuração do nicho estiver ausente ou inválida:
-
-- não realizar redirect para endereço desconhecido;
-- não usar automaticamente um grupo antigo como fallback silencioso;
-- não expor detalhes internos de configuração ao visitante;
-- retornar uma resposta/página de erro controlada.
-
-A copy visual da página de erro será definida separadamente.
-
-### 4.8 UTMs no redirect
-
-Os parâmetros UTM recebidos em `/go/whatsapp/{nicho}` pertencem ao contexto de aquisição do projeto e não precisam ser acrescentados ao link final `chat.whatsapp.com` na V1.
-
-Contrato:
-
-```text
-/feminino?utm_source=instagram&...
-        |
-        v
-/go/whatsapp/feminino?utm_source=instagram&...
-        |
-        v
-HTTP 302 -> URL do grupo feminino ativo
-```
-
-As UTMs devem permanecer disponíveis até a chamada da rota de redirect, permitindo futura instrumentação. A V1 não exige persistência nem propagação das UTMs para o domínio do WhatsApp.
-
-### 4.9 Operação de troca do grupo
-
-Trocar o grupo ativo de um nicho deve exigir somente a alteração da configuração daquele nicho e a aplicação/deploy conforme o mecanismo suportado pelo ambiente Hostinger escolhido.
-
-A operação não deve exigir edição da landing page.
-
-Após a troca, deve ser feito um teste simples acessando `/go/whatsapp/{nicho}` e confirmando que o novo convite é o destino retornado.
-
-### 4.10 Ambiente
+### 7.7 Ambiente
 
 A V1 deve possuir configuração de produção para cada nicho implantado.
 
-Ambiente separado de staging não é requisito obrigatório da V1. Caso exista ambiente de teste, ele não deve utilizar por engano convites de produção durante validações destrutivas ou experimentais.
+Staging separado não é requisito obrigatório da V1.
 
-## 5. Contrato UTM
+## 8. Contrato UTM
 
-### 5.1 Objetivo
+### 8.1 Parâmetros suportados
 
-UTMs devem permitir identificar de qual origem, campanha e criativo veio o acesso à landing.
-
-Na V1, UTM é mecanismo de identificação de origem. Não implica, por si só, uso de GA4, Meta Pixel ou armazenamento em banco.
-
-### 5.2 Parâmetros suportados
-
-A landing deve aceitar os parâmetros UTM padrão:
+A landing deve aceitar:
 
 - `utm_source`;
 - `utm_medium`;
@@ -375,59 +463,27 @@ A landing deve aceitar os parâmetros UTM padrão:
 - `utm_content`;
 - `utm_term`.
 
-Os quatro primeiros são os principais para o uso planejado do projeto. `utm_term` deve ser aceito para compatibilidade, mesmo que não seja utilizado em todas as campanhas.
+UTM é opcional e nunca pode impedir acesso à landing ou ao WhatsApp.
 
-### 5.3 Sem UTM
+### 8.2 Preservação
 
-A landing deve funcionar normalmente quando nenhum parâmetro UTM estiver presente.
-
-UTM não é requisito para acesso à página nem para entrada no grupo.
-
-### 5.4 Preservação
-
-Quando a landing for acessada com parâmetros UTM, esses valores não devem ser descartados durante a navegação que leva ao CTA do WhatsApp.
-
-A V1 deve preservar os parâmetros recebidos até a chamada da rota `/go/whatsapp/{nicho}`.
-
-Exemplo:
+Os parâmetros recebidos devem ser preservados até a rota de saída.
 
 ```text
-Entrada:
 /feminino?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
-
-CTA:
+        |
+        v
 /go/whatsapp/feminino?utm_source=instagram&utm_medium=paid&utm_campaign=grupo_feminino&utm_content=reels_01
+        |
+        v
+HTTP 302 -> URL do grupo feminino ativo
 ```
 
-Essa preservação existe para permitir instrumentação posterior sem precisar alterar as URLs das campanhas já publicadas.
+A V1 não exige persistência das UTMs nem sua propagação para `chat.whatsapp.com`.
 
-### 5.5 Valores desconhecidos
+### 8.3 Convenção inicial
 
-A aplicação não deve bloquear UTMs por possuir valores ainda não cadastrados.
-
-Exemplo válido:
-
-```text
-utm_source=tiktok
-```
-
-Mesmo que TikTok ainda não faça parte das campanhas ativas, o valor deve ser tratado como texto válido.
-
-### 5.6 Parâmetros ausentes
-
-Os parâmetros UTM são independentes.
-
-Uma URL com apenas parte dos parâmetros deve continuar funcionando.
-
-Exemplo válido:
-
-```text
-/feminino?utm_source=instagram&utm_campaign=grupo_feminino
-```
-
-## 6. Convenção inicial de UTMs
-
-Para campanhas pagas da Meta, a convenção inicial recomendada é:
+Para campanhas pagas da Meta:
 
 ```text
 utm_source=instagram | facebook
@@ -445,121 +501,65 @@ utm_campaign=grupo_ofertas_femininas
 utm_content=reels_01
 ```
 
-Os nomes definitivos de campanhas e criativos pertencem à estratégia de mídia e poderão evoluir sem alteração deste contrato.
+Valores desconhecidos não devem ser bloqueados e parâmetros ausentes não invalidam a URL.
 
-## 7. Regras de negócio da V1
+## 9. Regras de negócio consolidadas
 
 ### RB-01 — Uma ação principal
 
-Cada landing deve priorizar a entrada no grupo de WhatsApp do respectivo nicho como ação principal.
+A landing deve priorizar a entrada no grupo de WhatsApp.
 
 ### RB-02 — Desacoplamento do grupo
 
-O convite real do WhatsApp não deve ser a URL pública permanente usada nas campanhas quando a rota controlada puder ser utilizada.
+O convite real do WhatsApp não deve ser a URL pública permanente utilizada em campanhas.
 
 ### RB-03 — Um grupo ativo por nicho
 
-A V1 trabalha com um único destino de WhatsApp ativo por nicho.
+A V1 trabalha com um único destino ativo por nicho.
 
 ### RB-04 — Arquitetura multi-nicho
 
-As URLs devem usar a convenção `/{nicho}` para landing e `/go/whatsapp/{nicho}` para redirect, mesmo que inicialmente apenas um nicho esteja implantado.
+Usar `/{nicho}` e `/go/whatsapp/{nicho}` desde a V1.
 
-### RB-05 — UTM opcional
+### RB-05 — Evolução sem quebra de URL
 
-A ausência de UTM nunca pode impedir carregamento da landing ou entrada no WhatsApp.
+Múltiplos grupos futuros do mesmo nicho poderão ser colocados atrás da mesma rota pública.
 
-### RB-06 — Preservação de UTM
+### RB-06 — UTM opcional e preservada
 
-UTMs recebidas na landing devem ser preservadas até a rota de saída para WhatsApp.
+A ausência de UTM não impede o fluxo; quando presente, deve chegar até `/go/whatsapp/{nicho}`.
 
-### RB-07 — Falha no destino
+### RB-07 — Redirect temporário
 
-Se não houver link de WhatsApp configurado para o nicho solicitado, a aplicação não deve redirecionar silenciosamente para destino desconhecido ou incorreto.
+Usar HTTP `302`.
 
-A falha deve ser explícita e controlada.
+### RB-08 — Configuração única
 
-### RB-08 — Mobile-first
+O grupo ativo é configurado em uma única fonte por nicho.
 
-O fluxo principal deve funcionar primeiro em dispositivos móveis, sem impedir uso em desktop.
+### RB-09 — Falha controlada
 
-### RB-09 — Redirect temporário
+Configuração ausente ou inválida não pode gerar redirect arbitrário ou fallback silencioso.
 
-`/go/whatsapp/{nicho}` deve usar HTTP `302` na V1.
+### RB-10 — Mobile-first
 
-### RB-10 — Configuração única por nicho
+O fluxo deve funcionar primeiro em dispositivos móveis, sem impedir uso em desktop.
 
-O destino de cada nicho deve ser obtido de uma única configuração operacional.
+### RB-11 — Curadoria Shopee como prova secundária
 
-### RB-11 — Troca sem alteração da landing
+A Vitrine Shopee pode comprovar o tipo de curadoria, mas não substitui o CTA principal.
 
-A troca do grupo ativo de um nicho não deve exigir alteração do HTML, CSS ou JavaScript da landing.
+### RB-12 — Urgência real
 
-### RB-12 — Sem fallback silencioso
+Só usar urgência baseada em preço, cupom, estoque ou disponibilidade reais.
 
-Configuração inválida não deve redirecionar automaticamente para convite antigo ou para grupo de outro nicho.
+### RB-13 — Público feminino
 
-### RB-13 — Evolução sem quebra de URL
+A comunicação da primeira landing é orientada principalmente a mulheres de aproximadamente 30 a 55 anos.
 
-No futuro, múltiplos grupos dentro do mesmo nicho poderão ser adicionados atrás de `/go/whatsapp/{nicho}` sem exigir mudança na URL pública da landing ou das campanhas.
+### RB-14 — Macrogrupos públicos
 
-### RB-14 — Curadoria Shopee como prova secundária
-
-A landing feminina poderá utilizar uma Vitrine do Afiliado Shopee ou coleção curada equivalente como prova de curadoria real.
-
-Esse recurso deve funcionar como evidência do tipo de produto selecionado e como mecanismo opcional para a visitante explorar exemplos antes de entrar no grupo.
-
-A Vitrine Shopee não substitui o objetivo principal da landing e não deve competir visualmente com o CTA de entrada no WhatsApp.
-
-### RB-15 — CTAs secundários de curadoria
-
-A landing poderá exibir CTAs secundários associados à curadoria, por exemplo:
-
-- `Ver nossa seleção na Shopee`;
-- `Ver oferta`;
-- `Pegar cupom`;
-- `Ver ofertas de calçados`.
-
-Esses CTAs são auxiliares. O CTA dominante permanece a entrada no grupo de WhatsApp.
-
-### RB-16 — Urgência baseada em condição real
-
-A copy poderá trabalhar senso de urgência baseado exclusivamente em condições reais do mercado e das ofertas, tais como:
-
-- preço promocional pode mudar;
-- cupom pode expirar ou atingir limite de uso;
-- estoque pode acabar;
-- oferta pode deixar de estar disponível.
-
-É proibido criar escassez artificial, contagem regressiva fictícia, prazo inventado ou qualquer afirmação de urgência que não corresponda a uma condição real verificável.
-
-### RB-17 — Tensão principal da mensagem
-
-A tensão de comunicação da landing feminina deve ser construída sobre uma situação real:
-
-- a usuária não tem tempo ou interesse em pesquisar continuamente por boas ofertas;
-- quando descobre uma oportunidade tarde, o preço, cupom ou estoque pode já ter mudado;
-- o grupo resolve esse problema fazendo a curadoria e entregando os achados diretamente no WhatsApp.
-
-### RB-18 — Público de referência feminino
-
-A primeira landing implementada será do nicho feminino e deve falar prioritariamente com mulheres de aproximadamente 30 a 55 anos.
-
-Essa faixa é uma referência de linguagem, visual e seleção de exemplos, não uma restrição de acesso ao grupo.
-
-### RB-19 — Promessa central
-
-A promessa da landing feminina deve combinar:
-
-- bons produtos;
-- ofertas;
-- cupons;
-- curadoria;
-- recebimento no WhatsApp em tempo de aproveitar oportunidades ainda válidas.
-
-### RB-20 — Macrogrupos públicos do feminino
-
-A landing feminina deve apresentar exatamente estes seis macrogrupos ao público:
+Exibir exatamente:
 
 - 💄 Beleza
 - 👗 Moda
@@ -568,35 +568,27 @@ A landing feminina deve apresentar exatamente estes seis macrogrupos ao público
 - 💇‍♀️ Cabelos
 - 🧴 Skincare
 
-Esses macrogrupos existem para comunicação visual e não alteram a taxonomia técnica interna do projeto.
+### RB-15 — Produtos originais e lojas confiáveis
 
-### RB-21 — Produtos originais e lojas confiáveis
+Comunicar explicitamente a promessa de curadoria de produtos originais e lojas confiáveis.
 
-A landing feminina deve comunicar explicitamente que a curadoria é composta por ofertas e cupons de produtos originais e lojas confiáveis.
+### RB-16 — Sem promessa de volume diário
 
-Texto-base definido:
+Não publicar quantidade fixa de mensagens por dia.
 
-> 💎 Ofertas e cupons apenas de produtos ORIGINAIS e de lojas CONFIÁVEIS
+### RB-17 — Sem horários de triggers
 
-### RB-22 — Sem promessa pública de volume de mensagens
+Não publicar a grade de disparos.
 
-A landing não deve prometer quantidade fixa de mensagens por dia. A cadência operacional poderá evoluir sem exigir mudança da promessa pública da landing.
+### RB-18 — Silêncio noturno
 
-### RB-23 — Sem detalhamento público dos triggers
+Comunicar silêncio aproximadamente entre 21h10 e 8h enquanto essa for a política operacional vigente.
 
-A landing não deve publicar os horários individuais de triggers ou disparos. O comportamento deve ser descrito de forma simples como recebimento de ofertas ao longo do dia.
+### RB-19 — Grupo fechado para participantes
 
-### RB-24 — Período de silêncio como elemento de confiança
+Somente administradores enviam mensagens.
 
-Enquanto a operação mantiver o último trigger às 21h com possibilidade de envio residual por aproximadamente 10 minutos, a comunicação pública deve considerar o início do silêncio aproximadamente às 21h10.
-
-A landing deve comunicar que não há mensagens durante a noite e que o grupo fica em silêncio aproximadamente entre `21h10` e `08h00`.
-
-### RB-25 — Somente administradores enviam mensagens
-
-A landing deve comunicar que somente administradores enviam mensagens no grupo, evitando a expectativa de conversas, correntes ou mensagens de participantes.
-
-## 8. Requisitos não funcionais mínimos
+## 10. Requisitos não funcionais mínimos
 
 A V1 deve:
 
@@ -606,12 +598,12 @@ A V1 deve:
 - não exigir login;
 - não exigir banco de dados;
 - não exigir cookies para funcionar;
-- permitir versionamento integral do código no Git;
+- permitir versionamento integral no Git;
 - permitir alteração do destino WhatsApp sem alterar a URL pública da campanha;
-- centralizar o destino de cada nicho em uma única configuração operacional;
-- manter URLs estáveis por nicho para permitir evolução futura sem quebra de campanhas.
+- centralizar o destino de cada nicho em uma única configuração;
+- manter URLs estáveis por nicho.
 
-## 9. Fora do escopo da V1
+## 11. Fora do escopo da V1
 
 Explicitamente fora deste contrato:
 
@@ -633,115 +625,99 @@ Explicitamente fora deste contrato:
 - CMS;
 - WordPress.
 
-Ter múltiplos nichos com uma landing e um grupo ativo por nicho é compatível com o contrato V1. O que permanece fora do escopo é a distribuição automática entre vários grupos dentro de um mesmo nicho.
+## 12. Critérios de aceite da V1
 
-## 10. Critérios de aceite da V1
+A V1 é considerada funcional quando:
 
-A V1 é considerada funcional quando todos os seguintes cenários forem atendidos:
+1. `/feminino` funciona com ou sem UTM;
+2. o CTA principal leva a `/go/whatsapp/feminino`;
+3. UTMs recebidas permanecem disponíveis na chamada da rota de redirect;
+4. `/go/whatsapp/feminino` responde com HTTP `302` para o convite configurado;
+5. trocar a configuração do grupo altera o destino sem alterar a landing;
+6. o fluxo funciona em mobile e desktop;
+7. a página funciona sem banco de dados, GA4 ou Meta Pixel;
+8. configuração inválida produz falha controlada;
+9. o convite não está duplicado dentro da landing;
+10. a landing exibe os seis macrogrupos definidos;
+11. a landing comunica produtos originais e lojas confiáveis;
+12. a landing não promete quantidade fixa de mensagens;
+13. a landing não expõe horários individuais de triggers;
+14. a landing comunica o silêncio aproximado entre 21h10 e 8h;
+15. a landing comunica que somente administradores enviam mensagens;
+16. o Hero utiliza a copy-base definida neste contrato;
+17. a Vitrine Shopee e exemplos de ofertas, quando usados, permanecem secundários em relação ao CTA do WhatsApp.
 
-1. abrir a landing sem UTM carrega a página normalmente;
-2. abrir a landing com UTMs carrega a página normalmente;
-3. clicar no CTA leva à rota `/go/whatsapp/{nicho}`;
-4. os parâmetros UTM recebidos permanecem disponíveis na chamada da rota `/go/whatsapp/{nicho}`;
-5. a rota responde com HTTP `302` para o convite configurado do nicho;
-6. alterar a configuração do grupo muda o destino sem alterar a URL pública da landing;
-7. o fluxo funciona em navegador mobile;
-8. o fluxo funciona em navegador desktop;
-9. a página funciona sem banco de dados, GA4 ou Meta Pixel;
-10. ausência de configuração válida do grupo produz falha controlada e não redirect incorreto;
-11. o convite do grupo não está duplicado como dependência dentro da landing;
-12. UTMs não precisam ser propagadas para `chat.whatsapp.com` para que a V1 seja considerada correta;
-13. a landing feminina exibe os seis macrogrupos definidos neste contrato, sem substituir a taxonomia técnica interna;
-14. a landing comunica produtos originais e lojas confiáveis;
-15. a landing não promete quantidade fixa de mensagens nem expõe os horários de cada trigger;
-16. a landing comunica o período aproximado de silêncio entre 21h10 e 8h;
-17. a landing comunica que somente administradores enviam mensagens.
+## 13. Contratos de URL
 
-## 11. Contratos de URL
-
-### Landing por nicho
+### Landing
 
 ```text
 GET /{nicho}
 ```
 
-Exemplo inicial:
+Inicialmente:
 
 ```text
 GET /feminino
 ```
 
-Aceita opcionalmente:
-
-```text
-utm_source
-utm_medium
-utm_campaign
-utm_content
-utm_term
-```
-
-### Redirect WhatsApp por nicho
+### Redirect WhatsApp
 
 ```text
 GET /go/whatsapp/{nicho}
 ```
 
-Exemplo inicial:
+Inicialmente:
 
 ```text
 GET /go/whatsapp/feminino
 ```
 
-Aceita opcionalmente os mesmos parâmetros UTM preservados da landing.
-
-Resposta esperada quando configurado corretamente:
+Resposta configurada:
 
 ```text
 HTTP 302
 Location: <URL_DO_GRUPO_ATIVO_DO_NICHO>
 ```
 
-Resposta esperada quando não configurado corretamente:
+Resposta sem configuração válida:
 
 ```text
 falha controlada
 sem redirect para destino arbitrario
 ```
 
-## 12. Decisões registradas
+## 14. Decisões registradas
 
 | Status | Decisão |
 |---|---|
-| Decidido | V1 é composta por landing + rota controlada para WhatsApp + suporte/preservação de UTM. |
-| Decidido | UTM faz parte da V1. |
-| Decidido | GA4 e Meta Pixel não fazem parte do contrato V1. |
+| Decidido | A primeira implementação é a landing feminina. |
+| Decidido | V1 é landing + rota controlada para WhatsApp + suporte/preservação de UTM. |
+| Decidido | A arquitetura nasce multi-nicho. |
 | Decidido | V1 possui um grupo WhatsApp ativo por nicho. |
-| Decidido | A URL pública deve permanecer estável mesmo quando o convite do grupo mudar. |
-| Decidido | Banco de dados não é requisito da V1. |
 | Decidido | `/go/whatsapp/{nicho}` utiliza HTTP 302. |
-| Decidido | O link real do grupo é centralizado em uma configuração por nicho. |
+| Decidido | O destino é centralizado em configuração por nicho. |
 | Decidido | Trocar o grupo não exige editar a landing. |
-| Decidido | Configuração ausente ou inválida produz falha controlada. |
-| Decidido | A arquitetura nasce multi-nicho, mesmo que apenas o feminino seja implantado inicialmente. |
-| Decidido | A Vitrine Shopee pode ser usada como prova secundária de curadoria. |
-| Decidido | O CTA dominante permanece a entrada no WhatsApp. |
-| Decidido | A urgência da copy deve ser baseada apenas em condições reais. |
-| Decidido | Público de referência da primeira landing: mulheres de aproximadamente 30 a 55 anos. |
-| Decidido | A landing feminina exibe os macrogrupos Beleza, Moda, Calçados, Bolsas e acessórios, Cabelos e Skincare. |
-| Decidido | A landing destaca que as ofertas e cupons são de produtos originais e lojas confiáveis. |
+| Decidido | UTM faz parte da V1. |
+| Decidido | GA4 e Meta Pixel não fazem parte da V1. |
+| Decidido | Público de referência da landing feminina: mulheres de aproximadamente 30 a 55 anos. |
+| Decidido | Macrogrupos públicos: Beleza, Moda, Calçados, Bolsas e acessórios, Cabelos e Skincare. |
+| Decidido | Hero, gancho e CTA principal estão definidos como copy-base. |
+| Decidido | A landing destaca produtos originais e lojas confiáveis. |
+| Decidido | A Vitrine Shopee pode funcionar como prova secundária de curadoria. |
+| Decidido | Exemplos reais de ofertas podem ser usados como prova. |
+| Decidido | O CTA dominante continua sendo entrar no WhatsApp. |
+| Decidido | A urgência deve ser baseada apenas em condições reais. |
 | Decidido | A landing não promete volume diário fixo nem publica horários individuais de triggers. |
 | Decidido | O período de silêncio comunicado é aproximadamente de 21h10 a 8h. |
-| Decidido | Somente administradores enviam mensagens no grupo. |
+| Decidido | Somente administradores enviam mensagens. |
 
-## 13. Próximos detalhamentos
+## 15. Próximos detalhamentos
 
-Depois deste contrato, os próximos documentos/revisões devem detalhar separadamente:
-
-1. estrutura final das seções da landing feminina;
-2. copy da seção de prova/curadoria Shopee e exemplos reais de ofertas;
-3. identidade visual e assets;
-4. mecanismo técnico do redirect na Hostinger;
-5. convenção operacional para criação das UTMs;
-6. processo de deploy;
-7. critérios de observabilidade e testes da V1.
+1. fechar a estrutura visual e ordem final das seções;
+2. escolher os exemplos reais de ofertas/Vitrine Shopee usados na primeira publicação;
+3. definir identidade visual e assets;
+4. definir o mecanismo técnico do redirect na Hostinger;
+5. fechar a convenção operacional de UTMs;
+6. definir processo de deploy;
+7. definir observabilidade e testes da V1.
