@@ -2,7 +2,9 @@
 
 Status: **normativo para a feature de tracking Shopee**.
 
-Este documento complementa `11-spec-rastreamento-cliques-conversoes-shopee.md` e `11b-limites-implementacao-tracking-shopee.md`.
+Este documento complementa `11-spec-rastreamento-cliques-conversoes-shopee.md` e **deve obrigatoriamente ser implementado sob os limites definidos em `docs/projeto/11b-limites-implementacao-tracking-shopee.md`**.
+
+Em caso de conflito entre este documento e `docs/projeto/11b-limites-implementacao-tracking-shopee.md`, **prevalece `11b`**. Em especial, este sync é uma criação nova e isolada da feature e não autoriza alteração de SQL existente, refresh, planner, n8n/publicação, score/editorial ou catálogo global.
 
 ## 1. Objetivo
 
@@ -186,7 +188,128 @@ query DailyConversionReport(
 
 Os tipos GraphQL exatos das variáveis devem seguir o schema exposto pelo Explorer/Open API no momento da implementação; a regra funcional deste documento são os campos e valores acima.
 
-## 6. Serviço na VPS
+## 6. Outputs obrigatórios da request
+
+Esta seção é **normativa**. A implementação não deve escolher livremente quais campos ignorar ou promover. Cada output solicitado do `conversionReport` tem um destino definido abaixo.
+
+### 6.1 Campos do node/conversão — persistir em colunas explícitas
+
+Os seguintes campos devem ser solicitados e persistidos em colunas da nova estrutura de conversões da feature:
+
+| Output da API | Destino/uso |
+| --- | --- |
+| `clickTime` | coluna de clique convertido / cálculo de latência |
+| `purchaseTime` | coluna de compra / definição temporal da conversão |
+| `conversionId` | identidade externa, indexada mas não única isoladamente |
+| `shopeeCommissionCapped` | composição da comissão |
+| `sellerCommission` | composição da comissão |
+| `totalCommission` | **KPI econômico principal** |
+| `netCommission` | reconciliação/auditoria financeira |
+| `buyerType` | segmentação futura |
+| `utmContent` | raw de tracking e resolução futura de `dispatch_plan_id` |
+
+Também deve existir a coluna interna `dispatch_plan_id`, preenchida quando `utmContent` permitir a resolução; ela não é output direto da API.
+
+### 6.2 Campos do node/conversão — preservar no `raw_payload`
+
+Os seguintes outputs devem continuar sendo solicitados porque fazem parte do payload observado e podem ser úteis para auditoria/evolução, mas **não precisam ser promovidos a colunas analíticas de primeira classe nesta fase**:
+
+```text
+mcnManagementFeeRate
+mcnManagementFee
+mcnContractId
+linkedMcnName
+device
+productType
+referrer
+```
+
+Se a tabela de conversões usar `raw_payload`, esses campos devem estar integralmente presentes nele. A implementação não deve descartá-los silenciosamente.
+
+### 6.3 Campos de pedido — persistir em colunas explícitas
+
+Cada `orders[]` deve preservar em colunas:
+
+| Output da API | Destino/uso |
+| --- | --- |
+| `orderId` | identidade externa do pedido |
+| `shopType` | estado/contexto comercial retornado pela Shopee |
+| `orderStatus` | estado do pedido; necessário para leitura de conversão pendente/concluída/cancelada conforme valores reais da API |
+
+O pedido deve referenciar o `conversion_record_id` técnico do node correspondente e preservar `conversion_id` quando necessário para auditoria.
+
+### 6.4 Campos de item comprado — persistir em colunas explícitas
+
+Os seguintes outputs de `orders[].items[]` são necessários para as análises centrais e devem ser colunas explícitas:
+
+| Output da API | Destino/uso |
+| --- | --- |
+| `itemId` | item efetivamente comprado; comparação com `daily_dispatch_plan.item_id` para direta/indireta |
+| `itemName` | leitura/auditoria |
+| `itemPrice` | preço de referência retornado |
+| `actualAmount` | valor efetivo da linha |
+| `refundAmount` | ajuste/reembolso |
+| `qty` | quantidade |
+| `itemTotalCommission` | comissão da linha comprada |
+| `globalCategoryLv1Name` | demanda/categoria comprada |
+| `globalCategoryLv2Name` | demanda/categoria comprada |
+| `globalCategoryLv3Name` | demanda/categoria comprada |
+| `fraudStatus` | integridade/estado antifraude |
+| `attributionType` | evidência externa de atribuição Shopee |
+| `completeTime` | ciclo temporal do item/pedido |
+
+### 6.5 Campos de item comprado — preservar no `raw_payload`
+
+Os seguintes outputs devem continuar sendo solicitados e preservados no payload raw do item, sem necessidade de coluna analítica explícita nesta fase:
+
+```text
+shopId
+shopName
+promotionId
+modelId
+displayItemStatus
+imageUrl
+itemSellerCommission
+itemSellerCommissionRate
+itemShopeeCommissionCapped
+itemShopeeCommissionRate
+itemNotes
+fraudReason
+channelType
+campaignPartnerName
+campaignType
+```
+
+A preservação raw permite auditoria e futura promoção sem exigir alteração da API nem perda histórica.
+
+### 6.6 Outputs de paginação — persistir no controle do sync
+
+Os seguintes campos de `pageInfo` não são fatos analíticos de conversão; são controle obrigatório da coleta e devem ser persistidos em `offers.shopee_conversion_sync_runs`:
+
+```text
+page
+limit
+hasNextPage
+scrollId
+```
+
+`hasNextPage` determina se uma nova chamada é necessária. `scrollId` deve alimentar a chamada seguinte quando aplicável.
+
+### 6.7 Regra de completude
+
+Uma execução diária só é considerada completa quando:
+
+1. todos os campos obrigatórios definidos nesta seção foram solicitados na query;
+2. todos os nodes retornados foram processados;
+3. todos os `orders[]` e `items[]` foram processados;
+4. todos os campos classificados como coluna foram persistidos na estrutura correspondente;
+5. todos os campos classificados como raw foram preservados no `raw_payload` correspondente;
+6. a paginação terminou com `hasNextPage=false`;
+7. o `sync_run` registrou a janela, filtros e metadados de paginação.
+
+Nenhum campo desta seção pode ser removido da request por conveniência de implementação sem revisão explícita desta spec.
+
+## 7. Serviço na VPS
 
 Criar serviço/timer novo e exclusivo da feature, por exemplo:
 
@@ -207,7 +330,7 @@ Responsabilidades do novo serviço:
 
 Não alterar timer, service ou código interno do refresh/planner existentes para executar esse sync.
 
-## 7. Idempotência diária
+## 8. Idempotência diária
 
 A mesma janela pode precisar ser reexecutada por falha operacional.
 
@@ -233,7 +356,7 @@ Os zeros acima são placeholders documentais; a execução persiste os epochs re
 
 Reexecução não pode duplicar fatos analíticos.
 
-## 8. Correção de identidade observada no payload real
+## 9. Correção de identidade observada no payload real
 
 O payload real fornecido mostrou que `conversionId` **não identifica de forma única um node retornado**.
 
@@ -258,7 +381,7 @@ A tabela nova `offers.shopee_conversions` deve usar chave técnica própria, por
 
 A idempotência deve considerar a estrutura efetivamente observada. Na primeira implementação, a combinação de `conversion_id + order_id` é a candidata natural para a identidade de pedido dentro de uma conversão, mas deve ser aplicada na tabela de pedidos, não transformando `conversion_id` isoladamente em chave única.
 
-## 9. Relação com tracking por Sub IDs
+## 10. Relação com tracking por Sub IDs
 
 Depois da implantação dos links rastreáveis, `utmContent` será preservado como raw e usado para resolver `dispatch_plan_id` quando o formato esperado estiver presente.
 
@@ -270,7 +393,7 @@ utmContent = ----
 
 continuam válidas e devem ser persistidas como não atribuídas a uma exposição específica.
 
-## 10. KPI
+## 11. KPI
 
 Para analytics desta fase:
 
@@ -280,11 +403,17 @@ KPI econômico principal = totalCommission
 
 A coleta diária deve preservar também `sellerCommission`, `shopeeCommissionCapped` e `netCommission`, mas os relatórios de valor por exposição usam `totalCommission` como métrica principal.
 
-## 11. Limites
+## 12. Limites e referência normativa obrigatória
 
-Este processo automático diário é uma **criação nova da feature**.
+Este processo automático diário é uma **criação nova da feature** e está integralmente sujeito a:
 
-Ele não autoriza:
+```text
+docs/projeto/11b-limites-implementacao-tracking-shopee.md
+```
+
+Em caso de dúvida sobre o que pode ou não ser modificado, **consultar `11b` e aplicar seus limites antes de qualquer implementação**.
+
+Este documento não autoriza:
 
 - alteração de SQL existente;
 - alteração de refresh;
