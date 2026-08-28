@@ -17,6 +17,10 @@ O convite fica apenas nesse arquivo. Não o adicione ao HTML, JavaScript, QR Cod
 
 O botão `Ver nossa seleção na Shopee` aponta para `https://collshp.com/ofertas_femininas`. Ao trocar a vitrine, atualize o endereço no HTML, gere o ZIP novamente e valide o destino antes de publicar.
 
+## Contato público
+
+O rodapé exibe `comercial@mktdigitalofertas.com.br` como link de e-mail, imediatamente antes de `Voltar ao início`.
+
 ## Gerar o ZIP novamente
 
 No PowerShell, a partir da raiz do repositório:

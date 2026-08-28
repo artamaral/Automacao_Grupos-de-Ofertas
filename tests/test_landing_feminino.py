@@ -120,6 +120,17 @@ def test_shopee_showcase_cta_uses_the_official_store_url() -> None:
     assert 'aria-disabled="true"' not in html
 
 
+def test_footer_exposes_the_contact_email_before_the_back_to_top_link() -> None:
+    html = read(LANDING)
+    email = (
+        '<a href="mailto:comercial@mktdigitalofertas.com.br">'
+        "comercial@mktdigitalofertas.com.br</a>"
+    )
+    back_to_top = '<a href="#inicio">Voltar ao início</a>'
+    assert email in html
+    assert html.index(email) < html.index(back_to_top)
+
+
 def test_utm_script_has_an_explicit_allowlist_and_no_persistence() -> None:
     script = read(SCRIPT)
     for parameter in (
