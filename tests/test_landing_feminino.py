@@ -36,7 +36,7 @@ def test_landing_contains_approved_copy_and_section_order() -> None:
         "Ofertas e cupons para mulheres, não perca tempo procurando",
         "Receba no WhatsApp ótimos produtos de beleza, moda, calçados, bolsas, cabelos e skincare.",
         "Os preços mudam, os cupons acabam e as melhores ofertas podem durar pouco.",
-        "Quero receber as ofertas no WhatsApp",
+        "Clique para entrar no grupo de WhatsApp",
         "ORIGINAIS",
         "CONFIÁVEIS",
         "aproximadamente entre 21h10 e 8h",
@@ -84,8 +84,40 @@ def test_landing_includes_minimum_seo_accessibility_and_responsive_contract() ->
 def test_whatsapp_ctas_use_only_the_controlled_route() -> None:
     html = read(LANDING)
     assert html.count('href="/go/whatsapp/feminino"') == 2
+    assert html.count("Clique para entrar no grupo de WhatsApp") == 2
     assert "chat.whatsapp.com" not in html
     assert "chat.whatsapp.com" not in read(SCRIPT)
+
+
+def test_landing_uses_local_brand_assets_and_three_real_offer_samples() -> None:
+    html = read(LANDING)
+    rendered_sources = html + read(PUBLIC_HTML / "assets" / "css" / "feminino.css")
+    expected_assets = (
+        "banner-elementos.png",
+        "grupo-transparente.png",
+        "oferta-1.jpg",
+        "oferta-2.jpg",
+        "oferta-3.jpg",
+    )
+    for filename in expected_assets:
+        assert f"/assets/img/feminino/{filename}" in rendered_sources
+        assert (PUBLIC_HTML / "assets" / "img" / "feminino" / filename).is_file()
+
+    for offer_url in (
+        "https://s.shopee.com.br/AAGgnIgSUT",
+        "https://s.shopee.com.br/3LQMepDFhU",
+        "https://s.shopee.com.br/8fRt16P5v5",
+    ):
+        assert offer_url in html
+    assert 'data-placeholder="true"' not in html
+    assert "Achados com carinho" not in html
+
+
+def test_shopee_showcase_cta_uses_the_official_store_url() -> None:
+    html = read(LANDING)
+    assert 'href="https://collshp.com/ofertas_femininas"' in html
+    assert "URL DA VITRINE PENDENTE" not in html
+    assert 'aria-disabled="true"' not in html
 
 
 def test_utm_script_has_an_explicit_allowlist_and_no_persistence() -> None:

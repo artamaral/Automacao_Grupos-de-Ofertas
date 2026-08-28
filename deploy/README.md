@@ -13,6 +13,10 @@ O convite informado em 27/08/2026 já está configurado na fonte única abaixo.
 
 O convite fica apenas nesse arquivo. Não o adicione ao HTML, JavaScript, QR Code ou outros arquivos. Para trocar o grupo futuramente, altere somente esse valor e reenvie `_config/whatsapp.php`.
 
+## Link da seleção Shopee
+
+O botão `Ver nossa seleção na Shopee` aponta para `https://collshp.com/ofertas_femininas`. Ao trocar a vitrine, atualize o endereço no HTML, gere o ZIP novamente e valide o destino antes de publicar.
+
 ## Gerar o ZIP novamente
 
 No PowerShell, a partir da raiz do repositório:
@@ -46,7 +50,4 @@ O comando valida a estrutura e cria `deploy/landing-feminino-public-html.zip`. O
 
 ## Pendências antes da publicação
 
-- Adicionar o banner oficial em `deploy/public_html/assets/img/feminino/banner-institucional.webp` e substituir o bloco indicado no HTML.
-- Substituir os três cards `data-placeholder="true"` por ofertas reais e atuais.
-- Informar a URL oficial da Vitrine Shopee e habilitar seu CTA.
 - Escanear o QR Code em um celular real.

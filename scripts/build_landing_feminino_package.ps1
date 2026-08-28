@@ -14,6 +14,11 @@ $requiredFiles = @(
     'feminino/index.html',
     'assets/css/feminino.css',
     'assets/js/feminino.js',
+    'assets/img/feminino/banner-elementos.png',
+    'assets/img/feminino/grupo-transparente.png',
+    'assets/img/feminino/oferta-1.jpg',
+    'assets/img/feminino/oferta-2.jpg',
+    'assets/img/feminino/oferta-3.jpg',
     'assets/qr/whatsapp-feminino.png',
     'go/whatsapp/feminino/index.php',
     'error/whatsapp-indisponivel.html'
