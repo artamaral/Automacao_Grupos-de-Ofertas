@@ -39,6 +39,8 @@ Para reduzir erro manual de copia e cola, o fluxo oficial deste projeto é:
 - Após cada mudança feita no GitHub, o usuário deve rodar `git pull` em `C:\Automacao_Grupos-de-Ofertas` antes de testar localmente.
 - Segredos, tokens, chaves de API, cookies, QR codes e sessões nunca devem ser enviados ao GitHub.
 - O GPT não deve criar branchs novas sem aprovação explícita do usuário.
+- O GPT não está autorizado a criar, trocar, publicar ou usar branch diferente sem solicitação ou autorização explícita do usuário.
+- Antes de qualquer commit ou push, o GPT deve confirmar a branch ativa e informar em qual branch a mudança será registrada.
 - O fluxo padrão de trabalho deve acontecer na `main`, salvo quando o usuário pedir outra estratégia.
 
 ### Continuidade e agrupamento de etapas
