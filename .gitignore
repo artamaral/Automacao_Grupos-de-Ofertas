@@ -21,6 +21,8 @@ venv/
 logs/
 exports/
 deploy/*.zip
+deploy/landing-feminino-public-html/
+cloud_run_worker.py
 n8n/root/data/
 src/*.egg-info/
 src/ofertas_bot.egg-info/
