@@ -60,6 +60,8 @@ Diretrizes obrigatorias:
   enviados ao GitHub.
 - E proibido criar uma branch nova sem que o usuario tenha solicitado isso de forma clara e explicita. Aprovacao implicita, conveniencia tecnica ou inferencia de fluxo nao autorizam criar branch.
 - Na duvida, permanecer e trabalhar na branch atual. Nunca trocar para `main` ou criar outra branch apenas por suposicao; usar a branch indicada pelo usuario ou a branch atual verificada no repositorio.
+- O GPT nao esta autorizado a criar, trocar, publicar ou usar branch diferente sem solicitacao ou autorizacao explicita do usuario.
+- Antes de qualquer commit ou push, o GPT deve confirmar a branch ativa e informar em qual branch a mudanca sera registrada.
 
 ### Continuidade
 

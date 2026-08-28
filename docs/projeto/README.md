@@ -9,11 +9,17 @@ do Supabase e disparo controlado pelo n8n.
 
 1. [`01-visao-geral.md`](01-visao-geral.md)
 2. [`02-arquitetura-alvo.md`](02-arquitetura-alvo.md)
-3. [`06-proximas-etapas.md`](06-proximas-etapas.md)
-4. [`../decisao-mvp-supabase-n8n.md`](../decisao-mvp-supabase-n8n.md)
-5. [`../runbook-n8n.md`](../runbook-n8n.md)
-6. [`../supabase-catalog-schema.md`](../supabase-catalog-schema.md)
-7. [`../supabase-publication-events.md`](../supabase-publication-events.md)
+3. [`03-google-planilhas.md`](03-google-planilhas.md)
+4. [`04-contrato-n8n-whatsapp.md`](04-contrato-n8n-whatsapp.md)
+5. [`05-migracao.md`](05-migracao.md)
+6. [`06-proximas-etapas.md`](06-proximas-etapas.md)
+7. [`07-catalogos-operacionais.md`](07-catalogos-operacionais.md)
+8. [`08-spec-distribuicao-editorial-feminino.md`](08-spec-distribuicao-editorial-feminino.md)
+9. [`09-spec-gerador-offline-posts-shopee.md`](09-spec-gerador-offline-posts-shopee.md)
+10. [`../decisao-mvp-supabase-n8n.md`](../decisao-mvp-supabase-n8n.md)
+11. [`../runbook-n8n.md`](../runbook-n8n.md)
+12. [`../supabase-catalog-schema.md`](../supabase-catalog-schema.md)
+13. [`../supabase-publication-events.md`](../supabase-publication-events.md)
 
 ## Specs aprovadas para evolucao
 
@@ -46,3 +52,8 @@ MVP.
 
 Cloud Run nao e requisito do MVP. Ele pode voltar depois como evolucao para
 reduzir logica no n8n ou centralizar execucao em Python.
+
+Planilha criada no Google Sheets:
+
+- `Projeto Ofertas - Regras Operacionais (Google Sheets)`
+- <https://docs.google.com/spreadsheets/d/16M0S-ipgQ9lOUqCtXTd1OC80I2emERCK8ByVllR06-E/edit?usp=drivesdk>
