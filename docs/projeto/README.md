@@ -27,6 +27,9 @@ do Supabase e disparo controlado pelo n8n.
   define a redistribuicao editorial do plano diario do perfil `feminino`.
 - [`09-spec-gerador-offline-posts-shopee.md`](09-spec-gerador-offline-posts-shopee.md)
   define o gerador local de posts a partir de URL Shopee, sem publicacao automatica.
+- [`12-spec-catalogo-productcatid-shopee.md`](12-spec-catalogo-productcatid-shopee.md)
+  consolida as decisoes para migrar o catalogo feminino Shopee para
+  `productCatId`, incluindo quotas, contratos, cutover e validacoes.
 
 ## Fonte canonica
 

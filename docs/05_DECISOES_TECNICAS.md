@@ -1,5 +1,38 @@
 # Decisoes Tecnicas
 
+## 2026-08-30 - Catalogo feminino por ProductCatId singular
+
+Decisao:
+
+- usar somente o `productCatId` singular definido no request como categoria
+  operacional do novo catalogo feminino;
+- manter `productCatIds`, retornado pela Shopee, fora de classificacao,
+  persistencia operacional, ranking, refresh, planner e fila;
+- adotar uma unica tabela persistente de catalogo, com status `current` e
+  `legacy`, promovendo novamente para `current` qualquer item legacy encontrado
+  no catalogo novo;
+- usar a matriz canonica de 53 categorias e quotas que somam 140 itens por dia;
+- integrar o planner de `productCatId` fornecido pelo usuario e preservar a
+  grade atual de 14 janelas, das 08h as 21h;
+- alterar o piso de elegibilidade de rating de 4.8 para 4.5 e manter os termos
+  proibidos como unico filtro semantico textual;
+- executar o cutover somente depois das 21h BRT, como ultima etapa, sem alterar
+  o plano encerrado do dia e sem hard delete de catalogo ou snapshots;
+- propagar `product_cat_id` ate `v_daily_dispatch_ready_tracked`, preservando
+  tracking, copy, cooldown, allowlist, claim e idempotencia existentes.
+
+Motivo:
+
+- assumir a taxonomia oficial Shopee como fonte canonica e remover a
+  classificacao dos novos itens por taxonomia interna;
+- manter o restante da operacao comercial e de publicacao no estado atual;
+- permitir segregacao, auditoria, refresh forcado e rollback controlado no
+  cutover.
+
+Contrato detalhado:
+
+- `docs/projeto/12-spec-catalogo-productcatid-shopee.md`.
+
 ## 2026-08-27 - Publicacao controlada do workflow Instagram
 
 Decisao:
