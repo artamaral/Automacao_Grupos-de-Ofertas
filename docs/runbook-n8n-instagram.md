@@ -76,12 +76,15 @@ schedule do n8n ou pela execucao manual.
 A superficie Instagram nao depende mais de
 `offers.v_daily_dispatch_ready.is_ready_for_dispatch`. Ela usa:
 
-- `offers.daily_dispatch_plan` com `dispatch_status='planned'`;
+- `offers.daily_dispatch_plan` como plano diario fonte;
 - `offers.offer_media_assets` com `status='valid'`;
+- `offer_media_assets.video_url` obrigatorio;
 - `offers.v_offer_ranking_current` apenas para enriquecer copy e observabilidade
   (`refresh_status`, `is_eligible`, `ineligibility_reasons`).
 
-Reels:
+Desde `2026-08-31`, a superficie diaria do Instagram publica somente Reels.
+Produtos sem `video_url` nao aparecem como candidatos Instagram e nao viram
+carrossel como fallback.
 
 ```sql
 select *
@@ -93,16 +96,15 @@ order by planned_date, daily_sequence, instagram_format desc
 limit 1;
 ```
 
-Carrossel:
+Auditoria de formatos:
 
 ```sql
-select *
+select
+  instagram_format,
+  count(*)
 from offers.v_instagram_dispatch_ready
-where profile = 'feminino'
-  and marketplace = 'shopee'
-  and instagram_format = 'carousel'
-order by planned_date, daily_sequence, instagram_format desc
-limit 1;
+where planned_date = current_date
+group by instagram_format;
 ```
 
 O claim concorrente deve travar a linha de `offers.daily_dispatch_plan` com
@@ -175,7 +177,7 @@ cd /opt/automacao_grupo_compras/app
 python3 scripts/n8n/configure_instagram_http_credential_vps.py --apply --host <ssh-host> --confirm-remote-write CREATE_INSTAGRAM_HTTP_CREDENTIAL
 ```
 
-Se algum node como `Criar Filhos Carrossel` continuar acusando
+Se algum node HTTP continuar acusando
 `access to env vars denied`, inspecione a credencial antes de testar de novo:
 
 ```bash
@@ -197,7 +199,6 @@ Pre-condicoes:
 
 - migrations de midia aplicadas no Supabase;
 - pelo menos 1 item com `video_url` valido;
-- pelo menos 1 item com `image_urls` valido;
 - workflow Instagram importado e `active=false`;
 - target `oferta.femininas` presente na allowlist/config;
 - credenciais da Instagram Graph API configuradas no ambiente operacional, fora
@@ -225,8 +226,10 @@ Usar:
 
 ```text
 channel_adapter = instagram_reels
-channel_adapter = instagram_carousel
 ```
+
+Eventos antigos com `instagram_carousel` podem permanecer no historico, mas o
+fluxo diario novo nao deve criar novos registros com esse adapter.
 
 `delivery_status` continua limitado a:
 
@@ -261,11 +264,10 @@ Se a revalidacao falhar antes da publicacao:
 
 ## Limites do MVP
 
-- ate 3 Reels por dia; as janelas efetivas ficam no schedule do n8n, nao na
+- 6 Reels por dia; as janelas efetivas ficam no schedule do n8n, nao na
   view do Supabase;
 - nichos preferenciais: `maquiagem-geral`, `skincare-facial` e
   `acessorios-femininos`;
-- 1 carrossel diario para moda quando houver midia valida;
 - fallback sempre pela ordem materializada em `offers.daily_dispatch_plan`;
 - sem publicacao automatica em massa;
 - sem download, transcodificacao ou hospedagem propria de midia.
@@ -290,3 +292,15 @@ Pendencia operacional explicita:
   pois interrompe brevemente execucoes dos workflows hospedados no mesmo
   servico. Portanto, o workflow esta publicado/ativo no banco, mas o cron de
   producao ainda nao deve ser considerado efetivo ate essa manutencao.
+
+## 2026-08-31 - Mudanca para Instagram 100% Reels
+
+Contrato versionado:
+
+- o cron permanece `0 10,12,14,16,18,20 * * *`;
+- `offers.v_instagram_dispatch_ready` retorna somente `instagram_format='reels'`
+  e apenas candidatos com `video_url`;
+- o workflow diario usa somente `Criar Container Reels`;
+- o limite diario continua sendo 6 publicacoes Instagram confirmadas;
+- `instagram_carousel` fica apenas como historico/legado, fora do caminho
+  diario.

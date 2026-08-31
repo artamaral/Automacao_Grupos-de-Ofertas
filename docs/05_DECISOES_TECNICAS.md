@@ -1,5 +1,25 @@
 # Decisoes Tecnicas
 
+## 2026-08-31 - Instagram diario somente Reels
+
+Decisao:
+
+- manter o workflow existente `OfertasInstagramSupab1`, sem criar workflow,
+  adapter, fila ou estrutura nova;
+- fazer `offers.v_instagram_dispatch_ready` retornar somente
+  `instagram_format='reels'` para itens com `video_url`;
+- preservar os seis horarios diarios `10:00`, `12:00`, `14:00`, `16:00`,
+  `18:00` e `20:00`;
+- registrar novas publicacoes diarias apenas com
+  `channel_adapter='instagram_reels'`;
+- manter `instagram_carousel` como historico/legado fora do caminho diario.
+
+Motivo:
+
+- simplificar a operacao diaria do Instagram sem alterar planner, ranking,
+  tracking, WhatsApp, cooldown ou coleta de videos;
+- impedir fallback de produtos sem video para carrossel.
+
 ## 2026-08-30 - Catalogo feminino por ProductCatId singular
 
 Decisao:

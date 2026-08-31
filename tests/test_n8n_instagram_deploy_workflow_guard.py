@@ -24,7 +24,7 @@ def test_validate_instagram_workflow_accepts_versioned_json() -> None:
     guard.validate_versioned_workflow(load_instagram_workflow(), "OfertasInstagramSupab1")
 
 
-def test_validate_instagram_workflow_rejects_missing_carousel_branch() -> None:
+def test_validate_instagram_workflow_rejects_missing_container_normalizer() -> None:
     workflow = load_instagram_workflow()
     workflow["nodes"] = [
         node for node in workflow["nodes"] if node["name"] != "Normalizar Container Criado"
@@ -86,8 +86,11 @@ def test_instagram_claim_query_preserves_context_and_uses_lightweight_sources() 
     assert "case when ctx.dry_run then 'cancelled'" in query
     assert "plan.planned_date = (now() at time zone 'America/Sao_Paulo')::date" in query
     assert "planned_date <=" not in lower_query
-    assert "reels_confirmed" in query
-    assert "carousel_confirmed" in query
+    assert "instagram_confirmed" in query
+    assert "instagram_confirmed < 6" in query
+    assert "select 'reels'::text as instagram_format" in query
+    assert "then 'carousel'" not in query
+    assert "carousel_confirmed" not in query
     assert "expected.instagram_format" in query
     assert "offers.daily_dispatch_plan" in query
     assert "offers.offer_media_assets" in query
@@ -96,6 +99,7 @@ def test_instagram_claim_query_preserves_context_and_uses_lightweight_sources() 
     assert "for update of plan skip locked" in lower_query
     assert "update offers.daily_dispatch_plan" not in lower_query
     assert "dispatch_status = 'planned'" not in lower_query
+    assert "jsonb_array_length(media.image_urls)" not in lower_query
     assert "is_ready_for_dispatch" not in lower_query
     assert "offers.v_instagram_dispatch_ready" not in lower_query
     assert "offers.v_offer_ranking_current" not in lower_query
@@ -120,7 +124,7 @@ def test_validate_instagram_workflow_requires_http_header_auth_credentials() -> 
         guard.validate_versioned_workflow(workflow, "OfertasInstagramSupab1")
 
 
-def test_carousel_payload_node_restores_original_context() -> None:
+def test_carousel_payload_node_remains_legacy_but_disconnected() -> None:
     workflow = load_instagram_workflow()
     payload_node = guard.node_by_name(workflow, "Montar Payload Pai Carrossel")
     assert payload_node["parameters"]["mode"] == "runOnceForAllItems"
@@ -130,15 +134,17 @@ def test_carousel_payload_node_restores_original_context() -> None:
     assert "carousel_child_ids" in js_code
     assert "instagram_business_account_id" in js_code
     assert "carousel requires between 4 and 10 child containers" in js_code
+    assert "Montar Payload Pai Carrossel" not in workflow["connections"]
 
 
-def test_prepare_carousel_children_node_expands_multiple_images() -> None:
+def test_prepare_carousel_children_node_remains_legacy_but_disconnected() -> None:
     workflow = load_instagram_workflow()
     prepare_node = guard.node_by_name(workflow, "Preparar Filhos Carrossel")
     js_code = prepare_node["parameters"]["jsCode"]
     assert "slice(0, 10)" in js_code
     assert "carousel_image_url" in js_code
     assert "carousel requires between 4 and 10 image urls" in js_code
+    assert "Preparar Filhos Carrossel" not in workflow["connections"]
 
 
 def test_normalize_container_node_accepts_id_or_creation_id() -> None:
@@ -156,7 +162,6 @@ def test_restore_publish_context_node_keeps_account_and_creation_id() -> None:
     js_code = restore_node["parameters"]["jsCode"]
     assert "$('Normalizar Container Criado').first().json" in js_code
     assert "$('Aguardar Container Instagram').first().json" in js_code
-    assert "$('Montar Payload Pai Carrossel').first().json" in js_code
     assert "$('Montar Copy Instagram').first().json" in js_code
     assert "if (!original || !String(original.instagram_business_account_id || '').trim())" in js_code
     assert "creation_id: String(normalized.creation_id || '').trim()" in js_code
@@ -215,21 +220,37 @@ def test_instagram_publication_event_keeps_dry_run_out_of_dispatch_trigger() -> 
     assert "null::uuid" in query
     assert "source_dispatch_plan_id" in query
     assert "published_media_id" in query
+    assert "'instagram_reels'," in query
+    assert "else 'instagram_carousel'" not in query
     assert "on conflict (channel_adapter, ((payload ->> 'source_dispatch_plan_id')))" in query
 
 
-def test_instagram_selection_alternates_only_confirmed_publications() -> None:
+def test_instagram_selection_uses_only_reels_until_six_confirmed_publications() -> None:
     workflow = load_instagram_workflow()
     query = guard.node_by_name(workflow, "Claim Item Instagram")["parameters"]["query"]
     assert "delivery_status = 'confirmed'" in query
     assert "channel_adapter in ('instagram_reels', 'instagram_carousel')" in query
-    assert "reels_confirmed = carousel_confirmed and reels_confirmed < 3 then 'reels'" in query
-    assert "reels_confirmed = carousel_confirmed + 1 and carousel_confirmed < 3 then 'carousel'" in query
-    assert "else null" in query
+    assert "select count(*) as instagram_confirmed" in query
+    assert "where instagram_confirmed < 6" in query
+    assert "select 'reels'::text as instagram_format" in query
+    assert "then 'carousel'" not in query
+    assert "carousel_confirmed" not in query
     assert "event.channel_adapter in ('instagram_reels', 'instagram_carousel')" in query
     assert "event.channel_adapter = case expected.instagram_format" not in query
     assert "event.payload ->> 'source_dispatch_plan_id'" in query
     assert "event.payload ->> 'dry_run' = 'false'" in query
+
+
+def test_instagram_real_publication_path_goes_directly_to_reels_validation() -> None:
+    workflow = load_instagram_workflow()
+    assert workflow["connections"]["Dry Run Instagram?"]["main"][1] == [
+        {"node": "Revalidar Midia", "type": "main", "index": 0}
+    ]
+    assert workflow["connections"]["Revalidar Midia"]["main"][0] == [
+        {"node": "Criar Container Reels", "type": "main", "index": 0}
+    ]
+    assert "Roteador Formato" not in workflow["connections"]
+    assert "Criar Container Pai Carrossel" not in workflow["connections"]
 
 
 def test_validate_pin_data_requires_allowlisted_instagram_target() -> None:

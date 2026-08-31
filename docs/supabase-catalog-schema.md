@@ -47,6 +47,7 @@ Migrations versionadas para aplicacao da feature Instagram:
 ```text
 supabase/migrations/202608150002_offer_media_assets.sql
 supabase/migrations/202608150003_instagram_media_ready_view.sql
+supabase/migrations/202608310001_instagram_reels_only.sql
 ```
 
 A migration incremental foi aplicada e o estado operacional vigente de
@@ -305,17 +306,16 @@ Instagram. A view junta `offers.daily_dispatch_plan`,
 `offers.v_offer_ranking_current` e `offers.offer_media_assets`, expondo somente
 itens com:
 
-- `dispatch_status = 'planned'`;
 - `offer_media_assets.status = 'valid'`;
-- `video_url` para formato `reels`, ou `image_urls` nao vazio para formato
-  `carousel`.
+- `video_url` preenchido para formato `reels`.
 
 Para Instagram, `refresh_status`, `is_eligible` e `ineligibility_reasons`
 continuam visiveis na view como observabilidade, mas nao bloqueiam a fila por
 `is_ready_for_dispatch`.
 
-A view pode retornar o mesmo item em mais de um formato quando ele tem video e
-imagens. Para Instagram, a ordenacao operacional usa `planned_date` e
+A partir de `2026-08-31`, a view retorna somente `instagram_format='reels'`.
+Produtos apenas com imagens nao entram na fila Instagram e nao ha fallback para
+carrossel. Para Instagram, a ordenacao operacional usa `planned_date` e
 `daily_sequence`; `planned_hour` permanece apenas como auditoria herdada do
 planner. O claim concorrente deve continuar acontecendo sobre
 `offers.daily_dispatch_plan`, com `FOR UPDATE SKIP LOCKED`.
@@ -487,8 +487,9 @@ A view `offers.v_daily_dispatch_ready` tambem expoe `refresh_status`,
 
 Para Instagram, o n8n deve consumir `offers.v_instagram_dispatch_ready`, que ja
 inclui midia resolvida e validada. O workflow Instagram e separado do workflow
-WhatsApp e registra resultados em `offers.publication_events` com
-`channel_adapter='instagram_reels'` ou `channel_adapter='instagram_carousel'`.
+WhatsApp e registra novos resultados diarios em `offers.publication_events` com
+`channel_adapter='instagram_reels'`. Registros antigos com
+`channel_adapter='instagram_carousel'` permanecem apenas como historico.
 
 O consumo direto da view de ranking deve ser lido como contrato legado do MVP
 inicial, nao como padrao operacional vigente.

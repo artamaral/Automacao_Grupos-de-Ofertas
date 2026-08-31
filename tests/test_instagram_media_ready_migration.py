@@ -15,10 +15,11 @@ READINESS_MIGRATION = Path(
 REELS_CAROUSEL_MIGRATION = Path(
     "supabase/migrations/202608220001_instagram_reels_carousel.sql"
 )
+REELS_ONLY_MIGRATION = Path("supabase/migrations/202608310001_instagram_reels_only.sql")
 
 
 def test_instagram_media_ready_view_joins_daily_plan_and_media_assets() -> None:
-    sql = REELS_CAROUSEL_MIGRATION.read_text(encoding="utf-8").lower()
+    sql = REELS_ONLY_MIGRATION.read_text(encoding="utf-8").lower()
 
     assert "create or replace view offers.v_instagram_dispatch_ready" in sql
     assert "with (security_invoker = true)" in sql
@@ -30,13 +31,13 @@ def test_instagram_media_ready_view_joins_daily_plan_and_media_assets() -> None:
     assert "ready.is_ready_for_dispatch" not in sql
 
 
-def test_instagram_media_ready_view_exposes_reels_and_carousel_formats() -> None:
-    sql = REELS_CAROUSEL_MIGRATION.read_text(encoding="utf-8").lower()
+def test_instagram_media_ready_view_exposes_only_reels_with_video() -> None:
+    sql = REELS_ONLY_MIGRATION.read_text(encoding="utf-8").lower()
 
     assert "'reels'::text as instagram_format" in sql
     assert "where media.video_url is not null" in sql
-    assert "'carousel'::text as instagram_format" in sql
-    assert "where jsonb_array_length(media.image_urls) >= 4" in sql
+    assert "'carousel'::text as instagram_format" not in sql
+    assert "jsonb_array_length(media.image_urls)" not in sql
     assert "plan.planned_date" in sql
     assert "plan.planned_hour" in sql
     assert "plan.slot_sequence" in sql
@@ -44,7 +45,7 @@ def test_instagram_media_ready_view_exposes_reels_and_carousel_formats() -> None
 
 
 def test_instagram_media_ready_view_exposes_ranking_observability_without_blocking() -> None:
-    sql = REELS_CAROUSEL_MIGRATION.read_text(encoding="utf-8").lower()
+    sql = REELS_ONLY_MIGRATION.read_text(encoding="utf-8").lower()
 
     assert "ranking.refresh_status" in sql
     assert "ranking.is_eligible" in sql

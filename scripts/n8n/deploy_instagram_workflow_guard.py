@@ -420,8 +420,18 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
     else:
         if "Registrar Resultado Supabase" not in dry_run_targets[0]:
             errors.append("dry-run true branch must register result")
-        if "Roteador Formato" not in dry_run_targets[1]:
-            errors.append("dry-run false branch must route to Instagram format")
+        if dry_run_targets[1] != {"Revalidar Midia"}:
+            errors.append("dry-run false branch must publish only through Reels media validation")
+
+    for carousel_source in (
+        "Roteador Formato",
+        "Preparar Filhos Carrossel",
+        "Criar Filhos Carrossel",
+        "Montar Payload Pai Carrossel",
+        "Criar Container Pai Carrossel",
+    ):
+        if _targets(connections, carousel_source):
+            errors.append(f"daily Instagram flow must not use carousel node: {carousel_source}")
 
     claim_node = node_by_name(workflow, "Claim Item Instagram")
     claim_query = ""
@@ -437,7 +447,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "expected.instagram_format",
         "plan.planned_date = (now() at time zone 'America/Sao_Paulo')::date",
         "media.video_url is not null",
-        "jsonb_array_length(media.image_urls) >= 4",
+        "instagram_confirmed < 6",
         "event.payload ->> 'source_dispatch_plan_id'",
         "event.payload ->> 'dry_run' = 'false'",
         "ctx.dry_run",
@@ -452,6 +462,9 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "offers.v_offer_ranking_current",
         "dispatch_status = 'planned'",
         "is_ready_for_dispatch",
+        "jsonb_array_length(media.image_urls)",
+        "then 'carousel'",
+        "carousel_confirmed",
     ):
         if forbidden_claim_text in claim_query:
             errors.append(f"forbidden expensive/cross-channel claim text: {forbidden_claim_text}")
@@ -476,12 +489,8 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "Entre no grupo do WhatsApp",
         "Copie o link da oferta",
         "graph.instagram.com",
-        "carousel requires between 4 and 10 image urls",
-        "carousel requires between 4 and 10 child containers",
-        "reels_confirmed",
-        "carousel_confirmed",
-        "carousel_image_url",
-        "carousel_child_ids",
+        "instagram_confirmed",
+        "reels_requires_video_url",
         "instagram container creation id ausente",
         "item.creation_id || item.id",
         "container_status",
@@ -490,8 +499,6 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
         "container_not_ready_timeout",
         "resume\": \"timeInterval",
         "media_type=REELS",
-        "media_type=CAROUSEL",
-        "is_carousel_item=true",
         "/media_publish",
         "instagram media publish id ausente",
         "instagram_media_id",
