@@ -251,7 +251,10 @@ def test_product_offer_response_maps_only_real_contract_fields() -> None:
 def test_productcatid_refresh_requires_exact_category_coverage() -> None:
     candidates = [
         replace(_candidate(item_id), product_cat_id=product_cat_id)
-        for item_id, product_cat_id in enumerate([100350, 100350, 100351], start=1)
+        for item_id, product_cat_id in enumerate(
+            [100350, 100350, 100351, 100999],
+            start=1,
+        )
     ]
     quotas = (ProductCategoryQuota(100350, 2), ProductCategoryQuota(100351, 1))
 
@@ -259,8 +262,21 @@ def test_productcatid_refresh_requires_exact_category_coverage() -> None:
 
     assert [item.product_cat_id for item in selected] == [100350, 100350, 100351]
     assert all(item.selection_bucket == "productcatid_exact" for item in selected)
+    selected_with_reserve = select_productcatid_refresh_candidates(
+        candidates,
+        quotas=quotas,
+        limit=4,
+    )
+    assert [item.product_cat_id for item in selected_with_reserve] == [
+        100350,
+        100350,
+        100351,
+        100999,
+    ]
+    with pytest.raises(CandidateRefreshError, match="cannot be below quota total"):
+        select_productcatid_refresh_candidates(candidates, quotas=quotas, limit=2)
     with pytest.raises(CandidateRefreshError, match="productCatId=100351"):
-        select_productcatid_refresh_candidates(candidates[:-1], quotas=quotas)
+        select_productcatid_refresh_candidates(candidates[:2], quotas=quotas)
 
 
 def test_product_offer_response_without_node_is_inconclusive() -> None:

@@ -285,17 +285,24 @@ def select_productcatid_refresh_candidates(
     candidates: Sequence[DiscoveryCandidate],
     *,
     quotas: Sequence[ProductCategoryQuota],
+    limit: int | None = None,
 ) -> list[DiscoveryCandidate]:
-    """Select the exact category coverage required before productCatId planning."""
+    """Select exact category coverage plus an optional top-score reserve."""
     allowed = {quota.product_cat_id: quota.daily_quantity for quota in quotas}
+    daily_total = sum(allowed.values())
+    resolved_limit = daily_total if limit is None else limit
+    if resolved_limit < daily_total:
+        raise CandidateRefreshError("productCatId refresh limit cannot be below quota total")
     grouped: dict[int, list[DiscoveryCandidate]] = defaultdict(list)
+    eligible_candidates: list[DiscoveryCandidate] = []
     for candidate in _deduplicate_candidates(candidates):
         if (
-            candidate.product_cat_id in allowed
-            and candidate.is_eligible
+            candidate.is_eligible
             and candidate.refresh_status != "UNAVAILABLE_CONFIRMED"
         ):
-            grouped[candidate.product_cat_id].append(candidate)
+            eligible_candidates.append(candidate)
+            if candidate.product_cat_id in allowed:
+                grouped[candidate.product_cat_id].append(candidate)
 
     selected: list[DiscoveryCandidate] = []
     selected_ids: set[tuple[str, int]] = set()
@@ -326,6 +333,25 @@ def select_productcatid_refresh_candidates(
                 f"{product_cat_id}: expected={quota} actual={len(category_selected)}"
             )
         selected.extend(category_selected)
+    reserve_limit = resolved_limit - len(selected)
+    if reserve_limit > 0:
+        reserve_candidates = sorted(
+            eligible_candidates,
+            key=lambda item: (
+                _priority(item),
+                item.rank_subniche or 2**63 - 1,
+                -(item.commercial_score or Decimal("0")),
+                item.item_id,
+            ),
+        )
+        for candidate in reserve_candidates:
+            key = (candidate.marketplace, candidate.item_id)
+            if key in selected_ids:
+                continue
+            selected_ids.add(key)
+            selected.append(replace(candidate, selection_bucket="productcatid_exact"))
+            if len(selected) == resolved_limit:
+                break
     return selected
 
 

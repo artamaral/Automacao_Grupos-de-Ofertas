@@ -305,6 +305,7 @@ def run_candidate_refresh(
         discovery_candidates = select_productcatid_refresh_candidates(
             operational_candidates,
             quotas=productcatid_quotas,
+            limit=discovery_limit,
         )
     else:
         discovery_candidates = select_ranked_refresh_candidates(
