@@ -127,9 +127,9 @@ service com falha. O limite padrao de recorrencia e
   --profile feminino \
   --marketplace shopee \
   --productcatid-matrix config/shopee_productcatid_quotas_feminino.csv \
-  --discovery-limit 160 \
-  --scoring-limit 160 \
-  --max-api-calls 160 \
+  --discovery-limit 1000 \
+  --scoring-limit 1000 \
+  --max-api-calls 1000 \
   --apply \
   --confirm-remote-write REFRESH_SHOPEE_CANDIDATES
 ```
@@ -159,8 +159,10 @@ Etapa final obrigatoria do mesmo wrapper:
 ```
 
 No modo `productCatId`, os 140 itens da matriz continuam sendo o contrato da
-fila diaria. O limite operacional de refresh fica maior (`160`) para manter
-uma reserva geral de candidatos `FRESH`; essa reserva permite que o planner
+fila diaria. O limite operacional de refresh permanece amplo (`1000`) para
+recalcular preco, comissao e demais sinais comerciais em uma fronteira maior
+do catalogo antes do planejamento; alem de preservar ranking atualizado, essa
+profundidade mantem uma reserva geral de candidatos `FRESH` para que o planner
 complete lacunas com `selection_reason='productcatid:<id>:top_score_fallback'`
 quando uma chamada falhar ou um item cair na revalidacao.
 
