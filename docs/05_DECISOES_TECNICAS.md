@@ -14,6 +14,10 @@ Decisao:
 - usar a matriz canonica de 53 categorias e quotas que somam 140 itens por dia;
 - integrar o planner de `productCatId` fornecido pelo usuario e preservar a
   grade atual de 14 janelas, das 08h as 21h;
+- quando uma categoria da matriz nao tiver candidatos aptos suficientes,
+  completar a lacuna com os melhores candidatos gerais disponiveis, mantendo
+  `selection_bucket='productcatid_exact'` e auditando o desvio em
+  `selection_reason='productcatid:<id>:top_score_fallback'`;
 - alterar o piso de elegibilidade de rating de 4.8 para 4.5 e manter os termos
   proibidos como unico filtro semantico textual;
 - executar o cutover somente depois das 21h BRT, como ultima etapa, sem alterar

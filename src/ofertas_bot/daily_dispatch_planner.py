@@ -258,7 +258,7 @@ def plan_productcatid_dispatches(
     policy: DailyPlanningPolicy,
     planned_date: date,
 ) -> list[PlannedDispatch]:
-    """Build an exact-quota plan without using subniche taxonomy or fallback."""
+    """Build a productCatId-led plan, filling category shortfalls by top score."""
     validate_daily_planning_policy(policy)
     quota_map = {quota.product_cat_id: quota.daily_quantity for quota in quotas}
     if sum(quota_map.values()) != policy.daily_total_items:
@@ -266,18 +266,21 @@ def plan_productcatid_dispatches(
             "productCatId quotas must match the policy daily total"
         )
 
+    eligible_candidates: list[DispatchCandidate] = []
     candidates_by_category: dict[int, list[DispatchCandidate]] = defaultdict(list)
     for candidate in candidates:
         if (
             candidate.profile == policy.profile
             and candidate.marketplace == policy.marketplace
-            and candidate.product_cat_id in quota_map
             and candidate.rating is not None
             and candidate.rating >= Decimal("4.5")
         ):
-            candidates_by_category[candidate.product_cat_id].append(candidate)
+            eligible_candidates.append(candidate)
+            if candidate.product_cat_id in quota_map:
+                candidates_by_category[candidate.product_cat_id].append(candidate)
 
     selected_by_category: dict[int, deque[DispatchCandidate]] = {}
+    fallback_deficits: list[tuple[int, int]] = []
     used_keys: set[str] = set()
     for product_cat_id, quota in quota_map.items():
         eligible = sorted(
@@ -297,11 +300,8 @@ def plan_productcatid_dispatches(
             used_keys.add(candidate.stable_key)
             if len(selected) == quota:
                 break
-        if len(selected) != quota:
-            raise DispatchPlanningError(
-                "insufficient candidates for productCatId="
-                f"{product_cat_id}: expected={quota} actual={len(selected)}"
-            )
+        if len(selected) < quota:
+            fallback_deficits.append((product_cat_id, quota - len(selected)))
         selected_by_category[product_cat_id] = deque(selected)
 
     selected: list[tuple[DispatchCandidate, str, str]] = []
@@ -323,6 +323,41 @@ def plan_productcatid_dispatches(
                 f"productcatid:{product_cat_id}",
             )
         )
+
+    fallback_needed = sum(missing for _, missing in fallback_deficits)
+    if fallback_needed:
+        fallback_pool = sorted(
+            (
+                candidate
+                for candidate in eligible_candidates
+                if candidate.stable_key not in used_keys
+            ),
+            key=lambda item: (
+                -item.commercial_score,
+                -item.sales_count,
+                -(item.rating or Decimal(0)),
+                item.item_id,
+            ),
+        )
+        if len(fallback_pool) < fallback_needed:
+            missing = fallback_needed - len(fallback_pool)
+            raise DispatchPlanningError(
+                "insufficient productCatId fallback candidates: "
+                f"missing {missing}"
+            )
+        fallback_cursor = 0
+        for product_cat_id, missing in fallback_deficits:
+            for _ in range(missing):
+                candidate = fallback_pool[fallback_cursor]
+                fallback_cursor += 1
+                used_keys.add(candidate.stable_key)
+                selected.append(
+                    (
+                        candidate,
+                        "productcatid_exact",
+                        f"productcatid:{product_cat_id}:top_score_fallback",
+                    )
+                )
 
     if len(selected) != policy.daily_total_items:
         raise DispatchPlanningError("productCatId plan does not contain the daily total")

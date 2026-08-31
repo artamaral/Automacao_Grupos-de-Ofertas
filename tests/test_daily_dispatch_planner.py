@@ -336,7 +336,7 @@ def test_policy_without_publication_groups_preserves_subniche_behavior() -> None
     ]
 
 
-def test_productcatid_plan_requires_each_exact_quota_without_taxonomy_fallback() -> None:
+def test_productcatid_plan_fills_category_shortfall_from_top_general_score() -> None:
     quotas = (
         ProductCategoryQuota(100350, 4),
         ProductCategoryQuota(100351, 3),
@@ -366,10 +366,23 @@ def test_productcatid_plan_requires_each_exact_quota_without_taxonomy_fallback()
             product_cat_id=product_cat_id,
         )
         for item_id, product_cat_id in enumerate(
-            [100350] * 4 + [100351] * 3 + [100352] * 2,
+            [100350] * 4 + [100351] * 3 + [100352],
             start=1,
         )
     ]
+    candidates.append(
+        DispatchCandidate(
+            profile="feminino",
+            marketplace="shopee",
+            stable_key=f"{99:064x}",
+            item_id=99,
+            primary_subniche="productcatid:100999",
+            commercial_score=Decimal("9999"),
+            sales_count=999,
+            rating=Decimal("4.8"),
+            product_cat_id=100999,
+        )
+    )
 
     plan = plan_productcatid_dispatches(
         candidates,
@@ -380,12 +393,19 @@ def test_productcatid_plan_requires_each_exact_quota_without_taxonomy_fallback()
 
     assert len(plan) == 9
     assert Counter(item.candidate.product_cat_id for item in plan) == Counter(
-        {100350: 4, 100351: 3, 100352: 2}
+        {100350: 4, 100351: 3, 100352: 1, 100999: 1}
     )
     assert all(item.selection_bucket == "productcatid_exact" for item in plan)
+    assert (
+        sum(
+            item.selection_reason == "productcatid:100352:top_score_fallback"
+            for item in plan
+        )
+        == 1
+    )
     assert [item.daily_sequence for item in plan] == list(range(1, 10))
 
-    with pytest.raises(DispatchPlanningError, match="productCatId=100352"):
+    with pytest.raises(DispatchPlanningError, match="fallback candidates"):
         plan_productcatid_dispatches(
             candidates[:-1],
             quotas=quotas,

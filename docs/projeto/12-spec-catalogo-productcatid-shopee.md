@@ -174,7 +174,10 @@ segundo catalogo persistente nem uma segunda fonte operacional.
   `--productcatid-matrix <arquivo>`. Sem essa flag, o planner atual por
   subnicho permanece inalterado.
 - O novo plano usa `selection_bucket='productcatid_exact'` e
-  `selection_reason='productcatid:<id>'`. O campo legado
+  `selection_reason='productcatid:<id>'`. Quando a categoria nao tem
+  candidatos aptos suficientes, o planner completa a lacuna com o melhor score
+  geral ainda nao usado e registra
+  `selection_reason='productcatid:<id>:top_score_fallback'`. O campo legado
   `primary_subniche` permanece apenas como rotulo tecnico de compatibilidade
   (`productcatid:<id>`), nao como classificacao interna.
 
@@ -198,8 +201,9 @@ geracao `current`.
 
 - Simulacao com a matriz real: 46 categorias, 140 candidatos, 140 slots e 10
   itens em cada uma das 14 janelas.
-- Simulacao de cobertura incompleta: falha com o `productCatId` e a quantidade
-  ausente, sem redistribuicao silenciosa.
+- Simulacao de cobertura incompleta: completa a lacuna com fallback geral por
+  score quando houver candidato apto sobrando; falha apenas quando o universo
+  elegivel nao fecha os 140 slots.
 - Refresh por categoria: seleciona somente quotas exatas e falha quando uma
   categoria nao tem candidatos suficientes.
 
@@ -318,10 +322,10 @@ matriz feminina de 46 productCatId e quotas
 - Horarios, sequenciamento, claim, tracking, cooldown e idempotencia existentes
   devem ser preservados.
 - O plano deve conter somente itens `current`, elegiveis e `FRESH` no dia BRT.
-- Se nao houver candidatos suficientes para cumprir qualquer quota, o planner
-  deve falhar sem persistir um plano parcial.
-- Nao deve haver fallback entre categorias, salvo se estiver explicitamente
-  definido no planner fornecido pelo usuario.
+- Se nao houver candidatos suficientes para cumprir uma quota, o planner deve
+  preencher a lacuna com o melhor candidato geral apto ainda nao usado.
+- Se nem o fallback geral tiver candidatos suficientes para fechar o total
+  diario, o planner deve falhar sem persistir um plano parcial.
 - O n8n continua apenas consumindo a fila pronta; ele nao classifica, ranqueia
   nem redistribui categorias.
 

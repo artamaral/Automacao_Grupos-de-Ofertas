@@ -40,16 +40,16 @@ def test_cross_category_item_is_blocking() -> None:
         )
 
 
-def test_planner_requires_exact_quotas_without_fallback() -> None:
+def test_planner_fills_productcatid_shortfall_with_top_score_fallback() -> None:
     quotas = (ProductCategoryQuota(1, 2), ProductCategoryQuota(2, 1))
     candidates = [
         ProductCatIdCandidate(str(index), index, category, Decimal("10"), 20, Decimal("4.5"))
-        for index, category in ((1, 1), (2, 1), (3, 2))
+        for index, category in ((1, 1), (2, 1), (3, 3))
     ]
     assert [item.product_cat_id for item in plan_by_product_category(candidates, quotas)] == [
         1,
         1,
-        2,
+        3,
     ]
     with pytest.raises(ProductCatIdCatalogError, match="insufficient"):
         plan_by_product_category(candidates[:2], quotas)

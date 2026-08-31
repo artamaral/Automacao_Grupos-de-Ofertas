@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import csv
-from collections import Counter, defaultdict, deque
+from collections import defaultdict, deque
 from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
@@ -114,13 +114,16 @@ def plan_by_product_category(
 ) -> list[ProductCatIdCandidate]:
     quota_map = {item.product_cat_id: item.daily_quantity for item in quotas}
     grouped: dict[int, deque[ProductCatIdCandidate]] = defaultdict(deque)
-    for candidate in sorted(
-        candidates, key=lambda item: (-item.commercial_score, -item.sales_count, item.item_id)
-    ):
-        if candidate.product_cat_id in quota_map and is_rating_eligible(candidate.rating):
+    eligible_candidates = sorted(
+        (item for item in candidates if is_rating_eligible(item.rating)),
+        key=lambda item: (-item.commercial_score, -item.sales_count, item.item_id),
+    )
+    for candidate in eligible_candidates:
+        if candidate.product_cat_id in quota_map:
             grouped[candidate.product_cat_id].append(candidate)
     selected: list[ProductCatIdCandidate] = []
     used: set[str] = set()
+    shortfalls: list[tuple[int, int, int]] = []
     for product_cat_id, quantity in quota_map.items():
         category_selected: list[ProductCatIdCandidate] = []
         while grouped[product_cat_id] and len(category_selected) < quantity:
@@ -129,14 +132,23 @@ def plan_by_product_category(
                 used.add(candidate.stable_key)
                 category_selected.append(candidate)
         if len(category_selected) != quantity:
-            raise ProductCatIdCatalogError(
-                "insufficient candidates for "
-                f"productCatId={product_cat_id}: expected={quantity} "
-                f"actual={len(category_selected)}"
-            )
+            shortfalls.append((product_cat_id, quantity, len(category_selected)))
         selected.extend(category_selected)
-    if len(selected) != sum(quota_map.values()) or Counter(
-        item.product_cat_id for item in selected
-    ) != Counter({key: value for key, value in quota_map.items()}):
-        raise ProductCatIdCatalogError("productCatId planner did not satisfy exact quotas")
+    fallback_needed = sum(expected - actual for _, expected, actual in shortfalls)
+    if fallback_needed:
+        fallback_pool = [
+            candidate for candidate in eligible_candidates if candidate.stable_key not in used
+        ]
+        if len(fallback_pool) < fallback_needed:
+            details = "; ".join(
+                f"productCatId={product_cat_id}: expected={expected} actual={actual}"
+                for product_cat_id, expected, actual in shortfalls
+            )
+            raise ProductCatIdCatalogError(
+                "insufficient productCatId fallback candidates: "
+                f"missing={fallback_needed - len(fallback_pool)}; {details}"
+            )
+        selected.extend(fallback_pool[:fallback_needed])
+    if len(selected) != sum(quota_map.values()):
+        raise ProductCatIdCatalogError("productCatId planner did not satisfy daily total")
     return selected
