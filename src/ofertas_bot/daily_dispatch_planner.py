@@ -7,6 +7,8 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+from ofertas_bot.productcatid_catalog import ProductCategoryQuota
+
 
 class DispatchPlanningError(ValueError):
     """Raised when a daily dispatch plan cannot satisfy its contract."""
@@ -22,6 +24,7 @@ class DispatchCandidate:
     commercial_score: Decimal
     sales_count: int
     rating: Decimal | None
+    product_cat_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -246,6 +249,111 @@ def plan_daily_dispatches(
         )
 
     return _sequence_windows(selected, policy=policy, planned_date=planned_date)
+
+
+def plan_productcatid_dispatches(
+    candidates: list[DispatchCandidate],
+    *,
+    quotas: tuple[ProductCategoryQuota, ...],
+    policy: DailyPlanningPolicy,
+    planned_date: date,
+) -> list[PlannedDispatch]:
+    """Build an exact-quota plan without using subniche taxonomy or fallback."""
+    validate_daily_planning_policy(policy)
+    quota_map = {quota.product_cat_id: quota.daily_quantity for quota in quotas}
+    if sum(quota_map.values()) != policy.daily_total_items:
+        raise DispatchPlanningError(
+            "productCatId quotas must match the policy daily total"
+        )
+
+    candidates_by_category: dict[int, list[DispatchCandidate]] = defaultdict(list)
+    for candidate in candidates:
+        if (
+            candidate.profile == policy.profile
+            and candidate.marketplace == policy.marketplace
+            and candidate.product_cat_id in quota_map
+            and candidate.rating is not None
+            and candidate.rating >= Decimal("4.5")
+        ):
+            candidates_by_category[candidate.product_cat_id].append(candidate)
+
+    selected_by_category: dict[int, deque[DispatchCandidate]] = {}
+    used_keys: set[str] = set()
+    for product_cat_id, quota in quota_map.items():
+        eligible = sorted(
+            candidates_by_category[product_cat_id],
+            key=lambda item: (
+                -item.commercial_score,
+                -item.sales_count,
+                -(item.rating or Decimal(0)),
+                item.item_id,
+            ),
+        )
+        selected: list[DispatchCandidate] = []
+        for candidate in eligible:
+            if candidate.stable_key in used_keys:
+                continue
+            selected.append(candidate)
+            used_keys.add(candidate.stable_key)
+            if len(selected) == quota:
+                break
+        if len(selected) != quota:
+            raise DispatchPlanningError(
+                "insufficient candidates for productCatId="
+                f"{product_cat_id}: expected={quota} actual={len(selected)}"
+            )
+        selected_by_category[product_cat_id] = deque(selected)
+
+    selected: list[tuple[DispatchCandidate, str, str]] = []
+    while any(selected_by_category.values()):
+        available = [
+            product_cat_id
+            for product_cat_id, queue in selected_by_category.items()
+            if queue
+        ]
+        product_cat_id = min(
+            available,
+            key=lambda item: (-len(selected_by_category[item]), item),
+        )
+        candidate = selected_by_category[product_cat_id].popleft()
+        selected.append(
+            (
+                candidate,
+                "productcatid_exact",
+                f"productcatid:{product_cat_id}",
+            )
+        )
+
+    if len(selected) != policy.daily_total_items:
+        raise DispatchPlanningError("productCatId plan does not contain the daily total")
+    return _sequence_productcatid_windows(
+        selected,
+        policy=policy,
+        planned_date=planned_date,
+    )
+
+
+def _sequence_productcatid_windows(
+    selected: list[tuple[DispatchCandidate, str, str]],
+    *,
+    policy: DailyPlanningPolicy,
+    planned_date: date,
+) -> list[PlannedDispatch]:
+    planned: list[PlannedDispatch] = []
+    for daily_sequence, (candidate, bucket, reason) in enumerate(selected, start=1):
+        window_index, slot_index = divmod(daily_sequence - 1, policy.items_per_window)
+        planned.append(
+            PlannedDispatch(
+                candidate=candidate,
+                selection_bucket=bucket,
+                selection_reason=reason,
+                planned_date=planned_date,
+                planned_hour=policy.schedule_hours[window_index],
+                slot_sequence=slot_index + 1,
+                daily_sequence=daily_sequence,
+            )
+        )
+    return planned
 
 
 def _sequence_windows(

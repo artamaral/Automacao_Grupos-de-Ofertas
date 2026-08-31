@@ -20,12 +20,14 @@ from ofertas_bot.candidate_refresh import (
     ScoringCandidate,
     SnapshotInput,
     scale_subniche_quotas,
+    select_productcatid_refresh_candidates,
     select_ranked_refresh_candidates,
     select_scoring_candidates,
     snapshot_from_product_offer_response,
 )
 from ofertas_bot.distribution_strategy import resolve_profile_distribution_strategy
 from ofertas_bot.models import ScoredOffer
+from ofertas_bot.productcatid_catalog import ProductCategoryQuota, load_product_category_quotas
 from ofertas_bot.providers.shopee import ShopeeProvider
 from ofertas_bot.selection import apply_default_selection_policy
 from ofertas_bot.settings import get_settings
@@ -38,6 +40,7 @@ DEFAULT_OUTPUT_BASE_DIR = Path(".data/candidate_refresh")
 OPERATIONAL_TZ = ZoneInfo("America/Sao_Paulo")
 DISCOVERY_FIELDNAMES = (
     "item_id",
+    "product_cat_id",
     "product_name",
     "primary_subniche",
     "refresh_status",
@@ -53,6 +56,7 @@ DISCOVERY_FIELDNAMES = (
 )
 ATTEMPT_FIELDNAMES = (
     "item_id",
+    "product_cat_id",
     "primary_subniche",
     "selection_bucket",
     "rank_subniche",
@@ -64,6 +68,7 @@ ATTEMPT_FIELDNAMES = (
 )
 RANKING_CHANGE_FIELDNAMES = (
     "item_id",
+    "product_cat_id",
     "primary_subniche",
     "rank_before",
     "rank_after",
@@ -123,6 +128,7 @@ class CandidateRefreshStore(Protocol):
         profile: str,
         marketplace: str,
         item_ids: Sequence[int] | None = None,
+        productcatid_only: bool = False,
     ) -> list[DiscoveryCandidate]:
         ...
 
@@ -181,6 +187,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scoring-limit", type=int, default=200)
     parser.add_argument("--max-api-calls", type=int, default=500)
     parser.add_argument("--item-id", type=int, action="append", default=None)
+    parser.add_argument(
+        "--productcatid-matrix",
+        type=Path,
+        help="Use exact productCatId refresh coverage. Enable only during cutover.",
+    )
     parser.add_argument("--output-base-dir", type=Path, default=DEFAULT_OUTPUT_BASE_DIR)
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--dry-run", action="store_true")
@@ -218,6 +229,11 @@ def run(
             apply=args.apply,
             store=store,
             provider=provider,
+            productcatid_quotas=(
+                load_product_category_quotas(args.productcatid_matrix)
+                if args.productcatid_matrix
+                else None
+            ),
         )
     except Exception as error:  # noqa: BLE001 - CLI reports provider/database failures.
         print("ERRO | Refresh progressivo bloqueado", file=sys.stderr)
@@ -245,6 +261,7 @@ def run_candidate_refresh(
     store: CandidateRefreshStore,
     provider: ProductOfferProvider | None,
     operational_date: date | None = None,
+    productcatid_quotas: Sequence[ProductCategoryQuota] | None = None,
 ) -> CandidateRefreshRunResult:
     started = perf_counter()
     resolved_run_id = run_id or datetime.now(UTC).strftime("%Y-%m-%dT%H-%M-%S-%fZ")
@@ -259,11 +276,19 @@ def run_candidate_refresh(
         operational_date=resolved_operational_date,
     )
 
-    all_candidates = store.load_discovery_candidates(
-        profile=profile,
-        marketplace=marketplace,
-        item_ids=item_ids,
-    )
+    if productcatid_quotas is not None:
+        all_candidates = store.load_discovery_candidates(
+            profile=profile,
+            marketplace=marketplace,
+            item_ids=item_ids,
+            productcatid_only=True,
+        )
+    else:
+        all_candidates = store.load_discovery_candidates(
+            profile=profile,
+            marketplace=marketplace,
+            item_ids=item_ids,
+        )
     operational_candidates = [
         _with_operational_refresh_status(
             candidate,
@@ -276,6 +301,11 @@ def run_candidate_refresh(
             replace(candidate, selection_bucket="explicit_item")
             for candidate in operational_candidates
         ]
+    elif productcatid_quotas is not None:
+        discovery_candidates = select_productcatid_refresh_candidates(
+            operational_candidates,
+            quotas=productcatid_quotas,
+        )
     else:
         discovery_candidates = select_ranked_refresh_candidates(
             operational_candidates,
@@ -341,6 +371,7 @@ def run_candidate_refresh(
             snapshot = snapshot_from_product_offer_response(
                 response=response,
                 requested_item_id=candidate.item_id,
+                requested_product_cat_id=candidate.product_cat_id,
                 checked_at=attempted_at,
             )
         except CandidateRefreshError as error:
@@ -398,11 +429,19 @@ def run_candidate_refresh(
         )
 
     discovery_item_ids = [candidate.item_id for candidate in discovery_candidates]
-    after_candidates = store.load_discovery_candidates(
-        profile=profile,
-        marketplace=marketplace,
-        item_ids=discovery_item_ids,
-    )
+    if productcatid_quotas is not None:
+        after_candidates = store.load_discovery_candidates(
+            profile=profile,
+            marketplace=marketplace,
+            item_ids=discovery_item_ids,
+            productcatid_only=True,
+        )
+    else:
+        after_candidates = store.load_discovery_candidates(
+            profile=profile,
+            marketplace=marketplace,
+            item_ids=discovery_item_ids,
+        )
     ranking_change_rows = [
         _ranking_change_row(before_by_item[item.item_id], item)
         for item in after_candidates
@@ -641,6 +680,7 @@ def _attempt_row(
 ) -> dict[str, Any]:
     return {
         "item_id": candidate.item_id,
+        "product_cat_id": candidate.product_cat_id or "",
         "primary_subniche": candidate.primary_subniche,
         "selection_bucket": candidate.selection_bucket,
         "rank_subniche": candidate.rank_subniche or "",
@@ -655,6 +695,7 @@ def _attempt_row(
 def _discovery_row(candidate: DiscoveryCandidate) -> dict[str, Any]:
     return {
         "item_id": candidate.item_id,
+        "product_cat_id": candidate.product_cat_id or "",
         "product_name": candidate.product_name,
         "primary_subniche": candidate.primary_subniche,
         "refresh_status": candidate.refresh_status,
@@ -680,6 +721,7 @@ def _ranking_change_row(
 ) -> dict[str, Any]:
     return {
         "item_id": before.item_id,
+        "product_cat_id": before.product_cat_id or "",
         "primary_subniche": before.primary_subniche,
         "rank_before": before.rank_profile or "",
         "rank_after": after.rank_profile or "",

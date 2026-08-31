@@ -97,7 +97,7 @@ DEFAULT_PRODUCT_CAT_IDS = [
     100594,
 ]
 BATCH_FIELDNAMES = [
-    "productCatIdRequested",
+    "productCatId",
     "requestPage",
     "responsePage",
     "responseLimit",
@@ -310,7 +310,7 @@ def _write_nodes(
     for node in nodes:
         writer.writerow(
             {
-                "productCatIdRequested": product_cat_id,
+                "productCatId": product_cat_id,
                 "requestPage": request_page,
                 "responsePage": page_info.get("page"),
                 "responseLimit": page_info.get("limit"),

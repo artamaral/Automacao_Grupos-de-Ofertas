@@ -45,7 +45,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         project_operational_catalog_row(row)
         for row in rows
         if _sales_is_greater_than_one(row.get("sales"))
-        and _rating_is_at_least_4_8(row.get("ratingStar"))
+        and _rating_is_at_least_4_5(row.get("ratingStar"))
     ]
     _write_catalog_csv(
         target_path,
@@ -75,11 +75,11 @@ def _sales_is_greater_than_one(value: str | None) -> bool:
         return False
 
 
-def _rating_is_at_least_4_8(value: str | None) -> bool:
+def _rating_is_at_least_4_5(value: str | None) -> bool:
     if value is None:
         return False
     try:
-        return Decimal(str(value)) >= Decimal("4.8")
+        return Decimal(str(value)) >= Decimal("4.5")
     except (InvalidOperation, ValueError):
         return False
 

@@ -7,6 +7,7 @@ from typing import Any
 # collector -> scorer -> selecao -> copy -> dispatch.
 OPERATIONAL_CATALOG_FIELDNAMES = [
     "itemId",
+    "productCatId",
     "productName",
     "productLink",
     "offerLink",

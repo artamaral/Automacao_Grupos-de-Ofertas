@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from ofertas_bot.models import Marketplace, Offer
+from ofertas_bot.productcatid_catalog import ProductCategoryQuota
 from ofertas_bot.providers.shopee_graphql import (
     ShopeeGraphqlPayloadError,
     extract_shopee_offer_connection,
@@ -57,6 +58,7 @@ class DiscoveryCandidate:
     is_eligible: bool = True
     commercial_data_source: str = "catalog"
     selection_bucket: str = ""
+    product_cat_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -88,6 +90,7 @@ class SnapshotInput:
     period_start_time: int | None
     period_end_time: int | None
     source_payload: dict[str, Any]
+    product_cat_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -278,6 +281,54 @@ def select_ranked_refresh_candidates(
     return cache_hits + selected
 
 
+def select_productcatid_refresh_candidates(
+    candidates: Sequence[DiscoveryCandidate],
+    *,
+    quotas: Sequence[ProductCategoryQuota],
+) -> list[DiscoveryCandidate]:
+    """Select the exact category coverage required before productCatId planning."""
+    allowed = {quota.product_cat_id: quota.daily_quantity for quota in quotas}
+    grouped: dict[int, list[DiscoveryCandidate]] = defaultdict(list)
+    for candidate in _deduplicate_candidates(candidates):
+        if (
+            candidate.product_cat_id in allowed
+            and candidate.is_eligible
+            and candidate.refresh_status != "UNAVAILABLE_CONFIRMED"
+        ):
+            grouped[candidate.product_cat_id].append(candidate)
+
+    selected: list[DiscoveryCandidate] = []
+    selected_ids: set[tuple[str, int]] = set()
+    for product_cat_id, quota in allowed.items():
+        category_candidates = sorted(
+            grouped[product_cat_id],
+            key=lambda item: (
+                _priority(item),
+                item.rank_subniche or 2**63 - 1,
+                -(item.commercial_score or Decimal("0")),
+                item.item_id,
+            ),
+        )
+        category_selected: list[DiscoveryCandidate] = []
+        for candidate in category_candidates:
+            key = (candidate.marketplace, candidate.item_id)
+            if key in selected_ids:
+                continue
+            selected_ids.add(key)
+            category_selected.append(
+                replace(candidate, selection_bucket="productcatid_exact")
+            )
+            if len(category_selected) == quota:
+                break
+        if len(category_selected) != quota:
+            raise CandidateRefreshError(
+                "insufficient refresh candidates for productCatId="
+                f"{product_cat_id}: expected={quota} actual={len(category_selected)}"
+            )
+        selected.extend(category_selected)
+    return selected
+
+
 def select_scoring_candidates(
     candidates: Sequence[ScoringCandidate],
     *,
@@ -319,6 +370,7 @@ def snapshot_from_product_offer_response(
     *,
     response: Mapping[str, Any],
     requested_item_id: int,
+    requested_product_cat_id: int | None = None,
     checked_at: datetime | None = None,
 ) -> SnapshotInput | None:
     try:
@@ -376,6 +428,7 @@ def snapshot_from_product_offer_response(
         period_start_time=_optional_int(node.get("periodStartTime")),
         period_end_time=_optional_int(node.get("periodEndTime")),
         source_payload=source_payload,
+        product_cat_id=requested_product_cat_id,
     )
 
 

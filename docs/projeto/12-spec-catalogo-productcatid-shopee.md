@@ -2,11 +2,223 @@
 
 ## Status
 
-Decisoes de produto e operacao fechadas para implementacao.
+Decisoes de produto e operacao fechadas. A fundacao de discovery, limpeza,
+schema, referencias, staging e cutover atomico no Supabase foi implementada e
+validada. Permanecem pendentes o refresh real, o planejamento do proximo dia,
+deploy VPS e validacao do n8n ativo.
 
-A implementacao depende apenas do recebimento do planner de `productCatId`,
-ja preparado pelo usuario, e das autorizacoes separadas para migration remota,
-cutover, deploy VPS e ativacao ou restart operacional.
+## Implementacao realizada
+
+- A matriz versionada vigente e
+  `config/shopee_productcatid_quotas_feminino.csv`, com 46 categorias e 140
+  itens por dia.
+- O discovery em lote usa `productCatId` singular no request e registra o
+  mesmo campo em cada linha do CSV bruto. `productCatIds` continua somente
+  como dado bruto do response.
+- O limpador `scripts/shopee/clean_productcatid_catalog.py` nao classifica
+  subnichos: valida allowlist, item, preco, imagem, comissao, vendas, rating
+  maior ou igual a 4.5 e os termos proibidos vigentes.
+- A rodada validada teve 18.179 linhas brutas e produziu 4.511 itens limpos;
+  nao houve conflito de um `itemId` entre categorias.
+- A cobertura do catalogo limpo atende todas as 46 quotas e o total de 140.
+- A migration remota `20260830172654_productcatid_catalog` foi aplicada ao
+  projeto Supabase. Ela criou as tabelas de categorias e quotas, adicionou os
+  campos de categoria/status ao catalogo e propagou `product_cat_id` ate
+  `v_daily_dispatch_ready_tracked`, sem stale, refresh, fila ou cutover.
+- A carga de referencia Supabase foi validada: 1.339 categorias oficiais,
+  46 quotas ativas, soma 140, FK valida e RLS habilitado nas duas tabelas.
+- A migration remota `productcatid_import_staging` criou uma area inerte de
+  pre-corte, protegida por RLS e sem leitor operacional:
+  `offers.productcatid_import_batches` e
+  `offers.productcatid_import_batch_items`. Ela nao e um segundo catalogo e
+  nao participa de ranking, refresh, planner, ready views ou n8n.
+- O CLI `scripts/supabase/stage_productcatid_catalog.py` validou e carregou o
+  lote `f766c367-26ff-4081-85ba-685b36180f9e`, geracao
+  `productcatid-20260830`: 4.511 itens e 46 categorias, todos dentro da
+  matriz ativa. A verificacao posterior confirmou RLS nas duas tabelas e zero
+  linha dessa geracao em `offers.catalog_items`; portanto nao houve alteracao
+  de `current`, `legacy`, snapshots, fila ou freshness.
+- Ranking, refresh e planner foram preparados localmente para o modo explicito
+  de `productCatId`. A ativacao ocorreu apenas durante o cutover atomico,
+  depois da confirmacao das 21h BRT, sem modificar o plano confirmado do dia.
+
+## Etapa concluida - Cutover atomico ProductCatId
+
+### Execucao
+
+- Migration remota `productcatid_ranking_refresh_planner` aplicada apos
+  autorizacao explicita. Ela executou preflight, migration de views e promocao
+  do staging em uma unica transacao do Supabase.
+- O preflight exigiu: horario posterior a 21h BRT, lote com 4.511 itens e 46
+  categorias, rating minimo 4,5, cobertura da matriz, ausencia de conflito de
+  `stable_key` e as 140 linhas do plano do dia em `confirmed`.
+- O lote `f766c367-26ff-4081-85ba-685b36180f9e` foi promovido como geracao
+  `productcatid-20260830`; os itens femininos anteriores foram preservados
+  como `legacy`, sem hard delete.
+- `refresh_required_after` foi preenchido nos 4.511 itens `current`. Logo,
+  nenhum snapshot anterior ao corte pode ser reutilizado como `FRESH` pelo
+  ranking, planner ou ready view.
+
+### Auditoria remota apos commit
+
+| Verificacao | Resultado |
+| --- | ---: |
+| Itens `current` | 4.511 |
+| Itens `legacy` | 23.935 |
+| Categorias `current` | 46 |
+| Itens current sem `product_cat_id` | 0 |
+| Itens current com rating nulo ou menor que 4,5 | 0 |
+| Linhas current reconciliadas com staging | 4.511 |
+| Itens current com cutoff de refresh | 4.511 |
+| Plano do dia | 140 `confirmed` |
+| Registros de cutover | 1 |
+
+### Proximo passo controlado
+
+O refresh real foi executado em seguida por matriz `product_cat_id`: 140
+chamadas Shopee, 140 sucessos, 140 snapshots e zero falhas ou `no_node`. A
+validacao remota confirmou cobertura `FRESH` suficiente em todas as 46 quotas.
+
+O planner do proximo dia ainda nao foi persistido. O dry-run para
+`2026-08-31` foi corretamente bloqueado porque a regra operacional vigente
+exige `last_checked_at` na mesma data do plano, enquanto o refresh ocorreu em
+`2026-08-30` apos as 21h BRT. A decisao pendente e manter essa regra e executar
+novo refresh apos meia-noite, ou alterar explicitamente a semantica de
+freshness para TTL/cutoff. Nenhum plano parcial foi criado.
+
+O cutover e refresh nao executaram tracking, deploy VPS, ativacao do n8n ou
+envio real.
+
+## Etapa concluida - Staging controlado pre-cutover
+
+### Objetivo
+
+Preparar no Supabase uma geracao validada do novo catalogo feminino para o
+cutover, sem antecipar nenhuma mudanca no catalogo operacional. O staging e
+um registro de importacao temporario e auditavel; ele nao representa um
+segundo catalogo persistente nem uma segunda fonte operacional.
+
+### Entradas
+
+- Catalogo limpo:
+  `.data/shopee_productcatid/clean/clean_catalog_productcatid_rating_4_5_plus.csv`.
+- Matriz canonica:
+  `config/shopee_productcatid_quotas_feminino.csv`, com 46 IDs e total 140.
+- Taxonomia oficial local: `data/shopee_product_categories.csv`.
+- Geracao declarada: `productcatid-20260830`.
+- Momento observado em UTC, informado explicitamente no comando de escrita.
+
+### Processo executado
+
+1. O CLI `scripts/supabase/stage_productcatid_catalog.py` le o catalogo pelo
+   mesmo contrato operacional de importacao, exigindo `productCatId` singular.
+2. Ele valida rating minimo 4.5, IDs unicos, chave estavel unica, allowlist de
+   categorias, presenca de todas as 46 categorias da matriz e compatibilidade
+   da matriz com a taxonomia oficial local.
+3. Sem `--apply`, o processo e somente dry-run. Com `--apply`, exige a
+   confirmacao literal `STAGE_PRODUCTCATID_CATALOG`.
+4. A escrita usa lock transacional por profile e marketplace e e idempotente
+   por `profile + marketplace + catalog_generation`: uma reexecucao com a
+   mesma fonte reutiliza o lote; uma fonte diferente para a mesma geracao e
+   bloqueada.
+5. A migration `productcatid_import_staging` criou
+   `offers.productcatid_import_batches` e
+   `offers.productcatid_import_batch_items`, ambas com RLS habilitado e sem
+   privilegio para `public`, `anon` ou `authenticated`.
+
+### Saida e evidencia
+
+| Campo | Resultado |
+| --- | --- |
+| Geracao | `productcatid-20260830` |
+| Batch Supabase | `f766c367-26ff-4081-85ba-685b36180f9e` |
+| Itens em staging | 4.511 |
+| Categorias em staging | 46 |
+| Itens fora da matriz ativa | 0 |
+| Itens com rating abaixo de 4.5 | 0 |
+| Linhas dessa geracao em `offers.catalog_items` | 0 |
+
+### Garantias desta etapa
+
+- Nao inseriu, atualizou, promoveu ou tornou legacy qualquer linha de
+  `offers.catalog_items`.
+- Nao criou snapshots, nao marcou item stale e nao alterou freshness.
+- Nao alterou `offers.daily_dispatch_plan`, ranking, refresh, ready views,
+  tracking, n8n ou qualquer envio.
+- A promocao para `current`, a segregacao do catalogo anterior e o stale
+  continuam exclusivos do cutover apos 21h BRT.
+
+### Validacoes automatizadas executadas
+
+- `ruff check` do CLI e dos testes relacionados: aprovado.
+- `pytest` de catalogo, migration, staging e importacao: `23 passed`.
+- Dry-run real do CSV limpo: `PRODUCTCATID_STAGE_VALIDATION=OK`, 4.511 itens
+  e 46 categorias.
+- Consulta remota apos escrita: contagens reconciliadas, RLS nas duas tabelas
+  de staging e nenhum registro operacional associado a essa geracao.
+
+## Etapa preparada - Ranking, refresh e planner por ProductCatId
+
+### Integracao implementada
+
+- `DispatchCandidate`, a persistencia de `daily_dispatch_plan` e os snapshots
+  de refresh agora carregam `product_cat_id` singular.
+- O refresh preserva `productCatIds` do response apenas como dado bruto
+  historico e grava `product_cat_id` a partir da categoria solicitada no
+  catalogo, sem inferir categoria a partir da resposta.
+- O refresh possui selecao explicita por matriz, sem fallback entre
+  categorias. Cada categoria precisa oferecer exatamente sua quota; caso
+  contrario a execucao e bloqueada antes de qualquer plano.
+- O planner recebeu `plan_productcatid_dispatches` e o CLI
+  `python -m ofertas_bot.tools.plan_daily_dispatch` recebeu
+  `--productcatid-matrix <arquivo>`. Sem essa flag, o planner atual por
+  subnicho permanece inalterado.
+- O novo plano usa `selection_bucket='productcatid_exact'` e
+  `selection_reason='productcatid:<id>'`. O campo legado
+  `primary_subniche` permanece apenas como rotulo tecnico de compatibilidade
+  (`productcatid:<id>`), nao como classificacao interna.
+
+### Migration aplicada durante o cutover atomico
+
+`supabase/migrations/202608300003_productcatid_ranking_refresh_planner.sql`
+prepara a view `offers.v_offer_ranking_productcatid_current`, que:
+
+- le somente `catalog_status='current'` com `product_cat_id` preenchido;
+- aplica elegibilidade de rating maior ou igual a 4.5;
+- expoe `product_cat_id`, `is_productcatid_eligible` e
+  `rank_product_cat`;
+- mantem `security_invoker = true`;
+- aceita o bucket `productcatid_exact` na fila persistida.
+
+Ela foi aplicada na mesma transacao da promocao do staging. Assim, a view nao
+ficou exposta em estado vazio entre a alteracao da regra e a promocao da
+geracao `current`.
+
+### Validacao automatizada
+
+- Simulacao com a matriz real: 46 categorias, 140 candidatos, 140 slots e 10
+  itens em cada uma das 14 janelas.
+- Simulacao de cobertura incompleta: falha com o `productCatId` e a quantidade
+  ausente, sem redistribuicao silenciosa.
+- Refresh por categoria: seleciona somente quotas exatas e falha quando uma
+  categoria nao tem candidatos suficientes.
+
+## Revisao da matriz por cobertura de candidatos
+
+A matriz inicial tinha 53 categorias. Na primeira limpeza, seis categorias nao
+tinham cobertura suficiente para suas quotas sob as travas obrigatorias de
+rating maior ou igual a 4.5, vendas maiores que 1, comissao, imagem e termos
+proibidos.
+
+- `100365`: deficit de 2; os itens retornados falharam rating ou vendas.
+- `100380`: deficit de 1; os itens retornados falharam rating ou vendas.
+- `100387`, `100401`, `100402` e `100590`: nao tiveram candidatos limpos.
+
+O usuario revisou `C:\Users\arthu\Downloads\Book1.xlsx`, aba `Sheet4`, e
+removeu essas seis categorias. As quotas das 46 categorias restantes foram
+redistribuidas na planilha, mantendo o total diario de 140. A matriz revisada
+foi revalidada contra o mesmo CSV bruto: 4.511 candidatos limpos, nenhuma
+quota descoberta em falta e nenhuma categoria fora da allowlist.
 
 ## Objetivo
 
@@ -24,7 +236,7 @@ comportamentos operacionais devem permanecer iguais.
 Fluxo alvo:
 
 ```text
-matriz feminina de 53 productCatId e quotas
+matriz feminina de 46 productCatId e quotas
   -> discovery productOfferV2(productCatId)
   -> limpeza com termos proibidos e rating >= 4.5
   -> catalogo feminino com productCatId singular
@@ -62,8 +274,8 @@ matriz feminina de 53 productCatId e quotas
   `feminino` e ao marketplace `shopee`.
 - Essa regra vale apenas para este pipeline; outros profiles nao devem ser
   alterados.
-- As 53 categorias desta spec sao a allowlist do novo catalogo feminino.
-- Todos os 53 IDs existem em `data/shopee_product_categories.csv`.
+- As 46 categorias desta spec sao a allowlist do novo catalogo feminino.
+- Todos os 46 IDs existem em `data/shopee_product_categories.csv`.
 - A soma das quotas e 140 itens por dia.
 
 ### Catalogo unico e status
@@ -146,31 +358,31 @@ matriz feminina de 53 productCatId e quotas
 
 ## Matriz canonica do feminino
 
-Origem analisada: `C:\Users\arthu\Downloads\Book1.xlsx`, aba `Sheet4`, intervalo
-`A1:B54`.
+Origem revisada: `C:\Users\arthu\Downloads\Book1.xlsx`, aba `Sheet4`, intervalo
+`A1:B47`.
 
 Na planilha recebida, a coluna B nao possui cabecalho. Para o contrato
 versionado, ela deve ser normalizada como `daily_quantity`.
 
 Validacoes da fonte:
 
-- 53 categorias;
-- 53 IDs unicos;
+- 46 categorias;
+- 46 IDs unicos;
 - nenhuma quantidade nula, zero ou negativa;
 - todas as categorias existem em `data/shopee_product_categories.csv`;
-- menor quota: 1;
+- menor quota: 2;
 - maior quota: 8;
 - soma das quotas: 140.
 
 | productCatId | daily_quantity |
 | ---: | ---: |
-| 100350 | 3 |
-| 100351 | 3 |
-| 100352 | 3 |
+| 100350 | 4 |
+| 100351 | 4 |
+| 100352 | 4 |
 | 100353 | 2 |
 | 100354 | 2 |
 | 100355 | 2 |
-| 100357 | 2 |
+| 100357 | 4 |
 | 100358 | 8 |
 | 100360 | 2 |
 | 100361 | 2 |
@@ -179,28 +391,23 @@ Validacoes da fonte:
 | 100104 | 3 |
 | 100363 | 2 |
 | 100364 | 2 |
-| 100365 | 2 |
-| 100380 | 2 |
-| 100381 | 2 |
-| 100382 | 2 |
-| 100387 | 2 |
+| 100381 | 3 |
+| 100382 | 3 |
 | 100389 | 2 |
 | 100390 | 2 |
-| 100391 | 1 |
+| 100391 | 2 |
 | 100400 | 3 |
-| 100401 | 3 |
-| 100402 | 3 |
-| 101615 | 2 |
-| 102029 | 2 |
-| 102030 | 2 |
-| 102032 | 2 |
-| 100869 | 4 |
-| 100871 | 2 |
+| 101615 | 3 |
+| 102029 | 3 |
+| 102030 | 3 |
+| 102032 | 3 |
+| 100869 | 5 |
+| 100871 | 3 |
 | 100872 | 2 |
 | 100897 | 2 |
 | 101669 | 2 |
 | 101670 | 2 |
-| 100901 | 2 |
+| 100901 | 3 |
 | 100162 | 5 |
 | 100091 | 3 |
 | 100092 | 3 |
@@ -210,13 +417,12 @@ Validacoes da fonte:
 | 100338 | 2 |
 | 100586 | 2 |
 | 100588 | 3 |
-| 100589 | 3 |
-| 100590 | 3 |
+| 100589 | 4 |
 | 100591 | 4 |
 | 100559 | 3 |
 | 100560 | 4 |
-| 100593 | 4 |
-| 100594 | 4 |
+| 100593 | 5 |
+| 100594 | 5 |
 | **Total** | **140** |
 
 Durante a implementacao, essa matriz deve ser copiada para um arquivo
@@ -244,7 +450,7 @@ Saidas:
 
 Alteracoes obrigatorias:
 
-- carregar os 53 IDs da matriz canonica;
+- carregar os 46 IDs da matriz canonica;
 - enviar cada ID como `productCatId` no request;
 - preservar o ID solicitado em todas as linhas produzidas;
 - validar `itemId` positivo;
@@ -323,7 +529,7 @@ Regras:
 - FK de `product_cat_id` para `offers.shopee_product_categories.category_id`;
 - `daily_quantity > 0`;
 - soma ativa do `feminino/shopee` igual a 140;
-- exatamente 53 categorias ativas.
+- exatamente 46 categorias ativas.
 
 #### `offers.catalog_items`
 
@@ -422,7 +628,7 @@ Regras:
 Entradas:
 
 - planner de `productCatId` fornecido pelo usuario;
-- 53 quotas canonicas;
+- 46 quotas canonicas;
 - `offers.v_offer_ranking_current`;
 - `planned_date` em BRT;
 - somente candidatos `current`, elegiveis e `FRESH` no proprio dia.
@@ -518,7 +724,7 @@ Saida: `offers.profile_product_category_quotas`.
 
 Aceite:
 
-- 53 linhas e 53 IDs unicos;
+- 46 linhas e 46 IDs unicos;
 - soma 140;
 - todos os IDs presentes na arvore oficial;
 - profile `feminino` e marketplace `shopee`;
@@ -549,7 +755,7 @@ Aceite:
 - rating nao nulo e maior ou igual a 4.5;
 - nenhum termo proibido;
 - um `itemId` por profile;
-- `productCatId` pertence a allowlist de 53 IDs;
+- `productCatId` pertence a allowlist de 46 IDs;
 - todas as remocoes possuem motivo.
 
 ### 5. Importacao Supabase
@@ -622,7 +828,7 @@ Aceite:
 
 ### Locais
 
-- validar matriz com 53 IDs e soma 140;
+- validar matriz com 46 IDs e soma 140;
 - validar todos os IDs contra o CSV oficial;
 - rejeitar ID duplicado ou quantidade menor que 1;
 - provar que somente `productCatId` singular entra no contrato operacional;
@@ -641,7 +847,7 @@ Aceite:
 - RLS habilitado e ausencia de grants publicos indevidos;
 - views com `security_invoker = true`;
 - fixtures transacionais para rating, legacy/current e stale;
-- 53 quotas e soma 140 no Supabase;
+- 46 quotas e soma 140 no Supabase;
 - contagem da arvore oficial igual ao CSV local;
 - propagacao de `product_cat_id` ate a ready view rastreada;
 - rollback de fixtures sem residuos;
@@ -695,7 +901,7 @@ pelo proprio script.
 ### Fase 1 - Configuracao e planner
 
 - receber e revisar o planner fornecido;
-- versionar a matriz de 53 categorias;
+- versionar a matriz de 46 categorias;
 - provar soma 140 e compatibilidade com 14 janelas;
 - nao fazer escrita remota.
 
@@ -716,10 +922,12 @@ pelo proprio script.
 
 ### Fase 4 - Importacao controlada
 
-- implementar dry-run e upsert;
-- preservar historico de linhas atualizadas;
-- validar promocao legacy para current;
-- aplicar somente com autorizacao remota.
+- implementar dry-run e staging idempotente por `catalog_generation`;
+- validar que todos os candidatos pertencem a uma das 46 categorias ativas;
+- manter o lote inerte ate o cutover, sem escrever em `catalog_items` ou
+  `offer_snapshots`;
+- no cutover, preservar historico de linhas atualizadas e validar promocao
+  `legacy` para `current`.
 
 ### Fase 5 - Ranking, refresh e planner
 
@@ -749,14 +957,14 @@ pelo proprio script.
 6. Aplicar `refresh_required_after` ao current.
 7. Reconciliar contagens legacy/current e categorias.
 8. Executar refresh do current.
-9. Validar cobertura FRESH de todas as 53 quotas.
+9. Validar cobertura FRESH de todas as 46 quotas.
 10. Gerar o plano do dia seguinte com 140 slots.
 11. Validar ready view base e rastreada.
 12. Validar n8n ativo sem realizar envio real.
 
 ## Criterios de aceite final
 
-1. A matriz versionada tem 53 IDs unicos e soma 140.
+1. A matriz versionada tem 46 IDs unicos e soma 140.
 2. Todos os IDs existem na tabela oficial e no CSV local.
 3. O discovery usa somente `productCatId` singular.
 4. `productCatIds` nao influencia nenhum processo operacional.
@@ -793,7 +1001,7 @@ pelo proprio script.
 - resultado de Ruff e pytest;
 - resultado dos testes SQL e validadores Supabase;
 - 1.339 categorias oficiais carregadas;
-- 53 quotas ativas e soma 140;
+- 46 quotas ativas e soma 140;
 - contagem de itens legacy e current;
 - contagem current por `product_cat_id` e `refresh_status`;
 - prova de 140 slots e quotas exatas no plano seguinte;
@@ -811,7 +1019,8 @@ devem ser confirmadas no momento correspondente:
 
 - receber o arquivo ou codigo do planner de `productCatId`;
 - autorizar commit e push na branch ativa;
-- autorizar aplicacao de migration no Supabase;
+- autorizar migrations adicionais que sejam necessarias especificamente para o
+  cutover;
 - autorizar atualizacao e restart necessario na VPS;
 - autorizar o cutover depois das 21h BRT;
 - qualquer envio real continua fora do escopo desta implementacao.

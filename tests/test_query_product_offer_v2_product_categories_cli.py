@@ -90,7 +90,7 @@ def test_product_category_loop_writes_pages_until_empty(tmp_path, monkeypatch) -
     assert summary["productCatIds"] == 2
     assert summary["pages"] == 4
     assert summary["nodes"] == 2
-    assert rows[0]["productCatIdRequested"] == "100350"
+    assert rows[0]["productCatId"] == "100350"
     assert rows[0]["requestPage"] == "1"
     assert rows[0]["productCatIds"] == "[100350]"
-    assert rows[1]["productCatIdRequested"] == "100351"
+    assert rows[1]["productCatId"] == "100351"

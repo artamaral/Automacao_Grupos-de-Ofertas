@@ -68,14 +68,14 @@ def test_validate_catalog_accepts_operational_contract(tmp_path: Path) -> None:
     assert validation.row_count == 1
     assert str(validation.min_rating) == "4.8"
     assert validation.subniche_count == 1
-    assert validation.summary()["contract"] == "clean_catalog_rating_4_8_plus_v1"
+    assert validation.summary()["contract"] == "clean_catalog_productcatid_rating_4_5_plus_v1"
 
 
 def test_validate_catalog_rejects_rating_below_operational_cut(tmp_path: Path) -> None:
     path = tmp_path / "catalog.csv"
-    write_catalog(path, [make_row(rating="4.7")])
+    write_catalog(path, [make_row(rating="4.49")])
 
-    with pytest.raises(CatalogImportError, match="rating below 4.8"):
+    with pytest.raises(CatalogImportError, match="rating below 4.5"):
         validate_catalog(path, profile="feminino", marketplace="shopee")
 
 

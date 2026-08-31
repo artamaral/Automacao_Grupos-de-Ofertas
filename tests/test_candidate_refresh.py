@@ -10,11 +10,13 @@ from ofertas_bot.candidate_refresh import (
     CandidateRefreshError,
     DiscoveryCandidate,
     ScoringCandidate,
+    select_productcatid_refresh_candidates,
     select_progressive_candidates,
     select_ranked_refresh_candidates,
     select_scoring_candidates,
     snapshot_from_product_offer_response,
 )
+from ofertas_bot.productcatid_catalog import ProductCategoryQuota
 
 NOW = datetime(2026, 8, 11, 12, tzinfo=UTC)
 
@@ -230,6 +232,7 @@ def test_product_offer_response_maps_only_real_contract_fields() -> None:
     snapshot = snapshot_from_product_offer_response(
         response=response,
         requested_item_id=10,
+        requested_product_cat_id=100350,
         checked_at=NOW,
     )
 
@@ -240,8 +243,24 @@ def test_product_offer_response_maps_only_real_contract_fields() -> None:
     assert snapshot.seller_commission_rate == Decimal("0.12")
     assert snapshot.shop_type_codes == (1, 4)
     assert snapshot.product_cat_ids == (100630, 100662)
+    assert snapshot.product_cat_id == 100350
     assert snapshot.source_payload["request"] == {"itemId": 10, "page": 1, "limit": 1}
     assert "authorization" not in snapshot.source_payload
+
+
+def test_productcatid_refresh_requires_exact_category_coverage() -> None:
+    candidates = [
+        replace(_candidate(item_id), product_cat_id=product_cat_id)
+        for item_id, product_cat_id in enumerate([100350, 100350, 100351], start=1)
+    ]
+    quotas = (ProductCategoryQuota(100350, 2), ProductCategoryQuota(100351, 1))
+
+    selected = select_productcatid_refresh_candidates(candidates, quotas=quotas)
+
+    assert [item.product_cat_id for item in selected] == [100350, 100350, 100351]
+    assert all(item.selection_bucket == "productcatid_exact" for item in selected)
+    with pytest.raises(CandidateRefreshError, match="productCatId=100351"):
+        select_productcatid_refresh_candidates(candidates[:-1], quotas=quotas)
 
 
 def test_product_offer_response_without_node_is_inconclusive() -> None:

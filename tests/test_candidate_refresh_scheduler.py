@@ -39,6 +39,7 @@ def test_wrapper_uses_fail_fast_and_applies_the_daily_plan() -> None:
     planning_command = script[command_start:]
     assert '--profile "${PROFILE}"' in planning_command
     assert '--marketplace "${MARKETPLACE}"' in planning_command
+    assert '--productcatid-matrix "${PRODUCTCATID_MATRIX}"' in planning_command
     assert "--apply" in planning_command
 
 
@@ -68,12 +69,12 @@ def test_watchdog_reports_missing_daily_dispatch_plan() -> None:
     state = {"total_slots": 0, "first_window_ready": 0}
 
     assert watchdog.dispatch_state_problems(state) == [
-        "daily_dispatch_plan incompleto: 0/112",
-        "primeira janela sem slots prontos: 0/8",
+        "daily_dispatch_plan incompleto: 0/140",
+        "primeira janela sem slots prontos: 0/10",
     ]
 
 
 def test_watchdog_accepts_ready_daily_dispatch_plan() -> None:
-    state = {"total_slots": 112, "first_window_ready": 8}
+    state = {"total_slots": 140, "first_window_ready": 10}
 
     assert watchdog.dispatch_state_problems(state) == []

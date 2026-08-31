@@ -65,6 +65,7 @@ class SupabaseCandidateRefreshStore:
         profile: str,
         marketplace: str,
         item_ids: Sequence[int] | None = None,
+        productcatid_only: bool = False,
     ) -> list[DiscoveryCandidate]:
         params: list[object] = [profile, marketplace]
         item_filter = ""
@@ -73,6 +74,24 @@ class SupabaseCandidateRefreshStore:
                 return []
             item_filter = "and ranking.item_id = any(%s)"
             params.append(list(item_ids))
+        ranking_view = (
+            "offers.v_offer_ranking_productcatid_current"
+            if productcatid_only
+            else "offers.v_offer_ranking_current"
+        )
+        eligibility_column = (
+            "ranking.is_productcatid_eligible"
+            if productcatid_only
+            else "ranking.is_eligible"
+        )
+        refresh_status = (
+            "case when ranking.refresh_required_after is not null "
+            "and (ranking.last_checked_at is null "
+            "or ranking.last_checked_at < ranking.refresh_required_after) "
+            "then 'STALE' else ranking.refresh_status end"
+            if productcatid_only
+            else "ranking.refresh_status"
+        )
         rows = self._connection.execute(
             f"""
             select
@@ -81,21 +100,23 @@ class SupabaseCandidateRefreshStore:
               ranking.marketplace,
               ranking.stable_key,
               ranking.item_id,
+              catalog.product_cat_id,
               ranking.product_name,
               ranking.product_link,
               ranking.image_url,
               ranking.subniches,
               ranking.primary_subniche,
-              ranking.refresh_status,
+              {refresh_status} as refresh_status,
               ranking.last_checked_at,
               status.last_attempted_at,
               status.last_attempt_status,
               ranking.rank_profile,
               ranking.rank_subniche,
               ranking.commercial_score,
-              ranking.is_eligible,
+              {eligibility_column} as is_eligible,
               ranking.commercial_data_source
-            from offers.v_offer_ranking_current ranking
+            from {ranking_view} ranking
+            join offers.catalog_items catalog on catalog.id = ranking.catalog_item_id
             join offers.v_offer_refresh_status status
               on status.catalog_item_id = ranking.catalog_item_id
             where ranking.profile = %s
@@ -205,6 +226,7 @@ class SupabaseCandidateRefreshStore:
                 insert into offers.offer_snapshots (
                   marketplace,
                   item_id,
+                  product_cat_id,
                   checked_at,
                   shop_id,
                   product_name,
@@ -234,13 +256,15 @@ class SupabaseCandidateRefreshStore:
                 )
                 values (
                   %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                  %s
                 )
                 returning id
                 """,
                 (
                     snapshot.marketplace,
                     snapshot.item_id,
+                    snapshot.product_cat_id,
                     snapshot.checked_at,
                     snapshot.shop_id,
                     snapshot.product_name,
@@ -405,6 +429,9 @@ def _discovery_candidate(row: dict[str, object]) -> DiscoveryCandidate:
         ),
         is_eligible=bool(row["is_eligible"]),
         commercial_data_source=str(row["commercial_data_source"]),
+        product_cat_id=(
+            int(row["product_cat_id"]) if row["product_cat_id"] is not None else None
+        ),
     )
 
 

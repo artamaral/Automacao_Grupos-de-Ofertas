@@ -117,7 +117,7 @@ O wrapper usa um unico `flock` durante toda a cadeia, preserva os artefatos
 locais, executa o refresh real e, por padrao, roda um pos-processo que confirma
 automaticamente itens com `no_node` recorrente. Depois dessa pos-etapa, ou
 diretamente depois do refresh quando ela esta desabilitada, o wrapper persiste
-o plano de 112 slots. Qualquer erro impede as etapas seguintes e deixa o
+o plano de 140 slots por `product_cat_id`. Qualquer erro impede as etapas seguintes e deixa o
 service com falha. O limite padrao de recorrencia e
 `AUTO_CONFIRM_UNAVAILABLE_MIN_NO_NODE_ATTEMPTS=2`.
 
@@ -126,9 +126,10 @@ service com falha. O limite padrao de recorrencia e
   /opt/automacao_grupo_compras/app/scripts/shopee/run_candidate_refresh.py \
   --profile feminino \
   --marketplace shopee \
-  --discovery-limit 1000 \
-  --scoring-limit 1000 \
-  --max-api-calls 1000 \
+  --productcatid-matrix config/shopee_productcatid_quotas_feminino.csv \
+  --discovery-limit 140 \
+  --scoring-limit 140 \
+  --max-api-calls 140 \
   --apply \
   --confirm-remote-write REFRESH_SHOPEE_CANDIDATES
 ```
@@ -153,6 +154,7 @@ Etapa final obrigatoria do mesmo wrapper:
   -m ofertas_bot.tools.plan_daily_dispatch \
   --profile feminino \
   --marketplace shopee \
+  --productcatid-matrix config/shopee_productcatid_quotas_feminino.csv \
   --apply
 ```
 

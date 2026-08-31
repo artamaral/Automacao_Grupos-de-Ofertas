@@ -5,9 +5,10 @@ APP_DIR="${APP_DIR:-/opt/automacao_grupo_compras/app}"
 PYTHON_BIN="${PYTHON_BIN:-${APP_DIR}/.venv/bin/python}"
 PROFILE="${PROFILE:-feminino}"
 MARKETPLACE="${MARKETPLACE:-shopee}"
-DISCOVERY_LIMIT="${DISCOVERY_LIMIT:-1000}"
-SCORING_LIMIT="${SCORING_LIMIT:-1000}"
-MAX_API_CALLS="${MAX_API_CALLS:-1000}"
+DISCOVERY_LIMIT="${DISCOVERY_LIMIT:-140}"
+SCORING_LIMIT="${SCORING_LIMIT:-140}"
+MAX_API_CALLS="${MAX_API_CALLS:-140}"
+PRODUCTCATID_MATRIX="${PRODUCTCATID_MATRIX:-config/shopee_productcatid_quotas_feminino.csv}"
 CONFIRM_REMOTE_WRITE="${CONFIRM_REMOTE_WRITE:-REFRESH_SHOPEE_CANDIDATES}"
 OUTPUT_BASE_DIR="${OUTPUT_BASE_DIR:-.data/candidate_refresh}"
 LOCK_FILE="${LOCK_FILE:-${APP_DIR}/.data/candidate_refresh/.refresh.lock}"
@@ -45,6 +46,7 @@ REFRESH_ATTEMPTS_FILE="${OUTPUT_BASE_DIR}/${PROFILE}/${RUN_ID}/refresh_attempts.
 "${PYTHON_BIN}" scripts/shopee/run_candidate_refresh.py \
   --profile "${PROFILE}" \
   --marketplace "${MARKETPLACE}" \
+  --productcatid-matrix "${PRODUCTCATID_MATRIX}" \
   --discovery-limit "${DISCOVERY_LIMIT}" \
   --scoring-limit "${SCORING_LIMIT}" \
   --max-api-calls "${MAX_API_CALLS}" \
@@ -72,4 +74,5 @@ fi
 "${PYTHON_BIN}" -m ofertas_bot.tools.plan_daily_dispatch \
   --profile "${PROFILE}" \
   --marketplace "${MARKETPLACE}" \
+  --productcatid-matrix "${PRODUCTCATID_MATRIX}" \
   --apply

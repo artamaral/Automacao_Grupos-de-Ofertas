@@ -5,13 +5,18 @@ from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from ofertas_bot.daily_dispatch_planner import (
     DailyPlanningPolicy,
     DispatchCandidate,
+    DispatchPlanningError,
     load_daily_planning_policy,
     plan_daily_dispatches,
+    plan_productcatid_dispatches,
     weekly_rotation_daily_quotas,
 )
+from ofertas_bot.productcatid_catalog import ProductCategoryQuota, load_product_category_quotas
 
 POLICY_PATH = Path("config/selection_profiles.toml")
 MODA_FIXED_GROUPS = {
@@ -329,6 +334,104 @@ def test_policy_without_publication_groups_preserves_subniche_behavior() -> None
         "weekly_rotation:sub-b",
         "fixed_daily:sub-a",
     ]
+
+
+def test_productcatid_plan_requires_each_exact_quota_without_taxonomy_fallback() -> None:
+    quotas = (
+        ProductCategoryQuota(100350, 4),
+        ProductCategoryQuota(100351, 3),
+        ProductCategoryQuota(100352, 2),
+    )
+    compact_policy = DailyPlanningPolicy(
+        profile="feminino",
+        marketplace="shopee",
+        items_per_window=3,
+        schedule_hours=(8, 9, 10),
+        daily_total_items=9,
+        rotation_items_per_day=0,
+        max_items_per_subniche_per_window=3,
+        fixed_daily_quotas={"compat": 9},
+        weekly_rotation_quotas={},
+    )
+    candidates = [
+        DispatchCandidate(
+            profile="feminino",
+            marketplace="shopee",
+            stable_key=f"{item_id:064x}",
+            item_id=item_id,
+            primary_subniche=f"productcatid:{product_cat_id}",
+            commercial_score=Decimal(1000 - item_id),
+            sales_count=100,
+            rating=Decimal("4.5"),
+            product_cat_id=product_cat_id,
+        )
+        for item_id, product_cat_id in enumerate(
+            [100350] * 4 + [100351] * 3 + [100352] * 2,
+            start=1,
+        )
+    ]
+
+    plan = plan_productcatid_dispatches(
+        candidates,
+        quotas=quotas,
+        policy=compact_policy,
+        planned_date=date(2026, 8, 13),
+    )
+
+    assert len(plan) == 9
+    assert Counter(item.candidate.product_cat_id for item in plan) == Counter(
+        {100350: 4, 100351: 3, 100352: 2}
+    )
+    assert all(item.selection_bucket == "productcatid_exact" for item in plan)
+    assert [item.daily_sequence for item in plan] == list(range(1, 10))
+
+    with pytest.raises(DispatchPlanningError, match="productCatId=100352"):
+        plan_productcatid_dispatches(
+            candidates[:-1],
+            quotas=quotas,
+            policy=compact_policy,
+            planned_date=date(2026, 8, 13),
+        )
+
+
+def test_productcatid_feminino_matrix_builds_all_140_slots() -> None:
+    policy = load_daily_planning_policy(POLICY_PATH)
+    quotas = load_product_category_quotas(
+        Path("config/shopee_productcatid_quotas_feminino.csv")
+    )
+    candidates: list[DispatchCandidate] = []
+    item_id = 1
+    for quota in quotas:
+        for _ in range(quota.daily_quantity):
+            candidates.append(
+                DispatchCandidate(
+                    profile="feminino",
+                    marketplace="shopee",
+                    stable_key=f"{item_id:064x}",
+                    item_id=item_id,
+                    primary_subniche=f"productcatid:{quota.product_cat_id}",
+                    commercial_score=Decimal(10_000 - item_id),
+                    sales_count=100,
+                    rating=Decimal("4.5"),
+                    product_cat_id=quota.product_cat_id,
+                )
+            )
+            item_id += 1
+
+    plan = plan_productcatid_dispatches(
+        candidates,
+        quotas=quotas,
+        policy=policy,
+        planned_date=date(2026, 8, 13),
+    )
+
+    assert len(plan) == 140
+    assert Counter(item.candidate.product_cat_id for item in plan) == Counter(
+        {quota.product_cat_id: quota.daily_quantity for quota in quotas}
+    )
+    assert Counter(item.planned_hour for item in plan) == Counter(
+        {hour: 10 for hour in policy.schedule_hours}
+    )
 
 
 def _candidates_for_policy(policy, *, extra_per_subniche: int) -> list[DispatchCandidate]:

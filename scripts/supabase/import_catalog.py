@@ -21,6 +21,7 @@ from ofertas_bot.catalog_contract import (
     OPERATIONAL_CATALOG_FIELDNAMES,
     project_operational_catalog_row,
 )
+from ofertas_bot.productcatid_catalog import normalize_product_cat_id
 
 CONFIRMATION = "IMPORT_CURATED_CATALOG"
 PROFILE_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -44,7 +45,7 @@ class CatalogValidation:
 
     def summary(self) -> dict[str, object]:
         return {
-            "contract": "clean_catalog_rating_4_8_plus_v1",
+            "contract": "clean_catalog_productcatid_rating_4_5_plus_v1",
             "import_mode": "incremental_discovery_v1",
             "row_count": self.row_count,
             "min_rating": str(self.min_rating),
@@ -60,6 +61,7 @@ class CatalogValidation:
 class CatalogItem:
     stable_key: str
     item_id: int
+    product_cat_id: int | None
     product_name: str
     product_link: str
     offer_link: str | None
@@ -186,8 +188,8 @@ def validate_catalog(path: Path, *, profile: str, marketplace: str) -> CatalogVa
     if row_count == 0:
         raise CatalogImportError("catalog must contain at least one data row")
     min_rating = min(ratings)
-    if min_rating < Decimal("4.8"):
-        raise CatalogImportError(f"catalog rating below 4.8: {min_rating}")
+    if min_rating < Decimal("4.5"):
+        raise CatalogImportError(f"catalog rating below 4.5: {min_rating}")
 
     return CatalogValidation(
         path=path,
@@ -206,7 +208,10 @@ def iter_catalog_items(path: Path, *, marketplace: str) -> Iterator[CatalogItem]
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         fieldnames = reader.fieldnames or []
-        missing = sorted(set(OPERATIONAL_CATALOG_FIELDNAMES) - set(fieldnames))
+        # productCatId is mandatory for the new feminino pipeline, but omitted
+        # by historical artifacts that remain importable until cutover.
+        required_fields = set(OPERATIONAL_CATALOG_FIELDNAMES) - {"productCatId"}
+        missing = sorted(required_fields - set(fieldnames))
         if missing:
             raise CatalogImportError(f"catalog fields missing: {missing}")
 
@@ -240,12 +245,14 @@ def parse_catalog_item(
     rating = _required_decimal(row.get("ratingStar"), "ratingStar", source_row_number)
     shop_type_codes = _int_list(row.get("shopType"), "shopType", source_row_number)
     subniches = _text_list(row.get("subniches"), "subniches", source_row_number)
-    if not subniches:
+    product_cat_id = _optional_product_cat_id(row.get("productCatId"), source_row_number)
+    if not subniches and product_cat_id is None:
         raise CatalogImportError(f"subniches must not be empty at source row {source_row_number}")
 
     return CatalogItem(
         stable_key=stable_offer_key(marketplace, identity_url),
         item_id=item_id,
+        product_cat_id=product_cat_id,
         product_name=product_name,
         product_link=product_link,
         offer_link=offer_link,
@@ -361,6 +368,7 @@ def import_catalog(
             create temporary table catalog_import_stage (
               stable_key text not null,
               item_id bigint not null,
+              product_cat_id bigint,
               product_name text not null,
               product_link text not null,
               offer_link text,
@@ -382,6 +390,7 @@ def import_catalog(
             copy catalog_import_stage (
               stable_key,
               item_id,
+              product_cat_id,
               product_name,
               product_link,
               offer_link,
@@ -408,6 +417,7 @@ def import_catalog(
                     (
                         item.stable_key,
                         item.item_id,
+                        item.product_cat_id,
                         item.product_name,
                         item.product_link,
                         item.offer_link,
@@ -467,6 +477,7 @@ def import_catalog(
                 marketplace,
                 stable_key,
                 item_id,
+                product_cat_id,
                 product_name,
                 product_link,
                 offer_link,
@@ -489,6 +500,7 @@ def import_catalog(
                 %s,
                 stage.stable_key,
                 stage.item_id,
+                stage.product_cat_id,
                 stage.product_name,
                 stage.product_link,
                 stage.offer_link,
@@ -524,6 +536,7 @@ def import_catalog(
               insert into offers.offer_snapshots (
                 marketplace,
                 item_id,
+                product_cat_id,
                 checked_at,
                 product_name,
                 product_link,
@@ -546,6 +559,7 @@ def import_catalog(
               select
                 %s,
                 stage.item_id,
+                stage.product_cat_id,
                 %s,
                 stage.product_name,
                 stage.product_link,
@@ -648,6 +662,15 @@ def _required_int(value: object, field: str, row: int) -> int:
     if parsed <= 0:
         raise CatalogImportError(f"{field} must be positive at source row {row}")
     return parsed
+
+
+def _optional_product_cat_id(value: object, row: int) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return normalize_product_cat_id(value)
+    except ValueError as error:
+        raise CatalogImportError(f"productCatId is invalid at source row {row}") from error
 
 
 def _optional_int(value: object, *, default: int, field: str, row: int) -> int:
