@@ -106,6 +106,7 @@ def test_replace_day_uses_cursor_executemany_for_batch_insert() -> None:
     assert len(executemany_calls) == 1
     insert_sql, insert_params = executemany_calls[0]
     assert "insert into offers.daily_dispatch_plan" in insert_sql
+    assert insert_sql.count("%s") == len(insert_params[0])
     assert insert_params == [
         (
             "feminino",

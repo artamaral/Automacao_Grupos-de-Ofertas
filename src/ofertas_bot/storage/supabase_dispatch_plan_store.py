@@ -129,7 +129,7 @@ class SupabaseDispatchPlanStore:
                       commercial_score, selection_bucket, selection_reason,
                       planned_date, planned_hour, slot_sequence, daily_sequence
                     )
-                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     [
                         (
