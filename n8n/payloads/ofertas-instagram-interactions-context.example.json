@@ -1,0 +1,13 @@
+{
+  "Webhook Meta POST": [
+    {
+      "json": {
+        "dry_run": true,
+        "instagram_account_id": "__configure_instagram_account_id__",
+        "instagram_business_account_id": "__configure_instagram_business_account_id__",
+        "webhook_verify_token": "__configure_meta_verify_token__",
+        "drive_folder_id": "1om8GcfC4s4UMBU9t7ujmxXawdoYIWUQy"
+      }
+    }
+  ]
+}
