@@ -76,7 +76,7 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
 
     required_nodes = (
         "Webhook Meta GET", "Validar Challenge Meta", "Responder Challenge Meta", "Webhook Meta POST",
-        "Normalizar Evento Instagram", "Roteador Comentario DM Outros", "Ignorar Comentario Proprio",
+        "Normalizar Evento Instagram", "Roteador Comentario DM Outros", "Roteador DM ou Outros", "Ignorar Comentario Proprio",
         "Registrar Comentario Recebido", "Baixar instagram_comment_keywords.txt", "Match Keywords CONTAINS",
         "Resolver Publication Event", "Baixar instagram_comment_dm_intro.txt",
         "Baixar instagram_comment_public_reply.txt", "Responder Comentario Publicamente",
@@ -87,6 +87,17 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
     for name in required_nodes:
         if node_by_name(workflow, name) is None:
             errors.append(f"missing node: {name}")
+
+    webhook_ids: set[str] = set()
+    for name in ("Webhook Meta GET", "Webhook Meta POST"):
+        node = node_by_name(workflow, name)
+        webhook_id = node.get("webhookId") if isinstance(node, dict) else None
+        if not isinstance(webhook_id, str) or not webhook_id:
+            errors.append(f"missing webhookId: {name}")
+        elif webhook_id in webhook_ids:
+            errors.append(f"duplicate webhookId: {webhook_id}")
+        else:
+            webhook_ids.add(webhook_id)
 
     for node in workflow.get("nodes", []):
         if not isinstance(node, dict):
@@ -107,23 +118,23 @@ def validate_versioned_workflow(workflow: dict[str, Any], workflow_id: str) -> N
 
     text = workflow_text(workflow)
     required_text = (
-        "hub.verify_token", "hub.challenge", "comment_id", "message_id", "payload ->> 'published_media_id'",
+        "hub.verify_token", "hub.challenge", "$vars.INSTAGRAM_WEBHOOK_VERIFY_TOKEN", "comment_id", "message_id", "payload ->> 'published_media_id'",
         "instagram_comment_dm_intro.txt", "instagram_comment_public_reply.txt", "instagram_dm_default_reply.txt",
         "instagram_comment_keywords.txt", DRIVE_FOLDER_ID, "includes(keyword)", "15 minutes",
-        "/replies", "/messages", "recipient: { comment_id", "recipient: { id:", "graph.instagram.com",
+        "/replies", "/messages", "recipient: { comment_id", "recipient: { id:", "graph.facebook.com/v26.0",
         "processing_status", "failure_stage", "error_code", "error_detail", "raw_payload",
     )
     for value in required_text:
         if value not in text:
             errors.append(f"missing workflow contract text: {value}")
-    forbidden_text = ("WAHA", "/api/send", "media_publish", "offer_media_assets", "daily_dispatch_plan",
-                      "v_offer_ranking_current", "process.env", "agent", "llm", "redis", "message buffer", "graph.facebook.com")
+    forbidden_text = ("$env.INSTAGRAM_WEBHOOK_VERIFY_TOKEN", "WAHA", "/api/send", "media_publish", "offer_media_assets", "daily_dispatch_plan",
+                          "v_offer_ranking_current", "process.env", "agent", "llm", "redis", "message buffer", "graph.instagram.com")
     lower_text = text.lower()
     for value in forbidden_text:
         if value.lower() in lower_text:
             errors.append(f"forbidden text found: {value}")
     for url in _http_urls(workflow):
-        if "graph.instagram.com" not in url:
+        if "graph.facebook.com/v26.0" not in url:
             errors.append(f"forbidden HTTP endpoint: {url}")
     if errors:
         raise InstagramInteractionsWorkflowGuardError("; ".join(errors))
@@ -142,9 +153,10 @@ def build_update_sql(workflow: dict[str, Any], workflow_id: str) -> str:
         if field not in workflow:
             raise InstagramInteractionsWorkflowGuardError(f"workflow missing required field: {field}")
     return (
-        "with upserted as (insert into workflow_entity (id, name, active, nodes, connections, settings, \"pinData\", \"versionId\", \"versionCounter\", \"nodeGroups\") values ("
+        "with existing as (select nodes::jsonb as nodes from workflow_entity where id = "
+        f"{sql_literal(workflow_id)}), input_nodes as (select {dollar_quote(compact_json(workflow['nodes']))}::jsonb as nodes), merged_nodes as (select coalesce(jsonb_agg(case when node->>'type' = 'n8n-nodes-base.googleDrive' then case when existing_node.credentials is not null then jsonb_set(node, '{{credentials}}', existing_node.credentials) else node end else node end), '[]'::jsonb) as nodes from input_nodes cross join lateral jsonb_array_elements(input_nodes.nodes) node left join lateral (select existing_node->'credentials' as credentials from existing cross join lateral jsonb_array_elements(existing.nodes) existing_node where existing_node->>'name' = node->>'name' and existing_node->>'type' = 'n8n-nodes-base.googleDrive' and coalesce(existing_node->'credentials', '{{}}'::jsonb) <> '{{}}'::jsonb limit 1) existing_node on true), upserted as (insert into workflow_entity (id, name, active, nodes, connections, settings, \"pinData\", \"versionId\", \"versionCounter\", \"nodeGroups\") values ("
         f"{sql_literal(workflow_id)}, {sql_literal(str(workflow.get('name') or workflow_id))}, false, "
-        f"{dollar_quote(compact_json(workflow['nodes']))}::json, {dollar_quote(compact_json(workflow['connections']))}::json, "
+        f"(select nodes::json from merged_nodes), {dollar_quote(compact_json(workflow['connections']))}::json, "
         f"{dollar_quote(compact_json(workflow.get('settings', {})))}::json, '{{}}'::json, gen_random_uuid()::text, 1, '[]'::json) "
         "on conflict (id) do update set nodes = excluded.nodes, connections = excluded.connections, settings = excluded.settings, active = false, \"versionId\" = gen_random_uuid()::text, \"versionCounter\" = coalesce(workflow_entity.\"versionCounter\", 0) + 1, \"updatedAt\" = now() returning id, \"versionId\", \"updatedAt\", nodes, connections, name), project as (select \"projectId\" from shared_workflow order by \"updatedAt\" desc limit 1), shared as (insert into shared_workflow (\"workflowId\", \"projectId\", role) select upserted.id, project.\"projectId\", 'workflow:owner' from upserted cross join project on conflict (\"workflowId\", \"projectId\") do nothing) "
         "insert into workflow_history (\"versionId\", \"workflowId\", authors, \"createdAt\", \"updatedAt\", nodes, connections, name, autosaved, description, \"nodeGroups\") select \"versionId\", id, 'system', \"updatedAt\", \"updatedAt\", nodes, connections, name, false, null, '[]'::json from upserted;"

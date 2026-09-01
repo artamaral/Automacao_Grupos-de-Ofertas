@@ -1,5 +1,34 @@
 # Decisoes Tecnicas
 
+## 2026-09-01 - Descontinuar automacao propria de comentarios e DMs Instagram
+
+Decisao:
+
+- despublicar o workflow n8n `OfertasInstagramInteractionsSupab1`;
+- parar o servico dedicado `instagram-webhook-verifier`;
+- adotar a automacao nativa do Meta Business Suite para palavra-chave,
+  resposta publica e DM;
+- preservar codigo, workflow, testes e migracao como legado auditavel.
+
+Motivo:
+
+- a automacao nativa foi configurada manualmente e passa a ser o caminho
+  operacional escolhido;
+- o caminho proprio dependia de autorizacao de producao do app Meta para
+  receber e responder a interacoes reais de contas externas;
+- a decisao evita manter infraestrutura n8n e endpoint sem uso.
+
+Impacto:
+
+- os workflows existentes de publicacao Instagram, WhatsApp, planner, ranking
+  e tracking permanecem fora deste escopo e nao foram alterados;
+- a avaliacao de remocao das tabelas esta registrada no documento legado e
+  requer migracao destrutiva separada, se aprovada.
+
+Historico detalhado:
+
+- `docs/legacy/instagram-comentarios-dm-n8n-2026-09-01.md`.
+
 ## 2026-09-01 - Resolver Instagram apos plano diario
 
 Decisao:

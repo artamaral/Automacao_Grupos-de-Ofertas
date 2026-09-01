@@ -1,5 +1,9 @@
 # Spec de Implementação — Automação de Comentários e DMs do Instagram via n8n
 
+> **Legado em 2026-09-01.** Esta especificacao nao deve orientar novos deploys
+> ou reativacoes. O historico, os artefatos preservados e o estado final estao
+> em `docs/legacy/instagram-comentarios-dm-n8n-2026-09-01.md`.
+
 ## 1. Objetivo
 
 Implementar, no n8n, uma automação independente dos fluxos atuais de publicação para tratar:
