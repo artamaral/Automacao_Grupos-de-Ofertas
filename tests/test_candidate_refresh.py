@@ -248,9 +248,14 @@ def test_product_offer_response_maps_only_real_contract_fields() -> None:
     assert "authorization" not in snapshot.source_payload
 
 
-def test_productcatid_refresh_requires_exact_category_coverage() -> None:
+def test_productcatid_refresh_uses_top_score_fallback_for_category_shortfall() -> None:
     candidates = [
-        replace(_candidate(item_id), product_cat_id=product_cat_id)
+        replace(
+            _candidate(item_id),
+            product_cat_id=product_cat_id,
+            rank_subniche=item_id,
+            commercial_score=Decimal(100 - item_id),
+        )
         for item_id, product_cat_id in enumerate(
             [100350, 100350, 100351, 100999],
             start=1,
@@ -273,10 +278,26 @@ def test_productcatid_refresh_requires_exact_category_coverage() -> None:
         100351,
         100999,
     ]
+    assert selected_with_reserve[-1].selection_bucket == "productcatid_reserve"
     with pytest.raises(CandidateRefreshError, match="cannot be below quota total"):
         select_productcatid_refresh_candidates(candidates, quotas=quotas, limit=2)
-    with pytest.raises(CandidateRefreshError, match="productCatId=100351"):
-        select_productcatid_refresh_candidates(candidates[:2], quotas=quotas)
+
+    selected_with_fallback = select_productcatid_refresh_candidates(
+        [
+            replace(candidates[0], commercial_score=Decimal("10")),
+            replace(candidates[3], commercial_score=Decimal("99")),
+        ],
+        quotas=quotas,
+    )
+    assert [item.product_cat_id for item in selected_with_fallback] == [100350, 100999]
+    assert [item.selection_bucket for item in selected_with_fallback] == [
+        "productcatid_exact",
+        "top_score_fallback",
+    ]
+
+    selected_short = select_productcatid_refresh_candidates(candidates[:2], quotas=quotas)
+    assert len(selected_short) == 2
+    assert all(item.selection_bucket == "productcatid_exact" for item in selected_short)
 
 
 def test_product_offer_response_without_node_is_inconclusive() -> None:

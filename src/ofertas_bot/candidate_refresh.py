@@ -287,7 +287,7 @@ def select_productcatid_refresh_candidates(
     quotas: Sequence[ProductCategoryQuota],
     limit: int | None = None,
 ) -> list[DiscoveryCandidate]:
-    """Select exact category coverage plus an optional top-score reserve."""
+    """Select exact category coverage, filling shortfalls from top-scored candidates."""
     allowed = {quota.product_cat_id: quota.daily_quantity for quota in quotas}
     daily_total = sum(allowed.values())
     resolved_limit = daily_total if limit is None else limit
@@ -306,6 +306,7 @@ def select_productcatid_refresh_candidates(
 
     selected: list[DiscoveryCandidate] = []
     selected_ids: set[tuple[str, int]] = set()
+    fallback_deficits: list[tuple[int, int]] = []
     for product_cat_id, quota in allowed.items():
         category_candidates = sorted(
             grouped[product_cat_id],
@@ -328,11 +329,32 @@ def select_productcatid_refresh_candidates(
             if len(category_selected) == quota:
                 break
         if len(category_selected) != quota:
-            raise CandidateRefreshError(
-                "insufficient refresh candidates for productCatId="
-                f"{product_cat_id}: expected={quota} actual={len(category_selected)}"
-            )
+            fallback_deficits.append((product_cat_id, quota - len(category_selected)))
         selected.extend(category_selected)
+    if fallback_deficits:
+        fallback_limit = min(
+            sum(missing for _, missing in fallback_deficits),
+            resolved_limit - len(selected),
+        )
+        fallback_candidates = sorted(
+            eligible_candidates,
+            key=lambda item: (
+                _priority(item),
+                item.rank_subniche or 2**63 - 1,
+                -(item.commercial_score or Decimal("0")),
+                item.item_id,
+            ),
+        )
+        fallback_added = 0
+        for candidate in fallback_candidates:
+            key = (candidate.marketplace, candidate.item_id)
+            if key in selected_ids:
+                continue
+            selected_ids.add(key)
+            selected.append(replace(candidate, selection_bucket="top_score_fallback"))
+            fallback_added += 1
+            if fallback_added == fallback_limit:
+                break
     reserve_limit = resolved_limit - len(selected)
     if reserve_limit > 0:
         reserve_candidates = sorted(
@@ -349,7 +371,7 @@ def select_productcatid_refresh_candidates(
             if key in selected_ids:
                 continue
             selected_ids.add(key)
-            selected.append(replace(candidate, selection_bucket="productcatid_exact"))
+            selected.append(replace(candidate, selection_bucket="productcatid_reserve"))
             if len(selected) == resolved_limit:
                 break
     return selected
