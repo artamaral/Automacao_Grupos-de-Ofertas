@@ -1,5 +1,23 @@
 # Decisoes Tecnicas
 
+## 2026-09-01 - Resolver Instagram apos plano diario
+
+Decisao:
+
+- encadear `scripts/ops/run_instagram_media_resolver.sh` ao final de
+  `scripts/ops/run_shopee_refresh_plan_tracking.sh`;
+- executar a resolucao de midia Instagram somente depois de refresh,
+  planejamento diario e geracao dos links rastreados;
+- manter o resolver com seus parametros atuais, incluindo `MEDIA_LIMIT`,
+  `--apply` e `--only-missing`.
+
+Motivo:
+
+- em `2026-09-01`, o timer isolado `instagram-media-resolver.timer` rodou as
+  `07:30` BRT, mas o `daily_dispatch_plan` do dia so foi criado as `09:45:20`
+  BRT; por isso o resolver processou `0` itens e o workflow Instagram nao teve
+  candidatos Reels.
+
 ## 2026-08-31 - Instagram diario somente Reels
 
 Decisao:

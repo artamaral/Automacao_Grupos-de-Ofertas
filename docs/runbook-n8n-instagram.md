@@ -65,6 +65,12 @@ failed=0
 total_images=<n>
 ```
 
+No caminho diario, a resolucao de midia Instagram deve rodar ao final de
+`scripts/ops/run_shopee_refresh_plan_tracking.sh`, depois que o plano diario e
+os links rastreados ja existem. O timer isolado `instagram-media-resolver.timer`
+nao deve ser tratado como prova suficiente quando roda antes do
+`daily_dispatch_plan` do dia.
+
 ## View de consumo
 
 O workflow deve consultar `offers.v_instagram_dispatch_ready`.

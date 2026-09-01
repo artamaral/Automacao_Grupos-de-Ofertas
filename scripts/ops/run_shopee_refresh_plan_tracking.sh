@@ -11,3 +11,4 @@ cd "${APP_DIR}"
 "${PYTHON_BIN}" -m ofertas_bot.tools.generate_shopee_tracking_links \
   --profile "${PROFILE}" --apply \
   --confirm-remote-write GENERATE_SHOPEE_TRACKING_LINKS
+/bin/bash "${APP_DIR}/scripts/ops/run_instagram_media_resolver.sh"

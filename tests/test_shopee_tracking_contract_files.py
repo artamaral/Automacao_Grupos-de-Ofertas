@@ -33,6 +33,16 @@ def test_new_systemd_units_do_not_modify_existing_units() -> None:
     assert "Persistent=true" in conversion
 
 
+def test_refresh_plan_tracking_chain_runs_instagram_resolver_after_tracking() -> None:
+    script = Path("scripts/ops/run_shopee_refresh_plan_tracking.sh").read_text()
+
+    refresh_position = script.index("run_shopee_candidate_refresh.sh")
+    tracking_position = script.index("generate_shopee_tracking_links")
+    instagram_position = script.index("run_instagram_media_resolver.sh")
+
+    assert refresh_position < tracking_position < instagram_position
+
+
 def test_conversion_query_has_required_outputs_and_no_product_id() -> None:
     text = Path("src/ofertas_bot/providers/shopee_tracking.py").read_text()
     for field in (
