@@ -287,6 +287,13 @@ matriz feminina de 46 productCatId e quotas
 - Existira um unico catalogo persistente em `offers.catalog_items`.
 - A identidade continua sendo `profile + marketplace + item_id`.
 - `catalog_status` tera os valores `current` e `legacy`.
+- `selection_mode` registra a origem operacional inicial do item:
+  `productCatId` para descoberta automatica por categoria e `user_defined`
+  para descoberta manual por `itemId`.
+- A origem e preservada quando o mesmo item e redescoberto. Um item que entrou
+  pelo catalogo automatico nao muda para `user_defined` em uma carga posterior.
+- Linhas legacy sem evidencia de origem permanecem com `selection_mode=NULL`;
+  nao existe backfill por inferencia.
 - Um item existente no catalogo anterior e no novo catalogo permanece em uma
   unica linha e termina como `current`.
 - Um item do catalogo anterior ausente do novo catalogo termina como `legacy`.
@@ -544,15 +551,29 @@ product_cat_id bigint
 catalog_generation text
 catalog_status text
 refresh_required_after timestamptz
+selection_mode text
 ```
 
 Regras:
 
 - FK de `product_cat_id` para a tabela oficial;
 - `catalog_status in ('current', 'legacy')`;
+- `selection_mode in ('productCatId', 'user_defined')` ou `NULL` para legado
+  sem origem comprovada;
+- indice parcial em `profile, marketplace, selection_mode` somente para linhas
+  `catalog_status='current'` com origem preenchida;
 - indice em `profile, marketplace, catalog_status`;
 - indice em `profile, marketplace, product_cat_id, catalog_status`;
 - manter a unicidade atual por `profile + marketplace + item_id`.
+
+Estado aplicado em 2026-09-10:
+
+- 4.511 itens `current/productCatId`;
+- 311 itens `current/user_defined`, originados do import
+  `503a3436-7a36-41fb-9303-1aee43e8d978`;
+- 23.935 itens `legacy/NULL`;
+- a divisao das 140 vagas do planner entre os modos permanece fora desta
+  alteracao e exige decisao de negocio separada.
 
 #### Outras superficies
 

@@ -183,7 +183,20 @@ Campos normalizados:
   `commission_rate_fallback`;
 - frete: `is_free_shipping`;
 - taxonomia: `subniches`;
+- categoria operacional: `product_cat_id`;
+- ciclo do catalogo: `catalog_generation`, `catalog_status` e
+  `refresh_required_after`;
+- origem operacional: `selection_mode`, com `productCatId` para descoberta
+  automatica por categoria, `user_defined` para descoberta manual por `itemId`
+  e `NULL` somente para legado sem origem comprovada;
 - auditoria: `source_row_number`, `source_payload`, `created_at`.
+
+`selection_mode` representa a origem inicial e nao e reclassificado quando o
+item reaparece. A migration `202609100001_catalog_selection_mode.sql` ativou os
+311 itens do import manual `503a3436-7a36-41fb-9303-1aee43e8d978` como
+`current/user_defined`, classificou os 4.511 itens automaticos ativos como
+`current/productCatId` e preservou o restante do legado como `legacy/NULL`.
+Essa classificacao ainda nao define a proporcao dos modos no plano diario.
 
 O banco preserva `shopType` e `subniches` como arrays. O ranking deriva um
 `shop_type_code` pela seguinte prioridade:

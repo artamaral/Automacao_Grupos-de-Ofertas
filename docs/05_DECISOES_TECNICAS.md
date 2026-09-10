@@ -1,5 +1,26 @@
 # Decisoes Tecnicas
 
+## 2026-09-10 - Origem operacional dos itens do catalogo
+
+Decisao:
+
+- adicionar `offers.catalog_items.selection_mode` com os valores
+  `productCatId`, `user_defined` ou `NULL` para legado sem origem comprovada;
+- tratar a origem como imutavel: redescobrir um item existente nao altera o
+  modo pelo qual ele entrou no catalogo;
+- classificar os 4.511 itens automaticos ativos como `productCatId`;
+- classificar e ativar como `user_defined` os 311 itens do import manual
+  `503a3436-7a36-41fb-9303-1aee43e8d978`;
+- manter os demais itens `legacy` sem classificacao de origem;
+- adiar a divisao das 140 vagas entre os dois modos para uma decisao posterior.
+
+Motivo:
+
+- permitir que o planner diferencie descoberta automatica por categoria de
+  curadoria manual por `itemId`, sem inferir origem para o legado;
+- tornar a carga manual candidata a planejamentos futuros sem alterar planos
+  ja persistidos, matriz, ranking, n8n ou regras de despacho nesta etapa.
+
 ## 2026-09-01 - Descontinuar automacao propria de comentarios e DMs Instagram
 
 Decisao:
