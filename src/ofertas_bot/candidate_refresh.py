@@ -59,6 +59,7 @@ class DiscoveryCandidate:
     commercial_data_source: str = "catalog"
     selection_bucket: str = ""
     product_cat_id: int | None = None
+    selection_mode: str | None = "productCatId"
 
 
 @dataclass(frozen=True)
@@ -286,23 +287,32 @@ def select_productcatid_refresh_candidates(
     *,
     quotas: Sequence[ProductCategoryQuota],
     limit: int | None = None,
+    daily_total: int | None = None,
 ) -> list[DiscoveryCandidate]:
-    """Select exact category coverage, filling shortfalls from top-scored candidates."""
+    """Prioritize refresh coverage for isolated productCatId and user-defined pools."""
     allowed = {quota.product_cat_id: quota.daily_quantity for quota in quotas}
-    daily_total = sum(allowed.values())
-    resolved_limit = daily_total if limit is None else limit
-    if resolved_limit < daily_total:
-        raise CandidateRefreshError("productCatId refresh limit cannot be below quota total")
+    productcatid_slots = sum(allowed.values())
+    resolved_daily_total = productcatid_slots if daily_total is None else daily_total
+    if resolved_daily_total < productcatid_slots:
+        raise CandidateRefreshError("daily total cannot be below productCatId quota total")
+    resolved_limit = resolved_daily_total if limit is None else limit
+    if resolved_limit < resolved_daily_total:
+        raise CandidateRefreshError("productCatId refresh limit cannot be below daily total")
+    user_defined_slots = resolved_daily_total - productcatid_slots
     grouped: dict[int, list[DiscoveryCandidate]] = defaultdict(list)
-    eligible_candidates: list[DiscoveryCandidate] = []
+    productcatid_candidates: list[DiscoveryCandidate] = []
+    user_defined_candidates: list[DiscoveryCandidate] = []
     for candidate in _deduplicate_candidates(candidates):
         if (
             candidate.is_eligible
             and candidate.refresh_status != "UNAVAILABLE_CONFIRMED"
         ):
-            eligible_candidates.append(candidate)
-            if candidate.product_cat_id in allowed:
-                grouped[candidate.product_cat_id].append(candidate)
+            if candidate.selection_mode == "productCatId":
+                productcatid_candidates.append(candidate)
+                if candidate.product_cat_id in allowed:
+                    grouped[candidate.product_cat_id].append(candidate)
+            elif candidate.selection_mode == "user_defined":
+                user_defined_candidates.append(candidate)
 
     selected: list[DiscoveryCandidate] = []
     selected_ids: set[tuple[str, int]] = set()
@@ -337,7 +347,7 @@ def select_productcatid_refresh_candidates(
             resolved_limit - len(selected),
         )
         fallback_candidates = sorted(
-            eligible_candidates,
+            productcatid_candidates,
             key=lambda item: (
                 _priority(item),
                 item.rank_subniche or 2**63 - 1,
@@ -355,10 +365,31 @@ def select_productcatid_refresh_candidates(
             fallback_added += 1
             if fallback_added == fallback_limit:
                 break
+    user_defined_by_category: defaultdict[int, int] = defaultdict(int)
+    user_defined_added = 0
+    for candidate in sorted(
+        user_defined_candidates,
+        key=lambda item: (
+            _priority(item),
+            -(item.commercial_score or Decimal("0")),
+            item.item_id,
+        ),
+    ):
+        if user_defined_added >= user_defined_slots:
+            break
+        key = (candidate.marketplace, candidate.item_id)
+        if key in selected_ids or candidate.product_cat_id is None:
+            continue
+        if user_defined_by_category[candidate.product_cat_id] >= 3:
+            continue
+        selected_ids.add(key)
+        user_defined_by_category[candidate.product_cat_id] += 1
+        selected.append(replace(candidate, selection_bucket="user_defined_rank"))
+        user_defined_added += 1
     reserve_limit = resolved_limit - len(selected)
     if reserve_limit > 0:
         reserve_candidates = sorted(
-            eligible_candidates,
+            productcatid_candidates + user_defined_candidates,
             key=lambda item: (
                 _priority(item),
                 item.rank_subniche or 2**63 - 1,
@@ -371,7 +402,7 @@ def select_productcatid_refresh_candidates(
             if key in selected_ids:
                 continue
             selected_ids.add(key)
-            selected.append(replace(candidate, selection_bucket="productcatid_reserve"))
+            selected.append(replace(candidate, selection_bucket="hybrid_reserve"))
             if len(selected) == resolved_limit:
                 break
     return selected

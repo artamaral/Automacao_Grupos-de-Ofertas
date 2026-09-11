@@ -48,8 +48,8 @@ def load_product_category_quotas(path: Path) -> tuple[ProductCategoryQuota, ...]
             raise ProductCatIdCatalogError(f"duplicate productCatId: {product_cat_id}")
         seen.add(product_cat_id)
         quotas.append(ProductCategoryQuota(product_cat_id, quantity))
-    if len(quotas) != 46 or sum(item.daily_quantity for item in quotas) != 140:
-        raise ProductCatIdCatalogError("feminino matrix must contain 46 categories totaling 140")
+    if not quotas:
+        raise ProductCatIdCatalogError("quota matrix must contain at least one category")
     return tuple(quotas)
 
 

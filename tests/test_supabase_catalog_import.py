@@ -239,6 +239,7 @@ def test_import_catalog_adds_snapshot_without_updating_existing_catalog(
     assert len(connection.copy.rows) == 1
     assert any("insert into offers.offer_snapshots" in sql for sql in connection.sql)
     assert not any("update offers.catalog_items" in sql for sql in connection.sql)
+    assert any("selection_mode" in sql for sql in connection.sql)
 
 
 def test_import_catalog_handles_mixed_batch(

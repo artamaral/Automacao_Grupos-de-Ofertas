@@ -278,8 +278,8 @@ def test_productcatid_refresh_uses_top_score_fallback_for_category_shortfall() -
         100351,
         100999,
     ]
-    assert selected_with_reserve[-1].selection_bucket == "productcatid_reserve"
-    with pytest.raises(CandidateRefreshError, match="cannot be below quota total"):
+    assert selected_with_reserve[-1].selection_bucket == "hybrid_reserve"
+    with pytest.raises(CandidateRefreshError, match="cannot be below daily total"):
         select_productcatid_refresh_candidates(candidates, quotas=quotas, limit=2)
 
     selected_with_fallback = select_productcatid_refresh_candidates(
@@ -298,6 +298,44 @@ def test_productcatid_refresh_uses_top_score_fallback_for_category_shortfall() -
     selected_short = select_productcatid_refresh_candidates(candidates[:2], quotas=quotas)
     assert len(selected_short) == 2
     assert all(item.selection_bucket == "productcatid_exact" for item in selected_short)
+
+
+def test_hybrid_refresh_prioritizes_both_origins_without_cross_pool_fallback() -> None:
+    candidates = [
+        replace(
+            _candidate(item_id),
+            product_cat_id=product_cat_id,
+            selection_mode=mode,
+            commercial_score=Decimal(score),
+        )
+        for item_id, product_cat_id, mode, score in (
+            (1, 10, "productCatId", 10),
+            (2, 11, "productCatId", 9),
+            (3, 20, "user_defined", 100),
+            (4, 20, "user_defined", 99),
+            (5, 20, "user_defined", 98),
+            (6, 20, "user_defined", 97),
+            (7, 21, "user_defined", 96),
+        )
+    ]
+
+    selected = select_productcatid_refresh_candidates(
+        candidates,
+        quotas=(ProductCategoryQuota(10, 2),),
+        daily_total=6,
+        limit=6,
+    )
+
+    assert [item.item_id for item in selected[:2]] == [1, 2]
+    assert [item.selection_bucket for item in selected] == [
+        "productcatid_exact",
+        "top_score_fallback",
+        "user_defined_rank",
+        "user_defined_rank",
+        "user_defined_rank",
+        "user_defined_rank",
+    ]
+    assert [item.item_id for item in selected[2:]] == [3, 4, 5, 7]
 
 
 def test_product_offer_response_without_node_is_inconclusive() -> None:

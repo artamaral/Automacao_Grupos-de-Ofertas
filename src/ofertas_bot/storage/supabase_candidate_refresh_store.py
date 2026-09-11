@@ -101,6 +101,7 @@ class SupabaseCandidateRefreshStore:
               ranking.stable_key,
               ranking.item_id,
               catalog.product_cat_id,
+              catalog.selection_mode,
               ranking.product_name,
               ranking.product_link,
               ranking.image_url,
@@ -431,6 +432,9 @@ def _discovery_candidate(row: dict[str, object]) -> DiscoveryCandidate:
         commercial_data_source=str(row["commercial_data_source"]),
         product_cat_id=(
             int(row["product_cat_id"]) if row["product_cat_id"] is not None else None
+        ),
+        selection_mode=(
+            str(row["selection_mode"]) if row["selection_mode"] is not None else None
         ),
     )
 

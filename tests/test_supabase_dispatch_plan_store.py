@@ -28,9 +28,10 @@ def test_load_candidates_requires_fresh_eligible_same_day_ranking_rows() -> None
     ) == []
     assert len(execute_calls) == 1
     sql, params = execute_calls[0]
-    assert "and is_eligible" in sql
-    assert "refresh_status = 'FRESH'" in sql
-    assert "last_checked_at at time zone 'America/Sao_Paulo'" in sql
+    assert "and ranking.is_eligible" in sql
+    assert "ranking.refresh_status = 'FRESH'" in sql
+    assert "ranking.last_checked_at at time zone 'America/Sao_Paulo'" in sql
+    assert "catalog.selection_mode" in sql
     assert "::date = %s" in sql
     assert params == ("feminino", "shopee", date(2026, 8, 17))
 

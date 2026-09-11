@@ -47,28 +47,33 @@ class SupabaseDispatchPlanStore:
             else "offers.v_offer_ranking_current"
         )
         eligibility_column = (
-            "is_productcatid_eligible" if productcatid_only else "is_eligible"
+            "ranking.is_productcatid_eligible"
+            if productcatid_only
+            else "ranking.is_eligible"
         )
         refresh_cutoff = (
-            "and (refresh_required_after is null "
-            "or last_checked_at >= refresh_required_after)"
+            "and (ranking.refresh_required_after is null "
+            "or ranking.last_checked_at >= ranking.refresh_required_after)"
             if productcatid_only
             else ""
         )
         rows = self._connection.execute(
             f"""
             select
-              profile, marketplace, stable_key, item_id, product_cat_id, primary_subniche,
-              commercial_score, sales_count, rating
-            from {ranking_view}
-            where profile = %s
-              and marketplace = %s
+              ranking.profile, ranking.marketplace, ranking.stable_key, ranking.item_id,
+              ranking.product_cat_id, ranking.primary_subniche, ranking.commercial_score,
+              ranking.sales_count, ranking.rating, catalog.selection_mode
+            from {ranking_view} ranking
+            join offers.catalog_items catalog on catalog.id = ranking.catalog_item_id
+            where ranking.profile = %s
+              and ranking.marketplace = %s
               and {eligibility_column}
-              and refresh_status = 'FRESH'
-              and last_checked_at is not null
+              and ranking.refresh_status = 'FRESH'
+              and ranking.last_checked_at is not null
               {refresh_cutoff}
-              and (last_checked_at at time zone 'America/Sao_Paulo')::date = %s
-            order by commercial_score desc, sales_count desc, rating desc nulls last, item_id
+              and (ranking.last_checked_at at time zone 'America/Sao_Paulo')::date = %s
+            order by ranking.commercial_score desc, ranking.sales_count desc,
+              ranking.rating desc nulls last, ranking.item_id
             """,
             (profile, marketplace, planned_date),
         ).fetchall()
@@ -87,6 +92,11 @@ class SupabaseDispatchPlanStore:
                 commercial_score=Decimal(row["commercial_score"]),
                 sales_count=int(row["sales_count"] or 0),
                 rating=Decimal(row["rating"]) if row["rating"] is not None else None,
+                selection_mode=(
+                    str(row["selection_mode"])
+                    if row["selection_mode"] is not None
+                    else None
+                ),
             )
             for row in rows
         ]

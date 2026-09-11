@@ -25,6 +25,7 @@ class DispatchCandidate:
     sales_count: int
     rating: Decimal | None
     product_cat_id: int | None = None
+    selection_mode: str | None = "productCatId"
 
 
 @dataclass(frozen=True)
@@ -258,15 +259,20 @@ def plan_productcatid_dispatches(
     policy: DailyPlanningPolicy,
     planned_date: date,
 ) -> list[PlannedDispatch]:
-    """Build a productCatId-led plan, filling category shortfalls by top score."""
+    """Build the hybrid productCatId/user-defined daily plan."""
     validate_daily_planning_policy(policy)
     quota_map = {quota.product_cat_id: quota.daily_quantity for quota in quotas}
-    if sum(quota_map.values()) != policy.daily_total_items:
+    if len(quota_map) != len(quotas):
+        raise DispatchPlanningError("productCatId quotas must be unique")
+    productcatid_slots = sum(quota_map.values())
+    if productcatid_slots > policy.daily_total_items:
         raise DispatchPlanningError(
-            "productCatId quotas must match the policy daily total"
+            "productCatId quotas cannot exceed the policy daily total"
         )
+    user_defined_slots = policy.daily_total_items - productcatid_slots
 
-    eligible_candidates: list[DispatchCandidate] = []
+    productcatid_candidates: list[DispatchCandidate] = []
+    user_defined_candidates: list[DispatchCandidate] = []
     candidates_by_category: dict[int, list[DispatchCandidate]] = defaultdict(list)
     for candidate in candidates:
         if (
@@ -275,9 +281,12 @@ def plan_productcatid_dispatches(
             and candidate.rating is not None
             and candidate.rating >= Decimal("4.5")
         ):
-            eligible_candidates.append(candidate)
-            if candidate.product_cat_id in quota_map:
-                candidates_by_category[candidate.product_cat_id].append(candidate)
+            if candidate.selection_mode == "productCatId":
+                productcatid_candidates.append(candidate)
+                if candidate.product_cat_id in quota_map:
+                    candidates_by_category[candidate.product_cat_id].append(candidate)
+            elif candidate.selection_mode == "user_defined":
+                user_defined_candidates.append(candidate)
 
     selected_by_category: dict[int, deque[DispatchCandidate]] = {}
     fallback_deficits: list[tuple[int, int]] = []
@@ -329,7 +338,7 @@ def plan_productcatid_dispatches(
         fallback_pool = sorted(
             (
                 candidate
-                for candidate in eligible_candidates
+                for candidate in productcatid_candidates
                 if candidate.stable_key not in used_keys
             ),
             key=lambda item: (
@@ -359,8 +368,44 @@ def plan_productcatid_dispatches(
                     )
                 )
 
+    user_defined_by_category: Counter[int] = Counter()
+    for candidate in sorted(
+        user_defined_candidates,
+        key=lambda item: (
+            -item.commercial_score,
+            -item.sales_count,
+            -(item.rating or Decimal(0)),
+            item.item_id,
+        ),
+    ):
+        if len(selected) == policy.daily_total_items:
+            break
+        if candidate.stable_key in used_keys or candidate.product_cat_id is None:
+            continue
+        if user_defined_by_category[candidate.product_cat_id] >= 3:
+            continue
+        used_keys.add(candidate.stable_key)
+        user_defined_by_category[candidate.product_cat_id] += 1
+        selected.append(
+            (
+                candidate,
+                "user_defined_rank",
+                "user_defined:commercial_score",
+            )
+        )
+
+    selected_user_defined = sum(
+        bucket == "user_defined_rank" for _, bucket, _ in selected
+    )
+    if selected_user_defined != user_defined_slots:
+        raise DispatchPlanningError(
+            "insufficient user_defined candidates under productCatId cap: "
+            f"missing {user_defined_slots - selected_user_defined}"
+        )
+    if len(used_keys) != len(selected):
+        raise DispatchPlanningError("daily plan contains duplicate stable_key")
     if len(selected) != policy.daily_total_items:
-        raise DispatchPlanningError("productCatId plan does not contain the daily total")
+        raise DispatchPlanningError("hybrid plan does not contain the daily total")
     return _sequence_productcatid_windows(
         selected,
         policy=policy,

@@ -96,6 +96,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--catalog-file", type=Path, required=True)
     parser.add_argument("--marketplace", default="shopee")
     parser.add_argument(
+        "--selection-mode",
+        choices=("productCatId", "user_defined"),
+        help="Origin assigned only to newly inserted catalog items.",
+    )
+    parser.add_argument(
         "--apply",
         action="store_true",
         help="Write to Supabase. Without this flag the command is validation-only.",
@@ -283,12 +288,15 @@ def import_catalog(
     *,
     observed_at: datetime,
     confirmation: str | None,
+    selection_mode: str | None = None,
 ) -> CatalogImportResult:
     if confirmation != CONFIRMATION:
         raise CatalogImportError(f"--confirm-remote-write must be exactly {CONFIRMATION}")
     if observed_at.tzinfo is None or observed_at.utcoffset() is None:
         raise CatalogImportError("observed_at must include a timezone")
     observed_at = observed_at.astimezone(UTC)
+    if selection_mode not in {None, "productCatId", "user_defined"}:
+        raise CatalogImportError("invalid selection_mode")
 
     with connect() as connection:
         connection.execute(
@@ -492,7 +500,8 @@ def import_catalog(
                 is_free_shipping,
                 subniches,
                 source_row_number,
-                source_payload
+                source_payload,
+                selection_mode
               )
               select
                 %s,
@@ -515,14 +524,15 @@ def import_catalog(
                 false,
                 stage.subniches,
                 stage.source_row_number,
-                stage.source_payload
+                stage.source_payload,
+                %s
               from catalog_import_stage stage
               on conflict (profile, marketplace, item_id) do nothing
               returning id
             )
             select count(*) from inserted
             """,
-            (import_id, validation.profile, validation.marketplace),
+            (import_id, validation.profile, validation.marketplace, selection_mode),
         ).fetchone()[0]
         if new_count + existing_count != validation.row_count:
             raise CatalogImportError(
@@ -739,6 +749,7 @@ def main() -> int:
         validation,
         observed_at=observed_at,
         confirmation=args.confirm_remote_write,
+        selection_mode=args.selection_mode,
     )
     print(
         "REMOTE_WRITE=OK "

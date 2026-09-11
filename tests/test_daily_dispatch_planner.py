@@ -414,7 +414,7 @@ def test_productcatid_plan_fills_category_shortfall_from_top_general_score() -> 
         )
 
 
-def test_productcatid_feminino_matrix_builds_all_140_slots() -> None:
+def test_hybrid_feminino_matrix_builds_78_productcatid_and_62_user_defined() -> None:
     policy = load_daily_planning_policy(POLICY_PATH)
     quotas = load_product_category_quotas(
         Path("config/shopee_productcatid_quotas_feminino.csv")
@@ -437,6 +437,23 @@ def test_productcatid_feminino_matrix_builds_all_140_slots() -> None:
                 )
             )
             item_id += 1
+    for index in range(62):
+        product_cat_id = 200000 + index // 3
+        candidates.append(
+            DispatchCandidate(
+                profile="feminino",
+                marketplace="shopee",
+                stable_key=f"{item_id:064x}",
+                item_id=item_id,
+                primary_subniche=f"productcatid:{product_cat_id}",
+                commercial_score=Decimal(20_000 - item_id),
+                sales_count=200,
+                rating=Decimal("4.9"),
+                product_cat_id=product_cat_id,
+                selection_mode="user_defined",
+            )
+        )
+        item_id += 1
 
     plan = plan_productcatid_dispatches(
         candidates,
@@ -446,12 +463,163 @@ def test_productcatid_feminino_matrix_builds_all_140_slots() -> None:
     )
 
     assert len(plan) == 140
-    assert Counter(item.candidate.product_cat_id for item in plan) == Counter(
+    assert Counter(
+        item.candidate.product_cat_id
+        for item in plan
+        if item.selection_bucket == "productcatid_exact"
+    ) == Counter(
         {quota.product_cat_id: quota.daily_quantity for quota in quotas}
     )
+    assert Counter(item.selection_bucket for item in plan) == Counter(
+        {"productcatid_exact": 78, "user_defined_rank": 62}
+    )
+    assert max(
+        Counter(
+            item.candidate.product_cat_id
+            for item in plan
+            if item.selection_bucket == "user_defined_rank"
+        ).values()
+    ) == 3
+    assert all(
+        item.selection_reason == "user_defined:commercial_score"
+        for item in plan
+        if item.selection_bucket == "user_defined_rank"
+    )
+    assert len({item.candidate.stable_key for item in plan}) == 140
     assert Counter(item.planned_hour for item in plan) == Counter(
         {hour: 10 for hour in policy.schedule_hours}
     )
+
+
+def test_hybrid_plan_keeps_fallbacks_isolated_between_modes() -> None:
+    policy = DailyPlanningPolicy(
+        profile="feminino",
+        marketplace="shopee",
+        items_per_window=5,
+        schedule_hours=(8,),
+        daily_total_items=5,
+        rotation_items_per_day=0,
+        max_items_per_subniche_per_window=5,
+        fixed_daily_quotas={"compat": 5},
+        weekly_rotation_quotas={},
+    )
+    quotas = (ProductCategoryQuota(10, 2),)
+    candidates = [
+        DispatchCandidate(
+            profile="feminino",
+            marketplace="shopee",
+            stable_key=f"key-{item_id}",
+            item_id=item_id,
+            primary_subniche=f"productcatid:{product_cat_id}",
+            commercial_score=Decimal(score),
+            sales_count=score,
+            rating=Decimal("4.9"),
+            product_cat_id=product_cat_id,
+            selection_mode=mode,
+        )
+        for item_id, product_cat_id, score, mode in (
+            (1, 10, 10, "productCatId"),
+            (2, 11, 20, "productCatId"),
+            (3, 10, 99, "user_defined"),
+            (4, 10, 98, "user_defined"),
+            (5, 10, 97, "user_defined"),
+        )
+    ]
+    candidates.append(
+        DispatchCandidate(
+            profile="feminino",
+            marketplace="shopee",
+            stable_key="key-1",
+            item_id=6,
+            primary_subniche="productcatid:12",
+            commercial_score=Decimal("1000"),
+            sales_count=1000,
+            rating=Decimal("4.9"),
+            product_cat_id=12,
+            selection_mode="user_defined",
+        )
+    )
+
+    plan = plan_productcatid_dispatches(
+        candidates,
+        quotas=quotas,
+        policy=policy,
+        planned_date=date(2026, 9, 11),
+    )
+
+    assert [
+        item.candidate.item_id
+        for item in plan
+        if item.selection_bucket == "user_defined_rank"
+    ] == [3, 4, 5]
+    assert sum(item.candidate.product_cat_id == 10 for item in plan) == 4
+    assert len({item.candidate.stable_key for item in plan}) == 5
+    assert any(
+        item.candidate.item_id == 2
+        and item.selection_reason == "productcatid:10:top_score_fallback"
+        for item in plan
+    )
+
+    with pytest.raises(DispatchPlanningError, match="fallback candidates"):
+        plan_productcatid_dispatches(
+            [candidate for candidate in candidates if candidate.item_id != 2],
+            quotas=quotas,
+            policy=policy,
+            planned_date=date(2026, 9, 11),
+        )
+
+    with pytest.raises(DispatchPlanningError, match="user_defined candidates"):
+        plan_productcatid_dispatches(
+            [candidate for candidate in candidates if candidate.selection_mode == "productCatId"],
+            quotas=quotas,
+            policy=policy,
+            planned_date=date(2026, 9, 11),
+        )
+
+
+def test_hybrid_plan_does_not_relax_user_defined_category_cap() -> None:
+    policy = DailyPlanningPolicy(
+        profile="feminino",
+        marketplace="shopee",
+        items_per_window=3,
+        schedule_hours=(8, 9),
+        daily_total_items=6,
+        rotation_items_per_day=0,
+        max_items_per_subniche_per_window=3,
+        fixed_daily_quotas={"compat": 6},
+        weekly_rotation_quotas={},
+    )
+    quotas = (ProductCategoryQuota(10, 1),)
+    candidates = [
+        DispatchCandidate(
+            profile="feminino",
+            marketplace="shopee",
+            stable_key=f"key-{item_id}",
+            item_id=item_id,
+            primary_subniche=f"productcatid:{product_cat_id}",
+            commercial_score=Decimal(100 - item_id),
+            sales_count=100 - item_id,
+            rating=Decimal("4.9"),
+            product_cat_id=product_cat_id,
+            selection_mode=mode,
+        )
+        for item_id, product_cat_id, mode in (
+            (1, 10, "productCatId"),
+            (2, 20, "user_defined"),
+            (3, 20, "user_defined"),
+            (4, 20, "user_defined"),
+            (5, 20, "user_defined"),
+            (6, 21, "user_defined"),
+        )
+    ]
+
+    with pytest.raises(DispatchPlanningError, match="under productCatId cap"):
+        plan_productcatid_dispatches(
+            candidates,
+            quotas=quotas,
+            policy=policy,
+            planned_date=date(2026, 9, 11),
+        )
 
 
 def _candidates_for_policy(policy, *, extra_per_subniche: int) -> list[DispatchCandidate]:

@@ -306,6 +306,7 @@ def run_candidate_refresh(
             operational_candidates,
             quotas=productcatid_quotas,
             limit=discovery_limit,
+            daily_total=sum(strategy.required_daily_quotas.values()),
         )
     else:
         discovery_candidates = select_ranked_refresh_candidates(

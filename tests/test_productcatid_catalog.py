@@ -19,8 +19,23 @@ MATRIX = Path("config/shopee_productcatid_quotas_feminino.csv")
 
 def test_feminino_matrix_is_complete_and_matches_official_taxonomy() -> None:
     quotas = load_product_category_quotas(MATRIX)
-    assert len(quotas) == 46
-    assert sum(item.daily_quantity for item in quotas) == 140
+    assert len(quotas) == 13
+    assert sum(item.daily_quantity for item in quotas) == 78
+    assert {item.product_cat_id: item.daily_quantity for item in quotas} == {
+        100104: 10,
+        100350: 9,
+        101669: 8,
+        100352: 8,
+        100360: 7,
+        100382: 7,
+        102032: 7,
+        101670: 6,
+        100361: 4,
+        100095: 3,
+        100102: 3,
+        100353: 3,
+        100338: 3,
+    }
     validate_quotas_against_category_csv(quotas, Path("data/shopee_product_categories.csv"))
 
 

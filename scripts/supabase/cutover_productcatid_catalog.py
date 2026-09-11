@@ -183,14 +183,16 @@ def apply_cutover(
               product_name, product_link, offer_link, image_url, price, reference_price,
               sales_count, rating, shop_type_codes, seller_commission_rate,
               shopee_commission_rate, is_free_shipping, subniches, source_row_number,
-              source_payload, catalog_generation, catalog_status, refresh_required_after
+              source_payload, catalog_generation, catalog_status,
+              refresh_required_after, selection_mode
             )
             select %s, batch.profile, batch.marketplace, stage.stable_key, stage.item_id,
               stage.product_cat_id, stage.product_name, stage.product_link, stage.offer_link,
               stage.image_url, stage.price, stage.reference_price, stage.sales_count,
               stage.rating, stage.shop_type_codes, stage.seller_commission_rate,
               stage.shopee_commission_rate, false, stage.subniches, stage.source_row_number,
-              stage.source_payload, batch.catalog_generation, 'current', %s
+              stage.source_payload, batch.catalog_generation, 'current', %s,
+              'productCatId'
             from offers.productcatid_import_batch_items stage
             join offers.productcatid_import_batches batch on batch.id = stage.batch_id
             where stage.batch_id = %s

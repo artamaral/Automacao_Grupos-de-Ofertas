@@ -202,3 +202,24 @@ Limites:
 - credenciais, tokens, cookies, QR codes e sessoes ficam fora do Git;
 - `delivery_status` continua limitado a `confirmed`, `failed` e `cancelled`;
 - estados intermediarios da Instagram Graph API entram em `payload`.
+## 2026-09-10 - Daily Dispatch híbrido por origem do catálogo
+
+- O plano diário do perfil `feminino` continua com 140 vagas e mantém os
+  horários e o sequenciamento existentes.
+- A matriz habilitada de `productCatId` passa a ter 13 categorias e 78 vagas.
+  As 62 vagas restantes são preenchidas por itens com
+  `selection_mode='user_defined'`.
+- O pool `productCatId` usa quotas por categoria e fallback global somente
+  entre itens `selection_mode='productCatId'`.
+- O pool `user_defined` usa o ranking comercial global e limita a seleção a
+  três itens por `product_cat_id` no dia. Não há fallback entre os pools.
+- O plano registra itens manuais com `selection_bucket='user_defined_rank'` e
+  `selection_reason='user_defined:commercial_score'`.
+- O refresh operacional prioriza cobertura dos dois pools antes da reserva.
+  O wrapper e o timer da VPS permanecem os mesmos; a nova lógica entra em
+  vigor após a atualização do checkout e será usada no próximo ciclo regular.
+- Imports manuais futuros devem chamar `scripts/supabase/import_catalog.py`
+  com `--selection-mode user_defined`; o valor só é atribuído a itens novos e
+  não sobrescreve a origem de itens já cadastrados.
+- O valor persistido para a origem automática permanece exatamente
+  `productCatId`; não foi introduzido o alias `catid` no banco.
