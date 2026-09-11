@@ -1,7 +1,21 @@
 # Spec — Overlay Dinâmico para Reels com ASS + FFmpeg + n8n
 
-**Status:** rascunho inicial para implementação  
+**Status:** rascunho revisado — contrato VPS/n8n parcialmente definido
 **Escopo:** geração do overlay textual/visual de Reels de ofertas, seleção aleatória de template, adaptação à duração do vídeo e normalização de resolução antes da renderização.
+
+## Decisões desta revisão
+
+- O n8n continua sendo o orquestrador. Um script executado na VPS recebe o
+  job, gera o ASS, renderiza o MP4 e devolve ao n8n a referência do arquivo.
+- O fluxo atual de seleção, publicação, credenciais, dry-run, allowlist e
+  registro permanece inalterado. A renderização apenas prepara o vídeo que o
+  fluxo atual já publica.
+- `template_id` é metadado obrigatório do processamento e da publicação.
+- O overlay pode terminar alguns centésimos antes do fim do vídeo; não é
+  necessário perseguir o último frame.
+- `testeFonte.ass` é referência visual/técnica fornecida pelo usuário, não uma
+  instrução operacional nem um arquivo a ser versionado automaticamente.
+- O crop central permanece pendente até a análise de vídeos reais.
 
 ## 1. Objetivo
 
@@ -25,18 +39,18 @@ O overlay deve:
 O n8n é responsável por:
 
 1. receber/localizar o vídeo de entrada;
-2. obter a duração e as dimensões reais com `ffprobe`;
-3. selecionar aleatoriamente um `template_id` entre 1 e 10;
-4. fornecer ao gerador de ASS:
-   - duração;
+2. selecionar aleatoriamente um `template_id` entre 1 e 10;
+3. fornecer ao script da VPS:
    - preço;
    - `template_id`;
-   - dimensões/resolução de entrada, quando necessário;
-5. gerar o `.ass` de forma determinística a partir do template sorteado;
-6. executar FFmpeg para normalizar o vídeo e renderizar o ASS;
-7. devolver o vídeo final.
+   - referência do vídeo de entrada;
+4. encaminhar o vídeo ou sua URL conforme o contrato do script;
+5. receber o resultado e usar o MP4 renderizado no fluxo atual de publicação;
+6. preservar os metadados do processamento no registro do resultado.
 
-O n8n **não deve calcular manualmente posições, cores, fontes ou animações**. Essas regras pertencem à definição dos templates.
+O n8n **não deve calcular manualmente posições, cores, fontes, animações,
+duração ou dimensões**. Essas regras e leituras pertencem ao script da VPS e
+à definição dos templates.
 
 ### 2.2 Gerador de ASS
 
@@ -45,9 +59,9 @@ O gerador é responsável por:
 - carregar a definição do template selecionado;
 - gerar os estilos `[V4+ Styles]`;
 - calcular todos os intervalos de tempo em função da duração real;
-- criar os eventos `[Events]` até o último frame do vídeo;
+- criar os eventos `[Events]` até próximo do término do vídeo;
 - impedir eventos com `Start >= End`;
-- limitar o último evento exatamente ao término do vídeo;
+- encerrar o último evento no máximo `0,10 s` antes do término do vídeo;
 - escrever o arquivo ASS em UTF-8.
 
 ### 2.3 FFmpeg
@@ -58,6 +72,30 @@ O FFmpeg é responsável por:
 - renderizar o `.ass` usando libass;
 - utilizar as fontes necessárias;
 - gerar o MP4 final.
+
+### 2.4 Script de renderização na VPS
+
+O script deve ser o único executor de `ffprobe`, gerador ASS e FFmpeg. Deve
+executar cada job em diretório isolado e retornar ao n8n um resultado
+estruturado. O contrato mínimo proposto é:
+
+```json
+{
+  "status": "succeeded",
+  "template_id": 4,
+  "artifact_url": "https://.../rendered.mp4",
+  "artifact_mime_type": "video/mp4",
+  "duration_seconds": 51.2,
+  "width": 1080,
+  "height": 1920,
+  "source_width": 720,
+  "source_height": 1280,
+  "render_engine": "ffmpeg"
+}
+```
+
+Em caso de falha, retornar `status: "failed"`, um código estável e uma
+mensagem sanitizada, sem segredos ou caminhos sensíveis.
 
 ## 3. Formato visual padrão
 
@@ -104,7 +142,7 @@ Happy Camper
 Durante geração/teste:
 
 ```text
-R$ XX,XX
+R$ XX.XX
 ```
 
 Em produção o gerador recebe o preço real e substitui esse placeholder.
@@ -135,7 +173,9 @@ Faixa válida:
 
 Não há, nesta versão, regra adicional de histórico, peso, performance ou bloqueio de repetição consecutiva. O objetivo é manter o workflow simples.
 
-O `template_id` selecionado deve ser registrado junto ao processamento sempre que já existir no fluxo um local apropriado para registrar metadados de execução. Esta spec não cria um novo mecanismo de logging.
+O `template_id` selecionado deve ser preservado no contexto do job e no
+`payload` de `offers.publication_events`. Esta spec não cria uma nova tabela ou
+um novo mecanismo de logging.
 
 ## 7. Regra de duração e geração iterativa
 
@@ -223,7 +263,11 @@ Exemplo:
 51.20 s -> 0:00:51.20
 ```
 
-Para o horário final, a conversão deve evitar encerrar o overlay antes do vídeo real por perda de precisão. A implementação deve trabalhar internamente em milissegundos ou centésimos inteiros e somente formatar para ASS na escrita final.
+Para o horário final, a implementação deve trabalhar internamente em
+milissegundos ou centésimos inteiros e somente formatar para ASS na escrita
+final. É aceitável que o último evento termine alguns centésimos antes do
+vídeo; não é necessário ajustar o overlay ao último frame. A tolerância
+proposta é de no máximo `0,10 s` antes do fim, sem gap entre eventos.
 
 ### 7.4 Regra obrigatória
 
@@ -267,7 +311,7 @@ Exemplo:
 1080x1920
 ```
 
-### 8.3 Estratégia padrão: COVER + CROP CENTRAL
+### 8.3 Estratégia proposta: COVER + CROP CENTRAL
 
 A primeira versão deve preencher completamente o canvas vertical, sem barras laterais/superiores.
 
@@ -315,6 +359,20 @@ crop central
 
 Nesta versão não há detecção de rosto/produto para crop inteligente.
 
+**Decisão pendente:** o crop central pode remover produto ou rosto em vídeos
+quadrados e horizontais. Antes de adotá-lo como regra definitiva, analisar uma
+amostra representativa dos vídeos reais.
+
+Alternativas:
+
+1. manter `COVER + CROP CENTRAL`, aceitando perda de bordas;
+2. usar barras/preenchimento para preservar o quadro inteiro;
+3. rejeitar formatos incompatíveis;
+4. adotar crop configurável por origem.
+
+Recomendação para o MVP: testar primeiro a opção 1 com amostra visual e
+registrar formalmente a decisão; não implementar detecção de rosto nesta etapa.
+
 ## 9. Renderização FFmpeg
 
 Fluxo conceitual:
@@ -339,7 +397,13 @@ ffmpeg -i input.mp4 \
 output.mp4
 ```
 
-Na implementação real, o caminho do `.ass` deve ser específico da execução/job para evitar colisão entre processamentos simultâneos.
+Na implementação real, o caminho do `.ass` e do MP4 deve ser específico da
+execução/job para evitar colisão entre processamentos simultâneos. O arquivo
+final precisa estar disponível por HTTPS para a Instagram Graph API antes da
+criação do container do Reel.
+
+O destino do artefato, sua retenção, limpeza e autenticação ainda precisam ser
+definidos no contrato VPS/n8n.
 
 ## 10. Templates
 
@@ -575,6 +639,12 @@ Não existe `QUERO` isolado.
 
 ## 11. Estrutura sugerida da configuração
 
+Nesta versão, a referência concreta de estilos, posições, tamanhos, cores e
+animações é `testeFonte.ass`. O gerador deve reproduzir essa referência e
+substituir apenas os valores dinâmicos, principalmente preço, duração e
+template selecionado. A conversão dessa referência para uma configuração
+declarativa ainda precisa ser formalizada antes da implementação.
+
 A definição de cada template deve ser declarativa, para impedir que o workflow n8n precise conhecer detalhes de ASS.
 
 Exemplo conceitual:
@@ -605,24 +675,30 @@ const templates = {
 
 A implementação pode utilizar outra estrutura equivalente, desde que o n8n continue recebendo/gerando apenas o `template_id` e dados do vídeo.
 
-## 12. Fluxo n8n proposto
+O arquivo de referência contém as dez variações em sequência em um showcase de
+`51,20 s` (`5,12 s` por template). Ele não representa sozinho o comportamento
+de produção definido nesta spec, que sorteia um `template_id`. O gerador deve
+extrair a definição do template escolhido e aplicar suas fases ao vídeo inteiro;
+não deve publicar automaticamente as dez variações em sequência.
+
+## 12. Fluxo n8n/VPS proposto
 
 ```text
 Receber vídeo
     ↓
-ffprobe: duração + largura + altura
+Preparar job e sortear template_id
     ↓
-Sortear template_id (1..10)
+Chamar script de renderização na VPS
     ↓
-Preparar dados do job
+VPS: ffprobe + ASS + FFmpeg
     ↓
-Gerar ASS iterativamente até videoDuration
-    ↓
-FFmpeg: normalize 1080x1920 + render ASS
+Retornar artifact_url + metadados
     ↓
 Validar arquivo final
     ↓
-Seguir fluxo atual de publicação
+Usar artifact_url no fluxo atual de publicação
+    ↓
+Registrar template_id em publication_events
 ```
 
 ## 13. Entradas mínimas
@@ -630,7 +706,7 @@ Seguir fluxo atual de publicação
 ```json
 {
   "video_path": "/path/input.mp4",
-  "price": "R$ 39,97"
+  "price": "R$ 39.97"
 }
 ```
 
@@ -650,7 +726,7 @@ Dados derivados automaticamente:
 Por job:
 
 ```text
-overlay.ass
+artifact_url
 output.mp4
 ```
 
@@ -677,6 +753,10 @@ Depois da renderização:
 - duração de saída é compatível com a entrada;
 - resolução final é 1080x1920;
 - FFmpeg terminou com código 0.
+- `artifact_url` está acessível por HTTPS para o consumidor de publicação;
+- o resultado contém `template_id` e metadados de origem/saída;
+- uma repetição do mesmo job não mistura nem sobrescreve o artefato de outra
+  execução.
 
 ## 16. Critérios de aceite
 
@@ -684,7 +764,8 @@ A implementação será considerada conforme quando:
 
 1. processar corretamente vídeo 1080x1920;
 2. processar vídeo de outra resolução e entregar 1080x1920;
-3. gerar ASS até a duração exata de vídeos curtos e longos;
+3. gerar ASS para vídeos curtos e longos, encerrando no máximo `0,10 s` antes
+   do fim do vídeo;
 4. não criar eventos de duração zero;
 5. selecionar qualquer um dos 10 templates por sorteio uniforme;
 6. manter o preço durante todo o vídeo;
@@ -692,7 +773,9 @@ A implementação será considerada conforme quando:
 8. manter `QUERO` sempre em maiúsculas;
 9. renderizar Smithen e Happy Camper corretamente no ambiente FFmpeg;
 10. preservar as cores e animações definidas por template;
-11. manter o n8n livre de regras específicas de layout.
+11. manter o n8n livre de regras específicas de layout;
+12. executar o processamento na VPS e devolver ao n8n um `artifact_url` válido;
+13. preservar `template_id` no resultado e no registro de publicação.
 
 ## 17. Fora do escopo desta versão
 
@@ -710,10 +793,43 @@ Não implementar nesta etapa:
 
 Ícones ou imagens estáticas, caso sejam adicionados posteriormente, devem preferencialmente ser sobrepostos pelo FFmpeg como PNG transparente, sem depender de emoji Unicode no ASS.
 
-## 18. Princípio de implementação
+## 18. Pendências para fechar a implementação
+
+### 18.1 Crop e preservação do conteúdo
+
+Ainda falta decidir se o `COVER + CROP CENTRAL` será aceito para todos os
+formatos. A decisão deve ser baseada em uma amostra de vídeos reais,
+verificando se produto, rosto e texto original permanecem visíveis. Até essa
+análise, a regra fica proposta, não definitiva.
+
+### 18.2 Contrato operacional VPS ↔ n8n
+
+Ainda falta definir:
+
+- como o n8n envia o vídeo: upload, caminho compartilhado ou URL HTTPS;
+- como o script é acionado: SSH, endpoint HTTP interno ou outro provider;
+- autenticação entre n8n e VPS;
+- diretório e nomenclatura do job;
+- limite de duração, tamanho, concorrência e timeout;
+- local de armazenamento e prazo de retenção do MP4;
+- como o MP4 recebe uma URL HTTPS pública;
+- formato dos erros e política de retry;
+- momento da limpeza do ASS e do MP4.
+
+Recomendação: usar um endpoint/provider controlado na VPS, com `job_id`,
+autenticação explícita, limite de concorrência e resposta JSON. O n8n não deve
+abrir uma sessão SSH por item nem depender de caminhos locais da VPS.
+
+### 18.3 Registro do template
+
+O `template_id` deve ser incluído no payload do evento de publicação, junto com
+`artifact_url`, dimensões, duração e status da renderização. A renderização
+concluída não equivale a publicação confirmada.
+
+## 19. Princípio de implementação
 
 A regra central é:
 
-> **n8n escolhe e orquestra; o template define o design; o gerador calcula o tempo; FFmpeg normaliza e renderiza.**
+> **n8n escolhe e orquestra; a VPS executa; o ASS define o design; o gerador calcula o tempo; FFmpeg normaliza e renderiza.**
 
 Isso mantém o workflow simples e permite alterar copy, cores, posições e animações sem redesenhar o fluxo de automação.
