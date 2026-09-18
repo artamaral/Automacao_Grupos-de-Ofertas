@@ -15,7 +15,27 @@
   necessário perseguir o último frame.
 - `testeFonte.ass` é referência visual/técnica fornecida pelo usuário, não uma
   instrução operacional nem um arquivo a ser versionado automaticamente.
-- O crop central permanece pendente até a análise de vídeos reais.
+- Os vídeos atuais são produzidos para consumo em celular no ecossistema da
+  Shopee e as publicações observadas mantêm posicionamento adequado.
+- O enquadramento vertical original deve ser preservado. A normalização para
+  `1080x1920` só deve alterar a geometria quando necessário; não aplicar crop
+  adicional em vídeos verticais adequados.
+- `COVER + CROP CENTRAL` fica somente como fallback para diferenças de
+  proporção que impeçam a saída obrigatória.
+- A seleção do candidato para cada horário permanece exatamente conforme o
+  fluxo atual: não reservar nem atribuir candidatos a horários durante o
+  pré-render. O pré-render é preparado para consumo posterior por `item_id`.
+- O primeiro horário de publicação é 10:00 BRT; o job independente de
+  preparação está previsto para 09:00 BRT e encerra normalmente quando não há
+  itens disponíveis no `daily_dispatch_plan`.
+- A chave para localizar o artefato pré-renderizado é `item_id`. Ela não
+  substitui `source_dispatch_plan_id`, que continua identificando o slot/plano
+  de publicação e sua auditoria. O manifesto do MP4 carrega os dois valores e
+  valida que o `item_id` pertence ao `dispatch_plan_id` consultado.
+- Aceita-se o baixo risco de o preço embutido no vídeo refletir o dado obtido
+  pela manhã, mesmo que mude durante o dia; não haverá re-render por horário.
+- A limpeza diária terá como alvo 00:00 BRT (GMT-3), removendo somente jobs
+  concluídos e artefatos que não estejam em uso.
 
 ## 1. Objetivo
 
@@ -39,14 +59,26 @@ O overlay deve:
 O n8n é responsável por:
 
 1. receber/localizar o vídeo de entrada;
-2. selecionar aleatoriamente um `template_id` entre 1 e 10;
-3. fornecer ao script da VPS:
+2. na preparação independente das 09:00, consultar os itens do
+   `daily_dispatch_plan` do dia e formar jobs para os que têm mídia resolvida,
+   fornecendo `item_id`, preço do refresh, URL de origem e contexto do plano;
+3. ler do Google Drive o arquivo ASS de produção;
+4. fornecer ao script da VPS:
    - preço;
    - `template_id`;
    - referência do vídeo de entrada;
-4. encaminhar o vídeo ou sua URL conforme o contrato do script;
-5. receber o resultado e usar o MP4 renderizado no fluxo atual de publicação;
-6. preservar os metadados do processamento no registro do resultado.
+   - conteúdo ou binário do ASS lido do Drive;
+5. encaminhar o vídeo e o ASS à VPS conforme o contrato do serviço;
+6. receber status, resultado e logs sanitizados do render;
+7. selecionar aleatoriamente um `template_id` entre 1 e 10 por job de
+   pré-render e preservá-lo no artefato;
+8. no horário de publicação, executar a seleção de candidato atual sem
+   alteração e localizar o artefato correspondente por `item_id`;
+9. se o artefato não existir ou não estiver pronto, manter o vídeo original;
+   falhas de render têm uma tentativa inicial e um retry (duas tentativas no
+   total), sem bloquear a publicação;
+10. preservar resultado, `item_id`, `template_id` e logs sanitizados no evento
+    de publicação existente.
 
 O n8n **não deve calcular manualmente posições, cores, fontes, animações,
 duração ou dimensões**. Essas regras e leituras pertencem ao script da VPS e
@@ -95,7 +127,9 @@ estruturado. O contrato mínimo proposto é:
 ```
 
 Em caso de falha, retornar `status: "failed"`, um código estável e uma
-mensagem sanitizada, sem segredos ou caminhos sensíveis.
+mensagem/log sanitizado, sem segredos ou caminhos sensíveis. A VPS não decide
+se o Reel será publicado: depois de esgotar a tentativa inicial e um retry, o
+n8n usa o vídeo original como fallback.
 
 ## 3. Formato visual padrão
 
@@ -311,23 +345,34 @@ Exemplo:
 1080x1920
 ```
 
-### 8.3 Estratégia proposta: COVER + CROP CENTRAL
+### 8.3 Estratégia de enquadramento: preservar vertical; crop como fallback
 
-A primeira versão deve preencher completamente o canvas vertical, sem barras laterais/superiores.
+A primeira versão deve preservar o enquadramento dos vídeos verticais atuais,
+que já foram observados com posicionamento adequado nas publicações. Não deve
+haver crop adicional quando a origem já for compatível com o canvas vertical.
 
-Regra:
+Quando a origem não for compatível com `1080x1920`, aplicar, nesta ordem:
 
-1. escalar preservando proporção até cobrir 1080x1920;
-2. cortar somente o excedente;
-3. manter o crop centralizado.
+1. escalar preservando a proporção;
+2. preservar o quadro inteiro sempre que isso não comprometer o canvas;
+3. usar `COVER + CROP CENTRAL` somente como fallback;
+4. manter o crop centralizado quando o fallback for necessário.
 
-Filtro conceitual:
+Filtro conceitual para origem vertical compatível, preservando o quadro:
+
+```bash
+scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2
+```
+
+Isso garante que todas as coordenadas ASS tenham comportamento previsível,
+mantendo o enquadramento original como prioridade.
+
+Somente quando a origem não puder ser usada com preservação do quadro, o
+fallback de cobertura será:
 
 ```bash
 scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920
 ```
-
-Isso garante que todas as coordenadas ASS tenham comportamento previsível.
 
 ### 8.4 Exemplos
 
@@ -357,21 +402,9 @@ scale para cobrir o canvas vertical
 crop central
 ```
 
-Nesta versão não há detecção de rosto/produto para crop inteligente.
-
-**Decisão pendente:** o crop central pode remover produto ou rosto em vídeos
-quadrados e horizontais. Antes de adotá-lo como regra definitiva, analisar uma
-amostra representativa dos vídeos reais.
-
-Alternativas:
-
-1. manter `COVER + CROP CENTRAL`, aceitando perda de bordas;
-2. usar barras/preenchimento para preservar o quadro inteiro;
-3. rejeitar formatos incompatíveis;
-4. adotar crop configurável por origem.
-
-Recomendação para o MVP: testar primeiro a opção 1 com amostra visual e
-registrar formalmente a decisão; não implementar detecção de rosto nesta etapa.
+Nesta versão não há detecção de rosto/produto para crop inteligente. A análise
+dos vídeos e publicações atuais não indicou necessidade de crop adicional para
+o cenário preferencial de celular da Shopee.
 
 ## 9. Renderização FFmpeg
 
@@ -402,8 +435,10 @@ execução/job para evitar colisão entre processamentos simultâneos. O arquivo
 final precisa estar disponível por HTTPS para a Instagram Graph API antes da
 criação do container do Reel.
 
-O destino do artefato, sua retenção, limpeza e autenticação ainda precisam ser
-definidos no contrato VPS/n8n.
+O destino escolhido é armazenamento temporário na VPS, com entrega por uma rota
+HTTPS dedicada no Traefik usando o domínio já configurado para o n8n. Não se
+prevê contratar outro storage ou domínio nesta fase. A rota de mídia ainda
+precisa ser implementada.
 
 ## 10. Templates
 
@@ -684,29 +719,43 @@ não deve publicar automaticamente as dez variações em sequência.
 ## 12. Fluxo n8n/VPS proposto
 
 ```text
-Receber vídeo
+09:00 BRT, após refresh + planejamento + tracking + resolução de mídia
     ↓
-Preparar job e sortear template_id
+Enumerar candidatos pela elegibilidade atual (sem fixar os 6 horários)
     ↓
-Chamar script de renderização na VPS
+Para cada item do plano com mídia disponível: item_id + video_url + preço do
+refresh + template_id
     ↓
-VPS: ffprobe + ASS + FFmpeg
+n8n lê ASS de produção no Google Drive e entrega os dados à VPS
     ↓
-Retornar artifact_url + metadados
+VPS renderiza e publica artefato temporário HTTPS, indexado por item_id
     ↓
-Validar arquivo final
+10:00, 12:00, 14:00, 16:00, 18:00 e 20:00 BRT
     ↓
-Usar artifact_url no fluxo atual de publicação
+Executar seleção atual, sem mudar query/ordenação/exclusões
     ↓
-Registrar template_id em publication_events
+Encontrar artefato por item_id; se indisponível, usar video_url original
+    ↓
+Publicar e confirmar pelo fluxo atual; registrar item_id/template/logs
+    ↓
+00:00 BRT: limpar apenas jobs concluídos e artefatos seguros para remoção
 ```
+
+O pré-render não escolhe antecipadamente qual candidato será publicado em cada
+horário. A seleção atual continua sendo a autoridade no momento do post; o
+`item_id` serve somente para recuperar o MP4 preparado para aquele item.
 
 ## 13. Entradas mínimas
 
 ```json
 {
-  "video_path": "/path/input.mp4",
-  "price": "R$ 39.97"
+  "item_id": "identificador-do-item-shopee",
+  "planned_date": "YYYY-MM-DD",
+  "video_url": "https://.../shopee-source.mp4",
+  "price": "R$ 39.97",
+  "template_id": 4,
+  "ass_template": "conteúdo/binário lido pelo n8n do Google Drive",
+  "job_id": "identificador-único-do-job-de-render"
 }
 ```
 
@@ -714,6 +763,8 @@ Dados derivados automaticamente:
 
 ```json
 {
+  "item_id": "identificador-do-item-shopee",
+  "planned_date": "YYYY-MM-DD",
   "duration_seconds": 51.2,
   "source_width": 1080,
   "source_height": 1920,
@@ -730,7 +781,16 @@ artifact_url
 output.mp4
 ```
 
-O `.ass` pode ser temporário e removido após o processamento, conforme o padrão de arquivos temporários já usado pelo fluxo.
+Quando as duas tentativas de render falharem, não há `artifact_url` de saída:
+o n8n continua com o `video_url` original e registra o fallback no resultado
+da publicação.
+
+O resultado inclui `item_id`, data do plano, `template_id`, estado e metadados
+do artefato. O `item_id` localiza o artefato pré-renderizado; o identificador
+do plano de despacho continua sendo registrado separadamente na publicação.
+O `.ass` pode ser temporário e removido após o processamento. A limpeza dos
+MP4s está prevista para 00:00 BRT, condicionada a não haver processamento ou
+publicação em andamento.
 
 ## 15. Validações obrigatórias
 
@@ -775,7 +835,17 @@ A implementação será considerada conforme quando:
 10. preservar as cores e animações definidas por template;
 11. manter o n8n livre de regras específicas de layout;
 12. executar o processamento na VPS e devolver ao n8n um `artifact_url` válido;
-13. preservar `template_id` no resultado e no registro de publicação.
+13. preservar `template_id` no resultado e no registro de publicação;
+14. buscar o ASS no Google Drive e encaminhá-lo à VPS;
+15. fazer no máximo duas tentativas de render e, se ambas falharem, publicar o
+    vídeo Shopee original sem overlay;
+16. manter inalteradas as regras atuais de publicação e confirmação;
+17. devolver os erros de render ao n8n e registrá-los no payload do evento de
+    publicação existente.
+18. iniciar o pré-render diário às 09:00 BRT somente após concluir a cadeia
+    atual; uma preparação incompleta nunca atrasa o post e usa o vídeo original.
+19. preservar a seleção atual do candidato e recuperar o render por `item_id`.
+20. limpar às 00:00 BRT apenas arquivos concluídos/expirados e não utilizados.
 
 ## 17. Fora do escopo desta versão
 
@@ -797,34 +867,213 @@ Não implementar nesta etapa:
 
 ### 18.1 Crop e preservação do conteúdo
 
-Ainda falta decidir se o `COVER + CROP CENTRAL` será aceito para todos os
-formatos. A decisão deve ser baseada em uma amostra de vídeos reais,
-verificando se produto, rosto e texto original permanecem visíveis. Até essa
-análise, a regra fica proposta, não definitiva.
+**Resolvida para o cenário atual.** Os vídeos observados são produzidos para
+visualização em celular no ecossistema da Shopee e as publicações atuais estão
+adequadas em termos de posicionamento. Portanto, preservar o enquadramento
+vertical original é a regra principal; crop central permanece apenas como
+fallback técnico para uma origem incompatível.
+
+Não faz parte desta versão implementar detecção de rosto, detecção de produto
+ou crop inteligente.
 
 ### 18.2 Contrato operacional VPS ↔ n8n
 
-Ainda falta definir:
+#### Solução de armazenamento e entrega definida
 
-- como o n8n envia o vídeo: upload, caminho compartilhado ou URL HTTPS;
-- como o script é acionado: SSH, endpoint HTTP interno ou outro provider;
-- autenticação entre n8n e VPS;
-- diretório e nomenclatura do job;
-- limite de duração, tamanho, concorrência e timeout;
-- local de armazenamento e prazo de retenção do MP4;
-- como o MP4 recebe uma URL HTTPS pública;
-- formato dos erros e política de retry;
-- momento da limpeza do ASS e do MP4.
+O MP4 renderizado ficará temporariamente na VPS e será servido por HTTPS
+através de uma rota dedicada no Traefik, usando o domínio HTTPS existente do
+n8n. Não se prevê contratar outro storage ou domínio nesta fase. URL ilustrativa:
 
-Recomendação: usar um endpoint/provider controlado na VPS, com `job_id`,
-autenticação explícita, limite de concorrência e resposta JSON. O n8n não deve
-abrir uma sessão SSH por item nem depender de caminhos locais da VPS.
+```text
+https://n8n-owco.srv1805131.hstgr.cloud/media/jobs/{job_id}/output.mp4
+```
+
+O path `/media/jobs/` ainda não existe e poderá mudar na implementação. A Meta
+deve conseguir baixar o arquivo sem sessão, cookie ou cabeçalho privado. Se
+houver controle de acesso, usar um token opaco e imprevisível na própria URL,
+limitado ao artefato e com validade temporária. Não expor diretórios arbitrários
+nem permitir que `job_id` escape da pasta de artefatos.
+
+#### Evidência da VPS consultada em 2026-09-16
+
+- Traefik estava ativo, escutando nas portas 80/443 e configurado para
+  redirecionar HTTP para HTTPS e emitir certificados Let's Encrypt.
+- O domínio HTTPS existente do n8n respondeu `HTTP 200` numa consulta feita da
+  própria VPS, com validação TLS bem-sucedida.
+- O disco raiz tinha aproximadamente `68 GB` livres no momento da consulta.
+- Não foi encontrada rota/serviço para servir MP4s de jobs. A rota de mídia
+  precisa ser implementada e testada de fora da VPS. Esses dados são uma
+  fotografia do estado observado, não uma garantia permanente.
+
+#### Decisões restantes do contrato
+
+- n8n envia `video_url` da Shopee; o serviço da VPS baixa o original. Validar
+  acesso aos hosts/CDNs e impor limite de tamanho.
+- O ASS de produção ficará no Google Drive. O n8n deverá lê-lo usando a
+  integração/credencial autorizada e encaminhar seu conteúdo ou binário ao
+  renderizador; definir o identificador do arquivo e como versionar alterações.
+- Acionar o render por serviço HTTP interno autenticado, com processamento
+  assíncrono: iniciar job com `job_id`, consultar status e obter resultado.
+  Não abrir uma sessão SSH por item nem manter chamada síncrona durante FFmpeg.
+- Definir autenticação n8n→serviço, diretórios e nomenclatura dos jobs.
+- Definir limites de duração, tamanho, concorrência e timeout por fase.
+- Definir códigos de erro, idempotência do `job_id` e limpeza do ASS/MP4.
+- Política de retry definida: tentativa inicial + exatamente um retry. Após
+  duas falhas, seguir com o `video_url` original, sem overlay; erro de render
+  não bloqueia por si só a publicação.
+- Manter a URL acessível até o container Instagram terminar de processar o
+  vídeo; depois apagar por limpeza explícita ou TTL.
+- Servir o MP4 direto com `Content-Type: video/mp4`; testar `GET`, `HEAD`,
+  resposta completa e, se necessário, `Range`/`206 Partial Content`.
+
+### 18.6 Pré-render diário e seleção de candidatos
+
+**Definições fechadas:** primeiro post às 10:00 BRT; job independente às
+09:00 BRT; fonte dos itens `offers.daily_dispatch_plan` do dia; limpeza às
+00:00 BRT; chave de busca do artefato `item_id`; preço vem do refresh diário.
+Mudanças intradia de preço ou dados do item não serão revalidadas para o
+artefato/publicação; aceita-se o estado materializado no plano para o dia. A
+regra de seleção/publicação permanece inalterada.
+
+Na consulta versionada do workflow, cada execução seleciona um candidato do
+plano do dia para o perfil `feminino`, exige mídia válida com `video_url` e
+exclui somente planos com publicação Instagram confirmada associada ao plano.
+A ordem é `daily_sequence`; a consulta usa `FOR UPDATE ... SKIP LOCKED` e não
+filtra nem ordena por `planned_hour` (esse campo é auditoria). Assim, a
+seleção é feita a cada execução, não é um mapa fixo candidato→horário. O
+pré-render deve fornecer artefatos para os itens do plano do dia que tenham
+mídia resolvida, sem alterar a consulta de publicação nem presumir que somente
+os seis primeiros serão usados. O processo das 09:00 não depende de
+encadeamento com refresh/resolver: consulta o plano; se não houver itens para
+processar, encerra com sucesso sem renderizações.
+
+Pendências que ainda exigem definição ou especificação técnica:
+
+1. **Manifesto/índice de artefatos:** escolher entre manifesto/API do serviço
+   VPS ou outra opção já existente para resolver `item_id`→status, URL,
+   `template_id`, preço/snapshot e versão da origem. Não há decisão de criar
+   tabela Supabase nesta spec.
+2. **Contrato do serviço:** fechar autenticação n8n→VPS, submissão assíncrona,
+   consulta de status, idempotência/retry, códigos de erro, limites de payload
+   de logs e contrato de retorno. A rota HTTPS de mídia e teste externo seguem
+   bloqueantes para produção.
+3. **Limites operacionais:** obter por testes os limites seguros de tamanho,
+   duração, concorrência, timeout, memória e espaço em disco; não é necessário
+   fixá-los por estimativa antes dos testes.
+4. **Retenção do MP4:** manter a URL do artefato acessível enquanto o container
+   Instagram está sendo processado; o fluxo atual do n8n consulta o status e só
+   publica quando recebe `FINISHED`. Depois desse ponto, o arquivo pode ser
+   elegível à limpeza diária, desde que não haja outra execução usando o mesmo
+   artefato. TTL adicional fica para definir/validar nos testes.
+5. **Drive e templates:** o rascunho visual já existe. Falta operacionalizar o
+   arquivo de produção no Drive e criar/configurar os 10 templates; o n8n
+   sorteará `template_id` por item. O sample `testeFonte.ass` é um showcase
+   sequencial, não um template pronto por job.
+6. **Preço:** decidido: usar o valor produzido pelo refresh diário e mantido
+   no plano do dia; não conferir alterações posteriores durante a publicação.
+
+Não são pendências: reavaliar a regra de escolha de candidato, encadear o job
+das 09:00 ao refresh/resolver, revalidar os dados após o refresh, alterar o
+horário de publicação, adotar chave diferente de `item_id` para localizar o
+artefato, ou mudar a confirmação/contabilização de publicação.
+
+#### Ligação entre item publicado e artefato
+
+O fluxo atual registra `item_id` na coluna de mesmo nome em
+`offers.publication_events`. Também guarda
+`payload.source_dispatch_plan_id`, que identifica o registro de
+`offers.daily_dispatch_plan` usado pela publicação e é a chave usada pelo fluxo
+para evitar confirmar/publicar novamente o mesmo plano. No evento Instagram,
+`dispatch_plan_id` da coluna pode ser nulo; portanto, a referência canônica à
+linha do plano está no payload.
+
+O catálogo de artefatos deve seguir essa identificação existente:
+
+- localizar o MP4 por `item_id`, a chave já escolhida para o pré-render;
+- devolver/guardar também `source_dispatch_plan_id`, data do plano e
+  `template_id` como rastreabilidade e validação de correspondência;
+- no consumo, confirmar que o `item_id` do artefato é igual ao selecionado pelo
+  claim atual; se houver referência de plano, conferir também que ela bate com
+  `source_dispatch_plan_id` do evento/slot.
+
+Assim, `item_id` liga o vídeo ao produto e `source_dispatch_plan_id` mantém a
+mesma rastreabilidade por ocorrência diária já usada no ledger, sem criar uma
+nova regra de publicação.
+
+#### Smoke test de rota e FFmpeg na VPS
+
+Foi criado `scripts/ops/test_instagram_reel_render_route.sh` para executar na
+VPS depois que a rota HTTPS estiver montada para uma `media-root`. O teste
+recebe um vídeo HTTPS e um arquivo ASS, verifica FFmpeg/libass e ffprobe,
+renderiza MP4 1080x1920 no diretório temporário servido pela rota, testa `HEAD`
+e `GET` com `Content-Type: video/mp4`, compara os bytes servidos com o resultado
+local e remove apenas o diretório temporário criado pelo próprio teste. Com
+`--keep-artifacts`, mantém o MP4 para inspeção.
+
+Este smoke test comprova execução FFmpeg e entrega HTTP do arquivo de teste;
+não instala/configura a rota, não chama Instagram Graph API, não publica e não
+substitui testes dos limites de carga/concor­rência ou dos dez templates.
+
+**Estado:** armazenamento/entrega, origem do ASS e fallback funcional definidos;
+implementação da rota e validação externa são bloqueantes. Credencial/arquivo
+Drive, limites e detalhes do contrato também devem ser definidos antes da
+produção.
 
 ### 18.3 Registro do template
 
 O `template_id` deve ser incluído no payload do evento de publicação, junto com
 `artifact_url`, dimensões, duração e status da renderização. A renderização
 concluída não equivale a publicação confirmada.
+
+O renderizador deve devolver ao n8n o resultado de cada tentativa e erro
+sanitizado. O n8n deve incluir no `payload` do `offers.publication_events`
+existente, no mínimo:
+
+```json
+{
+  "template_id": 4,
+  "ass_asset_version": "sha256-ou-versao-do-arquivo-do-drive",
+  "render_status": "failed_fallback_original",
+  "render_attempts": 2,
+  "render_error_code": "FFMPEG_RENDER_FAILED",
+  "render_error_log": "trecho sanitizado e limitado do log de erro",
+  "overlay_applied": false,
+  "published_video_source": "shopee_original"
+}
+```
+
+Em sucesso, registrar `render_status: "succeeded"`, `overlay_applied: true`,
+`published_video_source: "rendered_artifact"`, `artifact_url` e metadados de
+saída. Em fallback, manter também os erros das duas tentativas, com tamanho
+limitado e sem tokens, URLs assinadas de entrada, cabeçalhos, caminhos internos
+ou outros segredos. Não criar tabela/evento paralelo nem mudar os critérios
+atuais de `delivery_status`: a confirmação continua refletindo o resultado da
+publicação Instagram pelo fluxo existente.
+
+**Estado:** definição funcional concluída; falta apenas implementar e validar o
+registro no fluxo existente.
+
+### 18.4 Configuração declarativa dos templates
+
+Os estilos, posições, tamanhos, cores e animações estão definidos no
+`testeFonte.ass`, mas ainda precisam ser convertidos em uma configuração
+versionada que o gerador consiga carregar por `template_id`. Também falta
+definir a validação de que existem exatamente dez templates habilitados.
+
+**Estado:** pendência de implementação, não de decisão visual.
+
+### 18.5 Execução e qualidade do render
+
+Ainda falta fechar e validar:
+
+- parâmetros finais de FFmpeg, incluindo áudio, `pix_fmt`, FPS e `-shortest`;
+- escape seguro de preço, copy e caminhos no ASS/comando;
+- disponibilidade e licença das fontes na VPS;
+- limites de tamanho, duração e concorrência;
+- teste dos 37 vídeos reais publicados no período analisado;
+- tolerância de duração e validação do MP4 final.
+
+**Estado:** pendência técnica para implementação e testes.
 
 ## 19. Princípio de implementação
 
