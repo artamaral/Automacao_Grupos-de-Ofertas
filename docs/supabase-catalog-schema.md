@@ -398,7 +398,7 @@ A view tambem entrega:
 
 Uma oferta fica elegivel quando:
 
-- `rating >= 4.8`;
+- `rating >= 4.5`;
 - nao esta em cooldown;
 - nao foi suprimida por similaridade.
 

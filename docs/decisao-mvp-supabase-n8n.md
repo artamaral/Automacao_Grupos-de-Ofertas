@@ -56,7 +56,7 @@ flowchart TD
     C -->|falha sem confirmacao| D
 
     D --> F{Filtros de elegibilidade}
-    F -->|rating menor que 4.8| X[Item fora do plano]
+    F -->|rating menor que 4.5| X[Item fora do plano]
     F -->|preco invalido ou link ausente| X
     F -->|similarity_status = suppressed| X
     F -->|cooldown_until no futuro| X

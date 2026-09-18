@@ -1,5 +1,21 @@
 # Decisoes Tecnicas
 
+## 2026-09-18 - Piso unico de rating para elegibilidade operacional
+
+Decisao:
+
+- alinhar a elegibilidade operacional do ranking para `rating >= 4.5`;
+- substituir o motivo canonico de inelegibilidade por rating para
+  `rating_below_4_5`;
+- manter `rating >= 4.5` tambem no refresh comercial, evitando que a carga seja
+  aceita no catalogo e bloqueada novamente por uma regra antiga de 4.8.
+
+Motivo:
+
+- remover a redundancia entre catalogo, ranking productCatId e refresh;
+- preservar um unico corte operacional de qualidade para itens descobertos por
+  `productCatId` e por `itemId`.
+
 ## 2026-09-10 - Origem operacional dos itens do catalogo
 
 Decisao:

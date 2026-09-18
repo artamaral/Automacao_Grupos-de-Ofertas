@@ -9,6 +9,9 @@ FRESHNESS_MIGRATION = Path(
 OPERATIONAL_FRESHNESS_MIGRATION = Path(
     "supabase/migrations/202608170001_daily_dispatch_operational_freshness.sql"
 )
+RATING_FLOOR_MIGRATION = Path(
+    "supabase/migrations/20260918182100_align_ranking_rating_floor.sql"
+)
 
 
 def test_daily_dispatch_migration_exposes_safe_operational_view() -> None:
@@ -57,3 +60,15 @@ def test_daily_dispatch_operational_freshness_requires_planned_date_snapshot() -
     assert "ranking.last_checked_at" in sql
     assert "ranking.age_hours" in sql
     assert "ranking.latest_snapshot_id" in sql
+
+
+def test_ranking_rating_floor_migration_uses_4_5_contract() -> None:
+    sql = RATING_FLOOR_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "create or replace view offers.v_offer_ranking_current" in sql
+    assert "with (security_invoker = true)" in sql
+    assert "rating >= 4.5" in sql
+    assert "rating < 4.5" in sql
+    assert "rating_below_4_5" in sql
+    assert "rating_below_4_8" not in sql
+    assert "rating >= 4.8" not in sql

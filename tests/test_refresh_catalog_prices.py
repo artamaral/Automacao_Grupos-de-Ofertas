@@ -135,7 +135,7 @@ def test_refresh_catalog_prices_excludes_refreshed_rating_below_contract(
                     "itemId": 1,
                     "price": "90",
                     "sales": "3",
-                    "ratingStar": "4.5",
+                    "ratingStar": "4.4",
                 }
             )
         }
@@ -154,8 +154,8 @@ def test_refresh_catalog_prices_excludes_refreshed_rating_below_contract(
     report = json.loads(result.paths.refresh_report.read_text(encoding="utf-8"))
 
     assert candidate_rows == []
-    assert unresolved_rows[0]["reason"] == "rating_below_4_8"
-    assert report["summary"]["rating_below_4_8_rows"] == 1
+    assert unresolved_rows[0]["reason"] == "rating_below_4_5"
+    assert report["summary"]["rating_below_4_5_rows"] == 1
 
 
 def test_refresh_catalog_prices_keeps_unchanged_item_and_reports_unchanged(
