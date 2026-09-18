@@ -57,6 +57,23 @@ def test_read_ids_from_xlsx_uses_named_column(tmp_path) -> None:
     ]
 
 
+def test_read_ids_from_xlsx_accepts_column_letter_without_header(tmp_path) -> None:
+    module = load_batch_cli_module()
+    workbook_path = tmp_path / "items_without_header.xlsx"
+    _write_minimal_xlsx(
+        workbook_path,
+        rows=[
+            ["", "22098662014"],
+            ["", "52857301055"],
+        ],
+    )
+
+    assert module._read_ids_from_xlsx(workbook_path, column="B") == [
+        22098662014,
+        52857301055,
+    ]
+
+
 def test_product_category_loop_writes_pages_until_empty(tmp_path, monkeypatch) -> None:
     module = load_batch_cli_module()
     calls = []

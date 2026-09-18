@@ -523,15 +523,33 @@ def _read_ids_from_xlsx(path: Path, *, column: str) -> list[int]:
     if not rows:
         raise ValueError(f"arquivo sem linhas: {path}")
 
+    direct_column_index = _direct_column_index(column)
+    if direct_column_index is not None:
+        return _read_ids_from_rows(
+            rows,
+            column_index=direct_column_index,
+            column=column,
+            start_row=1,
+        )
+
     headers = [_normalize_column_name(str(value or "")) for value in rows[0]]
     normalized_column = _normalize_column_name(column)
     try:
         column_index = headers.index(normalized_column)
     except ValueError as error:
         raise ValueError(f"coluna '{column}' nao encontrada em {path}") from error
+    return _read_ids_from_rows(rows[1:], column_index=column_index, column=column, start_row=2)
 
+
+def _read_ids_from_rows(
+    rows: Sequence[Sequence[str]],
+    *,
+    column_index: int,
+    column: str,
+    start_row: int,
+) -> list[int]:
     ids = []
-    for row_number, row in enumerate(rows[1:], start=2):
+    for row_number, row in enumerate(rows, start=start_row):
         value = row[column_index] if column_index < len(row) else ""
         if value in {"", None}:
             continue
@@ -576,7 +594,7 @@ def _read_first_sheet_rows(path: Path) -> list[list[str]]:
         values: list[str] = []
         for cell in row.findall("main:c", namespaces):
             column_index = _excel_column_index(cell.attrib.get("r", "A1"))
-            while len(values) < column_index:
+            while len(values) < column_index - 1:
                 values.append("")
             values.append(_read_cell_value(cell, shared_strings, namespaces))
         rows.append(values)
@@ -623,6 +641,20 @@ def _excel_column_index(cell_ref: str) -> int:
 
 def _normalize_column_name(value: str) -> str:
     return value.strip().lower()
+
+
+def _direct_column_index(value: str) -> int | None:
+    text = value.strip()
+    if text.isdigit():
+        index = int(text)
+        if index <= 0:
+            raise ValueError("indice de coluna deve ser maior que zero")
+        return index - 1
+    if text.isalpha() and len(text) <= 3:
+        index = _excel_column_index(f"{text}1")
+        if index <= _excel_column_index("XFD1"):
+            return index - 1
+    return None
 
 
 def _parse_positive_id(value: Any, *, context: str) -> int:
