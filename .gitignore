@@ -24,6 +24,8 @@ deploy/*.zip
 deploy/landing-feminino-public-html/
 cloud_run_worker.py
 n8n/root/data/
+scripts/shopee/product_offer_v2_*.csv
+scripts/shopee/product_offer_v2_*.xlsx
 cloud_run_worker.py
 src/*.egg-info/
 src/ofertas_bot.egg-info/
