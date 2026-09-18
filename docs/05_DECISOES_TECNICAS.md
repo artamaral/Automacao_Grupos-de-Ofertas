@@ -202,6 +202,37 @@ Limites:
 - credenciais, tokens, cookies, QR codes e sessoes ficam fora do Git;
 - `delivery_status` continua limitado a `confirmed`, `failed` e `cancelled`;
 - estados intermediarios da Instagram Graph API entram em `payload`.
+
+## 2026-09-18 - ProductCatId generico para descoberta manual por itemId
+
+Decisao:
+
+- criar a categoria operacional generica Shopee `999999` com o caminho
+  `no_productcatId` em `offers.shopee_product_categories`;
+- usar `productCatId=999999` somente para itens descobertos manualmente por
+  `itemId` quando a API retorna apenas categorias que nao existem na taxonomia
+  operacional do Supabase;
+- manter `selection_mode='user_defined'` para essas cargas manuais;
+- preservar o array original `productCatIds` retornado pela API no
+  `source_payload` do snapshot/import para auditoria futura;
+- nao usar `999999` na matriz automatica de quotas por `productCatId`.
+
+Motivo:
+
+- evitar descartar itens manuais validos por falta de uma categoria operacional
+  singular no Supabase;
+- manter os itens elegiveis para ranking manual sem inventar uma categoria real
+  da Shopee;
+- separar claramente origem manual (`user_defined`) de descoberta automatica por
+  matriz (`productCatId`).
+
+Limites:
+
+- `999999` nao representa uma categoria oficial da Shopee;
+- itens com rating abaixo de `4.5` continuam fora da carga;
+- se a taxonomia operacional passar a conter uma categoria real aplicavel, ela
+  deve substituir `999999` em cargas futuras.
+
 ## 2026-09-10 - Daily Dispatch híbrido por origem do catálogo
 
 - O plano diário do perfil `feminino` continua com 140 vagas e mantém os
