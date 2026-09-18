@@ -40,6 +40,7 @@ supabase/migrations/202608130001_incremental_discovery_catalog.sql
 supabase/migrations/202608140001_publication_cooldown_2d.sql
 supabase/migrations/202608150001_daily_dispatch_fresh_only.sql
 supabase/migrations/202608230002_extend_publication_cooldown_3d.sql
+supabase/migrations/20260918203000_extend_publication_cooldown_4d.sql
 ```
 
 Migrations versionadas para aplicacao da feature Instagram:
@@ -243,8 +244,8 @@ Para `feminino/shopee`, a tabela e a projecao operacional reconstruivel de
 
 - somente `confirmed` com `sent_at` participa;
 - `selection_count` e `last_sent_at` sao recalculados do ledger;
-- `cooldown_until` e meia-noite BRT do quarto dia apos a publicacao;
-- o item fica inelegivel nos tres dias operacionais seguintes;
+- `cooldown_until` e meia-noite BRT do quinto dia apos a publicacao;
+- o item fica inelegivel nos quatro dias operacionais seguintes;
 - similaridade, taxonomia e estado de refresh sao preservados;
 - o bloqueio abrange todos os destinos e canais do perfil.
 
