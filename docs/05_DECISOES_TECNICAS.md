@@ -280,3 +280,19 @@ Limites:
   `published_video_source='shopee_original'`.
 - Não será adicionado retry no n8n para falha de submissão do job; essa regra
   permanece como fallback imediato para o vídeo original.
+
+## 2026-09-20 - Primeira publicação real do Reels com renderer
+
+- A primeira publicação produtiva controlada foi concluída na execução n8n
+  `1164`, com um único item (`19997638584`) e template `1`.
+- O renderer retornou MP4 com overlay, o container Instagram terminou em
+  `FINISHED` e o media ID publicado foi `18170997604458269`.
+- O n8n registrou `delivery_status=confirmed` e `publish_id`
+  `e4523991-cef2-447e-a27f-a3ba06c9835a`.
+- As 17 marcações observadas na execução anterior eram consultas de
+  polling do mesmo job, não 17 Reels nem 17 publicações.
+- O contexto manual deve carregar `instagram_business_account_id`; o
+  restaurador de contexto também deve preservá-lo após a resposta do
+  renderer para impedir URL `/null/media`.
+- Valores textuais `None`, `null` e `undefined` em `primary_subniche` são
+  normalizados para `ofertas` antes da geração da hashtag.

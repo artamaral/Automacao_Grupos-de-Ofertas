@@ -1229,6 +1229,28 @@ Em 2026-09-20, o fluxo n8n → Google Drive → renderer VPS foi validado em
 A política vigente é publicar o vídeo Shopee original em caso de falha, sem
 overlay e sem retry adicional no n8n.
 
+### 18.9 Primeira publicação real com overlay
+
+Em 2026-09-20, a primeira execução produtiva controlada foi concluída na
+execução n8n `1164`, usando a versão de workflow
+`c97612fe-55d5-4630-8a6d-fd86ad069bed`:
+
+- item `19997638584`, template `1` e `dry_run=false`;
+- renderer concluído com `render_status=succeeded` e `overlay_applied=true`;
+- MP4 entregue por HTTPS e usado no container do Instagram;
+- container `18100957790152776` chegou a `FINISHED`;
+- Reel publicado com media ID `18170997604458269`;
+- evento registrado com `delivery_status=confirmed` e `publish_id`
+  `e4523991-cef2-447e-a27f-a3ba06c9835a`.
+
+O fluxo realizou uma publicação para um único item. Consultas repetidas do
+renderer são polling assíncrono do mesmo job e não representam Reels
+adicionais. O contexto manual passou a carregar explicitamente o ID da conta
+Instagram e o restaurador valida sua presença antes de criar o container.
+
+Valores textuais `None`, `null` ou `undefined` em `primary_subniche` são
+normalizados para `ofertas` antes da geração da hashtag.
+
 ## 19. Princípio de implementação
 
 A regra central é:

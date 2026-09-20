@@ -94,7 +94,7 @@
         0
       ],
       "parameters": {
-        "jsCode": "const item = $json;\nconst whatsappGroupUrl = String(item.whatsapp_group_url || '').trim();\nif (!/^https:\\/\\/(chat\\.whatsapp\\.com|whatsapp\\.com\\/channel|wa\\.me)\\//i.test(whatsappGroupUrl)) { throw new Error('whatsapp_group_url obrigatorio para copy Instagram'); }\nconst formatMoney = (value) => { if (value === null || value === undefined || value === '') return null; const numberValue = Number(value); if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`; return String(value).trim(); };\nconst formatRating = (value) => { const rating = Number(value); if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ','); return String(value || '').trim(); };\nconst hashtag = String(item.primary_subniche || 'ofertas').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '') || 'ofertas';\nconst metrics = [formatMoney(item.price) ? `💸 ${formatMoney(item.price)}` : null, formatRating(item.rating) ? `⭐ ${formatRating(item.rating)}/5 na Shopee` : null].filter(Boolean).join('\\n');\nconst captionBase = [[`🔥 ${item.product_name}`, `Copie o link da oferta: ${String(item.offer_link || '').trim()}`].filter(Boolean).join('\\n'), metrics, `💬 Quer receber mais ofertas assim?\\nEntre no grupo do WhatsApp: ${whatsappGroupUrl}`, '⚠️ Preco e disponibilidade podem mudar.', `#ad #shopee #${hashtag} #achadinhos`].filter(Boolean).join('\\n\\n');\nreturn [{ json: { ...item, whatsapp_group_url: whatsappGroupUrl, caption_base: captionBase } }];"
+        "jsCode": "const item = $json;\nconst whatsappGroupUrl = String(item.whatsapp_group_url || '').trim();\nif (!/^https:\\/\\/(chat\\.whatsapp\\.com|whatsapp\\.com\\/channel|wa\\.me)\\//i.test(whatsappGroupUrl)) { throw new Error('whatsapp_group_url obrigatorio para copy Instagram'); }\nconst formatMoney = (value) => { if (value === null || value === undefined || value === '') return null; const numberValue = Number(value); if (Number.isFinite(numberValue)) return `R$ ${numberValue.toFixed(2).replace('.', ',')}`; return String(value).trim(); };\nconst formatRating = (value) => { const rating = Number(value); if (Number.isFinite(rating)) return rating.toFixed(1).replace('.', ','); return String(value || '').trim(); };\nconst rawSubniche = String(item.primary_subniche || '').trim();\nconst subniche = rawSubniche && !['none', 'null', 'undefined'].includes(rawSubniche.toLowerCase()) ? rawSubniche : 'ofertas';\nconst hashtag = subniche.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '') || 'ofertas';\nconst metrics = [formatMoney(item.price) ? `💸 ${formatMoney(item.price)}` : null, formatRating(item.rating) ? `⭐ ${formatRating(item.rating)}/5 na Shopee` : null].filter(Boolean).join('\\n');\nconst captionBase = [[`🔥 ${item.product_name}`, `Copie o link da oferta: ${String(item.offer_link || '').trim()}`].filter(Boolean).join('\\n'), metrics, `💬 Quer receber mais ofertas assim?\\nEntre no grupo do WhatsApp: ${whatsappGroupUrl}`, '⚠️ Preco e disponibilidade podem mudar.', `#ad #shopee #${hashtag} #achadinhos`].filter(Boolean).join('\\n\\n');\nreturn [{ json: { ...item, primary_subniche: subniche, whatsapp_group_url: whatsappGroupUrl, caption_base: captionBase } }];"
       }
     },
     {
@@ -776,7 +776,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $json;\nconst original = $('Normalizar Job Render Reels').first().json;\nconst errors = Array.isArray(response.errors) ? response.errors : [];\nreturn [{ json: {\n  ...original,\n  ...response,\n  job_id: response.job_id || original.job_id,\n  render_status: response.render_status || response.status || 'running',\n  render_attempts: Number(response.attempts || original.render_attempts || 0),\n  poll_attempt: Number(original.poll_attempt || 0) + 1,\n  render_error_code: errors.at(-1)?.code || '',\n  render_error_log: errors.map((error) => error.message || '').join(' | ').slice(0, 2000),\n  published_video_url: response.artifact_url || '',\n} }];"
+        "jsCode": "const response = $json;\nconst original = $('Normalizar Job Render Reels').first().json;\n const errors = Array.isArray(response.errors) ? response.errors : [];\n const accountId = String(original.instagram_business_account_id || $('Montar Copy Instagram').first().json.instagram_business_account_id || $('Trigger Manual').first().json.instagram_business_account_id || '').trim();\n if (!accountId) throw new Error('instagram_business_account_id ausente ao restaurar contexto do render');\n return [{ json: {\n   ...original,\n   ...response,\n   instagram_business_account_id: accountId,\n  job_id: response.job_id || original.job_id,\n  render_status: response.render_status || response.status || 'running',\n  render_attempts: Number(response.attempts || original.render_attempts || 0),\n  poll_attempt: Number(original.poll_attempt || 0) + 1,\n  render_error_code: errors.at(-1)?.code || '',\n  render_error_log: errors.map((error) => error.message || '').join(' | ').slice(0, 2000),\n  published_video_url: response.artifact_url || '',\n} }];"
       },
       "id": "restaurar-contexto-render-reels",
       "name": "Restaurar Contexto Render Reels",
@@ -1298,8 +1298,8 @@
           "run_id": "instagram-safe-dry-run",
           "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
           "instagram_username": "oferta.femininas",
-        "whatsapp_group_url": "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
-      }
+          "whatsapp_group_url": "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
+        }
       }
     ]
   },

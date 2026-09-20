@@ -207,10 +207,13 @@ return [{ json: { ...original, ...response, job_id: response.job_id || original.
                 "restaurar-contexto-render-reels",
                 """const response = $json;
 const original = $('Normalizar Job Render Reels').first().json;
-const errors = Array.isArray(response.errors) ? response.errors : [];
-return [{ json: {
-  ...original,
-  ...response,
+ const errors = Array.isArray(response.errors) ? response.errors : [];
+ const accountId = String(original.instagram_business_account_id || $('Montar Copy Instagram').first().json.instagram_business_account_id || $('Trigger Manual').first().json.instagram_business_account_id || '').trim();
+ if (!accountId) throw new Error('instagram_business_account_id ausente ao restaurar contexto do render');
+ return [{ json: {
+   ...original,
+   ...response,
+   instagram_business_account_id: accountId,
   job_id: response.job_id || original.job_id,
   render_status: response.render_status || response.status || 'running',
   render_attempts: Number(response.attempts || original.render_attempts || 0),
