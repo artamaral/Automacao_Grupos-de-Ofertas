@@ -1,0 +1,35 @@
+[Script Info]
+; PRODUCTION TEMPLATE — extracted from testeFonte.ass
+; template_id: 2
+; This file contains one normalized cycle; the renderer repeats it.
+; =========================================================
+; SHOWCASE - 10 VARIACOES V3
+; Canvas: 1080x1920
+; Duracao total: 51.20 s
+; Cada template: 5.12 s
+;
+; Fonte manuscrita: Smithen
+; Fonte display: Happy Camper
+; QUERO sempre em maiusculas
+; =========================================================
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+YCbCr Matrix: TV.709
+WrapStyle: 2
+
+
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: T02_Main,Smithen,205,&H00FFFFFF,&H00FFFFFF,&H00000000,&H707D3BFF,0,0,0,0,100,100,0,0,1,2,5,5,20,20,20,1
+Style: T02_Accent,Happy Camper,80,&H00FFFFFF,&H00FFFFFF,&H007D3BFF,&H007D3BFF,-1,0,0,0,100,100,0,0,3,12,3,5,20,20,20,1
+Style: T02_Price,Happy Camper,88,&H00FFFFFF,&H00FFFFFF,&H00000000,&H007D3BFF,-1,0,0,0,100,100,0,0,3,15,3,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 1,0:00:00.00,0:00:02.56,T02_Main,T02_A,0,0,0,,{\an5\move(200,1660,390,1660,0,300)}Digite
+Dialogue: 2,0:00:00.00,0:00:02.56,T02_Accent,T02_B,0,0,0,,{\an5\move(850,1660,665,1660,0,300)}QUERO
+Dialogue: 1,0:00:02.56,0:00:05.12,T02_Main,T02_C,0,0,0,,{\an5\move(700,1660,540,1660,0,280)\fscx72\fscy100}E entre no nosso grupo
+Dialogue: 3,0:00:00.00,0:00:05.12,T02_Price,T02_PRICE,0,0,0,,{\an5\pos(540,1810)\fscx90\fscy90\t(0,250,\fscx104\fscy104)}R$ XX,XX

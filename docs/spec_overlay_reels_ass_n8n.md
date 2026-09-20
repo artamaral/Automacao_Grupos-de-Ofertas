@@ -1,6 +1,6 @@
 # Spec — Overlay Dinâmico para Reels com ASS + FFmpeg + n8n
 
-**Status:** rascunho revisado — contrato VPS/n8n parcialmente definido
+**Status:** smoke test VPS concluído — integração produtiva n8n ainda pendente
 **Escopo:** geração do overlay textual/visual de Reels de ofertas, seleção aleatória de template, adaptação à duração do vídeo e normalização de resolução antes da renderização.
 
 ## Decisões desta revisão
@@ -13,8 +13,9 @@
 - `template_id` é metadado obrigatório do processamento e da publicação.
 - O overlay pode terminar alguns centésimos antes do fim do vídeo; não é
   necessário perseguir o último frame.
-- `testeFonte.ass` é referência visual/técnica fornecida pelo usuário, não uma
-  instrução operacional nem um arquivo a ser versionado automaticamente.
+- `testeFonte.ass` é referência visual/técnica fornecida pelo usuário, não um
+  arquivo de produção: ele contém os 10 criativos em sequência no mesmo ASS.
+  Em produção, cada `template_id` terá seu próprio arquivo ASS no Google Drive.
 - Os vídeos atuais são produzidos para consumo em celular no ecossistema da
   Shopee e as publicações observadas mantêm posicionamento adequado.
 - O enquadramento vertical original deve ser preservado. A normalização para
@@ -163,6 +164,11 @@ São utilizadas duas fontes:
 - `Happy Camper`: preço e, nos templates 01 e 02, `QUERO` isolado.
 
 As fontes devem existir no ambiente que executa FFmpeg/libass. Não é suficiente que estejam instaladas apenas no computador usado para editar/testar no Aegisub.
+
+O renderizador deve falhar antes do FFmpeg quando `fc-match` não resolver
+`Smithen` e `Happy Camper` para as famílias esperadas. Fallback silencioso para
+outra fonte não é aceitável, porque altera as métricas do texto e pode fazê-lo
+exceder a área visual do template.
 
 O nome utilizado no ASS deve corresponder ao nome interno reconhecido pela fonte:
 
@@ -888,22 +894,30 @@ n8n. Não se prevê contratar outro storage ou domínio nesta fase. URL ilustrat
 https://n8n-owco.srv1805131.hstgr.cloud/media/jobs/{job_id}/output.mp4
 ```
 
-O path `/media/jobs/` ainda não existe e poderá mudar na implementação. A Meta
-deve conseguir baixar o arquivo sem sessão, cookie ou cabeçalho privado. Se
+O path `/media/jobs/` está implementado na VPS e poderá mudar somente por
+decisão operacional explícita. A Meta deve conseguir baixar o arquivo sem
+sessão, cookie ou cabeçalho privado. Se
 houver controle de acesso, usar um token opaco e imprevisível na própria URL,
 limitado ao artefato e com validade temporária. Não expor diretórios arbitrários
 nem permitir que `job_id` escape da pasta de artefatos.
 
-#### Evidência da VPS consultada em 2026-09-16
+#### Evidência da VPS consultada em 2026-09-20
 
 - Traefik estava ativo, escutando nas portas 80/443 e configurado para
   redirecionar HTTP para HTTPS e emitir certificados Let's Encrypt.
 - O domínio HTTPS existente do n8n respondeu `HTTP 200` numa consulta feita da
   própria VPS, com validação TLS bem-sucedida.
 - O disco raiz tinha aproximadamente `68 GB` livres no momento da consulta.
-- Não foi encontrada rota/serviço para servir MP4s de jobs. A rota de mídia
-  precisa ser implementada e testada de fora da VPS. Esses dados são uma
-  fotografia do estado observado, não uma garantia permanente.
+- Foi criada a pasta `/opt/automacao_grupo_compras/media/jobs` e uma stack
+  Nginx isolada em `/opt/automacao_grupo_compras/reels-media`, ligada à rede
+  Docker existente do Traefik. A rota pública é
+  `https://n8n-owco.srv1805131.hstgr.cloud/media/jobs/`.
+- O smoke test real do item `23098338263` baixou a origem `480x848`, renderizou
+  `1080x1920` com FFmpeg/libass e validou `HEAD`/`GET` públicos com
+  `Content-Type: video/mp4`; o artefato foi removido ao final.
+- O n8n e o Traefik permaneceram saudáveis; não houve publicação Instagram.
+  Esses dados são uma fotografia do estado observado, não uma garantia
+  permanente.
 
 #### Decisões restantes do contrato
 
@@ -1014,10 +1028,9 @@ Este smoke test comprova execução FFmpeg e entrega HTTP do arquivo de teste;
 não instala/configura a rota, não chama Instagram Graph API, não publica e não
 substitui testes dos limites de carga/concor­rência ou dos dez templates.
 
-**Estado:** armazenamento/entrega, origem do ASS e fallback funcional definidos;
-implementação da rota e validação externa são bloqueantes. Credencial/arquivo
-Drive, limites e detalhes do contrato também devem ser definidos antes da
-produção.
+**Estado:** armazenamento/entrega e smoke test básico concluídos; ainda faltam
+o serviço de renderização assíncrono, manifesto `item_id`→artefato, integração
+do n8n, limites de carga e criação dos dez templates antes da produção.
 
 ### 18.3 Registro do template
 
@@ -1056,11 +1069,46 @@ registro no fluxo existente.
 ### 18.4 Configuração declarativa dos templates
 
 Os estilos, posições, tamanhos, cores e animações estão definidos no
-`testeFonte.ass`, mas ainda precisam ser convertidos em uma configuração
-versionada que o gerador consiga carregar por `template_id`. Também falta
-definir a validação de que existem exatamente dez templates habilitados.
+`testeFonte.ass`, mas os dez criativos precisam ser separados em arquivos de
+produção no Google Drive:
 
-**Estado:** pendência de implementação, não de decisão visual.
+```text
+reels/templates/template_01.ass
+reels/templates/template_02.ass
+...
+reels/templates/template_10.ass
+```
+
+Cada arquivo deve conter somente um criativo, com suas fases aplicáveis ao
+vídeo inteiro. O trecho de aproximadamente `5,12 s` usado no showcase não deve
+ser tratado como duração de produção. O renderizador deve repetir as fases do
+template escolhido até o fim do vídeo e substituir os dados dinâmicos, como
+preço e duração.
+
+Os arquivos-fonte versionados do produto ficam em
+`deploy/reels-media/templates/`; o Google Drive continua sendo o repositório
+operacional consumido pelo n8n.
+
+O Drive também deve ter um manifesto simples relacionando `template_id`, ID do
+arquivo, versão/hash e status habilitado. O n8n sorteia o `template_id`, lê o
+arquivo correspondente e encaminha o ASS escolhido para a VPS. O gerador não
+deve publicar automaticamente os dez criativos em sequência.
+
+**Estado:** decisão fechada; separação e cadastro inicial no Drive concluídos;
+falta validar visualmente os dez ASS e implementar a repetição por duração.
+
+#### Separação inicial realizada em 2026-09-20
+
+Os dez arquivos foram extraídos do `testeFonte.ass`, normalizados para iniciar
+em `0:00:00.00` e enviados para a pasta do Drive:
+
+`https://drive.google.com/drive/folders/1Fk_D3IXQ_qMZikJ5UBwIV2xTDa0Rwj2W`
+
+Também foi enviado `manifest.json` com `template_id`, nome do arquivo, estilos,
+quantidade de eventos e duração do ciclo (`5,12 s`). O status dos arquivos é
+`draft_split`: eles representam um ciclo individual do criativo, ainda não a
+versão final que repete as fases até o fim de qualquer vídeo. A próxima etapa é
+validar visualmente cada arquivo e implementar essa repetição no renderizador.
 
 ### 18.5 Execução e qualidade do render
 
@@ -1073,7 +1121,70 @@ Ainda falta fechar e validar:
 - teste dos 37 vídeos reais publicados no período analisado;
 - tolerância de duração e validação do MP4 final.
 
+#### Estratégia de ajuste de fonte
+
+O ASS é desenhado em `PlayResX=1080` e `PlayResY=1920`, depois que a mídia é
+normalizada para esse canvas. Portanto, a fonte não deve ser redimensionada
+diretamente pela resolução da entrada (`480x848`, `720x1280` etc.). Entradas
+com a mesma proporção podem ter resoluções diferentes sem mudar as coordenadas
+do overlay.
+
+Se um texto de um template exceder sua área segura, o gerador deve ajustar o
+bloco no próprio canvas, em ordem:
+
+1. medir o bloco completo com a fonte real instalada, incluindo outline,
+   shadow, espaçamento e partes como `Digite` + `QUERO`;
+2. comparar a largura/altura com a caixa segura do template;
+3. reduzir `FontSize` ou aplicar escala proporcional em passos controlados;
+4. repetir a medição até caber ou atingir um limite mínimo;
+5. retornar erro de template se não couber, em vez de publicar texto cortado.
+
+Uma busca binária de tamanho é preferível a tentativas arbitrárias. A medição
+deve ocorrer antes de gerar os eventos ASS e ser feita com as mesmas fontes
+usadas pelo libass. O ajuste por entrada só será necessário para o
+enquadramento/crop; o ajuste tipográfico é relativo ao canvas final.
+
+O teste com `720x1280` em 2026-09-20 mostrou que, após instalar as fontes
+corretas na VPS, o template ficou dentro dos limites. O problema observado com
+`480x848` foi fallback de fonte para `DejaVu Sans`, não uma falha da
+normalização geométrica.
+
 **Estado:** pendência técnica para implementação e testes.
+
+### 18.7 Histórico do que foi implementado e validado
+
+Em 2026-09-20, a preparação do ambiente de teste foi concluída:
+
+- criada a pasta de artefatos `/opt/automacao_grupo_compras/media/jobs` na VPS;
+- criada a stack isolada `reels-media` em
+  `/opt/automacao_grupo_compras/reels-media`;
+- configurado o Nginx para servir somente os MP4s dessa pasta, em modo somente
+  leitura;
+- configurada a rota Traefik
+  `https://n8n-owco.srv1805131.hstgr.cloud/media/jobs/`;
+- instalado FFmpeg/ffprobe com suporte ao filtro `ass`/libass;
+- instaladas e validadas as fontes `Smithen Script.ttf` e
+  `Happy-Camper-Regular.ttf`;
+- transferido o script `scripts/ops/test_instagram_reel_render_route.sh` para
+  a VPS;
+- adicionada validação para impedir fallback silencioso de fonte;
+- validado `HEAD` e `GET` públicos com `Content-Type: video/mp4`.
+
+Foram usados itens reais do `daily_dispatch_plan`:
+
+- `23098338263`: origem `480x848`, saída `1080x1920`, render corrigido mantido
+  em `render-smoke-22DJphBN`;
+- `58264680596`: origem `720x1280`, proporção vertical `9:16`, saída
+  `1080x1920`, render mantido em `render-smoke-okwAXoao`.
+
+O primeiro render do item `23098338263` foi invalidado porque ocorreu antes da
+instalação das fontes e usou `DejaVu Sans`. Nenhum desses testes chamou a API do
+Instagram ou alterou a confirmação de publicação. Os artefatos mantidos são
+temporários e devem ser removidos depois da inspeção visual.
+
+O que ainda não existe: serviço produtivo assíncrono, manifesto de artefatos,
+integração do n8n com o renderizador, seleção dos dez templates e execução do
+pré-render diário.
 
 ## 19. Princípio de implementação
 

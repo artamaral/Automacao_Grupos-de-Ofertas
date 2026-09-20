@@ -1,0 +1,33 @@
+[Script Info]
+; PRODUCTION TEMPLATE — extracted from testeFonte.ass
+; template_id: 5
+; This file contains one normalized cycle; the renderer repeats it.
+; =========================================================
+; SHOWCASE - 10 VARIACOES V3
+; Canvas: 1080x1920
+; Duracao total: 51.20 s
+; Cada template: 5.12 s
+;
+; Fonte manuscrita: Smithen
+; Fonte display: Happy Camper
+; QUERO sempre em maiusculas
+; =========================================================
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+YCbCr Matrix: TV.709
+WrapStyle: 2
+
+
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: T05_Main,Smithen,195,&H00FFFFFF,&H00FFFFFF,&H00000000,&H703FD2FF,0,0,0,0,100,100,0,0,1,2,5,5,20,20,20,1
+Style: T05_Price,Happy Camper,88,&H00000000,&H00000000,&H003FD2FF,&H003FD2FF,-1,0,0,0,100,100,0,0,3,15,3,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 1,0:00:00.00,0:00:02.56,T05_Main,T05_A,0,0,0,,{\an5\pos(540,1660)\fad(180,180)\fscx78\fscy80\t(0,300,\fscx92\fscy100)}Comente QUERO
+Dialogue: 1,0:00:02.56,0:00:05.12,T05_Main,T05_B,0,0,0,,{\an5\pos(540,1660)\fad(150,150)\fscx72\fscy100}E eu te mando o grupo
+Dialogue: 3,0:00:00.00,0:00:05.12,T05_Price,T05_PRICE,0,0,0,,{\an5\pos(540,1810)\fscx92\fscy92\t(0,300,\fscx100\fscy100)}R$ XX,XX

@@ -1,0 +1,128 @@
+{
+  "source_file": "testeFonte.ass",
+  "status": "draft_split",
+  "templates": [
+    {
+      "template_id": 1,
+      "file_name": "template_01.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T01_Accent",
+        "T01_Main",
+        "T01_Price"
+      ],
+      "event_count": 4,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 2,
+      "file_name": "template_02.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T02_Accent",
+        "T02_Main",
+        "T02_Price"
+      ],
+      "event_count": 4,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 3,
+      "file_name": "template_03.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T03_Main",
+        "T03_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 4,
+      "file_name": "template_04.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T04_Main",
+        "T04_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 5,
+      "file_name": "template_05.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T05_Main",
+        "T05_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 6,
+      "file_name": "template_06.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T06_Main",
+        "T06_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 7,
+      "file_name": "template_07.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T07_Main",
+        "T07_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 8,
+      "file_name": "template_08.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T08_Main",
+        "T08_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 9,
+      "file_name": "template_09.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T09_Main",
+        "T09_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    },
+    {
+      "template_id": 10,
+      "file_name": "template_10.ass",
+      "source_file": "testeFonte.ass",
+      "cycle_duration_seconds": 5.12,
+      "style_names": [
+        "T10_Main",
+        "T10_Price"
+      ],
+      "event_count": 3,
+      "status": "draft_split"
+    }
+  ]
+}
