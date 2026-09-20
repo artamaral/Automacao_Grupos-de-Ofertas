@@ -81,8 +81,19 @@ são publicados.
 ## Ainda necessário antes de produção
 
 - configurar o token e a allowlist real dos CDNs Shopee;
-- conectar os nós n8n de criação/consulta do job;
+- configurar no n8n as credenciais `Google Drive account` e
+  `Reels Renderer Bearer`;
+- validar e importar o draft
+  `n8n/workflows/ofertas-instagram-reels-render-draft.json` como workflow
+  inativo;
 - medir limites de duração, tamanho, concorrência, memória e timeout;
 - implementar limpeza protegida dos jobs concluídos;
 - validar o registro de `template_id`, `artifact_url`, tentativas e erros no
   `offers.publication_events` existente.
+
+Validação local do draft:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\n8n\build_instagram_reels_render_draft.py
+.\.venv\Scripts\python.exe scripts\n8n\validate_instagram_reels_render_draft.py
+```

@@ -957,6 +957,14 @@ interna. O Nginx continua sendo o único componente exposto para a entrega do
 MP4. O renderer foi implantado na VPS em 2026-09-20; permanece pendente o
 consumo pelo n8n.
 
+Foi criado o draft inativo
+`n8n/workflows/ofertas-instagram-reels-render-draft.json`. Ele seleciona um
+`template_id`, busca o ASS correspondente no Drive, cria o job assíncrono,
+consulta o status e encaminha `artifact_url` para o mesmo nó de criação do
+container Instagram. Em falha, mantém `video_url` original e registra os
+metadados de render no evento existente. O draft ainda exige configuração das
+credenciais Google Drive e Reels Renderer no n8n antes de qualquer ativação.
+
 ### 18.6 Pré-render diário e seleção de candidatos
 
 **Definições fechadas:** primeiro post às 10:00 BRT; job independente às
