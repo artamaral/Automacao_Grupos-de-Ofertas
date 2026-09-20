@@ -6,6 +6,8 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY renderer_service.py /app/renderer_service.py
+COPY fonts/ /usr/local/share/fonts/reels/
+RUN fc-cache -f
 
 ENV REELS_RENDER_HOST=0.0.0.0 \
     REELS_RENDER_PORT=8080 \

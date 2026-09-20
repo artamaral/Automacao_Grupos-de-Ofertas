@@ -64,7 +64,10 @@ def add_nodes(workflow: dict[str, Any]) -> None:
                 "Selecionar Template Reels",
                 "selecionar-template-reels",
                 """const item = $json;
-const template_id = Math.floor(Math.random() * 10) + 1;
+const requested = Number($('Trigger Manual').first().json.template_id_override);
+const template_id = Number.isInteger(requested) && requested >= 1 && requested <= 10
+  ? requested
+  : Math.floor(Math.random() * 10) + 1;
 return [{ json: { ...item, template_id, template_folder_id: 'DRIVE_FOLDER_ID' } }];""".replace(
                     "DRIVE_FOLDER_ID", DRIVE_FOLDER_ID
                 ),
@@ -93,7 +96,7 @@ return [{ json: { ...item, template_id, template_folder_id: 'DRIVE_FOLDER_ID' } 
                     "options": {"fields": ["id", "name", "mimeType", "webViewLink"]},
                 },
                 [1400, 460],
-            ) | {"credentials": {"googleDriveOAuth2Api": DRIVE_CREDENTIAL}},
+            ) | {"typeVersion": 3, "credentials": {"googleDriveOAuth2Api": DRIVE_CREDENTIAL}},
             code_node(
                 "Escolher Template ASS Reels",
                 "escolher-template-ass-reels",
@@ -123,19 +126,19 @@ return [{ json: { ...context, ass_file_id: matches[0].json.id, ass_file_name: ex
                     },
                 },
                 [1840, 460],
-            ) | {"credentials": {"googleDriveOAuth2Api": DRIVE_CREDENTIAL}},
+            ) | {"typeVersion": 3, "credentials": {"googleDriveOAuth2Api": DRIVE_CREDENTIAL}},
             code_node(
                 "Montar Payload Render Reels",
                 "montar-payload-render-reels",
                 """const context = $('Escolher Template ASS Reels').first().json;
-const binary = $input.first().binary?.ass_template?.data;
-if (!binary) throw new Error('ASS template nao retornado pelo Google Drive');
+const binary = await this.helpers.getBinaryDataBuffer(0, 'ass_template');
+if (!binary?.length) throw new Error('ASS template nao retornado pelo Google Drive');
 const safe = (value) => String(value || '').replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 40);
 const job_id = `reels-${safe(context.dispatch_plan_id)}-${safe(context.item_id)}-t${context.template_id}`;
 return [{ json: {
   ...context,
   job_id,
-  ass_template_base64: binary,
+  ass_template_base64: binary.toString('base64'),
   ass_asset_version: context.ass_file_id,
   render_status: 'queued',
   render_attempts: 0,
@@ -160,7 +163,7 @@ return [{ json: {
                     },
                 },
                 [2280, 460],
-            ) | {"credentials": {"httpHeaderAuth": RENDER_CREDENTIAL}, "continueOnFail": True},
+            ) | {"typeVersion": 4.2, "credentials": {"httpHeaderAuth": RENDER_CREDENTIAL}, "continueOnFail": True},
             code_node(
                 "Normalizar Job Render Reels",
                 "normalizar-job-render-reels",
@@ -198,7 +201,7 @@ return [{ json: { ...original, ...response, job_id: response.job_id || original.
                     },
                 },
                 [2720, 460],
-            ) | {"credentials": {"httpHeaderAuth": RENDER_CREDENTIAL}, "continueOnFail": True},
+            ) | {"typeVersion": 4.2, "credentials": {"httpHeaderAuth": RENDER_CREDENTIAL}, "continueOnFail": True},
             code_node(
                 "Restaurar Contexto Render Reels",
                 "restaurar-contexto-render-reels",
@@ -269,6 +272,7 @@ return [{ json: {
 
 def update_connections(workflow: dict[str, Any]) -> None:
     connections = workflow["connections"]
+    connections["Montar Copy Instagram"] = {"main": [[{"node": "Revalidar Midia", "type": "main", "index": 0}]]}
     connections["Revalidar Midia"] = {"main": [[{"node": "Selecionar Template Reels", "type": "main", "index": 0}]]}
     one_way = {
         "Selecionar Template Reels": "Buscar Template ASS Reels",
@@ -281,7 +285,7 @@ def update_connections(workflow: dict[str, Any]) -> None:
         "Checar Status Render Reels": "Restaurar Contexto Render Reels",
         "Restaurar Contexto Render Reels": "Render Pronto?",
         "Aguardar Render Reels": "Checar Status Render Reels",
-        "Falhar Render Reels": "Criar Container Reels",
+        "Falhar Render Reels": "Dry Run Instagram?",
     }
     for source, target in one_way.items():
         connections[source] = {"main": [[{"node": target, "type": "main", "index": 0}]]}
@@ -293,8 +297,14 @@ def update_connections(workflow: dict[str, Any]) -> None:
     }
     connections["Render Pronto?"] = {
         "main": [
-            [{"node": "Criar Container Reels", "type": "main", "index": 0}],
+            [{"node": "Dry Run Instagram?", "type": "main", "index": 0}],
             [{"node": "Pode Repetir Render Reels?", "type": "main", "index": 0}],
+        ]
+    }
+    connections["Dry Run Instagram?"] = {
+        "main": [
+            [{"node": "Registrar Resultado Supabase", "type": "main", "index": 0}],
+            [{"node": "Criar Container Reels", "type": "main", "index": 0}],
         ]
     }
     connections["Pode Repetir Render Reels?"] = {
@@ -316,7 +326,7 @@ def update_result_query(workflow: dict[str, Any]) -> None:
     register = next(node for node in workflow["nodes"] if node["name"] == "Registrar Resultado Supabase")
     query = register["parameters"]["query"]
     marker = "    'published_media_id', '{{ $json.instagram_media_id || \"\" }}'\n"
-    replacement = marker + "    'template_id', coalesce({{ $json.template_id || 'null' }}, null),\n    'ass_asset_version', '{{ $json.ass_asset_version || \"\" }}',\n    'render_status', '{{ $json.render_status || \"not_attempted\" }}',\n    'render_attempts', coalesce({{ $json.render_attempts || 0 }}, 0),\n    'render_error_code', '{{ $json.render_error_code || \"\" }}',\n    'render_error_log', '{{ $json.render_error_log || \"\" }}',\n    'overlay_applied', coalesce({{ $json.overlay_applied ? 'true' : 'false' }}, false),\n    'published_video_source', '{{ $json.published_video_source || \"shopee_original\" }}'\n"
+    replacement = marker[:-1] + ",\n    'template_id', coalesce({{ $json.template_id || 'null' }}, null),\n    'ass_asset_version', '{{ $json.ass_asset_version || \"\" }}',\n    'render_status', '{{ $json.render_status || \"not_attempted\" }}',\n    'render_attempts', coalesce({{ $json.render_attempts || 0 }}, 0),\n    'render_error_code', '{{ $json.render_error_code || \"\" }}',\n    'render_error_log', '{{ $json.render_error_log || \"\" }}',\n    'overlay_applied', coalesce({{ $json.overlay_applied ? 'true' : 'false' }}, false),\n    'published_video_source', '{{ $json.published_video_source || \"shopee_original\" }}'\n"
     if marker not in query:
         raise ValueError("publication query marker not found")
     register["parameters"]["query"] = query.replace(marker, replacement)

@@ -56,10 +56,10 @@ def validate(workflow: dict[str, Any]) -> None:
         "Revalidar Midia": [{"Selecionar Template Reels"}],
         "Normalizar Job Render Reels": [{"Job Render Aceito?"}],
         "Job Render Aceito?": [{"Checar Status Render Reels"}, {"Falhar Render Reels"}],
-        "Render Pronto?": [{"Criar Container Reels"}, {"Pode Repetir Render Reels?"}],
+        "Render Pronto?": [{"Dry Run Instagram?"}, {"Pode Repetir Render Reels?"}],
         "Pode Repetir Render Reels?": [{"Aguardar Render Reels"}, {"Falhar Render Reels"}],
         "Aguardar Render Reels": [{"Checar Status Render Reels"}],
-        "Falhar Render Reels": [{"Criar Container Reels"}],
+        "Falhar Render Reels": [{"Dry Run Instagram?"}],
     }
     for name, expected_targets in expected.items():
         if targets(workflow, name) != expected_targets:

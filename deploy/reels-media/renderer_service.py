@@ -16,6 +16,7 @@ import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal, InvalidOperation
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -61,6 +62,21 @@ def json_response(handler: BaseHTTPRequestHandler, status: int, payload: dict[st
     handler.send_header("Content-Length", str(len(raw)))
     handler.end_headers()
     handler.wfile.write(raw)
+
+
+def validate_font_families() -> None:
+    for expected in ("Smithen", "Happy Camper"):
+        result = subprocess.run(
+            ["fc-match", "-f", "%{family}", expected],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        family = result.stdout.strip()
+        if result.returncode != 0 or family != expected:
+            detected = family or "indisponivel"
+            raise RuntimeError(f"fonte ausente ou fallback detectado: {expected} -> {detected}")
 
 
 def read_json(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
@@ -125,7 +141,7 @@ def validate_payload(payload: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("ass_template_base64 invalido") from exc
     if len(ass.encode("utf-8")) > MAX_BODY_BYTES:
         raise ValueError("ASS acima do limite")
-    price = str(payload.get("price", "")).strip()
+    price = format_price(payload.get("price", ""))
     if not price or len(price) > 80:
         raise ValueError("price obrigatorio")
     return {
@@ -153,11 +169,146 @@ def format_ass_time(seconds: float) -> str:
     return f"{hours}:{minutes:02d}:{rest:05.2f}"
 
 
+def format_price(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    numeric = raw.upper().replace("R$", "").replace(" ", "")
+    if "," in numeric:
+        numeric = numeric.replace(".", "").replace(",", ".")
+    try:
+        amount = Decimal(numeric)
+    except InvalidOperation:
+        return raw
+    formatted = f"{amount:,.2f}"
+    return "R$ " + formatted.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def _wrap_ass_text(text: str, max_chars: int) -> str:
+    prefix_match = re.match(r"^(\{[^}]*\})", text)
+    prefix = prefix_match.group(1) if prefix_match else ""
+    body = text[len(prefix) :]
+    words = body.split()
+    if len(words) < 2:
+        return text
+    lines: list[str] = []
+    current: list[str] = []
+    for word in words:
+        candidate = " ".join(current + [word])
+        if current and len(candidate) > max_chars:
+            lines.append(" ".join(current))
+            current = [word]
+        else:
+            current.append(word)
+    if current:
+        lines.append(" ".join(current))
+    return prefix + r"\N".join(lines)
+
+
+def _raise_wrapped_dialogue(text: str, pixels: int = 180) -> str:
+    """Move a wrapped bottom dialogue upward to keep it above the price card."""
+    match = re.search(r"\\pos\(([-0-9.]+),([-0-9.]+)\)", text)
+    if not match:
+        return text
+    y = float(match.group(2)) - pixels
+    replacement = rf"\pos({match.group(1)},{round(y)})"
+    return text[: match.start()] + replacement + text[match.end() :]
+
+
+def _fit_single_line_font(text: str, font_size: float, factor: float) -> str:
+    """Fit a long line by preserving font proportions instead of squeezing X."""
+    fitted_size = max(1, round(font_size * factor))
+    text = re.sub(
+        r"\\fscx(-?[0-9]+(?:\.[0-9]+)?)",
+        r"\\fscx100",
+        text,
+    )
+    override = re.match(r"^(\{[^}]*\})", text)
+    if override:
+        block = override.group(1)
+        block = block[:-1] + rf"\fs{fitted_size}}}"
+        return block + text[len(override.group(1)) :]
+    return rf"{{\fs{fitted_size}}}" + text
+
+
+def fit_ass_text(lines: list[str], max_width: float = 960.0) -> list[str]:
+    """Shrink wide dialogue lines while preserving their animation tags."""
+    style_sizes: dict[str, float] = {}
+    for line in lines:
+        if not line.startswith("Style:"):
+            continue
+        fields = line[6:].split(",")
+        if len(fields) >= 3:
+            try:
+                style_sizes[fields[0].strip()] = float(fields[2])
+            except ValueError:
+                continue
+
+    fitted: list[str] = []
+    for line in lines:
+        if not line.startswith("Dialogue:"):
+            fitted.append(line)
+            continue
+        fields = line.split(",", 9)
+        if len(fields) != 10:
+            fitted.append(line)
+            continue
+        style_size = style_sizes.get(fields[3], 0.0)
+        text = fields[9]
+        visible = re.sub(r"\{[^}]*\}", "", text)
+        longest_line = max((len(part) for part in visible.split(r"\N")), default=0)
+        if not style_size or longest_line <= 1:
+            fitted.append(line)
+            continue
+        scales = [float(value) for value in re.findall(r"\\fscx(-?[0-9]+(?:\.[0-9]+)?)", text)]
+        current_scale = max(scales or [100.0]) / 100.0
+        estimated_width = longest_line * style_size * 0.50 * current_scale
+        factor = min(1.0, max_width / estimated_width) if estimated_width else 1.0
+        if factor >= 0.99:
+            fitted.append(line)
+            continue
+
+        if r"\N" not in text and longest_line > 20:
+            single_line_size = round(style_size * factor * current_scale)
+            if single_line_size >= 110:
+                fields[9] = _fit_single_line_font(
+                    text, style_size, factor * current_scale
+                )
+                fitted.append(",".join(fields))
+                continue
+
+            wrap_chars = max(15, round(max_width / (style_size * 0.50)))
+            text = _wrap_ass_text(text, wrap_chars)
+            visible = re.sub(r"\{[^}]*\}", "", text)
+            longest_line = max((len(part) for part in visible.split(r"\N")), default=0)
+            wrapped_factor = (
+                max_width / (longest_line * style_size * 0.50)
+                if longest_line
+                else 1.0
+            )
+            wrapped_factor *= 0.85
+            fields[9] = _fit_single_line_font(text, style_size, wrapped_factor)
+            fitted.append(",".join(fields))
+            continue
+
+        def scale_tag(match: re.Match[str], factor: float = factor) -> str:
+            value = float(match.group(1)) * factor
+            return f"\\fscx{max(1, round(value))}"
+
+        fields[9] = re.sub(r"\\fscx(-?[0-9]+(?:\.[0-9]+)?)", scale_tag, text)
+        if "\\fscx" not in text:
+            fields[9] = "{\\fscx" + str(max(1, round(100 * factor))) + "}" + fields[9]
+        fitted.append(",".join(fields))
+    return fitted
+
+
 def repeat_ass(ass_text: str, duration: float, price: str) -> str:
     """Repeat one normalized ASS cycle, ending up to 0.10s before the source."""
     if duration <= 0 or duration > MAX_DURATION_SECONDS:
         raise ValueError("duracao fora do limite operacional")
+    price = format_price(price)
     lines = ass_text.replace("\r\n", "\n").splitlines()
+    lines = fit_ass_text(lines)
     events: list[tuple[float, float, str]] = []
     event_start = next((index for index, line in enumerate(lines) if line == "[Events]"), None)
     if event_start is None:
@@ -409,7 +560,7 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, HTTPStatus.NOT_FOUND, {"error": "not_found"})
                 return
             job_id = validate_job_id(self.path[len(prefix) :].split("/", 1)[0])
-            metadata = JOBS_ROOT / job_id / "metadata.json"
+            metadata = STATE_ROOT / job_id / "metadata.json"
             if not metadata.exists():
                 json_response(self, HTTPStatus.NOT_FOUND, {"error": "job_not_found"})
                 return
@@ -445,6 +596,7 @@ def main() -> None:
         raise SystemExit("REELS_PUBLIC_BASE_URL obrigatorio")
     if not HOST_ALLOWLIST:
         raise SystemExit("REELS_SOURCE_HOST_ALLOWLIST obrigatoria")
+    validate_font_families()
     JOBS_ROOT.mkdir(parents=True, exist_ok=True)
     STATE_ROOT.mkdir(parents=True, exist_ok=True)
     server = ThreadingHTTPServer((HOST, PORT), Handler)

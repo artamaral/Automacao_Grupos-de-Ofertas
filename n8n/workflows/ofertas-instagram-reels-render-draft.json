@@ -544,7 +544,7 @@
       ],
       "parameters": {
         "operation": "executeQuery",
-        "query": "insert into offers.publication_events (\n  dispatch_plan_id, profile, marketplace, stable_key, item_id,\n  target, channel_adapter, delivery_status, manifest_item_number,\n  artifact_generated_at, manifest_created_at, planned_at, sent_at,\n  offer_title, offer_url, offer_price, message_text, payload\n)\nvalues (\n  null::uuid,\n  '{{ $json.profile }}',\n  '{{ $json.marketplace }}',\n  '{{ $json.stable_key }}',\n  {{ $json.item_id }},\n  '{{ $json.target || \"oferta.femininas\" }}',\n  'instagram_reels',\n  '{{ $json.delivery_status || \"cancelled\" }}',\n  coalesce({{ $json.daily_sequence }}, 1),\n  now(), now(), '{{ $json.planned_at }}'::timestamptz,\n  case when '{{ $json.delivery_status }}' = 'confirmed' then now() else null end,\n  '{{ $json.product_name }}', '{{ $json.offer_link }}', {{ $json.price || 'null' }}, '{{ $json.caption_base }}',\n  jsonb_build_object(\n    'run_id', '{{ $json.run_id }}',\n    'dry_run', {{ $json.dry_run ? 'true' : 'false' }},\n    'source_dispatch_plan_id', '{{ $json.dispatch_plan_id }}',\n    'instagram_format', '{{ $json.instagram_format }}',\n    'media_validation', '{{ JSON.stringify($json.media_validation || []) }}'::jsonb,\n    'blocked_reason', '{{ $json.blocked_reason || \"\" }}',\n    'container_status', '{{ $json.container_status || \"\" }}',\n    'container_id', '{{ $json.creation_id || \"\" }}',\n    'published_media_id', '{{ $json.instagram_media_id || \"\" }}'\n    'template_id', coalesce({{ $json.template_id || 'null' }}, null),\n    'ass_asset_version', '{{ $json.ass_asset_version || \"\" }}',\n    'render_status', '{{ $json.render_status || \"not_attempted\" }}',\n    'render_attempts', coalesce({{ $json.render_attempts || 0 }}, 0),\n    'render_error_code', '{{ $json.render_error_code || \"\" }}',\n    'render_error_log', '{{ $json.render_error_log || \"\" }}',\n    'overlay_applied', coalesce({{ $json.overlay_applied ? 'true' : 'false' }}, false),\n    'published_video_source', '{{ $json.published_video_source || \"shopee_original\" }}'\n  )\n)\non conflict (channel_adapter, ((payload ->> 'source_dispatch_plan_id')))\nwhere channel_adapter in ('instagram_reels', 'instagram_carousel')\n  and payload ? 'source_dispatch_plan_id'\n  and payload ->> 'dry_run' = 'false'\ndo update\nset delivery_status = excluded.delivery_status, sent_at = excluded.sent_at, message_text = excluded.message_text, payload = excluded.payload, updated_at = now()\nreturning publish_id;"
+        "query": "insert into offers.publication_events (\n  dispatch_plan_id, profile, marketplace, stable_key, item_id,\n  target, channel_adapter, delivery_status, manifest_item_number,\n  artifact_generated_at, manifest_created_at, planned_at, sent_at,\n  offer_title, offer_url, offer_price, message_text, payload\n)\nvalues (\n  null::uuid,\n  '{{ $json.profile }}',\n  '{{ $json.marketplace }}',\n  '{{ $json.stable_key }}',\n  {{ $json.item_id }},\n  '{{ $json.target || \"oferta.femininas\" }}',\n  'instagram_reels',\n  '{{ $json.delivery_status || \"cancelled\" }}',\n  coalesce({{ $json.daily_sequence }}, 1),\n  now(), now(), '{{ $json.planned_at }}'::timestamptz,\n  case when '{{ $json.delivery_status }}' = 'confirmed' then now() else null end,\n  '{{ $json.product_name }}', '{{ $json.offer_link }}', {{ $json.price || 'null' }}, '{{ $json.caption_base }}',\n  jsonb_build_object(\n    'run_id', '{{ $json.run_id }}',\n    'dry_run', {{ $json.dry_run ? 'true' : 'false' }},\n    'source_dispatch_plan_id', '{{ $json.dispatch_plan_id }}',\n    'instagram_format', '{{ $json.instagram_format }}',\n    'media_validation', '{{ JSON.stringify($json.media_validation || []) }}'::jsonb,\n    'blocked_reason', '{{ $json.blocked_reason || \"\" }}',\n    'container_status', '{{ $json.container_status || \"\" }}',\n    'container_id', '{{ $json.creation_id || \"\" }}',\n    'published_media_id', '{{ $json.instagram_media_id || \"\" }}',\n    'template_id', coalesce({{ $json.template_id || 'null' }}, null),\n    'ass_asset_version', '{{ $json.ass_asset_version || \"\" }}',\n    'render_status', '{{ $json.render_status || \"not_attempted\" }}',\n    'render_attempts', coalesce({{ $json.render_attempts || 0 }}, 0),\n    'render_error_code', '{{ $json.render_error_code || \"\" }}',\n    'render_error_log', '{{ $json.render_error_log || \"\" }}',\n    'overlay_applied', coalesce({{ $json.overlay_applied ? 'true' : 'false' }}, false),\n    'published_video_source', '{{ $json.published_video_source || \"shopee_original\" }}'\n  )\n)\non conflict (channel_adapter, ((payload ->> 'source_dispatch_plan_id')))\nwhere channel_adapter in ('instagram_reels', 'instagram_carousel')\n  and payload ? 'source_dispatch_plan_id'\n  and payload ->> 'dry_run' = 'false'\ndo update\nset delivery_status = excluded.delivery_status, sent_at = excluded.sent_at, message_text = excluded.message_text, payload = excluded.payload, updated_at = now()\nreturning publish_id;"
       },
       "credentials": {
         "postgres": {
@@ -555,7 +555,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $json;\nconst template_id = Math.floor(Math.random() * 10) + 1;\nreturn [{ json: { ...item, template_id, template_folder_id: '1Fk_D3IXQ_qMZikJ5UBwIV2xTDa0Rwj2W' } }];"
+        "jsCode": "const item = $json;\nconst requested = Number($('Trigger Manual').first().json.template_id_override);\nconst template_id = Number.isInteger(requested) && requested >= 1 && requested <= 10\n  ? requested\n  : Math.floor(Math.random() * 10) + 1;\nreturn [{ json: { ...item, template_id, template_folder_id: '1Fk_D3IXQ_qMZikJ5UBwIV2xTDa0Rwj2W' } }];"
       },
       "id": "selecionar-template-reels",
       "name": "Selecionar Template Reels",
@@ -595,7 +595,7 @@
       "id": "buscar-template-ass-reels",
       "name": "Buscar Template ASS Reels",
       "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 2,
+      "typeVersion": 3,
       "position": [
         1400,
         460
@@ -638,7 +638,7 @@
       "id": "baixar-template-ass-reels",
       "name": "Baixar Template ASS Reels",
       "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 2,
+      "typeVersion": 3,
       "position": [
         1840,
         460
@@ -652,7 +652,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const context = $('Escolher Template ASS Reels').first().json;\nconst binary = $input.first().binary?.ass_template?.data;\nif (!binary) throw new Error('ASS template nao retornado pelo Google Drive');\nconst safe = (value) => String(value || '').replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 40);\nconst job_id = `reels-${safe(context.dispatch_plan_id)}-${safe(context.item_id)}-t${context.template_id}`;\nreturn [{ json: {\n  ...context,\n  job_id,\n  ass_template_base64: binary,\n  ass_asset_version: context.ass_file_id,\n  render_status: 'queued',\n  render_attempts: 0,\n} }];"
+        "jsCode": "const context = $('Escolher Template ASS Reels').first().json;\nconst binary = await this.helpers.getBinaryDataBuffer(0, 'ass_template');\nif (!binary?.length) throw new Error('ASS template nao retornado pelo Google Drive');\nconst safe = (value) => String(value || '').replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 40);\nconst job_id = `reels-${safe(context.dispatch_plan_id)}-${safe(context.item_id)}-t${context.template_id}`;\nreturn [{ json: {\n  ...context,\n  job_id,\n  ass_template_base64: binary.toString('base64'),\n  ass_asset_version: context.ass_file_id,\n  render_status: 'queued',\n  render_attempts: 0,\n} }];"
       },
       "id": "montar-payload-render-reels",
       "name": "Montar Payload Render Reels",
@@ -685,7 +685,7 @@
       "id": "criar-job-render-reels",
       "name": "Criar Job Render Reels",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 2,
+      "typeVersion": 4.2,
       "position": [
         2280,
         460
@@ -761,7 +761,7 @@
       "id": "checar-status-render-reels",
       "name": "Checar Status Render Reels",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 2,
+      "typeVersion": 4.2,
       "position": [
         2720,
         460
@@ -938,7 +938,7 @@
       "main": [
         [
           {
-            "node": "Dry Run Instagram?",
+            "node": "Revalidar Midia",
             "type": "main",
             "index": 0
           }
@@ -967,7 +967,7 @@
         ],
         [
           {
-            "node": "Revalidar Midia",
+            "node": "Criar Container Reels",
             "type": "main",
             "index": 0
           }
@@ -1223,7 +1223,7 @@
       "main": [
         [
           {
-            "node": "Criar Container Reels",
+            "node": "Dry Run Instagram?",
             "type": "main",
             "index": 0
           }
@@ -1252,7 +1252,7 @@
       "main": [
         [
           {
-            "node": "Criar Container Reels",
+            "node": "Dry Run Instagram?",
             "type": "main",
             "index": 0
           }
@@ -1298,8 +1298,8 @@
           "run_id": "instagram-safe-dry-run",
           "instagram_account_email": "grupodeofertas.mktdigital.fem@gmail.com",
           "instagram_username": "oferta.femininas",
-          "whatsapp_group_url": "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
-        }
+        "whatsapp_group_url": "https://chat.whatsapp.com/FWM9EbDd0eQ7bHxr2iOf9K"
+      }
       }
     ]
   },
