@@ -940,6 +940,23 @@ nem permitir que `job_id` escape da pasta de artefatos.
 - Servir o MP4 direto com `Content-Type: video/mp4`; testar `GET`, `HEAD`,
   resposta completa e, se necessário, `Range`/`206 Partial Content`.
 
+#### Implementação do contrato assíncrono
+
+Foi implementado `deploy/reels-media/renderer_service.py` com:
+
+- `POST /v1/render/jobs` autenticado por Bearer token;
+- `GET /v1/render/jobs/{job_id}` para consulta assíncrona;
+- idempotência por `job_id` e conflito para payload divergente;
+- download HTTPS da origem com limite de tamanho e allowlist de hosts;
+- geração repetida do ASS até no máximo `0,10 s` antes do fim;
+- duas tentativas de FFmpeg, com fallback declarado ao vídeo original;
+- logs sanitizados e estado interno separado da pasta pública de MP4s.
+
+O `Dockerfile` e o `docker-compose.yml` mantêm o renderer apenas na rede
+interna. O Nginx continua sendo o único componente exposto para a entrega do
+MP4. O renderer foi implantado na VPS em 2026-09-20; permanece pendente o
+consumo pelo n8n.
+
 ### 18.6 Pré-render diário e seleção de candidatos
 
 **Definições fechadas:** primeiro post às 10:00 BRT; job independente às

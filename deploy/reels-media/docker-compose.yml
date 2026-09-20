@@ -1,0 +1,51 @@
+services:
+  reels-renderer:
+    build:
+      context: .
+    container_name: reels-renderer
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    environment:
+      REELS_RENDER_API_TOKEN: ${REELS_RENDER_API_TOKEN:?configure REELS_RENDER_API_TOKEN}
+      REELS_PUBLIC_BASE_URL: ${REELS_PUBLIC_BASE_URL:?configure REELS_PUBLIC_BASE_URL}
+      REELS_SOURCE_HOST_ALLOWLIST: ${REELS_SOURCE_HOST_ALLOWLIST:-}
+      REELS_MAX_SOURCE_BYTES: ${REELS_MAX_SOURCE_BYTES:-209715200}
+      REELS_MAX_DURATION_SECONDS: ${REELS_MAX_DURATION_SECONDS:-120}
+      REELS_RENDER_TIMEOUT_SECONDS: ${REELS_RENDER_TIMEOUT_SECONDS:-180}
+      REELS_MAX_CONCURRENT: ${REELS_MAX_CONCURRENT:-2}
+    volumes:
+      - /opt/automacao_grupo_compras/media/jobs:/media/jobs
+      - /opt/automacao_grupo_compras/reels-render-state:/var/lib/reels-render
+    expose:
+      - "8080"
+    networks:
+      - backend
+
+  reels-media:
+    image: nginx:1.27-alpine
+    container_name: reels-media-server
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    volumes:
+      - /opt/automacao_grupo_compras/media/jobs:/usr/share/nginx/html/media/jobs:ro
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "automacao-grupo-compras-n8n_backend"
+      traefik.http.routers.reels-media.rule: "Host(`n8n-owco.srv1805131.hstgr.cloud`) && PathPrefix(`/media/jobs/`)"
+      traefik.http.routers.reels-media.priority: "110"
+      traefik.http.routers.reels-media.entrypoints: "websecure"
+      traefik.http.routers.reels-media.tls.certresolver: "letsencrypt"
+      traefik.http.services.reels-media.loadbalancer.server.port: "80"
+    networks:
+      - backend
+
+networks:
+  backend:
+    external: true
+    name: automacao-grupo-compras-n8n_backend
