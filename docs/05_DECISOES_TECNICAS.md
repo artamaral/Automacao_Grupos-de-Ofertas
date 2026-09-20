@@ -270,3 +270,13 @@ Limites:
   não sobrescreve a origem de itens já cadastrados.
 - O valor persistido para a origem automática permanece exatamente
   `productCatId`; não foi introduzido o alias `catid` no banco.
+
+## 2026-09-20 - Falha de overlay Reels usa vídeo original
+
+- Se o renderizador falhar, o fluxo não bloqueia a publicação.
+- O Instagram recebe o `video_url` original da Shopee, sem overlay.
+- O evento existente registra `render_status`, código e log sanitizado do
+  erro, além de `overlay_applied=false` e
+  `published_video_source='shopee_original'`.
+- Não será adicionado retry no n8n para falha de submissão do job; essa regra
+  permanece como fallback imediato para o vídeo original.

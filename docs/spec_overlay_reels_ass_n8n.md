@@ -76,8 +76,8 @@ O n8n é responsável por:
 8. no horário de publicação, executar a seleção de candidato atual sem
    alteração e localizar o artefato correspondente por `item_id`;
 9. se o artefato não existir ou não estiver pronto, manter o vídeo original;
-   falhas de render têm uma tentativa inicial e um retry (duas tentativas no
-   total), sem bloquear a publicação;
+   qualquer falha de render ou submissão segue para publicação do vídeo
+   original, sem overlay e sem retry adicional no n8n;
 10. preservar resultado, `item_id`, `template_id` e logs sanitizados no evento
     de publicação existente.
 
@@ -129,8 +129,8 @@ estruturado. O contrato mínimo proposto é:
 
 Em caso de falha, retornar `status: "failed"`, um código estável e uma
 mensagem/log sanitizado, sem segredos ou caminhos sensíveis. A VPS não decide
-se o Reel será publicado: depois de esgotar a tentativa inicial e um retry, o
-n8n usa o vídeo original como fallback.
+se o Reel será publicado: o n8n registra a falha e usa imediatamente o vídeo
+original como fallback, sem retry adicional no workflow.
 
 ## 3. Formato visual padrão
 
@@ -787,9 +787,9 @@ artifact_url
 output.mp4
 ```
 
-Quando as duas tentativas de render falharem, não há `artifact_url` de saída:
-o n8n continua com o `video_url` original e registra o fallback no resultado
-da publicação.
+Quando o render falhar, não há `artifact_url` de saída: o n8n continua com o
+`video_url` original, sem overlay, e registra o fallback no resultado da
+publicação.
 
 O resultado inclui `item_id`, data do plano, `template_id`, estado e metadados
 do artefato. O `item_id` localiza o artefato pré-renderizado; o identificador
@@ -843,8 +843,8 @@ A implementação será considerada conforme quando:
 12. executar o processamento na VPS e devolver ao n8n um `artifact_url` válido;
 13. preservar `template_id` no resultado e no registro de publicação;
 14. buscar o ASS no Google Drive e encaminhá-lo à VPS;
-15. fazer no máximo duas tentativas de render e, se ambas falharem, publicar o
-    vídeo Shopee original sem overlay;
+15. em qualquer falha de render ou submissão, publicar o vídeo Shopee original
+    sem overlay e sem retry adicional no n8n;
 16. manter inalteradas as regras atuais de publicação e confirmação;
 17. devolver os erros de render ao n8n e registrá-los no payload do evento de
     publicação existente.
@@ -932,9 +932,9 @@ nem permitir que `job_id` escape da pasta de artefatos.
 - Definir autenticação n8n→serviço, diretórios e nomenclatura dos jobs.
 - Definir limites de duração, tamanho, concorrência e timeout por fase.
 - Definir códigos de erro, idempotência do `job_id` e limpeza do ASS/MP4.
-- Política de retry definida: tentativa inicial + exatamente um retry. Após
-  duas falhas, seguir com o `video_url` original, sem overlay; erro de render
-  não bloqueia por si só a publicação.
+- Política de fallback definida: falha de render ou submissão não bloqueia a
+  publicação; seguir imediatamente com o `video_url` original, sem overlay e
+  sem retry adicional no n8n.
 - Manter a URL acessível até o container Instagram terminar de processar o
   vídeo; depois apagar por limpeza explícita ou TTL.
 - Servir o MP4 direto com `Content-Type: video/mp4`; testar `GET`, `HEAD`,
@@ -949,13 +949,14 @@ Foi implementado `deploy/reels-media/renderer_service.py` com:
 - idempotência por `job_id` e conflito para payload divergente;
 - download HTTPS da origem com limite de tamanho e allowlist de hosts;
 - geração repetida do ASS até no máximo `0,10 s` antes do fim;
-- duas tentativas de FFmpeg, com fallback declarado ao vídeo original;
+- tentativas internas limitadas de FFmpeg, com fallback declarado ao vídeo
+  original;
 - logs sanitizados e estado interno separado da pasta pública de MP4s.
 
 O `Dockerfile` e o `docker-compose.yml` mantêm o renderer apenas na rede
 interna. O Nginx continua sendo o único componente exposto para a entrega do
-MP4. O renderer foi implantado na VPS em 2026-09-20; permanece pendente o
-consumo pelo n8n.
+MP4. O renderer foi implantado na VPS em 2026-09-20 e consumido com sucesso
+no dry-run integrado do n8n.
 
 Foi criado o draft inativo
 `n8n/workflows/ofertas-instagram-reels-render-draft.json`. Ele seleciona um
@@ -1207,9 +1208,26 @@ instalação das fontes e usou `DejaVu Sans`. Nenhum desses testes chamou a API 
 Instagram ou alterou a confirmação de publicação. Os artefatos mantidos são
 temporários e devem ser removidos depois da inspeção visual.
 
-O que ainda não existe: serviço produtivo assíncrono, manifesto de artefatos,
-integração do n8n com o renderizador, seleção dos dez templates e execução do
-pré-render diário.
+O que ainda não está autorizado: ativação produtiva do workflow e execução de
+publicação real. O pré-render diário continua pendente de decisão operacional.
+
+### 18.8 Validação integrada do fallback e dos dez templates
+
+Em 2026-09-20, o fluxo n8n → Google Drive → renderer VPS foi validado em
+`dry_run`:
+
+- execução `1142`: um item real (`40320775059`) com `template_id=3`, MP4
+  `1080x1920`, overlay aplicado, sem erros e URL HTTPS acessível;
+- execuções `1143` a `1152`: uma rodada para cada template de `1` a `10`,
+  todas com `status=success`, `render_status=succeeded`, `overlay_applied=true`
+  e HTTP 200 na rota pública;
+- execução `1154`: falha controlada de submissão, registrada como
+  `failed_fallback_original`, com `overlay_applied=false` e registro do evento
+  de resultado;
+- nenhuma dessas execuções publicou no Instagram.
+
+A política vigente é publicar o vídeo Shopee original em caso de falha, sem
+overlay e sem retry adicional no n8n.
 
 ## 19. Princípio de implementação
 
