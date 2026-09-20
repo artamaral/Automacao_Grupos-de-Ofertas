@@ -47,6 +47,34 @@ def test_repeat_ass_fits_long_template_dialogue_with_compact_break() -> None:
     assert r"\Nnos" in dialogue
 
 
+def test_template_one_uses_larger_compact_second_line() -> None:
+    template = (MODULE_PATH.parent / "templates" / "template_01.ass").read_text(
+        encoding="utf-8"
+    )
+
+    generated = renderer.repeat_ass(template, 11.04, "79.99")
+    lines = [line for line in generated.splitlines() if "do grupo" in line]
+
+    assert lines
+    assert r"\fs151" in lines[0]
+    assert r"\pos(540,1680)" in lines[0]
+
+    first_line = next(line for line in generated.splitlines() if "Receba o link" in line)
+    assert r"\fs151" in first_line
+    assert r"\pos(540,1600)" in first_line
+
+
+def test_long_dialogues_are_limited_to_two_lines() -> None:
+    for template_id in range(1, 11):
+        template = (MODULE_PATH.parent / "templates" / f"template_{template_id:02d}.ass").read_text(
+            encoding="utf-8"
+        )
+        generated = renderer.repeat_ass(template, 11.04, "79.99")
+        for line in generated.splitlines():
+            if line.startswith("Dialogue:"):
+                assert line.count(r"\N") <= 1, (template_id, line)
+
+
 def test_format_price_accepts_brazilian_and_numeric_values() -> None:
     assert renderer.format_price("11.75") == "R$ 11,75"
     assert renderer.format_price("R$ 1.234,56") == "R$ 1.234,56"

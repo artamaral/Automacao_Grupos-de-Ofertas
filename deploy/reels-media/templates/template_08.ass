@@ -29,5 +29,5 @@ Style: T08_Price,Happy Camper,88,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00F65C8B,-1,
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:00.00,0:00:02.56,T08_Main,T08_A,0,0,0,,{\an5\pos(540,1660)\fscx55\fscy100\t(0,280,\fscx100\fscy100)}Vem pro grupo
-Dialogue: 1,0:00:02.56,0:00:05.12,T08_Main,T08_B,0,0,0,,{\an5\pos(540,1660)\fscx65\fscy100}Escreva QUERO nos comentários
+Dialogue: 1,0:00:02.56,0:00:05.12,T08_Main,T08_B,0,0,0,,{\an5\pos(540,1640)\fscx65\fscy100}Escreva QUERO nos comentários
 Dialogue: 3,0:00:00.00,0:00:05.12,T08_Price,T08_PRICE,0,0,0,,{\an5\pos(540,1810)\fscx105\fscy95}R$ XX,XX

@@ -191,6 +191,17 @@ def _wrap_ass_text(text: str, max_chars: int) -> str:
     words = body.split()
     if len(words) < 2:
         return text
+    if len(body) <= 44 and len(words) >= 4:
+        best_split: tuple[int, int, int] | None = None
+        for split in range(1, len(words)):
+            left = " ".join(words[:split])
+            right = " ".join(words[split:])
+            score = (max(len(left), len(right)), abs(len(left) - len(right)), split)
+            if best_split is None or score < best_split:
+                best_split = score
+        if best_split is not None:
+            split = best_split[2]
+            return prefix + " ".join(words[:split]) + r"\N" + " ".join(words[split:])
     lines: list[str] = []
     current: list[str] = []
     for word in words:
@@ -205,14 +216,17 @@ def _wrap_ass_text(text: str, max_chars: int) -> str:
     return prefix + r"\N".join(lines)
 
 
-def _raise_wrapped_dialogue(text: str, pixels: int = 180) -> str:
-    """Move a wrapped bottom dialogue upward to keep it above the price card."""
-    match = re.search(r"\\pos\(([-0-9.]+),([-0-9.]+)\)", text)
-    if not match:
+def _normalize_multiline_position(text: str, y: int = 1640) -> str:
+    """Use one vertical anchor for multiline CTA text above the price card."""
+    move = re.search(r"\\move\([^)]*\)", text)
+    if move:
+        replacement = rf"\pos(540,{y})"
+        return text[: move.start()] + replacement + text[move.end() :]
+    position = re.search(r"\\pos\(([-0-9.]+),([-0-9.]+)\)", text)
+    if not position:
         return text
-    y = float(match.group(2)) - pixels
-    replacement = rf"\pos({match.group(1)},{round(y)})"
-    return text[: match.start()] + replacement + text[match.end() :]
+    replacement = rf"\pos({position.group(1)},{y})"
+    return text[: position.start()] + replacement + text[position.end() :]
 
 
 def _fit_single_line_font(text: str, font_size: float, factor: float) -> str:
@@ -262,6 +276,18 @@ def fit_ass_text(lines: list[str], max_width: float = 960.0) -> list[str]:
             continue
         scales = [float(value) for value in re.findall(r"\\fscx(-?[0-9]+(?:\.[0-9]+)?)", text)]
         current_scale = max(scales or [100.0]) / 100.0
+        if r"\N" in text:
+            compact_factor = (
+                max_width / (longest_line * style_size * 0.50)
+                if longest_line
+                else 1.0
+            )
+            compact_factor *= 0.85
+            text = _fit_single_line_font(text, style_size, compact_factor)
+            text = _normalize_multiline_position(text)
+            fields[9] = text
+            fitted.append(",".join(fields))
+            continue
         estimated_width = longest_line * style_size * 0.50 * current_scale
         factor = min(1.0, max_width / estimated_width) if estimated_width else 1.0
         if factor >= 0.99:
@@ -288,6 +314,7 @@ def fit_ass_text(lines: list[str], max_width: float = 960.0) -> list[str]:
             )
             wrapped_factor *= 0.85
             fields[9] = _fit_single_line_font(text, style_size, wrapped_factor)
+            fields[9] = _normalize_multiline_position(fields[9])
             fitted.append(",".join(fields))
             continue
 

@@ -29,5 +29,5 @@ Style: T07_Price,Happy Camper,88,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00F6823B,-1,
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:00.00,0:00:02.56,T07_Main,T07_A,0,0,0,,{\an5\pos(540,1660)\frz-3\t(0,180,\frz3)\t(180,360,\frz0)\fscx72\fscy100}Quer entrar no grupo?
-Dialogue: 1,0:00:02.56,0:00:05.12,T07_Main,T07_B,0,0,0,,{\an5\pos(540,1660)\fscx63\fscy100}Comente QUERO e receba o acesso
+Dialogue: 1,0:00:02.56,0:00:05.12,T07_Main,T07_B,0,0,0,,{\an5\pos(540,1640)\fscx63\fscy100}Comente QUERO e receba o acesso
 Dialogue: 3,0:00:00.00,0:00:05.12,T07_Price,T07_PRICE,0,0,0,,{\an5\pos(540,1810)\frz1}R$ XX,XX

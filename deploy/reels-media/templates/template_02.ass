@@ -31,5 +31,5 @@ Style: T02_Price,Happy Camper,88,&H00FFFFFF,&H00FFFFFF,&H00000000,&H007D3BFF,-1,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:00.00,0:00:02.56,T02_Main,T02_A,0,0,0,,{\an5\move(200,1660,390,1660,0,300)}Digite
 Dialogue: 2,0:00:00.00,0:00:02.56,T02_Accent,T02_B,0,0,0,,{\an5\move(850,1660,665,1660,0,300)}QUERO
-Dialogue: 1,0:00:02.56,0:00:05.12,T02_Main,T02_C,0,0,0,,{\an5\move(700,1660,540,1660,0,280)\fscx72\fscy100}E entre no nosso grupo
+Dialogue: 1,0:00:02.56,0:00:05.12,T02_Main,T02_C,0,0,0,,{\an5\pos(540,1640)\fscx72\fscy100}E entre no nosso\Ngrupo
 Dialogue: 3,0:00:00.00,0:00:05.12,T02_Price,T02_PRICE,0,0,0,,{\an5\pos(540,1810)\fscx90\fscy90\t(0,250,\fscx104\fscy104)}R$ XX,XX

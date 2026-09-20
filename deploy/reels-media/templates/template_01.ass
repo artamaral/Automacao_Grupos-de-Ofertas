@@ -31,5 +31,6 @@ Style: T01_Price,Happy Camper,88,&H00FFFFFF,&H00FFFFFF,&H00000000,&H003818F8,-1,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:00.00,0:00:02.56,T01_Main,T01_A,0,0,0,,{\an5\pos(380,1660)\fscx82\fscy82\t(0,180,\fscx108\fscy108)\t(180,360,\fscx100\fscy100)}Comente
 Dialogue: 2,0:00:00.00,0:00:02.56,T01_Accent,T01_B,0,0,0,,{\an5\pos(665,1660)\fscx80\fscy80\t(0,180,\fscx115\fscy115)\t(180,360,\fscx100\fscy100)}QUERO
-Dialogue: 1,0:00:02.56,0:00:05.12,T01_Main,T01_C,0,0,0,,{\an5\pos(540,1660)\fscx70\fscy90\t(0,220,\fscx76\fscy100)}Receba o link do grupo
+Dialogue: 1,0:00:02.56,0:00:05.12,T01_Main,T01_C,0,0,0,,{\an5\pos(540,1600)\fscx100\fscy100\fs151}Receba o link
+Dialogue: 1,0:00:02.56,0:00:05.12,T01_Main,T01_C,0,0,0,,{\an5\pos(540,1680)\fscx100\fscy100\fs151}do grupo
 Dialogue: 3,0:00:00.00,0:00:05.12,T01_Price,T01_PRICE,0,0,0,,{\an5\pos(540,1810)\frz-2}R$ XX,XX

@@ -29,5 +29,5 @@ Style: T06_Price,Happy Camper,88,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00A6B815,-1,
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:00.00,0:00:02.56,T06_Main,T06_A,0,0,0,,{\an5\move(540,1750,540,1660,0,300)\fscx72\fscy100}Seu achado está aqui
-Dialogue: 1,0:00:02.56,0:00:05.12,T06_Main,T06_B,0,0,0,,{\an5\move(540,1750,540,1660,0,300)\fscx68\fscy100}Digite QUERO para o grupo
+Dialogue: 1,0:00:02.56,0:00:05.12,T06_Main,T06_B,0,0,0,,{\an5\pos(540,1640)\fscx68\fscy100}Digite QUERO para\No grupo
 Dialogue: 3,0:00:00.00,0:00:05.12,T06_Price,T06_PRICE,0,0,0,,{\an5\pos(540,1810)}R$ XX,XX

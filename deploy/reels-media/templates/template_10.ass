@@ -29,5 +29,5 @@ Style: T10_Price,Happy Camper,90,&H00FFFFFF,&H00FFFFFF,&H003818F8,&H00000000,-1,
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 1,0:00:00.00,0:00:02.56,T10_Main,T10_A,0,0,0,,{\an5\pos(540,1660)\fscx68\fscy92\t(0,250,\fscx76\fscy100)\t(250,500,\fscx72\fscy100)}Aproveite todas as ofertas
-Dialogue: 1,0:00:02.56,0:00:05.12,T10_Main,T10_B,0,0,0,,{\an5\pos(540,1660)\fscx65\fscy94\t(0,250,\fscx72\fscy100)}Digite QUERO e receba o grupo
+Dialogue: 1,0:00:02.56,0:00:05.12,T10_Main,T10_B,0,0,0,,{\an5\pos(540,1640)\fscx65\fscy94\t(0,250,\fscx72\fscy100)}Digite QUERO e receba o grupo
 Dialogue: 3,0:00:00.00,0:00:05.12,T10_Price,T10_PRICE,0,0,0,,{\an5\pos(540,1810)\fscx92\fscy92\t(0,220,\fscx108\fscy108)\t(220,440,\fscx100\fscy100)}R$ XX,XX
