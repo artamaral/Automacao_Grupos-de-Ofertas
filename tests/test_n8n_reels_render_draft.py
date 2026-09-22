@@ -33,3 +33,15 @@ def test_copy_node_has_real_javascript_line_breaks() -> None:
     assert "const rawSubniche" in copy_code
     assert r"\nconst subniche" not in copy_code
     assert r"\nconst hashtag" not in copy_code
+
+
+def test_code_nodes_do_not_depend_on_manual_trigger_context() -> None:
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    offenders = [
+        node["name"]
+        for node in workflow["nodes"]
+        if node.get("type") == "n8n-nodes-base.code"
+        and "$('Trigger Manual')" in node.get("parameters", {}).get("jsCode", "")
+    ]
+
+    assert offenders == []

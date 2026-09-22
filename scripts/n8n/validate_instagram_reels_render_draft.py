@@ -72,6 +72,12 @@ def validate(workflow: dict[str, Any]) -> None:
     renderer_credential = create.get("credentials", {}).get("httpHeaderAuth", {})
     if renderer_credential.get("name") != "Reels Renderer Bearer":
         errors.append("credencial do renderer ausente")
+    for name, draft_node in nodes.items():
+        if draft_node.get("type") != "n8n-nodes-base.code":
+            continue
+        js_code = str(draft_node.get("parameters", {}).get("jsCode", ""))
+        if "$('Trigger Manual')" in js_code:
+            errors.append(f"Code node depende do Trigger Manual: {name}")
     for name in ("Criar Job Render Reels", "Checar Status Render Reels"):
         if nodes[name].get("continueOnFail") is not True:
             errors.append(f"{name} deve continuar em erro para permitir fallback")

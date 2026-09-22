@@ -64,7 +64,7 @@ def add_nodes(workflow: dict[str, Any]) -> None:
                 "Selecionar Template Reels",
                 "selecionar-template-reels",
                 """const item = $json;
-const requested = Number($('Trigger Manual').first().json.template_id_override);
+const requested = Number(item.template_id_override);
 const template_id = Number.isInteger(requested) && requested >= 1 && requested <= 10
   ? requested
   : Math.floor(Math.random() * 10) + 1;
@@ -208,7 +208,7 @@ return [{ json: { ...original, ...response, job_id: response.job_id || original.
                 """const response = $json;
 const original = $('Normalizar Job Render Reels').first().json;
  const errors = Array.isArray(response.errors) ? response.errors : [];
- const accountId = String(original.instagram_business_account_id || $('Montar Copy Instagram').first().json.instagram_business_account_id || $('Trigger Manual').first().json.instagram_business_account_id || '').trim();
+ const accountId = String(original.instagram_business_account_id || $('Montar Copy Instagram').first().json.instagram_business_account_id || '').trim();
  if (!accountId) throw new Error('instagram_business_account_id ausente ao restaurar contexto do render');
  return [{ json: {
    ...original,
