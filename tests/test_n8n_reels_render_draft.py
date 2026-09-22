@@ -20,3 +20,16 @@ def test_versioned_reels_render_draft_preserves_inactive_fallback_contract() -> 
 
     assert workflow["active"] is False
     assert workflow["id"] == "OfertasInstagramReelsRenderDraft"
+
+
+def test_copy_node_has_real_javascript_line_breaks() -> None:
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    copy_code = next(
+        node["parameters"]["jsCode"]
+        for node in workflow["nodes"]
+        if node["name"] == "Montar Copy Instagram"
+    )
+
+    assert "const rawSubniche" in copy_code
+    assert r"\nconst subniche" not in copy_code
+    assert r"\nconst hashtag" not in copy_code

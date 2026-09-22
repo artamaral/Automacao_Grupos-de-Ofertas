@@ -86,6 +86,17 @@ def validate(workflow: dict[str, Any]) -> None:
     publish_text = json.dumps(publish, ensure_ascii=False)
     if "published_video_url || $json.video_url" not in publish_text:
         errors.append("publicacao nao usa fallback/render artifact")
+
+    copy_code = str(
+        nodes.get("Montar Copy Instagram", {})
+        .get("parameters", {})
+        .get("jsCode", "")
+    )
+    if "const rawSubniche" not in copy_code or "const subniche" not in copy_code:
+        errors.append("copy sem normalizacao de primary_subniche")
+    if r"\nconst subniche" in copy_code or r"\nconst hashtag" in copy_code:
+        errors.append("copy contem quebra de linha literal no JavaScript")
+
     query = str(
         nodes.get("Registrar Resultado Supabase", {})
         .get("parameters", {})
