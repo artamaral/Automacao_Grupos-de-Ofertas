@@ -73,7 +73,7 @@ done
 [[ "$public_base_url" == https://* ]] || fail '--public-base-url deve usar HTTPS'
 [[ "$media_root" != / ]] || fail 'nao e permitido usar / como --media-root'
 
-for command_name in curl ffmpeg ffprobe mktemp tail; do
+for command_name in curl ffmpeg ffprobe fc-match mktemp tail; do
   command -v "$command_name" >/dev/null 2>&1 || fail "comando obrigatorio ausente: $command_name"
 done
 
@@ -81,6 +81,7 @@ media_root=$(cd -- "$media_root" && pwd -P)
 ass_file=$(cd -- "$(dirname -- "$ass_file")" && pwd -P)/$(basename -- "$ass_file")
 job_dir=$(mktemp -d "$media_root/render-smoke-XXXXXXXX")
 job_dir=$(cd -- "$job_dir" && pwd -P)
+chmod 0755 "$job_dir"
 work_dir=$(mktemp -d "${TMPDIR:-/tmp}/reels-render-smoke.XXXXXXXX")
 
 cleanup() {
@@ -101,8 +102,14 @@ ass_copy="$work_dir/overlay.ass"
 cp -- "$ass_file" "$ass_copy"
 
 printf '1/6 Validando filtro ASS e ferramentas...\n'
-ffmpeg -hide_banner -filters 2>/dev/null | grep -Eq '[[:space:]]ass[[:space:]]' ||
+ffmpeg -hide_banner -filters 2>/dev/null | awk '$2 == "ass" { found=1 } END { exit !found }' ||
   fail 'FFmpeg nao anuncia o filtro ass (libass)'
+smithen_family=$(fc-match -f '%{family}' 'Smithen' | head -n 1)
+happy_camper_family=$(fc-match -f '%{family}' 'Happy Camper' | head -n 1)
+[[ "$smithen_family" == 'Smithen' ]] ||
+  fail "fonte Smithen nao encontrada; fallback detectado: $smithen_family"
+[[ "$happy_camper_family" == 'Happy Camper' ]] ||
+  fail "fonte Happy Camper nao encontrada; fallback detectado: $happy_camper_family"
 
 printf '2/6 Baixando video de teste...\n'
 curl --fail --silent --show-error --location --proto '=https' \
@@ -127,6 +134,7 @@ ffmpeg -hide_banner -loglevel error -nostdin -y -i "$source_file" \
     fail 'FFmpeg falhou ao renderizar'
   }
 [[ -s "$output_file" ]] || fail 'FFmpeg terminou sem gerar MP4'
+chmod 0644 "$output_file"
 
 output_probe=$(ffprobe -v error -select_streams v:0 \
   -show_entries stream=width,height -show_entries format=duration \
@@ -137,10 +145,9 @@ grep -qx 'height=1920' <<<"$output_probe" || fail 'altura de saida diferente de 
 printf '5/6 Testando HEAD na rota HTTPS...\n'
 head_result=$(curl --fail --silent --show-error --head --location \
   --connect-timeout 15 --max-time 45 \
-  --write-out $'\n%{http_code}\n%{content_type}' \
+  --write-out '%{http_code} %{content_type}' \
   --output /dev/null "$artifact_url") || fail 'HEAD falhou na rota publica'
-head_status=$(sed -n '1p' <<<"$head_result")
-head_type=$(sed -n '2p' <<<"$head_result")
+read -r head_status head_type <<<"$head_result"
 [[ "$head_status" == 200 ]] || fail "HEAD retornou HTTP $head_status (esperado 200)"
 [[ "$head_type" == video/mp4* ]] || fail "HEAD retornou Content-Type inesperado: $head_type"
 
