@@ -388,6 +388,15 @@ def test_build_update_sql_preserves_pindata_when_requested() -> None:
     assert "active = false" in sql
 
 
+def test_build_update_sql_preserves_existing_node_credentials() -> None:
+    sql = guard.build_update_sql(workflow_payload(), "OfertasMvpSupab1", None)
+
+    assert "jsonb_array_elements(workflow_entity.nodes::jsonb)" in sql
+    assert "current_node -> 'credentials'" in sql
+    assert "current_node ->> 'name' = incoming.node ->> 'name'" in sql
+    assert "jsonb_set(incoming.node, '{credentials}'" in sql
+
+
 def test_safe_pindata_uses_dry_run_test_target() -> None:
     args = guard.parse_args(["--safe-pindata"])
     config = guard.config_from_args(args)

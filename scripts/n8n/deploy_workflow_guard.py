@@ -955,8 +955,25 @@ def build_update_sql(
     if missing:
         raise WorkflowGuardError(f"workflow missing required fields: {missing}")
 
+    incoming_nodes = dollar_quote(compact_json(workflow["nodes"]))
+    credential_preserving_nodes = (
+        "(select jsonb_agg("
+        "case "
+        "when incoming.node ? 'credentials' or existing.credentials is null "
+        "then incoming.node "
+        "else jsonb_set(incoming.node, '{credentials}', existing.credentials, true) "
+        "end order by incoming.ordinality)::json "
+        f"from jsonb_array_elements({incoming_nodes}::jsonb) "
+        "with ordinality as incoming(node, ordinality) "
+        "left join lateral ("
+        "select current_node -> 'credentials' as credentials "
+        "from jsonb_array_elements(workflow_entity.nodes::jsonb) current_node "
+        "where current_node ->> 'name' = incoming.node ->> 'name' "
+        "and current_node ? 'credentials' limit 1"
+        ") existing on true)"
+    )
     assignments = [
-        f"nodes = {dollar_quote(compact_json(workflow['nodes']))}::json",
+        f"nodes = {credential_preserving_nodes}",
         f"connections = {dollar_quote(compact_json(workflow['connections']))}::json",
         f"settings = {dollar_quote(compact_json(workflow.get('settings', {})))}::json",
         "active = false",
