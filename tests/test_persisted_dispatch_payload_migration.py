@@ -26,6 +26,8 @@ def test_migration_persists_complete_dispatch_payload() -> None:
     ):
         assert f"add column if not exists {column}" in sql
     assert "daily_dispatch_plan_direct_claim_window_idx" in sql
+    assert "add column if not exists rating numeric(3, 2)" in sql
+    assert "rating numeric(4, 2)" not in sql
     assert "where dispatch_status = 'planned'" in sql
     assert "tracking_status = 'ready'" in sql
     assert "refresh_status = 'fresh'" in sql

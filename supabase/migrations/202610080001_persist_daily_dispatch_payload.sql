@@ -8,7 +8,7 @@ alter table offers.daily_dispatch_plan
   add column if not exists price numeric(14, 2),
   add column if not exists reference_price numeric(14, 2),
   add column if not exists sales_count bigint,
-  add column if not exists rating numeric(4, 2),
+  add column if not exists rating numeric(3, 2),
   add column if not exists score_reasons text[],
   add column if not exists rank_profile bigint,
   add column if not exists rank_subniche bigint,
