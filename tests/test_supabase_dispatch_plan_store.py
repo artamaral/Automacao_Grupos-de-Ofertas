@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from ofertas_bot.daily_dispatch_planner import DispatchCandidate, PlannedDispatch
@@ -84,6 +84,17 @@ def test_replace_day_uses_cursor_executemany_for_batch_insert() -> None:
         commercial_score=Decimal("10.5"),
         sales_count=99,
         rating=Decimal("4.9"),
+        product_name="Vestido feminino",
+        offer_link="https://s.shopee.com.br/original",
+        image_url="https://cf.shopee.com.br/file/image.jpg",
+        price=Decimal("79.90"),
+        reference_price=Decimal("99.90"),
+        score_reasons=("avaliacao 4.9", "99 vendas"),
+        rank_profile=7,
+        rank_subniche=2,
+        refresh_status="FRESH",
+        last_checked_at=datetime.fromisoformat("2026-08-13T09:00:00-03:00"),
+        latest_snapshot_id=456,
     )
     item = PlannedDispatch(
         candidate=candidate,
@@ -117,6 +128,19 @@ def test_replace_day_uses_cursor_executemany_for_batch_insert() -> None:
             100350,
             "vestidos",
             Decimal("10.5"),
+            "Vestido feminino",
+            "https://s.shopee.com.br/original",
+            "https://cf.shopee.com.br/file/image.jpg",
+            Decimal("79.90"),
+            Decimal("99.90"),
+            99,
+            Decimal("4.9"),
+            ["avaliacao 4.9", "99 vendas"],
+            7,
+            2,
+            "FRESH",
+            datetime.fromisoformat("2026-08-13T09:00:00-03:00"),
+            456,
             "fixed_daily",
             "fixed_daily:quota",
             date(2026, 8, 13),
@@ -125,3 +149,41 @@ def test_replace_day_uses_cursor_executemany_for_batch_insert() -> None:
             1,
         )
     ]
+
+
+def test_replace_day_rejects_candidate_without_persisted_payload() -> None:
+    class FakeConnection:
+        pass
+
+    store = SupabaseDispatchPlanStore(FakeConnection())  # type: ignore[arg-type]
+    candidate = DispatchCandidate(
+        profile="feminino",
+        marketplace="shopee",
+        stable_key="b" * 64,
+        item_id=321,
+        primary_subniche="bolsas",
+        commercial_score=Decimal("8.0"),
+        sales_count=10,
+        rating=Decimal("4.8"),
+    )
+    item = PlannedDispatch(
+        candidate=candidate,
+        selection_bucket="fixed_daily",
+        selection_reason="fixed_daily:quota",
+        planned_date=date(2026, 8, 13),
+        planned_hour=8,
+        slot_sequence=1,
+        daily_sequence=1,
+    )
+
+    try:
+        store.replace_day(
+            profile="feminino",
+            marketplace="shopee",
+            planned_date=date(2026, 8, 13),
+            items=[item],
+        )
+    except ValueError as exc:
+        assert str(exc) == "dispatch candidate product_name is required"
+    else:
+        raise AssertionError("missing dispatch payload must be rejected")

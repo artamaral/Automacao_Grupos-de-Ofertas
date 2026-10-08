@@ -245,7 +245,7 @@ Os arquivos sao auditoria local. A verdade historica permanece no Supabase.
 - o planejador diario do `feminino` nao consome itens `STALE`: ele carrega
   apenas linhas `refresh_status='FRESH'` de `offers.v_offer_ranking_current`;
 - se o refresh terminar sem candidatos `FRESH` suficientes para preencher os
-  112 slots, o planejador falha e nao persiste plano parcial;
+  140 slots, o planejador falha e nao persiste plano parcial;
 - um slot planejado que fique `STALE` depois disso continua auditavel em
   `offers.daily_dispatch_plan`, mas deixa de aparecer como pronto em
   `offers.v_daily_dispatch_ready`;
@@ -314,10 +314,10 @@ vigente e:
 ```text
 refresh/rechecagem
   -> ranking pode continuar exibindo itens stale para diagnostico e priorizacao
-  -> planner diario persiste apenas candidatos FRESH
-  -> v_daily_dispatch_ready revalida freshness antes do claim
-  -> n8n so claima slots aprovados pela view
+  -> planner diario persiste apenas candidatos FRESH e o snapshot de envio
+  -> v_daily_dispatch_ready expoe uma projecao leve da fila persistida
+  -> n8n claima diretamente apenas slots persistidos e completos
 ```
 
-Essa separacao evita que um item stale entre no envio mesmo quando o plano foi
-gravado antes de uma mudanca de freshness.
+Essa separacao tira o ranking do horario de envio. A freshness aceita no claim
+e a do snapshot selecionado e persistido pelo planejador para o dia.

@@ -64,7 +64,7 @@ flowchart TD
 
     G --> H[Ordenacao deterministica por score, vendas, rating e item_id]
     H --> I[Aplicacao das cotas fixas e da rotacao semanal]
-    I --> J[Distribuicao em 14 janelas de 8 itens]
+    I --> J[Distribuicao em 14 janelas de 10 itens]
     J --> K[daily_dispatch_plan do dia]
     K --> L[v_daily_dispatch_ready]
     L --> M[n8n envia para destino allowlisted]
@@ -135,8 +135,8 @@ O fluxo oficial do MVP para `feminino` passa a ser:
 
 ```text
 Catalogo ativo no Supabase
-  -> cron atualiza snapshots e persiste a fila diaria
-  -> n8n consulta offers.v_daily_dispatch_ready
+  -> cron atualiza snapshots e persiste fila diaria com payload completo
+  -> n8n claima offers.daily_dispatch_plan diretamente
   -> n8n monta mensagem
   -> n8n envia para allowlist
   -> Supabase registra historico

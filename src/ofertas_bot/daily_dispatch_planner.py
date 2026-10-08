@@ -3,7 +3,7 @@ from __future__ import annotations
 import tomllib
 from collections import Counter, defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -26,6 +26,17 @@ class DispatchCandidate:
     rating: Decimal | None
     product_cat_id: int | None = None
     selection_mode: str | None = "productCatId"
+    product_name: str | None = None
+    offer_link: str | None = None
+    image_url: str | None = None
+    price: Decimal | None = None
+    reference_price: Decimal | None = None
+    score_reasons: tuple[str, ...] = ()
+    rank_profile: int | None = None
+    rank_subniche: int | None = None
+    refresh_status: str | None = None
+    last_checked_at: datetime | None = None
+    latest_snapshot_id: int | None = None
 
 
 @dataclass(frozen=True)

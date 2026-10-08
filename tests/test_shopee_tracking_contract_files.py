@@ -17,10 +17,11 @@ def test_migration_is_additive_and_keeps_existing_ready_view() -> None:
     assert sql.count("enable row level security") == 6
 
 
-def test_n8n_only_reads_tracked_ready_surface() -> None:
+def test_n8n_reads_persisted_plan_without_expanding_ready_views() -> None:
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert text.count("offers.v_daily_dispatch_ready_tracked") == 4
-    assert "offers.v_daily_dispatch_ready ready" not in text
+    assert "offers.daily_dispatch_plan plan" in text
+    assert "offers.v_daily_dispatch_ready" not in text
+    assert "offers.v_offer_ranking" not in text
     assert "/api/sendImage" in text
     assert "/api/sendText" not in text
 

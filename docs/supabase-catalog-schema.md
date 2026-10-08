@@ -58,8 +58,8 @@ A migration incremental foi aplicada e o estado operacional vigente de
   o planejador diario, mas o planner do `feminino` persiste somente itens
   `refresh_status='FRESH'`;
 - `offers.daily_dispatch_plan` e `offers.v_daily_dispatch_ready` governam o
-  consumo horario do `feminino`, com a view revalidando freshness no momento do
-  claim;
+  consumo horario do `feminino`; o plano persiste payload e freshness, e a view
+  e apenas uma projecao leve para auditoria;
 - confirmacoes novas alimentam `offers.offer_selection_state` e governam a
   reentrada do item por `cooldown_until`;
 - o fluxo anterior em que o n8n consumia diretamente
@@ -487,10 +487,9 @@ No estado vigente do `feminino`, o n8n nao consome mais diretamente
 
 ```text
 offers.v_offer_ranking_current
-  -> planner diario so com FRESH
+  -> planner diario so com FRESH e snapshot completo
   -> offers.daily_dispatch_plan
-  -> offers.v_daily_dispatch_ready revalida FRESH e elegibilidade
-  -> n8n
+  -> n8n claima diretamente sem recalcular ranking
 ```
 
 O n8n nao deve alterar ranking, score ou elegibilidade. Ele apenas consome a

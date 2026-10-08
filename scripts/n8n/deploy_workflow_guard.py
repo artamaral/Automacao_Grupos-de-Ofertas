@@ -64,7 +64,7 @@ EXPECTED_SCHEDULE_CRON = "0 8-21 * * *"
 EXPECTED_WORKFLOW_TIMEZONE = "America/Sao_Paulo"
 EXPECTED_SCHEDULE_NODE = "Schedule Grupo Real"
 EXPECTED_SCHEDULE_CONTEXT_NODE = "Set Contexto Schedule Grupo"
-EXPECTED_SCHEDULE_LIMIT = 8
+EXPECTED_SCHEDULE_LIMIT = 10
 EXPECTED_SEND_DELAY_MIN = 45
 EXPECTED_SEND_DELAY_MAX = 90
 EXPECTED_LOOP_NODE = "Loop Ofertas"
@@ -93,7 +93,7 @@ LEGACY_NODE_HASHES = {
     "1": "15d198952fd47d2837db4c8cd62b6829a62cb5d43fa0eb90dee1ac97c78e2500",
     "schedule-grupo-real": "586e739d19c4df6a21a2212f8bb3449e807b28cc34a5df9fcaf1ca4c1b2c4432",
     "schedule-context-grupo-real": (
-        "9eaefb48ea187c08433b4780650689df65bcc38f53ac623fddf2b46c6389d035"
+        "eae6c888e11a7e454e3ef605b54d9173f31878891be5eed85d99b3a53e8cb671"
     ),
     "4": "b6a3df6df14099beb4467f60ccfaff9837a1173f11093a4b618489fea475507f",
     "prepare-batch-send": "b1f0ae87bec6f3b9cb50caa79b20fed928ce346ea53e951cef8a67176df4f795",
@@ -102,7 +102,7 @@ LEGACY_NODE_HASHES = {
     "6": "2bdcc37a06cd7a87359619f9e21ea90ec35b50d2863defe2337aa29bdfa873c6",
     "8": "0dc88cebbdfd3f047769145301f9cc48e38eb802c0e32622f10794433ffd1bb7",
     "9": "84c95218ef2b80c7d0ce02ded369beb6e7ae40adfc4f1e5d3ffcfe6415626202",
-    "3": "c1b49ff990d8e8c47f5c5787e3c89991c985c242076d432b1d33188f3346a80e",
+    "3": "84f23700ff4bbd417ef57daf3a08d37514d8e530810c4dce600665acdd8c17ea",
     "962ad612-c9bc-46f1-a15a-0e24e25600ac": (
         "cbb267607daad2a25fcf9bd28b60926b2d99400c8a21e76bde89f5737e27ed38"
     ),
@@ -863,9 +863,12 @@ def validate_daily_plan_claim(workflow: dict[str, Any], errors: list[str]) -> No
     context_code = str(context_node.get("parameters", {}).get("jsCode", "")).lower()
     for expected_text in (
         "offers.daily_dispatch_plan",
-        "offers.v_daily_dispatch_ready",
         "for update of plan skip locked",
-        "ready.is_ready_for_dispatch",
+        "plan.dispatch_status = 'planned'",
+        "plan.tracking_status = 'ready'",
+        "cardinality(plan.tracking_sub_ids) = 4",
+        "plan.refresh_status = 'fresh'",
+        "plan.latest_snapshot_id is not null",
         "dispatch_status = 'claimed'",
         "claim_token",
         "null::uuid as dispatch_plan_id",
@@ -873,6 +876,14 @@ def validate_daily_plan_claim(workflow: dict[str, Any], errors: list[str]) -> No
     ):
         if expected_text not in context_code:
             errors.append(f"Validar Contexto missing atomic claim: {expected_text}")
+    for forbidden_text in (
+        "offers.v_daily_dispatch_ready",
+        "offers.v_offer_ranking",
+    ):
+        if forbidden_text in context_code:
+            errors.append(
+                f"Validar Contexto must not recalculate dispatch payload: {forbidden_text}"
+            )
 
 
 def validate_message_template(workflow: dict[str, Any], errors: list[str]) -> None:

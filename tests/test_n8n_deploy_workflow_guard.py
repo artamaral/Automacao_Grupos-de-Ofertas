@@ -51,17 +51,32 @@ def test_validate_versioned_workflow_accepts_send_image_template() -> None:
     guard.validate_versioned_workflow(workflow_payload(), "OfertasMvpSupab1")
 
 
-def test_validate_versioned_workflow_rejects_claim_without_ready_filter() -> None:
+def test_validate_versioned_workflow_rejects_claim_without_persisted_freshness() -> None:
     workflow = workflow_payload()
     context_node = guard.node_by_name(workflow, "Validar Contexto")
     assert context_node is not None
     context_code = context_node["parameters"]["jsCode"]
     context_node["parameters"]["jsCode"] = context_code.replace(
-        "ready.is_ready_for_dispatch",
-        "ready.is_not_ready_for_dispatch",
+        "plan.refresh_status = 'FRESH'",
+        "plan.refresh_status = 'STALE'",
     )
 
-    with pytest.raises(guard.WorkflowGuardError, match="ready.is_ready_for_dispatch"):
+    with pytest.raises(guard.WorkflowGuardError, match="plan.refresh_status = 'fresh'"):
+        guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
+
+
+def test_validate_versioned_workflow_rejects_ranking_view_in_claim() -> None:
+    workflow = workflow_payload()
+    context_node = guard.node_by_name(workflow, "Validar Contexto")
+    assert context_node is not None
+    context_node["parameters"]["jsCode"] += (
+        "\nconst forbidden = 'offers.v_offer_ranking_current';"
+    )
+
+    with pytest.raises(
+        guard.WorkflowGuardError,
+        match="must not recalculate dispatch payload",
+    ):
         guard.validate_versioned_workflow(workflow, "OfertasMvpSupab1")
 
 
